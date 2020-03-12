@@ -56,6 +56,7 @@ def locg(pulldate=None,weeknumber=None,year=None):
             r = requests.get(url, params=params, verify=True, headers={'User-Agent': mylar.USER_AGENT[:mylar.USER_AGENT.find('/')+7] + mylar.USER_AGENT[mylar.USER_AGENT.find('(')+1]})
         except requests.exceptions.RequestException as e:
             logger.warn(e)
+            mylar.BACKENDSTATUS_WS = 'down'
             return {'status': 'failure'}
 
         if str(r.status_code) == '619':
@@ -63,9 +64,12 @@ def locg(pulldate=None,weeknumber=None,year=None):
             return {'status': 'failure'}
         elif str(r.status_code) == '999' or str(r.status_code) == '111':
             logger.warn('[%s] Unable to retrieve data from site - this is a site.specific issue [%s]' % (r.status_code, pulldate))
+            mylar.BACKENDSTATUS_WS = 'down'
             return {'status': 'failure'}
         elif str(r.status_code) == '200':
             data = r.json()
+
+            mylar.BACKENDSTATUS_WS = 'up'
 
             logger.info('[WEEKLY-PULL] There are %s issues for week %s, %s' % (len(data), weeknumber, year))
             pull = []

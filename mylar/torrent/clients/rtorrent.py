@@ -67,21 +67,22 @@ class TorrentClient(object):
                     newurl = url.replace('http://', 'http://%s:%s@' % (username, password))
                 else:
                     newurl = url
-                logger.fdebug('NEWURL: %s' % newurl.replace(password, '[REDACTED]'))
+                #logger.fdebug('NEWURL: %s' % newurl.replace(password, '[REDACTED]'))
                 authinfo = tuple(([auth, username, password]))
                 self.conn = RTorrent(
                     url, authinfo,
                     verify_server=True,
-                    verify_ssl=False #self.getVerifySsl(verify, ca_bundle)
+                    verify_ssl=self.getVerifySsl(verify, ca_bundle)
             )
             except Exception as err:
                 logger.error('Make sure you have the right protocol specified for the rtorrent host. Failed to connect to rTorrent - error: %s.' % err)
                 return {'status': False, 'error': err}
         else:
-            logger.fdebug('NO username %s / NO password %s' % (username, password))
+            #logger.fdebug('NO username %s / NO password %s' % (username, password))
             try:
+                authinfo = tuple(([auth, username, password]))
                 self.conn = RTorrent(
-                    url, (auth, username, password),
+                    url, authinfo,
                     verify_server=True,
                     verify_ssl=self.getVerifySsl(verify, ca_bundle)
             )

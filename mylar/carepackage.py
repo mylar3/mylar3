@@ -55,12 +55,15 @@ class carePackage(object):
         f.write("%s" % pi.stdout)
         f.write("%s\n" % pyloc)
 
-        pf = subprocess.run(['pip3', 'freeze'],
-            capture_output=True,
-            text=True)
-        f.write("\nPIP (freeze) list:\n")
-        for pfout in pf.stdout.split('\n'):
-            f.write("%s\n" % pfout)
+        try:
+            pf = subprocess.run(['pip3', 'freeze'],
+                capture_output=True,
+                text=True)
+            f.write("\nPIP (freeze) list:\n")
+            for pfout in pf.stdout.split('\n'):
+                f.write("%s\n" % pfout)
+        except Exception as e:
+            logger.warn('Unable to retrieve current pip listing. Usually this is due to pip being referenced as something other than pip3')
 
         f.write("\n\nMylar running environment:\n")
         for param in list(os.environ.keys()):
@@ -109,11 +112,13 @@ class carePackage(object):
                             ('PUSHOVER', 'pushover_userkey'),
                             ('BOXCAR', 'boxcar_token'),
                             ('PUSHBULLET', 'pushbullet_apikey'),
+                            ('NMA', 'nma_apikey'),
                             ('TELEGRAM', 'telegram_token'),
                             ('CV', 'comicvine_api'),
                             ('32P', 'password_32p'),
                             ('32P', 'passkey_32p'),
                             ('32P', 'username_32p'),
+                            ('32P', 'rssfeed_32p'),
                             ('Seedbox', 'seedbox_user'),
                             ('Seedbox', 'seedbox_pass'),
                             ('Seedbox', 'seedbox_port'),
@@ -127,8 +132,11 @@ class carePackage(object):
                        }
 
         for v in cleaned_list:
-            if all([tmpconfig.get(v[0], v[1]) is not None, tmpconfig.get(v[0], v[1]) != 'None']):
-                tmpconfig.set(v[0], v[1], 'xXX[REMOVED]XXx')
+            try:
+                if all([tmpconfig.get(v[0], v[1]) is not None, tmpconfig.get(v[0], v[1]) != 'None']):
+                    tmpconfig.set(v[0], v[1], 'xXX[REMOVED]XXx')
+            except configparser.NoSectionError as e:
+                pass
 
         hostname_list = {
                             ('SABnzbd', 'sab_host'),
@@ -224,3 +232,5 @@ class carePackage(object):
                     except RuntimeError:
                         #if zlib isn't available, will throw RuntimeError, then just use default compression
                         zip.write(fname, os.path.basename(fname))
+        os.unlink(self.filename)
+        os.unlink(self.cleanpath)

@@ -2345,7 +2345,7 @@
                     var username = document.getElementById("rtorrent_username").value;
                     var password = document.getElementById("rtorrent_password").value;
                     var auth = document.getElementById("rtorrent_authentication").value;
-                    var verify = document.getElementById("rtorrent_verify").value;
+                    var verify = document.getElementById("rtorrent_verify").checked;
                     var rpc_url = document.getElementById("rtorrent_rpc_url").value;
                     $.get("testrtorrent",
                         { host: host, username: username, password: password, auth: auth, verify: verify, rpc_url: rpc_url },

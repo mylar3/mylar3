@@ -22,16 +22,23 @@ import platform
 
 from .settings import ComicTaggerSettings
 # Need to load setting before anything else
-SETTINGS = ComicTaggerSettings()
+#SETTINGS = ComicTaggerSettings()
 
 from . import utils
 from . import cli
 from .options import Options
 from .comicvinetalker import ComicVineTalker
 
+SETTINGS = None
+
 def ctmain():
+    global SETTINGS
     opts = Options()
     opts.parseCmdLineArgs()
+    if not opts.configfolder:
+        SETTINGS = ComicTaggerSettings()
+    else:
+        SETTINGS = ComicTaggerSettings(opts.configfolder)
 
     # manage the CV API key
     if opts.cv_api_key:

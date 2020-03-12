@@ -139,6 +139,7 @@ For more help visit the wiki at: https://github.com/comictagger/comictagger/wiki
         self.wait_and_retry_on_rate_limit = False
         self.assume_issue_is_one_if_not_set = False
         self.file_list = []
+        self.configfolder = None
 
     def display_msg_and_quit(self, msg, code, show_help=False):
         appname = os.path.basename(sys.argv[0])
@@ -268,7 +269,7 @@ For more help visit the wiki at: https://github.com/comictagger/comictagger/wiki
                                         "raw", "noabort", "terse", "nooverwrite", "interactive",
                                         "nosummary", "version", "id=", "recursive", "script=",
                                         "export-to-zip", "delete-rar", "abort-on-conflict",
-                                        "assume-issue-one", "cv-api-key=", "only-set-cv-key",
+                                        "assume-issue-one", "cv-api-key=", "only-set-cv-key", "configfolder=",
                                         "wait-on-cv-rate-limit"])
 
         except getopt.GetoptError as err:
@@ -324,6 +325,8 @@ For more help visit the wiki at: https://github.com/comictagger/comictagger/wiki
                 self.wait_and_retry_on_rate_limit = True
             if o == "--id":
                 self.issue_id = a
+            if o == "--configfolder":
+                self.configfolder = a
             if o == "--raw":
                 self.raw = True
             if o == "--noabort":

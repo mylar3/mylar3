@@ -80,8 +80,10 @@ def pulldetails(comicid, type, issueid=None, offset=1, arclist=None, comicidlist
         r = requests.get(PULLURL, params=payload, verify=mylar.CONFIG.CV_VERIFY, headers=mylar.CV_HEADERS)
     except Exception as e:
         logger.warn('Error fetching data from ComicVine: %s' % (e))
+        mylar.BACKENDSTATUS_CV = 'down'
         return
 
+    mylar.BACKENDSTATUS_CV = 'up'
     #logger.fdebug('cv status code : ' + str(r.status_code))
     try:
         if type == 'single_issue':
@@ -94,9 +96,11 @@ def pulldetails(comicid, type, issueid=None, offset=1, arclist=None, comicidlist
             logger.error('ComicVine has banned this server\'s IP address because it exceeded the API rate limit.')
         else:
             logger.warn('[WARNING] ComicVine is not responding correctly at the moment. This is usually due to some problems on their end. If you re-try things again in a few moments, things might work')
+            mylar.BACKENDSTATUS_CV = 'down'
         return
     except Exception as e:
         logger.warn('[ERROR] Error returned from CV: %s' % e)
+        mylar.BACKENDSTATUS_CV = 'down'
         return
     else:
         return dom

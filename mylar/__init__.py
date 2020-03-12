@@ -150,7 +150,7 @@ CMTAGGER_PATH = None
 STATIC_COMICRN_VERSION = "1.01"
 STATIC_APC_VERSION = "2.04"
 SAB_PARAMS = None
-COMICINFO = []
+COMICINFO = ()
 SCHED = BackgroundScheduler({
                              'apscheduler.executors.default': {
                                  'class':  'apscheduler.executors.pool:ThreadPoolExecutor',
@@ -159,7 +159,9 @@ SCHED = BackgroundScheduler({
                              'apscheduler.job_defaults.coalesce': 'true',
                              'apscheduler.job_defaults.max_instances': '3',
                              'apscheduler.timezone': 'UTC'})
-
+BACKENDSTATUS_WS = 'up'
+BACKENDSTATUS_CV = 'up'
+PROVIDER_STATUS = {}
 
 
 def initialize(config_file):
@@ -172,7 +174,7 @@ def initialize(config_file):
                USE_SABNZBD, USE_NZBGET, USE_BLACKHOLE, USE_RTORRENT, USE_UTORRENT, USE_QBITTORRENT, USE_DELUGE, USE_TRANSMISSION, USE_WATCHDIR, SAB_PARAMS, \
                PROG_DIR, DATA_DIR, CMTAGGER_PATH, DOWNLOAD_APIKEY, LOCAL_IP, STATIC_COMICRN_VERSION, STATIC_APC_VERSION, KEYS_32P, AUTHKEY_32P, FEED_32P, FEEDINFO_32P, \
                MONITOR_STATUS, SEARCH_STATUS, RSS_STATUS, WEEKLY_STATUS, VERSION_STATUS, UPDATER_STATUS, DBUPDATE_INTERVAL, LOG_LANG, LOG_CHARSET, APILOCK, SEARCHLOCK, DDL_LOCK, LOG_LEVEL, \
-               SCHED_RSS_LAST, SCHED_WEEKLY_LAST, SCHED_MONITOR_LAST, SCHED_SEARCH_LAST, SCHED_VERSION_LAST, SCHED_DBUPDATE_LAST, COMICINFO, SEARCH_TIER_DATE
+               SCHED_RSS_LAST, SCHED_WEEKLY_LAST, SCHED_MONITOR_LAST, SCHED_SEARCH_LAST, SCHED_VERSION_LAST, SCHED_DBUPDATE_LAST, COMICINFO, SEARCH_TIER_DATE, BACKENDSTATUS_CV, BACKENDSTATUS_WS, PROVIDER_STATUS
 
         cc = mylar.config.Config(config_file)
         CONFIG = cc.read(startup=True)

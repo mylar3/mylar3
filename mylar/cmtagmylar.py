@@ -1,5 +1,5 @@
-# This script was taken almost entirely from Manders2600 Script with the use of the awesome ComicTagger.
-# modified very slightly so Mylar just passes it the IssueID for it to do it's magic.
+# This script was initially based from Manders2600 Script with the use of the awesome ComicTagger.
+# Modified, so Mylar just can pass in relevant information instead of querying CV for it to do it's magic.
 
 
 import os, errno
@@ -82,9 +82,9 @@ def run(dirName, nzbName=None, issueid=None, comversion=None, manual=None, filen
     #used for cbr - to - cbz conversion
     #depending on copy/move - eitehr we retain the rar or we don't.
     if mylar.CONFIG.FILE_OPTS == 'move':
-        cbr2cbzoptions = ["-e", "--delete-rar"]
+        cbr2cbzoptions = ["--configfolder", mylar.CONFIG.CT_SETTINGSPATH, "-e", "--delete-rar"]
     else:
-        cbr2cbzoptions = ["-e"]
+        cbr2cbzoptions = ["--configfolder", mylar.CONFIG.CT_SETTINGSPATH, "-e"]
 
     tagoptions = ["-s"]
     if mylar.CONFIG.CMTAG_VOLUME:
@@ -110,7 +110,7 @@ def run(dirName, nzbName=None, issueid=None, comversion=None, manual=None, filen
         return "fail"
 
     logger.info('ct_check: %s' % ct_check)
-    ctend = str(ct_check).find(':')
+    ctend = str(ct_check).find('[')
     ct_version = re.sub("[^0-9]", "", str(ct_check)[:ctend])
     from pkg_resources import parse_version
     if parse_version(ct_version) >= parse_version('1.3.1'):
@@ -120,7 +120,7 @@ def run(dirName, nzbName=None, issueid=None, comversion=None, manual=None, filen
         else:
             logger.fdebug('%s ComicTagger v.%s being used - using personal ComicVine API key supplied via mylar.' % (module, ct_version))
             use_cvapi = "True"
-            tagoptions.extend(["--cv-api-key", mylar.CONFIG.COMICVINE_API])
+            tagoptions.extend(["--cv-api-key", mylar.CONFIG.COMICVINE_API, "--configfolder", mylar.CONFIG.CT_SETTINGSPATH])
     else:
         logger.fdebug('%s ComicTagger v.ct_version being used - personal ComicVine API key not supported in this version. Good luck.' % (module, ct_version))
         use_cvapi = "False"

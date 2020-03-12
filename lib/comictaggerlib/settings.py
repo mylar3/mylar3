@@ -29,12 +29,15 @@ class ComicTaggerSettings:
     @staticmethod
     def getSettingsFolder():
         filename_encoding = sys.getfilesystemencoding()
-        if platform.system() == "Windows":
-            folder = os.path.join(os.environ['APPDATA'], 'ComicTagger')
-        else:
-            folder = os.path.join(os.path.expanduser('~'), '.ComicTagger')
-        if folder is not None:
-            folder = folder
+        try:
+            if platform.system() == "Windows":
+                folder = os.path.join(os.environ['APPDATA'], 'ComicTagger')
+            else:
+                folder = os.path.join(os.path.expanduser('~'), '.ComicTagger')
+            if folder is not None:
+                folder = folder
+        except Exception as e:
+            folder = None
         return folder
     
     @staticmethod
@@ -121,7 +124,7 @@ class ComicTaggerSettings:
         self.remove_archive_after_successful_match = False
         self.wait_and_retry_on_rate_limit = False
 
-    def __init__(self):
+    def __init__(self, configfolder=None):
 
         self.settings_file = ""
         self.folder = ""
@@ -129,6 +132,11 @@ class ComicTaggerSettings:
 
         self.config = configparser.RawConfigParser()
         self.folder = ComicTaggerSettings.getSettingsFolder()
+
+        #if self.folder is None due to shell resolving back to a non-shell'd user, this will bomb probably.
+
+        if configfolder != self.folder and configfolder is not None:
+            self.folder = configfolder
 
         if not os.path.exists(self.folder):
             os.makedirs(self.folder)

@@ -110,6 +110,30 @@
                                 %endif
                                 </em>
 				(${mylar.CONFIG.GIT_BRANCH})
+			</div>	
+			<div id="backendstatus">
+				Status: CV 
+                                    %if mylar.BACKENDSTATUS_CV == 'up':
+                                        <img src="interfaces/default/images/success.png", height="8" width="8">
+                                    %else:
+                                        <img src="interfaces/default/images/fail.png", height="8", width="8">
+                                    %endif
+                                , WS 
+                                    %if mylar.BACKENDSTATUS_WS == 'up':
+                                        <img src="interfaces/default/images/success.png", height="8" width="8">
+                                    %else:
+                                        <img src="interfaces/default/images/fail.png", height="8", width="8">
+                                    %endif
+                                <br>
+				<%
+                    for ko, vo in sorted(mylar.CONFIG.PROVIDER_ORDER.items()):
+                        mylar.PROVIDER_STATUS.update({vo : '<img src="interfaces/default/images/success.png", height="8" width="8">'})
+                        for kb in mylar.PROVIDER_BLOCKLIST:
+                            if vo == kb['site']:
+                                mylar.PROVIDER_STATUS.update({vo :'<img src="interfaces/default/images/fail.png", height="8" width="8">'})
+                                break
+                %>
+                Providers: ${mylar.PROVIDER_STATUS}    
 			</div>			
 		</footer>
 		<a href="#main" id="toTop"><span>Back to top</span></a>
