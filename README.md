@@ -30,7 +30,6 @@ The Mylar Forums are also online @ https://forum.mylarcomics.com
 
 ## Installation
 - run `pip3 install -r requirements.txt` to install all required dependencies not included. 
-- Note Windows users may need to run `py -m pip install requirements.txt` if the above fails.
 
 ## Usage
 To start the program, type `python3 Mylar.py` inside the root of the Mylar directory. Typing `python3 Mylar.py --help` will give a list of available options.
