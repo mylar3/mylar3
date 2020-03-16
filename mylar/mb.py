@@ -277,7 +277,10 @@ def findComic(name, mode, issue, limityear=None, type=None):
 
                     #logger.info('There are : ' + str(xmlcnt) + ' issues in this series.')
                     #logger.info('The first issue started at # ' + str(xmlfirst))
-                    d = decimal.Decimal(xmlfirst)
+                    try:
+                        d = decimal.Decimal(xmlfirst)
+                    except Exception as e:
+                        d = 1  # assume 1st issue as #1 if it can't be parsed.
                     if d < 1:
                         cnt_numerical = int(xmlcnt) + 1
                     else:
