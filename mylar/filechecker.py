@@ -1659,6 +1659,8 @@ class FileChecker(object):
                         cnt+=1
                 elif cnt == 2:
                     possyear = helpers.cleanhtml(re.sub('\.', '', e).strip())
+                    if type(possyear) == bytes:
+                        possyear = possyear.decode('utf-8')
                     if possyear.isdigit() and int(possyear) > 1970 and int(possyear) < 2020:
                         add_date += possyear
                         cnt +=1
@@ -1674,8 +1676,7 @@ class FileChecker(object):
                             break
                         except ValueError as err:
                             pass
-
-        # check that all the cases are handled        
+        # check that all the cases are handled
         success={t[0] for t in parsed}
         for e in txt.splitlines():
             if e not in success:
