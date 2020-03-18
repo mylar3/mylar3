@@ -84,11 +84,7 @@ class tehMain():
                             else:
                                 feeds = mylar.FEEDINFO_32P
                             if continue_search is True:
-                                try:
-                                    logger.info('feedinfo: %s' % feedinfo)
-                                except Exception as e:
-                                    logger.warn('[32P-RSSFEED] Unable to retrieve RSS properly: %s' % e)
-                                    continue
+                                logger.info('feedinfo: %s' % feedinfo)
                                 if feedinfo is None or all([len(feedinfo) == 0 , feedinfo['status'] is False]):
                                     logger.error('[RSS-FEEDS] Unable to retrieve any information from 32P for RSS Feeds. Skipping for now.')
                                 else:
