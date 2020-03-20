@@ -1015,21 +1015,26 @@ class Config(object):
             if self.CT_SETTINGSPATH is None:
                 chkpass = False
                 import pathlib
-                ct_path = str(pathlib.Path(os.path.expanduser("~")))
-                try:
-                    os.mkdir(os.path.join(ct_path, '.ComicTagger'))
-                    chkpass = True
-                except OSError as e:
-                    if e.errno != errno.EEXIST:
-                        logger.error('Unable to create .ComicTagger directory in %s. Setting up to default location of %s' % (ct_path, os.path.join(mylar.DATA_DIR, '.ComicTagger')))
+
+                #windows won't be able to create in ~, so force it to DATA_DIR
+                if mylar.OS_DETECT == 'Windows':
+                    ct_path = mylar.DATA_DIR
+                else:
+                    ct_path = str(pathlib.Path(os.path.expanduser("~")))
+                    try:
+                        os.mkdir(os.path.join(ct_path, '.ComicTagger'))
+                        chkpass = True
+                    except OSError as e:
+                        if e.errno != errno.EEXIST:
+                            logger.error('Unable to create .ComicTagger directory in %s. Setting up to default location of %s' % (ct_path, os.path.join(mylar.DATA_DIR, '.ComicTagger')))
+                            ct_path = mylar.DATA_DIR
+                            chkpass = True
+                        elif e.errno == 17: #file_already_exists
+                            chkpass = True
+                    except exception as e:
+                        logger.error('Unable to create setting directory for ComicTagger. This WILL cause problems when tagging.')
                         ct_path = mylar.DATA_DIR
                         chkpass = True
-                    elif e.errno == 17: #file_already_exists
-                        chkpass = True
-                except exception as e:
-                    logger.error('Unable to create setting directory for ComicTagger. This WILL cause problems when tagging.')
-                    ct_path = mylar.DATA_DIR
-                    chkpass = True
 
                 if chkpass is True:
                     setattr(self, 'CT_SETTINGSPATH', os.path.join(ct_path, '.ComicTagger'))

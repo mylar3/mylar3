@@ -813,9 +813,10 @@ class FileChecker(object):
                     yearmodposition = None
                     continue
                 else:
-                    issue_year = dc['date']
                     logger.fdebug('year verified as : %s' % issue_year)
-                    if highest_series_pos > dc['position']: highest_series_pos = dc['position']
+                    if highest_series_pos > dc['position'] and all([dc['position'] != 0, len(datecheck) > 1]):
+                        highest_series_pos = dc['position']
+                    issue_year = dc['date']
                     yearposition = dc['position']
                     yearmodposition = dc['mod_position']
                 if len(ab) == 4:
@@ -962,7 +963,17 @@ class FileChecker(object):
             if any([booktype == 'TPB', booktype == 'GN']):
                 logger.fdebug('%s detected. Volume assumption is number: %s' % (booktype, volume_found))
             else:
-                if len(volume_found) > 0:
+                if issue_year is not None and issue_number is None and '2000ad' in ''.join(split_file).lower():
+                    for x in possible_years:
+                        try:
+                            if split_file.index(issue_year) < x['yearposition'] and x['year'] != issue_year:
+                                issue_year = x['year']
+                                break
+                        except Exception as e:
+                            pass
+                    issue_number = issue_year
+                    issue_year = None
+                elif len(volume_found) > 0:
                     logger.fdebug('UNKNOWN TPB/GN detected. Volume assumption is number: %s' % (volume_found))
                 else:
                     logger.fdebug('No issue number present in filename.')
@@ -986,9 +997,10 @@ class FileChecker(object):
                     else:
                         highest_series_pos = volume_found['position']
             logger.fdebug('Volume detected as : %s' % issue_volume)
- 
+
         if all([len(volume_found) == 0, booktype != 'issue']) or all([len(volume_found) == 0, issue_number_position == len(split_file)]):
-            issue_volume = 'v1'
+            if not '2000ad' in ''.join(split_file).lower():
+                issue_volume = 'v1'
 
         #at this point it should be in a SERIES ISSUE VOLUME YEAR kind of format
         #if the position of the issue number is greater than the highest series position, make it the highest series position.
@@ -1117,7 +1129,11 @@ class FileChecker(object):
             series_name = ' '.join(split_file[:highest_series_pos])
         else:
             if highest_series_pos <= issue_number_position and all([len(split_file[0]) == 4, split_file[0].isdigit()]):
-                series_name = ' '.join(split_file[:highest_series_pos])
+                if re.sub('[\.\s]', '', split_file[yearposition+1]).strip().lower() == 'ad' or all([split_file[yearposition+1].lower() == 'a' and split_file[yearposition+2].lower() == 'd']):
+                    series_name = ' '.join(split_file[yearposition:highest_series_pos]) #logger.info('BOOOOYYYYAHHHHH')
+                    issue_year = None
+                else:
+                    series_name = ' '.join(split_file[:highest_series_pos])
             else:
                 series_name = ' '.join(split_file[yearposition+1:highest_series_pos])
 
@@ -1188,7 +1204,7 @@ class FileChecker(object):
         if (any([issue_number is None, series_name is None]) and booktype == 'issue'):
 
             if all([issue_number is None, booktype == 'issue', issue_volume is not None]):
-                logger.fdebug('Possible UKNOWN TPB/GN detected - no issue number present, no clarification in filename, but volume present with series title')
+                logger.fdebug('Possible UNKNOWN TPB/GN detected - no issue number present, no clarification in filename, but volume present with series title')
             else:
                 logger.fdebug('Cannot parse the filename properly. I\'m going to make note of this filename so that my evil ruler can make it work.')
 
@@ -1643,6 +1659,8 @@ class FileChecker(object):
                         cnt+=1
                 elif cnt == 2:
                     possyear = helpers.cleanhtml(re.sub('\.', '', e).strip())
+                    if type(possyear) == bytes:
+                        possyear = possyear.decode('utf-8')
                     if possyear.isdigit() and int(possyear) > 1970 and int(possyear) < 2020:
                         add_date += possyear
                         cnt +=1
@@ -1658,8 +1676,7 @@ class FileChecker(object):
                             break
                         except ValueError as err:
                             pass
-
-        # check that all the cases are handled        
+        # check that all the cases are handled
         success={t[0] for t in parsed}
         for e in txt.splitlines():
             if e not in success:
