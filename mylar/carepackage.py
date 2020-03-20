@@ -147,6 +147,7 @@ class carePackage(object):
         shutil.copy(self.configpath, self.cleanpath)
         tmpconfig = configparser.SafeConfigParser()
         tmpconfig.readfp(codecs.open(self.cleanpath, 'r', 'utf8'))
+
         for v in self.cleaned_list:
             try:
                 tmpkey = tmpconfig.get(v[0], v[1])
@@ -304,4 +305,3 @@ class carePackage(object):
 
         os.unlink(self.filename)
         os.unlink(self.cleanpath)
-

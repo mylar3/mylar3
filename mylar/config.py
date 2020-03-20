@@ -1015,6 +1015,7 @@ class Config(object):
             if self.CT_SETTINGSPATH is None:
                 chkpass = False
                 import pathlib
+
                 #windows won't be able to create in ~, so force it to DATA_DIR
                 if mylar.OS_DETECT == 'Windows':
                     ct_path = mylar.DATA_DIR
