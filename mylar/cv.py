@@ -1104,10 +1104,11 @@ def GetImportList(results):
     return serieslist
 
 def drophtml(html):
-    soup = Soup(html, "html.parser")
+    if html is not None:
+        soup = Soup(html, "html.parser")
 
-    text_parts = soup.findAll(text=True)
-    #print ''.join(text_parts)
-    return ''.join(text_parts)
-
-
+        text_parts = soup.findAll(text=True)
+        #print ''.join(text_parts)
+        return ''.join(text_parts)
+    else:
+        return ''
