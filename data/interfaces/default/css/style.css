@@ -1445,23 +1445,35 @@ div#artistheader h2 a {
   width: 100%;
 }
 #history_table td#dateadded {
-  font-size: 14px;
-  min-width: 150px;
-  text-align: center;
-  vertical-align: middle;
-}
-#history_table td#filename {
-  font-size: 15px;
+  font-size: 12px;
   min-width: 100px;
   text-align: center;
   vertical-align: middle;
 }
-#history_table td#size {
-  font-size: 14px;
-  min-width: 75px;
+#history_table td#filename {
+  font-size: 12px;
+  min-width: 150px;
   text-align: center;
   vertical-align: middle;
 }
+#history_table td#size {
+  font-size: 12px;
+  min-width: 40px;
+  text-align: center;
+  vertical-align: middle;
+}
+#history_table td#status {
+  font-size: 12px;
+  text-align: center;
+  vertical-align: middle;
+}
+#history_table td#action {
+  font-size: 12px;
+  max-width: 30px;
+  text-align: center;
+  vertical-align: middle;
+}
+
 #log_table {
   background-color: #FFF;
 }
@@ -2029,12 +2041,6 @@ DIV.progress-container > DIV
 #searchresults_table th#score {
   min-width: 75px;
   text-align: center;
-}
-#history_table td#status,
-#history_table td#action {
-  font-size: 14px;
-  text-align: center;
-  vertical-align: middle;
 }
 #wanted_table th#albumart {
   min-width: 50px;
