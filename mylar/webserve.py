@@ -2916,13 +2916,6 @@ class WebInterface(object):
     checkGithub.exposed = True
 
     def history(self):
-<<<<<<< HEAD
-        myDB = db.DBConnection()
-        history = myDB.select('''SELECT * from snatched order by DateAdded DESC''')
-        return serve_template(templatename="history.html", title="History", history=history)
-    history.exposed = True
-
-=======
         return serve_template(templatename="history.html", title="History")
     history.exposed = True
 
@@ -2958,7 +2951,6 @@ class WebInterface(object):
         })
     loadhistory.exposed = True
 
->>>>>>> python3-dev
     def reOrder(request):
         return request
 #        return serve_template(templatename="reorder.html", title="ReoRdered!", reorder=request)
@@ -6633,18 +6625,8 @@ class WebInterface(object):
         from mylar.webviewer import WebViewer
         wv = WebViewer()
         page_num = int(page_num)
-<<<<<<< HEAD
-        #cherrypy.session['ishid'] = ish_id 
-=======
         #cherrypy.session['ishid'] = ish_id
->>>>>>> python3-dev
         data = wv.read_comic(ish_id, page_num, size)
         #data = wv.read_comic(ish_id)
         return data
     read_comic.exposed = True
-<<<<<<< HEAD
-
-
-    
-=======
->>>>>>> python3-dev

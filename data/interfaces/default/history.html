@@ -11,10 +11,7 @@
 			<a id="menu_link_delete" href="#" onclick="doAjaxCall('clearhistory?type=Unprocessed',$(this),'table')" data-success="All Unprocessed cleared">Clear Unprocessed</a>
 			<a id="menu_link_delete" href="#" onclick="doAjaxCall('clearhistory?type=Snatched',$(this),'table')" data-success="All Snatched cleared">Clear Snatched</a>
                         <a id="menu_link_delete" href="#" onclick="doAjaxCall('wipenzblog',$(this),'table')" data-success="Wiped entire NZB DB">Wipe NZBLOG</a>
-<<<<<<< HEAD
-=======
                         <a id="menu_link_delete" href="logs">View Logs</a>
->>>>>>> python3-dev
 		</div>
 	</div>	
 </%def>
@@ -25,11 +22,7 @@
 	</div>
 
         <form action="markissues" method="get" id="markissues">
-<<<<<<< HEAD
-        <div id="markissue">Mark selected issues as
-=======
             <div id="markissue">Mark selected issues as
->>>>>>> python3-dev
                 <select name="action" onChange="doAjaxCall('markissues',$(this),'table',true);" data-success="selected issues marked">
                         <option disabled="disabled" selected="selected">Choose...</option>
                         <option value="Retry">Retry</option>
@@ -37,52 +30,6 @@
                 </select>
                 selected issues
                 <input type="hidden" value="Go">
-<<<<<<< HEAD
-        </div>
-
-     <div class="table_wrapper" id="history_table_wrapper">
-
-	<table class="display" id="history_table">
-		<thead>
-			<tr>
-                                <th id="select" align="left"><input type="checkbox" onClick="toggle(this)" class="checkbox" /></th>
-				<th id="dateadded">Date Added</th>
-				<th id="filename">Comic Name</th>
-                                <th id="issue">Issue</th>
-				<th id="status">Status</th>
-				<th id="action"></th>
-			</tr>
-		</thead>
-		<tbody>
-		%for item in history:
-			<%
-				if item['Status'] == 'Processed':
-					grade = 'A'
-				elif item['Status'] == 'Snatched':
-					grade = 'C'
-				elif item['Status'] == 'Unprocessed':
-					grade = 'X'
-				else:
-					grade = 'U'
-					
-			%>
-			<tr class="grade${grade}">
-                                <td id="select"><input type="checkbox" name="${item['IssueID']}" class="checkbox" /></td>
-				<td id="dateadded">${item['DateAdded']}</td>
-				<td id="filename"><a href="comicDetails?ComicID=${item['ComicID']}">${item['ComicName']}</a></td>
-                                <td id="issue">${item['Issue_Number']}</td>
-				<td id="status">${item['Status']}
-                                %if item['Status'] == 'Snatched':
-                                    (${item['Provider']})
-                                %endif
-                                </td>
-				<td id="action">[<a href="#" onclick="doAjaxCall('retryit?ComicName=${item['ComicName'] |u}&ComicID=${item['ComicID']}&IssueID=${item['IssueID']}&IssueNumber=${item['Issue_Number']}&redirect=history', $(this),'table')"  data-success="Successful re-download of '${item['ComicName']}' '${item['Issue_Number']}'">retry</a>]</td>
-			</tr>
-		%endfor
-		</tbody>
-	</table>
-      </div>
-=======
             </div>
 
             <div class="table_wrapper" id="history_table_wrapper">
@@ -102,8 +49,6 @@
 		    </tbody>
 	        </table>
             </div>
->>>>>>> python3-dev
-
         </form>
 </%def>
 
@@ -113,25 +58,6 @@
 
 <%def name="javascriptIncludes()">
 	<script src="js/libs/jquery.dataTables.min.js"></script>
-<<<<<<< HEAD
-	<script>
-	function initThisPage() {
-		$('#history_table').dataTable({
-			"bDestroy": true,
-			"oLanguage": {
-				"sLengthMenu":"Show _MENU_ items per page",
-				"sEmptyTable": "<em>No History to Display</em>",
-				"sInfo":"Showing _START_ to _END_ of _TOTAL_ items",
-				"sInfoEmpty":"Showing 0 to 0 of 0 items",
-				"sInfoFiltered":"(filtered from _MAX_ total items)"},
-			"iDisplayLength": 25,
-			"sPaginationType": "full_numbers",
-			"aaSorting": []
-
-		});
-		resetFilters("history");
-	}
-=======
         <script src="js/libs/full_numbers_no_ellipses.js"></script>
         <script>
         $.fn.DataTable.ext.pager.numbers_length = 3;
@@ -239,7 +165,6 @@
                  },
             });
 	};
->>>>>>> python3-dev
 	$(document).ready(function() {
 		initThisPage();
 		initActions();
