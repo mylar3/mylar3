@@ -32,8 +32,6 @@ The Mylar Forums are also online @ https://forum.mylarcomics.com
 - run `pip3 install -r requirements.txt` to install all required dependencies not included. 
 - Note Windows users may need to run `py -m pip install requirements.txt` if the above fails.
 
-<<<<<<< HEAD
-=======
 ## Upgrading from evilhero/mylar
 - `git clone https://github.com/mylar3/mylar3`
 - copy over your config.ini, mylar.db, and cache directory
@@ -41,7 +39,6 @@ The Mylar Forums are also online @ https://forum.mylarcomics.com
 - from the root of the new Mylar directory, run `pip3 install -r requirements.txt`
 - Start it up!
 
->>>>>>> python3-dev
 ## Usage
 To start the program, type `python3 Mylar.py` inside the root of the Mylar directory. Typing `python3 Mylar.py --help` will give a list of available options.
 
