@@ -2916,11 +2916,49 @@ class WebInterface(object):
     checkGithub.exposed = True
 
     def history(self):
+<<<<<<< HEAD
         myDB = db.DBConnection()
         history = myDB.select('''SELECT * from snatched order by DateAdded DESC''')
         return serve_template(templatename="history.html", title="History", history=history)
     history.exposed = True
 
+=======
+        return serve_template(templatename="history.html", title="History")
+    history.exposed = True
+
+    def loadhistory(self, iDisplayStart=0, iDisplayLength=100, iSortCol_0=5, sSortDir_0="desc", sSearch="", **kwargs):
+        myDB = db.DBConnection()
+        resultlist = myDB.select("SELECT * from snatched order by DateAdded DESC")
+        iDisplayStart = int(iDisplayStart)
+        iDisplayLength = int(iDisplayLength)
+        filtered = []
+        if sSearch == "" or sSearch == None:
+            filtered = resultlist[::]
+        else:
+            filtered = [row for row in resultlist if any([sSearch.lower() in row['ComicName'].lower(), sSearch.lower() in row['Status'].lower(), sSearch.lower() in row['DateAdded'], sSearch.lower() in row['Issue_Number']])]
+        sortcolumn = 'DateAdded'
+        if iSortCol_0 == '1':
+            sortcolumn = 'DateAdded'
+        if iSortCol_0 == '2':
+            sortcolumn = 'ComicName'
+        elif iSortCol_0 == '3':
+            sortcolumn = 'Issue_Number'
+        elif iSortCol_0 == '4':
+            sortcolumn = 'Status'
+        #below sort is for multi-sort columns, maybe make them user configurable - not sure how to pass mutli-sort thru otherwise
+        #filtered.sort(key= itemgetter(sortcolumn2, sortcolumn), reverse=sSortDir_0 == "desc")
+
+        filtered.sort(key=lambda x: (x[sortcolumn] is None, x[sortcolumn] == '', x[sortcolumn]), reverse=sSortDir_0 == "desc")
+        rows = filtered[iDisplayStart:(iDisplayStart + iDisplayLength)]
+        rows = [[row['DateAdded'], row['ComicName'], row['Issue_Number'], row['Status'], row['IssueID'], row['ComicID'], row['Provider']] for row in rows]
+        return json.dumps({
+            'iTotalDisplayRecords': len(filtered),
+            'iTotalRecords': len(resultlist),
+            'aaData': rows,
+        })
+    loadhistory.exposed = True
+
+>>>>>>> python3-dev
     def reOrder(request):
         return request
 #        return serve_template(templatename="reorder.html", title="ReoRdered!", reorder=request)
@@ -6595,11 +6633,18 @@ class WebInterface(object):
         from mylar.webviewer import WebViewer
         wv = WebViewer()
         page_num = int(page_num)
+<<<<<<< HEAD
         #cherrypy.session['ishid'] = ish_id 
+=======
+        #cherrypy.session['ishid'] = ish_id
+>>>>>>> python3-dev
         data = wv.read_comic(ish_id, page_num, size)
         #data = wv.read_comic(ish_id)
         return data
     read_comic.exposed = True
+<<<<<<< HEAD
 
 
     
+=======
+>>>>>>> python3-dev

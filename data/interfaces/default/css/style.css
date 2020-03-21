@@ -1445,23 +1445,53 @@ div#artistheader h2 a {
   width: 100%;
 }
 #history_table td#dateadded {
+<<<<<<< HEAD
   font-size: 14px;
   min-width: 150px;
+=======
+  font-size: 12px;
+  min-width: 100px;
+>>>>>>> python3-dev
   text-align: center;
   vertical-align: middle;
 }
 #history_table td#filename {
+<<<<<<< HEAD
   font-size: 15px;
   min-width: 100px;
+=======
+  font-size: 12px;
+  min-width: 150px;
+>>>>>>> python3-dev
   text-align: center;
   vertical-align: middle;
 }
 #history_table td#size {
+<<<<<<< HEAD
   font-size: 14px;
   min-width: 75px;
   text-align: center;
   vertical-align: middle;
 }
+=======
+  font-size: 12px;
+  min-width: 40px;
+  text-align: center;
+  vertical-align: middle;
+}
+#history_table td#status {
+  font-size: 12px;
+  text-align: center;
+  vertical-align: middle;
+}
+#history_table td#action {
+  font-size: 12px;
+  max-width: 30px;
+  text-align: center;
+  vertical-align: middle;
+}
+
+>>>>>>> python3-dev
 #log_table {
   background-color: #FFF;
 }
@@ -2030,12 +2060,15 @@ DIV.progress-container > DIV
   min-width: 75px;
   text-align: center;
 }
+<<<<<<< HEAD
 #history_table td#status,
 #history_table td#action {
   font-size: 14px;
   text-align: center;
   vertical-align: middle;
 }
+=======
+>>>>>>> python3-dev
 #wanted_table th#albumart {
   min-width: 50px;
   text-align: center;
