@@ -1,0 +1,20 @@
+# Mylar.service to run as $USER with config in $DATA_DIR
+
+[Unit]
+SourcePath=/etc/init.d/mylar
+Description=starts instance of Mylar
+After=all.target
+
+[Service]
+Type=forking
+Restart=no
+TimeoutSec=5min
+IgnoreSIGPIPE=no
+KillMode=process
+GuessMainPID=no
+RemainAfterExit=yes
+ExecStart=/etc/init.d/mylar start
+ExecStop=/etc/init.d/mylar stop
+
+[Install]
+WantedBy=multi-user.target

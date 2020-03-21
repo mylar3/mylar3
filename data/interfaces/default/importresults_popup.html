@@ -1,0 +1,109 @@
+<%inherit file="base.html" />
+<%!
+        import mylar
+        from mylar.helpers import checked
+
+%>
+<%def name="headerIncludes()">
+        <div id="subhead_container">
+                <div id="subhead_menu">
+                     <a id="menu_link_refresh" href="importResults">Return to ImportResults</a>
+                </div>
+        </div>
+</%def>
+
+<%def name="body()">
+	<div id="paddingheader">
+		<h1 class="clearfix"><img src="interfaces/default/images/icon_search.png" alt="Search results"/>Import Search results for : ${searchtext}</h1>
+        <div>
+        <div class="table_wrapper">
+	<table class="display" id="searchresults_table">
+		<thead>
+			<tr>
+				<th id="blank"></th>
+				<th id="name">Comic Name</th>
+                                <th id="publisher">Publisher</th>
+                                <th id="comicyear">Year</th>
+				<th id="issues">Issues</th>
+				<th id="add"></th>
+			</tr>
+		</thead>
+		<tbody>
+			%if searchresults:
+				%for result in searchresults:
+				<%
+					if result['comicyear'] == '2015':
+						grade = 'A'
+					else:
+						grade = 'Z'
+
+					if result['haveit'] != "No":
+						grade = 'H';
+
+				%>
+				<tr class="grade${grade}">
+					<td class="blank"></td>
+                                        %if result['deck'] == 'None' or result['deck'] is None:
+					<td class="name"><a href="${result['url']}" target="_blank">${result['name']}</a></td>
+                                        %else:
+					<td class="name"><a href="${result['url']}" title="${result['deck']}" target="_blank">${result['name']}</a></td>
+                                        %endif
+                                        <td class="publisher">${result['publisher']}</a></td>
+                                        <td class="comicyear">${result['comicyear']}</a></td>
+					<td class="issues">${result['issues']}</td>
+                                        %if result['haveit'] == 'No':
+                                            <%    
+                                                 calledby = "web-import"
+                                            %>
+                                            <td class="add"><a href="addbyid?comicid=${result['comicid']}&calledby=${calledby}&imported=${imported}&ogcname=${result['ogcname']}"><span class="ui-icon ui-icon-plus"></span>Add this Comic</a></td> 
+                                        %else:
+                                            <td class="add"><span class="ui-icon ui-icon-plus"></span>Already in Library</td> 
+                                        %endif
+				</tr>
+				%endfor
+			%endif
+		</tbody>
+	</table>
+	</div>
+</%def>
+
+<%def name="headIncludes()">
+	<link rel="stylesheet" href="interfaces/default/css/data_table.css">
+</%def>
+
+<%def name="javascriptIncludes()">
+	<script src="js/libs/jquery.dataTables.min.js"></script>
+	
+	<script>
+        function initThisPage(){
+
+                initActions();
+		$('#searchresults_table').dataTable(
+			{
+			       "bDestroy": true,
+			       "aoColumnDefs": [
+			         { 'bSortable': false, 'aTargets': [ 0 ] }
+			       ],	
+			       "oLanguage": {
+			     	       "sLengthMenu":"Show _MENU_ results per page",
+				       "sEmptyTable": "No results",
+				       "sInfo":"Showing _START_ to _END_ of _TOTAL_ results",
+				       "sInfoEmpty":"Showing 0 to 0 of 0 results",
+				       "sInfoFiltered":"(filtered from _MAX_ total results)",
+				       "sSearch" : ""},
+			       "iDisplayLength": 25,
+			       "sPaginationType": "full_numbers",
+			       "aaSorting": []
+                        });
+
+                resetFilters("result");
+                setTimeout(function(){
+                    initFancybox();
+                },1500);
+        }
+
+        $(document).ready(function() {
+                initThisPage();
+        });
+	</script>
+</%def>

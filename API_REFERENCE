@@ -1,0 +1,75 @@
+Because of how Mylar is based upon headphones, logistically the API that rembo10 has created for headphones
+will work reasonably well for Mylar - with some obvious changes. With that said, this was all taken from headphones
+as a starting base and will be added to as required.
+The API is really new and probably needs alot of cleaning up and to be tested out properly.
+There are no error codes yet, but will be added soon.
+
+
+General structure:
+http://localhost:8090 + HTTP_ROOT + /api?apikey=$apikey&cmd=$command
+
+Data returned in json format.
+If executing a command like "delComic" or "addComic" you'll get back an "OK", else, you'll get the data you requested
+
+$commands&parameters[&optionalparameters]:
+
+
+getIndex (fetch data from index page. Returns: ArtistName, ArtistSortName, ArtistID, Status, DateAdded,
+												[LatestAlbum, ReleaseDate, AlbumID], HaveTracks, TotalTracks,
+												IncludeExtras, LastUpdated, [ArtworkURL, ThumbURL]: a remote url to the artwork/thumbnail. To get the cached image path, see getArtistArt command.
+                                                                                                    ThumbURL is added/updated when an artist is added/updated. If your using the database method to get the artwork,
+                                                                                                    it's more reliable to use the ThumbURL than the ArtworkURL)
+
+getComic&id=$comicid (fetch artist data. returns the artist object (see above) and album info: Status, AlbumASIN, DateAdded, AlbumTitle, ArtistName, ReleaseDate, AlbumID, ArtistID, Type, ArtworkURL: hosted image path. For cached image, see getAlbumArt command)
+
+getIssue&id=$comicid (fetch data from album page. Returns the album object, a description object and a tracks object. Tracks contain: AlbumASIN, AlbumTitle, TrackID, Format, TrackDuration (ms), ArtistName, TrackTitle, AlbumID, ArtistID, Location, TrackNumber, CleanName (stripped of punctuation /styling), BitRate)
+
+getUpcoming[&include_downloaded_issues=Y] (fetch "This Week's Upcoming". Add the &include_downloaded_issues parameter to.. include downloaded issues.
+                                           This essentially forces the results to look like they would have at the start of the week, when all of the
+                                           issues were still Wanted. Returns: Status, ComicName, IssueID, DisplayComicName, IssueNumber, IssueDate, ComicID)
+
+getWanted (Returns: Status, AlbumASIN, DateAdded, AlbumTitle, ArtistName, ReleaseDate, AlbumID, ArtistID, Type)
+
+getHistory (Returns: Status, DateAdded, Title, URL (nzb), FolderName, AlbumID, Size (bytes))
+
+getLogs (not working yet)
+
+findArtist&name=$artistname[&limit=$limit] (perform artist query on musicbrainz. Returns: url, score, name, uniquename (contains disambiguation info), id)
+
+findAlbum&name=$albumname[&limit=$limit]  (perform album query on musicbrainz. Returns: title, url (artist), id (artist), albumurl, albumid, score, uniquename (artist - with disambiguation)
+
+addComic&id=$comicid (add an comic to the db by comicid)
+addAlbum&id=$releaseid (add an album to the db by album release id)
+
+delComic&id=$comicid (delete Comic from db by comicid)
+
+pauseComic&id=$artistid (pause an comic in db)
+resumeComic&id=$artistid (resume an comic in db)
+
+refreshComic&id=$comicid (refresh info for comic in db)
+
+queueIssue&id=$issueid (Mark an issue as wanted and start the search.
+unqueueIssue&id=$issueid (Unmark issue as wanted / i.e. mark as skipped)
+
+forceSearch (force search for wanted issues - not launched in a separate thread so it may take a bit to complete)
+forceProcess&nzb_name&nzb_folder (force post process issues in download directory - also not launched in a separate thread
+                                  for manual run set nzb_name to 'Manual+Run')
+
+getVersion (Returns some version information: git_path, install_type, current_version, installed_version, commits_behind
+checkGithub (updates the version information above and returns getVersion data)
+
+shutdown (shut down mylar)
+restart (restart mylar)
+update (update mylar - you may want to check the install type in get version and not allow this if type==exe)
+
+downloadIssue&id=$issueid (download that issue to your browser)
+findComic&name=$comicname (Find comics)
+
+getStoryArc (List all story arcs)
+getStoryArc&customOnly=1 (List custom story arcs)
+getStoryArc&id=$arcid (Show story arc issues)
+
+addStoryArc&id=$arcid&issues=$issues (add a comma delimited list of CV issue IDs to existing Story Arc ID.
+                                      Appended in order to the end of the reading order)
+addStoryArc&storyarcname=$name&issues=$issues (create a new story arc and add a comma delimited list of CV issue IDs
+                                               to it.)

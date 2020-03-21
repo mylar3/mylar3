@@ -1,0 +1,20 @@
+#Auto-snatch script for torrent clients (tested against rtorrent, should work with deluge)
+
+1) You can either then startup mylar and exit so that it can regenerate the new value 
+for the config file - OR -  you can manually enter it. 
+In the config.ini, 2 values need to get changed prior to usage: AUTO_SNATCH and SNATCH_SCRIPT
+-- Set auto-snatch to True in the config.ini to allow mylar to automatically monitor the download in your torrent
+client upon sending it to the client. Once it's completed, it will then use lftp to snatch the given file and 
+retrieve it to the desired location on the machine that mylar is running on - thereby allowing for immediate post-processing of remote torrents.
+-- SNATCH_SCRIPT has to be set to the full path where the getlftp.sh script resides
+(normally it should look like this : snatch_script = /mylar/post-processing/torrent-auto-snatch/getlftp.sh)
+save the config.ini
+
+2) Confirm the values in your config.ini so that they will work as intended. Note that this uses ssh to
+connect so the host/port/user/pass should relate to your ssh information (if you use ssh-keys,
+leave the PP_SSHPASS blank - and enter the full path to your public key file for PP_SSHKEYFILE).
+The PP_SSHLOCALCD option is the location where you want the script to put whatever it downloads from your
+client - ideally, this should be the folder that Mylar is to monitor for new items (Folder Monitor).
+
+3) Start up mylar, snatch a torrent and see if it auto-snatches the torrent once it's completed :)
+

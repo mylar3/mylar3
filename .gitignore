@@ -1,0 +1,16 @@
+mylar.db
+config.ini
+*.py[co]
+.idea
+logs
+.AppleDouble
+cache/
+custom_exceptions.csv
+Thumbs.db
+*.torrent
+ehtumbs.db
+Thumbs.db
+lib/comictaggerlib/ct_settings/
+settings.json
+.DS_Store
+version.py

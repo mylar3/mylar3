@@ -1,0 +1,141 @@
+<%inherit file="base.html" />
+<%!
+        from mylar import db
+        import mylar
+%>
+
+<%def name="headerIncludes()">
+	<div id="subhead_container">
+			&nbsp;
+	</div>	
+	<a href="manage" class="back">&laquo; Back to manage overview</a>
+</%def>
+
+
+<%def name="body()">
+	<div id="manageheader" class="title">
+		<h1 class="clearfix">Manage comics</h1>
+	</div>
+	<form action="markComics" method="get" id="markComics">
+        <div id="markcomics" style="top:0;">
+		<select name="action" onChange="doAjaxCall('markComics',$(this),'table',true);" data-error="You didn't select any comics">
+  			<option disabled="disabled" selected="selected">Choose...</option>
+  			<option value="delete">Delete Series</option>
+                        <option value="metatag">MetaTag Series</option>
+                        <option value="pause">Pause Series</option>
+  			<option value="recheck">Recheck Files</option>
+  			<option value="refresh">Refresh Series</option>
+			<option value="rename">Rename Series</option>
+  			<option value="resume">Resume Series</option>
+		</select>
+		selected comics
+		<input type="hidden" value="Go">
+	</div>
+	<div class="table_wrapper">
+
+	<table class="display" id="manage_comic">
+		<thead>
+			<tr>
+				<th id="select"><input type="checkbox" onClick="toggle(this)" /></th>
+				<th id="albumart"></th>
+				<th id="name">Comic Name</th>
+				<th id="status">Status</th>
+                                <th id="stat_icon"></th>
+                                <th class="hidden" id="stat_title"></th>
+                                <th id="latest">Latest Issue</th>
+                                <th id="publisher">Publisher</th>
+                                <th id="have">Have</th>
+				<th id="lastupdated">Updated</th>
+			</tr>
+		</thead>
+		<tbody>
+		%for comic in comics:
+                        <%
+
+			        if comic['percent'] == 101:
+                                        css = '<div class=\"progress-container warning\">'
+                                if comic['percent'] == 100:
+                                        css = '<div class=\"progress-container complete\">'
+                                if comic['percent'] < 100:
+                                        css = '<div class=\"progress-container missing\">'
+			        
+			        if comic['Status'] == 'Paused':
+                                        grade = 'X'
+                                elif comic['Status'] == 'Loading':
+                                        grade = 'L'
+                                elif comic['Status'] == 'Error':
+                                        grade = 'X'
+                                else:
+                                        grade = 'A'
+                        %>
+			<tr>
+				<td id="select"><input type="checkbox" name="${comic['ComicName']}[${comic['ComicYear']}]" value="${comic['ComicID']}" class="checkbox" /></td>
+				<td id="albumart"><div><img src="${comic['ComicImage']}" height="75" width="50"></div></td>
+				<td id="name"><span title="${comic['ComicSortName']}"></span><a href="comicDetails?ComicID=${comic['ComicID']}">${comic['ComicName']} (${comic['ComicYear']})</a></td>
+				<td id="status">${comic['recentstatus']}</td>
+                                <td id="stat_icon">
+                                %if comic['Status'] == 'Paused':
+                                    <img src="interfaces/default/images/pause-icon.png" title="Paused" alt="Paused" width="16" height="16" />
+                                %elif comic['Status'] == 'Loading':
+                                    <img src="interfaces/default/images/hourglass.png" title="Loading" alt="Loading" width="16" height="16" />
+                                %elif comic['Status'] == 'Error':
+                                    <img src="interfaces/default/images/cross.png" title="Error" alt="Error" width="16" height="16" />
+                                %else:
+                                    <img src="interfaces/default/images/checkmark.png" title="Active" alt="Active" width="16" height="16" />
+                                %endif
+                                </td>
+                                <td class="hidden" id="stat_title">${comic['Status']}</td>
+				<td id="latest">${comic['LatestIssue']} (${comic['LatestDate']})</td>
+                                <td id="publisher">${comic['ComicPublisher']}</td>
+                                <td id="have" valign="center"><span title="${comic['percent']}"></span>${css}<div style="width:${comic['percent']}%"><div style="width:${comic['percent']}%"><div class="havetracks">${comic['haveissues']}/${comic['totalissues']}</div></div></div></td>
+				<td id="lastupdated">${comic['DateAdded']}</td>
+			</tr>
+		%endfor
+		</tbody>
+	</table>
+	</div>
+	</form>
+</%def>
+
+<%def name="headIncludes()">
+	<link rel="stylesheet" href="interfaces/default/css/data_table.css">
+</%def>
+
+<%def name="javascriptIncludes()">
+	<script src="js/libs/jquery.dataTables.min.js"></script>
+        <script src="js/libs/full_numbers_no_ellipses.js"></script>
+	<script>
+        function initThisPage() {
+                $.fn.DataTable.ext.pager.numbers_length = 5;
+                $('#manage_comic').dataTable( {
+                        "destroy": true,
+                        "sDom": '<"clear"f><"clear"lp><"clear">rt<"clear"ip>',
+                        "deferRender": true,
+                        "columnDefs": [
+                            { 'bSortable': false, 'aTargets': [ 0, 1 ] },
+                            { 'order': [[2, 'desc'],[3, 'desc']] }
+                        ],
+                        "lengthMenu": [[10, 25, 50, -1], [10, 25, 50, 'All' ]],
+                        "language": {
+                                "lengthMenu":"Show _MENU_ results per page",
+                                "emptyTable": "No results",
+                                "info":"Showing _START_ to _END_ of _TOTAL_ results",
+                                "infoEmpty":"Showing 0 to 0 of 0 results",
+                                "infoFiltered":"(filtered from _MAX_ total results)",
+                                "search" : ""},
+                        "stateSave": true,
+                        "pageLength": 25,
+                        "pagingType": "simple_numbers"
+                });
+                resetFilters("comic");
+        }
+
+        $(document).ready(function(){
+                initThisPage();
+        });
+        $(window).load(function(){
+                initFancybox();
+        });
+        </script>
+
+</%def>

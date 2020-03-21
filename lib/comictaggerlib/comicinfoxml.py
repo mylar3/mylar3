@@ -1,0 +1,1 @@
+from comicapi.comicinfoxml import *

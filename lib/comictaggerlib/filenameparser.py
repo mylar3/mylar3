@@ -1,0 +1,1 @@
+from comicapi.filenameparser import *

@@ -1,0 +1,105 @@
+<%inherit file="base.html" /> <%!
+	import mylar
+	from mylar.helpers import checked
+%>
+<%def name="headerIncludes()">
+	<div id="subhead_container">
+	</div>	
+</%def>
+
+<%def name="body()">
+	<div id="paddingheader">
+		<h1 class="clearfix">Ultron Error-Checker</h1>
+	</div>
+	<div id="tabs">
+		<ul>
+			<li><a href="#tabs-1">Analysis Required</a></li>
+		</ul>
+		<div id="tabs-1" class="configtable">
+
+                   <table>
+                    <tr>
+                     <td width="250">
+                     <fieldset>
+                           <div>
+                               <img src="${comicimage}" alt="" height="350" width="230" />
+                           </div>
+                     </fieldset>
+                      </td>
+                       <td width="100%">
+                       <span style="position:absolute">
+                           <img src="interfaces/default/images/ultron.png" style="float:right" height="125" width="125">
+		              <fieldset>
+                                        <center><legend>Error-Check.</legend></center>
+					<strong>I cannot add the requested comic.</strong>
+					<p>I've figured out that the Comic that you've selected to watch isn't listed
+					correctly on the other databases I need to query. This is most likely due to  
+                                        an incorrect spelling, but sometimes it could because the year is wrong, or even
+                                        the issues are incorrect. So you need to help me out on this one - please select
+                                        below which series from the list is the one that you want to add.<br/></p>	
+                                        <br/>
+                                        <center><b>This is what you've given me to look for:</b><br/><br/>
+                                        <legend>${comicname}  (${comicyear})</br> 
+                                        ${comicissues} Issues</legend></center>
+                                        <br/>
+                              </fieldset>
+                        </span></td>
+                     </tr>
+                   </table>
+        <table class="display" id="searchmanage_table">
+                <thead>
+                        <tr>
+                                <th id="comicpub">Publisher</th>
+                                <th id="comicname">Comic Name</th>
+                                <th id="comicissues">Year</th>
+                                <th id="comicissues">Issues</th>
+                                <th id="addcomic"></th>
+                        </tr>
+                </thead>
+                <tbody>
+                                        %if cresults:
+                                           %for result in cresults:
+
+                                        <tr>
+                                        <td id="comicpub"><title="${result['ComicPublisher']}">${result['ComicPublisher']}</td>   
+                                        <td id="comicname"><a href="${result['ComicURL']}" title="${result['ComicName']}" target="_blank">${result['ComicName']}</td>
+                                        <td id="comicissues"><title="${result['ComicYear']}">${result['ComicYear']}</td>
+                                        <td id="comicissues">${result['ComicIssues']}</td>   
+                                        <td id="addcomic"><a href="from_Exceptions?comicid=${result['ComicID']}&comicname=${result['ComicName'] |u}&comicyear=${result['ComicYear']}&comicissues=${result['ComicIssues']}&comicpublisher=${result['ComicPublisher']}&gcdid=${result['GCDID']}&imported=${imported}&ogcname=${ogcname |u}"><span class="ui-icon-plus"></span>Add Series</a></td>
+                                        </tr>
+                                           %endfor
+                                        %else:
+                                        <tr>
+                                        <td colspan="5"><center><legend>There are no results to display</legend></center></td>
+                                        </tr>
+                                        %endif
+
+                            </div>
+                          </tbody>
+                          </table>
+                            <form action="error_change" method="GET">
+                                 <input type="hidden" name="comicid" value=${comicid}>
+                                 <input type="hidden" name="comicname" value=${comicname |u}>
+                                 <input type="hidden" name="comicyear" value=${comicyear}>
+                                 <input type="hidden" name="imported" value=${imported}>
+                                 <input type="hidden" name="mogcname" value=${ogcname |u}>
+                                        <div><br/>
+                                           <label><center><strong>Didn't get it right? Enter what it should be (or the GCD-ID) here:</strong></label></center>
+                                           <center><input type="text" name="errorgcd" size="30"><input type="submit" value="Update"/></center>
+                                        </div>
+
+                                 </form>
+                </div>
+</div>
+</%def>
+<%def name="javascriptIncludes()">
+	<script>
+		function initThisPage() {
+			jQuery( "#tabs" ).tabs();
+			initActions();
+		};
+		$(document).ready(function() {
+			initThisPage();
+		});
+	</script>
+</%def>

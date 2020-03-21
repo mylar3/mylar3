@@ -1,0 +1,148 @@
+<%inherit file="base.html" />
+<%!
+        from mylar import db
+        import mylar
+%>
+
+<%def name="headerIncludes()">
+	<div id="subhead_container">
+			&nbsp;
+	</div>	
+	<a href="manage" class="back">&laquo; Back to manage overview</a>
+</%def>
+
+
+<%def name="body()">
+	<div id="manageheader" class="title">
+		<h1 class="clearfix">Manage Issues</h1>
+	</div>
+
+        <form action="manageIssues" method="get">
+        <div>
+            <label>Manage Issues with Status&nbsp&nbsp</label><select name="status">
+                        %for curStatus in ['Wanted', 'Downloaded', 'Snatched', 'Skipped', 'Archived', 'Ignored', 'Failed']:
+                            <%
+                                     if curStatus == status:
+                                             selected = 'selected'
+                                     else:
+                                             selected = ''
+                             %>
+                             <option value="${curStatus}" ${selected}>${curStatus}</option> 
+                        %endfor
+                </select>
+                <input type="submit" value="Manage">
+        </div>
+        </form>
+        </br></br>
+	<form action="markissues" method="get" id="markissues">
+        <div id="markissues" style="top:0;">
+		<select name="action" onChange="doAjaxCall('markissues',$(this),'table',true);" data-error="You didn't select any issues">
+  			<option disabled="disabled" selected="selected">Choose...</option>
+  			<option value="Wanted">Wanted</option>
+  			<option value="Archived">Archived</option>
+  			<option value="Skipped">Skipped</option>
+  			<option value="Ignored">Ignored</option>
+		</select>
+                selected issues
+		<input type="hidden" value="Go">
+	</div>
+        
+	<div class="table_wrapper">
+
+	<table class="display" id="manage_issues">
+		<thead>
+			<tr>
+				<th id="select"><input type="checkbox" onClick="toggle(this)" class="checkbox" align="left" /></th>
+				<th id="name">Series</th>
+                                <th id="int_issue">Int_Issue</th>
+				<th id="issue">Issue</th>
+                                <th id="pubdate">Pub Date</th>
+                                <th id="releasedate">Store Date</th>
+				<th id="status">Status</th>
+				<th id="options">Options</th>
+			</tr>
+		</thead>
+		<tbody>
+		%for issue in issues:
+			<tr>
+				<td id="select"><input type="checkbox" name="${issue['IssueID']}" class="checkbox" /></td>
+                                <% 
+                                     try:
+                                         if issue['ReleaseComicName']:
+                                             annual = True
+                                         else:
+                                             annual = False
+                                     except:
+                                         annual = False
+                                %>
+                                %if annual:
+                                    <td id="name"><span title="${issue['ReleaseComicName']}"></span><a href="comicDetails?ComicID=${issue['ComicID']}">${issue['ReleaseComicName']}</a></td>
+                                %else:
+	                            <td id="name"><span title="${issue['ComicName']}"></span><a href="comicDetails?ComicID=${issue['ComicID']}">${issue['ComicName']}</a></td>
+                                %endif
+                                <td id="int_issue">${issue['Int_IssueNumber']}</td>
+				<td id="issue">${issue['Issue_Number']}</td>
+				<td id="pubdate">${issue['IssueDate']}</td>
+				<td id="releasedate">${issue['ReleaseDate']}</td>
+				<td id="status">${issue['Status']}</td>	
+                                <td id="options">
+                                <%
+                                     try:
+                                         ahash = issue['hash']
+                                     except:
+                                         ahash = None
+                                 %>
+                                 %if ahash is not None and mylar.CONFIG.AUTO_SNATCH is True:
+                                     <a href="#" onclick="doAjaxCall('torrentit?torrent_hash=${ahash}&download=True',$(this),'table')" title="Auto-Snatch torrent file"><span class="ui-icon ui-icon-plus"></span>auto-snatch</a>
+                                 %endif
+                                </td>
+			</tr>
+		%endfor
+		</tbody>
+	</table>
+	</div>
+	</form>
+</%def>
+
+<%def name="headIncludes()">
+	<link rel="stylesheet" href="interfaces/default/css/data_table.css">
+</%def>
+
+<%def name="javascriptIncludes()">
+	<script src="js/libs/jquery.dataTables.min.js"></script>
+        <script>
+        function initThisPage() {
+                $('#manage_issues').dataTable(
+                        {
+                                "bDestroy": true,
+                                "aoColumnDefs": [
+                                  { 'bSortable': false, 'aTargets': [ 0 , 2 ] },
+                                  { 'bVisible': false, 'aTargets': [2] },
+                                  { 'sType': 'numeric', 'aTargets': [2] },
+                                  { 'columns.orderData': [2], 'aTargets': [3] }
+                                ],
+                                "aLengthMenu": [[10, 25, 50, -1], [10, 25, 50, 'All' ]],
+                                "oLanguage": {
+                                        "sLengthMenu":"Show _MENU_ results per page",
+                                        "sEmptyTable": "No results",
+                                        "sInfo":"Showing _START_ to _END_ of _TOTAL_ results",
+                                        "sInfoEmpty":"Showing 0 to 0 of 0 results",
+                                        "sInfoFiltered":"(filtered from _MAX_ total results)",
+                                        "sSearch" : ""},
+                                "bStateSave": true,
+                                "iDisplayLength": 25,
+                                "sPaginationType": "full_numbers",
+                                "aaSorting": [[1, 'desc'],[2, 'desc']]
+                        });
+                        resetFilters("issue");
+        }
+
+        $(document).ready(function(){
+                initThisPage();
+        });
+        $(window).load(function(){
+                initFancybox();
+        });
+        </script>
+
+</%def>
