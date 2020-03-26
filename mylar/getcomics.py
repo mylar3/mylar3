@@ -217,8 +217,12 @@ class GC(object):
             else:
                 for x in bb:
                     linkline = x.find('a')
-                    if linkline:
-                        if 'go.php' in linkline['href']:
+                    try:
+                        tmp = linkline['href']
+                    except:
+                        continue
+                    if tmp:
+                        if any(['run.php' in linkline['href'], 'go.php' in linkline['href']]):
                             volume = x.findNext(text=True)
                             if '\u2013' in volume:
                                 volume = re.sub('\u2013', '-', volume)
@@ -348,8 +352,9 @@ class GC(object):
                     remote_filesize = int(t.headers['Content-length'])
                     logger.fdebug('remote filesize: %s' % remote_filesize)
                 except Exception as e:
-                    if 'go.php-urls' not in link:
-                        link = re.sub('go.php-url=', 'go.php-urls', link)
+                    if 'run.php-urls' not in link:
+                        link = re.sub('run.php-url=', 'run.php-urls', link)
+                        link = re.sub('go.php-url=', 'run.php-urls', link)
                         t = s.get(link, verify=True, cookies=cf_cookievalue, headers=self.headers, stream=True, timeout=30)
                         filename = os.path.basename(urllib.parse.unquote(t.url)) #.decode('utf-8'))
                         if 'GetComics.INFO' in filename:
