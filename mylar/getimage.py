@@ -75,8 +75,8 @@ def extract_image(location, single=False, imquality=None):
                 except Exception as e:
                     logger.warn('[EXCEPTION] %s' % e)
                     return
-            except:
-                logger.warn('[EXCEPTION]: %s' % sys.exec_info()[0])
+            except Exception as e:
+                logger.warn('[EXCEPTION]: %s' % e)
                 return
         try:
             for infile in location_in.infolist():
@@ -133,15 +133,17 @@ def extract_image(location, single=False, imquality=None):
                 img.save(output, format="JPEG")
                 try:
                     ComicImage = str(base64.b64encode(output.getvalue()), 'utf-8')
+                    RawImage = output.getvalue()
                 except Exception as e:
                     ComicImage = str(base64.b64encode(output.getvalue() + "==="), 'utf-8')
+                    RawImage = output.getvalue() + "==="
                 output.close()
 
             except Exception as e:
                 logger.warn('[WARNING] Unable to resize existing image: %s' % e)
         else:
             ComicImage = local_filename
-    return {'ComicImage': ComicImage, 'metadata': metadata}
+    return {'ComicImage': ComicImage, 'metadata': metadata, 'rawImage': RawImage}
 
 def retrieve_image(url):
     try:
