@@ -57,6 +57,7 @@ _CONFIG_DEFINITIONS = OrderedDict({
     'LOWERCASE_FILENAMES': (bool, 'General', False),
     'IGNORE_HAVETOTAL': (bool, 'General', False),
     'IGNORE_TOTAL': (bool, 'General', False),
+    'IGNORE_COVERS': (bool, 'General', True),
     'SNATCHED_HAVETOTAL': (bool, 'General', False),
     'FAILED_DOWNLOAD_HANDLING': (bool, 'General', False),
     'FAILED_AUTO': (bool, 'General',False),
