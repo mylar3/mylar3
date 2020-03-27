@@ -55,6 +55,7 @@ def initialize(options):
         'server.thread_pool': 10,
         'tools.encode.on': True,
         'tools.encode.encoding': 'utf-8',
+        'tools.encode.text_only': False,
         'tools.decode.on': True,
         'log.screen': True,
         'engine.autoreload.on': False,

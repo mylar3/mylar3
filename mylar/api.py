@@ -17,7 +17,6 @@
 
 import mylar
 from mylar import db, mb, importer, search, process, versioncheck, logger, webserve, helpers, encrypted
-import simplejson as simplejson
 import json
 import cherrypy
 import random
@@ -63,15 +62,15 @@ class Api(object):
             }
         }
         cherrypy.response.headers['Content-Type'] = "application/json"
-        return simplejson.dumps(response)
-    
+        return json.dumps(response)
+
     def _successResponse(self, results):
         response = {
             'success': True,
             'data': results
         }
         cherrypy.response.headers['Content-Type'] = "application/json"
-        return simplejson.dumps(response)
+        return json.dumps(response)
 
     def _resultsFromQuery(self, query):
         myDB = db.DBConnection()
@@ -154,10 +153,10 @@ class Api(object):
                         return self.data
                     else:
                         cherrypy.response.headers['Content-Type'] = "application/json"
-                        return simplejson.dumps(self.data)
+                        return json.dumps(self.data)
             else:
                 self.callback = self.kwargs['callback']
-                self.data = simplejson.dumps(self.data)
+                self.data = json.dumps(self.data)
                 self.data = self.callback + '(' + self.data + ');'
                 cherrypy.response.headers['Content-Type'] = "application/javascript"
                 return self.data
@@ -176,7 +175,7 @@ class Api(object):
             Total as totalIssues,\
             DetailURL as detailsURL\
         FROM comics'
-        
+
     def _selectForIssues(self):
         return 'SELECT \
             IssueID as id,\
@@ -188,7 +187,7 @@ class Api(object):
             Status as status,\
             ComicName as comicName\
         FROM issues'
-    
+
     def _selectForAnnuals(self):
         return 'SELECT \
             IssueID as id,\
@@ -269,7 +268,7 @@ class Api(object):
         return
 
     def _getComic(self, **kwargs):
-        
+
         if 'id' not in kwargs:
             self.data = self._failureResponse('Missing parameter: id')
             return
@@ -298,8 +297,8 @@ class Api(object):
             annuals = []
 
         self.data = self._successResponse({
-            'comic': comic, 
-            'issues': issues, 
+            'comic': comic,
+            'issues': issues,
             'annuals': annuals
         })
 
@@ -784,7 +783,7 @@ class REST(object):
 
             #return rows_as_dic
             some = helpers.havetotals()
-            return simplejson.dumps(some)
+            return json.dumps(some)
 
     class Comics(object):
         exposed = True
