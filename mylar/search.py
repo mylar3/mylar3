@@ -966,6 +966,10 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueDa
                                     logger.fdebug('Failure to meet the Maximium size threshold - skipping')
                                     continue
 
+                if mylar.CONFIG.IGNORE_COVERS is True and 'coveronly' in re.sub('[\s\s+\_\.]', '', entry['title'].lower(), re.UNICODE):
+                    logger.febug('Cover only detected. Ignoring result.')
+                    continue
+
 #---- date constaints.
                 # if the posting date is prior to the publication date, dump it and save the time.
                 #logger.fdebug('entry: %s' % entry)
@@ -1905,7 +1909,7 @@ def searchIssueIDList(issuelist):
                     continue
 
             if any([issue['Status'] == 'Downloaded', issue['Status'] == 'Snatched']):
-                logger.fdebug('Issue is already in a Downloaded / Snatched status.')
+                logger.fdebug('Issue is already in a Downloaded / Snatched status. If this is still wanted, perform a Manual search or mark issue as Skipped or Wanted.')
                 continue
 
             comic = myDB.selectone('SELECT * from comics WHERE ComicID=?', [issue['ComicID']]).fetchone()
@@ -1926,9 +1930,8 @@ def searchIssueIDList(issuelist):
             else:
                 AllowPacks = False
 
-            foundNZB, prov = search_init(comic['ComicName'], issue['Issue_Number'], str(IssueYear), comic['ComicYear'], Publisher, issue['IssueDate'], issue['ReleaseDate'], issue['IssueID'], AlternateSearch, UseFuzzy, ComicVersion, SARC=None, IssueArcID=None, mode=mode, ComicID=issue['ComicID'], filesafe=comic['ComicName_Filesafe'], allow_packs=AllowPacks, torrentid_32p=TorrentID_32p, digitaldate=issue['DigitalDate'], booktype=booktype)
-            if foundNZB['status'] is True:
-                updater.foundsearch(ComicID=issue['ComicID'], IssueID=issue['IssueID'], mode=mode, provider=prov, hash=foundNZB['info']['t_hash'])
+            mylar.SEARCH_QUEUE.put({'comicname': comic['ComicName'], 'seriesyear': SeriesYear, 'issuenumber':issue['Issue_Number'], 'issueid': issue['IssueID'], 'comicid': issue['ComicID'], 'booktype': booktype})
+
         logger.info('Completed search request.')
     else:
         logger.warn('There are no search providers enabled atm - not performing the requested search for obvious reasons')
