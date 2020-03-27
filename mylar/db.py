@@ -129,7 +129,7 @@ class DBConnection:
                     self.connection.commit()
                     break
                 except sqlite3.OperationalError as e:
-                    if "unable to open database file" in e.message or "database is locked" in e.message:
+                    if any(['unable to open database file' in e, 'database is locked' in e]):
                         logger.warn('Database Error: %s' % e)
                         logger.warn('sqlresult: %s' %  query)
                         attempt += 1
