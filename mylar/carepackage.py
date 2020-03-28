@@ -293,12 +293,13 @@ class carePackage(object):
                     except Exception as e:
                         logger.warn(e)
                     else:
+                        output.close()
                         os.unlink(filename)
 
         try:
-            os.rmdir(os.path.join(mylar.CONFIG.LOG_DIR, 'carepackage'))
-        except:
-            pass
+            shutil.rmtree(caredir)
+        except Exception as e:
+            logger.warn('Error logged trying to remove temporary carepackage directory: %s' % e)
 
         os.unlink(self.filename)
         os.unlink(self.cleanpath)
