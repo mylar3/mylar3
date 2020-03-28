@@ -66,6 +66,10 @@ def libraryScan(dir=None, append=False, ComicID=None, ComicName=None, cron=None,
                         continue
 
                 comic = files
+                if not os.path.exists(comicpath):
+                    logger.fdebug(f'''Comic: {comic} doesn't actually exist - assuming it is a symlink to a nonexistant path.''')
+                    continue
+
                 comicsize = os.path.getsize(comicpath)
                 logger.fdebug('Comic: ' + comic + ' [' + comicpath + '] - ' + str(comicsize) + ' bytes')
 
