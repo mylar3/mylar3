@@ -513,10 +513,14 @@ class ComicVineTalker(QObject):
         if settings.use_series_start_as_volume:
             metadata.volume = volume_results['start_year']
 
-        metadata.notes = "Tagged with the {0} fork of ComicTagger {1} using info from Comic Vine on {2}.  [Issue ID {3}]".format(
+        if settings.notes_format == 'Issue ID':
+            #add the space for consistency
+            settings.notes_format = 'Issue ID '
+        metadata.notes = "Tagged with the {0} fork of ComicTagger {1} using info from Comic Vine on {2}.  [{3}{4}]".format(
             ctversion.fork,
             ctversion.version,
             datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            settings.notes_format,
             issue_results['id'])
 
         metadata.webLink = issue_results['site_detail_url']

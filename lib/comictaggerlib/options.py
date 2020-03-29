@@ -102,6 +102,9 @@ If no options are given, {0} will run in windowed mode.
 -v, --verbose               Be noisy when doing what it does.
     --terse                 Don't say much (for print mode).
     --version               Display version.
+    --configfolder=FOLDER   Full path to location of configuration folder
+    --notes_format=TYPE     Notes field will contain [CVDBxxxxxx] or
+                            [Issue ID xxxxxx] (specify as "CVDB" or "Issue ID").
 -h, --help                  Display this message.
 
 For more help visit the wiki at: https://github.com/comictagger/comictagger/wiki
@@ -139,6 +142,7 @@ For more help visit the wiki at: https://github.com/comictagger/comictagger/wiki
         self.wait_and_retry_on_rate_limit = False
         self.assume_issue_is_one_if_not_set = False
         self.file_list = []
+        self.notes_format = 'Issue ID'
         self.configfolder = None
 
     def display_msg_and_quit(self, msg, code, show_help=False):
@@ -270,7 +274,7 @@ For more help visit the wiki at: https://github.com/comictagger/comictagger/wiki
                                         "nosummary", "version", "id=", "recursive", "script=",
                                         "export-to-zip", "delete-rar", "abort-on-conflict",
                                         "assume-issue-one", "cv-api-key=", "only-set-cv-key", "configfolder=",
-                                        "wait-on-cv-rate-limit"])
+                                        "notes_format=", "wait-on-cv-rate-limit"])
 
         except getopt.GetoptError as err:
             self.display_msg_and_quit(str(err), 2)
@@ -327,6 +331,9 @@ For more help visit the wiki at: https://github.com/comictagger/comictagger/wiki
                 self.issue_id = a
             if o == "--configfolder":
                 self.configfolder = a
+            if o == "--notes_format":
+                if any([a == 'CVDB', a == 'Issue ID']):
+                    self.notes_format = a
             if o == "--raw":
                 self.raw = True
             if o == "--noabort":

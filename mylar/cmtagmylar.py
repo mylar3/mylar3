@@ -120,7 +120,7 @@ def run(dirName, nzbName=None, issueid=None, comversion=None, manual=None, filen
         else:
             logger.fdebug('%s ComicTagger v.%s being used - using personal ComicVine API key supplied via mylar.' % (module, ct_version))
             use_cvapi = "True"
-            tagoptions.extend(["--cv-api-key", mylar.CONFIG.COMICVINE_API, "--configfolder", mylar.CONFIG.CT_SETTINGSPATH])
+            tagoptions.extend(["--cv-api-key", mylar.CONFIG.COMICVINE_API, "--configfolder", mylar.CONFIG.CT_SETTINGSPATH, "--notes_format", mylar.CONFIG.CT_NOTES_FORMAT])
     else:
         logger.fdebug('%s ComicTagger v.ct_version being used - personal ComicVine API key not supported in this version. Good luck.' % (module, ct_version))
         use_cvapi = "False"
