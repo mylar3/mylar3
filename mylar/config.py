@@ -292,6 +292,7 @@ _CONFIG_DEFINITIONS = OrderedDict({
     'CT_TAG_CBL': (bool, 'Metatagging', True),
     'CT_CBZ_OVERWRITE': (bool, 'Metatagging', False),
     'UNRAR_CMD': (str, 'Metatagging', None),
+    'CT_NOTES_FORMAT': (str, 'Metatagging', 'Issue ID'),
     'CT_SETTINGSPATH': (str, 'Metatagging', None),
     'CMTAG_VOLUME': (bool, 'Metatagging', True),
     'CMTAG_START_YEAR_AS_VOLUME': (bool, 'Metatagging', False),
@@ -1011,6 +1012,10 @@ class Config(object):
         logger.info('[COMICTAGGER] Version detected: %s' % ctversion.version) 
         if self.ENABLE_META:
             mylar.CMTAGGER_PATH = mylar.PROG_DIR
+
+            if not ([self.CT_NOTES_FORMAT == 'CVDB', self.CT_NOTES_FORMAT == 'Issue ID']):
+                setattr(self, 'CT_NOTES_FORMAT', 'Issue ID')
+                config.set('Metatagging', 'ct_notes_format', self.CT_NOTES_FORMAT)
 
             #we need to make sure the default folder setting for the comictagger settings exists so things don't error out
             if self.CT_SETTINGSPATH is None:
