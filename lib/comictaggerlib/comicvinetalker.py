@@ -513,7 +513,11 @@ class ComicVineTalker(QObject):
         if settings.use_series_start_as_volume:
             metadata.volume = volume_results['start_year']
 
-        metadata.notes = "Tagged with the {0} fork of ComicTagger {1} using info from Comic Vine on {2}.  [Issue ID {3}]".format(
+        notes_format = "Tagged with the {0} fork of ComicTagger {1} using info from Comic Vine on {2}.  [Issue ID {3}]"
+        if settings.include_comicrack_style_issue_id:
+            notes_format += " [CVDB{3}]"
+
+        metadata.notes = notes_format.format(
             ctversion.fork,
             ctversion.version,
             datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),

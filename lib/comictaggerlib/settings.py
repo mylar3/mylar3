@@ -97,6 +97,7 @@ class ComicTaggerSettings:
         self.clear_form_before_populating_from_cv = False
         self.remove_html_tables = False
         self.cv_api_key = ""
+        self.include_comicrack_style_issue_id = False
 
         # CBL Tranform settings
 
@@ -264,6 +265,10 @@ class ComicTaggerSettings:
                 'comicvine', 'remove_html_tables')
         if self.config.has_option('comicvine', 'cv_api_key'):
             self.cv_api_key = self.config.get('comicvine', 'cv_api_key')
+        if self.config.has_option(
+                'comicvine', 'include_comicrack_style_issue_id'):
+            self.include_comicrack_style_issue_id = self.config.getboolean(
+                'comicvine', 'include_comicrack_style_issue_id')            
 
         if self.config.has_option(
                 'cbl_transform', 'assume_lone_credit_is_primary'):
@@ -417,6 +422,8 @@ class ComicTaggerSettings:
         self.config.set(
             'comicvine', 'remove_html_tables', self.remove_html_tables)
         self.config.set('comicvine', 'cv_api_key', self.cv_api_key)
+        self.config.set('comicvine', 'include_comicrack_style_issue_id', 
+                        self.include_comicrack_style_issue_id)        
 
         if not self.config.has_section('cbl_transform'):
             self.config.add_section('cbl_transform')
