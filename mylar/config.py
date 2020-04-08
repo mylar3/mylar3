@@ -57,6 +57,7 @@ _CONFIG_DEFINITIONS = OrderedDict({
     'LOWERCASE_FILENAMES': (bool, 'General', False),
     'IGNORE_HAVETOTAL': (bool, 'General', False),
     'IGNORE_TOTAL': (bool, 'General', False),
+    'IGNORE_COVERS': (bool, 'General', True),
     'SNATCHED_HAVETOTAL': (bool, 'General', False),
     'FAILED_DOWNLOAD_HANDLING': (bool, 'General', False),
     'FAILED_AUTO': (bool, 'General',False),
@@ -291,6 +292,7 @@ _CONFIG_DEFINITIONS = OrderedDict({
     'CT_TAG_CBL': (bool, 'Metatagging', True),
     'CT_CBZ_OVERWRITE': (bool, 'Metatagging', False),
     'UNRAR_CMD': (str, 'Metatagging', None),
+    'CT_NOTES_FORMAT': (str, 'Metatagging', 'Issue ID'),
     'CT_SETTINGSPATH': (str, 'Metatagging', None),
     'CMTAG_VOLUME': (bool, 'Metatagging', True),
     'CMTAG_START_YEAR_AS_VOLUME': (bool, 'Metatagging', False),
@@ -1011,6 +1013,10 @@ class Config(object):
         if self.ENABLE_META:
             mylar.CMTAGGER_PATH = mylar.PROG_DIR
 
+            if not ([self.CT_NOTES_FORMAT == 'CVDB', self.CT_NOTES_FORMAT == 'Issue ID']):
+                setattr(self, 'CT_NOTES_FORMAT', 'Issue ID')
+                config.set('Metatagging', 'ct_notes_format', self.CT_NOTES_FORMAT)
+
             #we need to make sure the default folder setting for the comictagger settings exists so things don't error out
             if self.CT_SETTINGSPATH is None:
                 chkpass = False
@@ -1172,9 +1178,9 @@ class Config(object):
             if self.ENABLE_32P:
                 PR.append('32p')
                 PR_NUM +=1
-            if self.ENABLE_PUBLIC:
-                PR.append('public torrents')
-                PR_NUM +=1
+            #if self.ENABLE_PUBLIC:
+            #    PR.append('public torrents')
+            #    PR_NUM +=1
         if self.NZBSU:
             PR.append('nzb.su')
             PR_NUM +=1
@@ -1189,7 +1195,7 @@ class Config(object):
             PR.append('DDL')
             PR_NUM +=1
 
-        PPR = ['32p', 'public torrents', 'nzb.su', 'dognzb', 'Experimental', 'DDL']
+        PPR = ['32p', 'nzb.su', 'dognzb', 'Experimental', 'DDL']
         if self.NEWZNAB:
             for ens in self.EXTRA_NEWZNABS:
                 if str(ens[5]) == '1': # if newznabs are enabled
@@ -1253,9 +1259,9 @@ class Config(object):
                     logger.fdebug('%s entries are enabled.' % PR_NUM)
 
             NEW_PROV_ORDER = []
-            i = 0
+            i = len(PR)-1
             #this should loop over ALL possible entries
-            while i < len(PR):
+            while i >= 0:
                 found = False
                 for d in PPR:
                     #logger.fdebug('checking entry %s against %s' % (PR[i], d) #d['provider'])
@@ -1264,25 +1270,25 @@ class Config(object):
                         if x:
                             ord = x[0]
                         else:
-                            ord = i
+                            #if x isn't found, the provider was not in the OG list. So we add it to the end.
+                            ord = len(PR)
                         found = {'provider': PR[i],
-                                 'order':    ord} 
+                                 'order':    ord}
                         break
                     else:
                         found = False
 
                 if found is not False:
                     new_order_seqnum = len(NEW_PROV_ORDER)
-                    if new_order_seqnum <= int(found['order']):
+                    if new_order_seqnum != int(found['order']):
                         seqnum = int(found['order'])
                     else:
                         seqnum = new_order_seqnum
-                    NEW_PROV_ORDER.append({"order_seq":  len(NEW_PROV_ORDER),
+                    NEW_PROV_ORDER.append({"order_seq":  int(seqnum),
                                            "provider":   found['provider'],
                                            "orig_seq":   int(seqnum)})
-                i+=1
+                i-=1
  
-
             #now we reorder based on priority of orig_seq, but use a new_order seq
             xa = 0
             NPROV = []

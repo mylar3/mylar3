@@ -280,12 +280,9 @@ class carePackage(object):
                             for keyed in self.keylist:
                                 if keyed in line and len(keyed) > 0:
                                     cnt+=1
-                                    output.write(line.replace(keyed, '-REDACTED-'))
-                                    wrote = True
-                            if wrote is False:
-                                output.write(line)
+                                    line = line.replace(keyed, '-REDACTED-')
+                            output.write(line)
                             line = f.readline()
-                            wrote = False
 
                     logger.fdebug('removed %s keys from %s' % (cnt, fname))
                     try:
@@ -296,12 +293,13 @@ class carePackage(object):
                     except Exception as e:
                         logger.warn(e)
                     else:
+                        output.close()
                         os.unlink(filename)
 
         try:
-            os.rmdir(os.path.join(mylar.CONFIG.LOG_DIR, 'carepackage'))
-        except:
-            pass
+            shutil.rmtree(caredir)
+        except Exception as e:
+            logger.warn('Error logged trying to remove temporary carepackage directory: %s' % e)
 
         os.unlink(self.filename)
         os.unlink(self.cleanpath)

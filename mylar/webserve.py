@@ -2941,7 +2941,7 @@ class WebInterface(object):
         #below sort is for multi-sort columns, maybe make them user configurable - not sure how to pass mutli-sort thru otherwise
         #filtered.sort(key= itemgetter(sortcolumn2, sortcolumn), reverse=sSortDir_0 == "desc")
 
-        filtered.sort(key=lambda x: (x[sortcolumn] is None, x[sortcolumn] == '', x[sortcolumn]), reverse=sSortDir_0 == "desc")
+        filtered.sort(key=lambda x: (x[sortcolumn] is None, x[sortcolumn] == '', x[sortcolumn]), reverse=sSortDir_0 == "asc")
         rows = filtered[iDisplayStart:(iDisplayStart + iDisplayLength)]
         rows = [[row['DateAdded'], row['ComicName'], row['Issue_Number'], row['Status'], row['IssueID'], row['ComicID'], row['Provider']] for row in rows]
         return json.dumps({

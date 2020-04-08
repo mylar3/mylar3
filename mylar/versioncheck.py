@@ -36,6 +36,7 @@ def runGit(args):
     output = err = None
 
     for cur_git in git_locations:
+        gitworked = False
 
         cmd = '%s %s' % (cur_git, args)
 
@@ -43,21 +44,26 @@ def runGit(args):
             logger.debug('Trying to execute: %s with shell in %s' % (cmd, mylar.PROG_DIR))
             output = subprocess.run(cmd, text=True, capture_output=True, shell=True, cwd=mylar.PROG_DIR)
             logger.debug('Git output: %s' % output)
+            gitworked = True
         except Exception as e:
             logger.error('Command %s didn\'t work [%s]' % (cmd, e))
+            gitworked = False
             continue
         else:
             if all([output.stderr is not None, output.stderr != '', output.returncode > 0]):
                 logger.error('Encountered error: %s' % output.stderr)
+                gitworked = False
 
         if "not found" in output.stdout or "not recognized as an internal or external command" in output.stdout:
             logger.error('[%s] Unable to find git with command: %s' % (output.stdout, cmd))
             output = None
+            gitworked = False
         elif ('fatal:' in output.stdout) or ('fatal:' in output.stderr):
             logger.error('Error: %s' % output.stderr)
             logger.error('Git returned bad info. Are you sure this is a git installation? [%s]' % output.stdout)
             output = None
-        elif output:
+            gitworked = False
+        elif gitworked:
             break
 
     return (output.stdout, output.stderr)
@@ -356,7 +362,7 @@ def update():
 def versionload():
 
     version_info = getVersion()
-    logger.info('version_info: %s' % (version_info,))
+    logger.fdebug('version_info: %s' % (version_info,))
     mylar.CURRENT_VERSION = version_info['current_version']
     mylar.CURRENT_VERSION_NAME = version_info['current_version_name']
     mylar.CURRENT_RELEASE_NAME = version_info['current_release_name']

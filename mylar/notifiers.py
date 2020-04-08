@@ -367,19 +367,22 @@ class TELEGRAM:
                 response = requests.post(self.TELEGRAM_API % (self.token, sendMethod), json=payload, verify=True)
             else:
                 response = requests.post(self.TELEGRAM_API % (self.token, sendMethod), payload, files=files, verify=True)
+            sent_successfully = True
         except Exception as e:
             logger.info('Telegram notify failed: ' + str(e))
+            sent_successfully = False
 
         # Error logging
-        sent_successfully = True
-        if not response.status_code == 200:
-            logger.info(u'Could not send notification to TelegramBot (token=%s). Response: [%s]' % (self.token, response.text))
-            sent_successfully = False
-            
+        if sent_successfully:
+            if not response.status_code == 200:
+                logger.info(u'Could not send notification to TelegramBot (token=%s). Response: [%s]' % (self.token, response.text))
+                sent_successfully = False
+
         if not sent_successfully and sendMethod != "sendMessage":
             return self.notify(message)
 
-        logger.info(u"Telegram notifications sent.")
+        if sent_successfully:
+            logger.info(u"Telegram notifications sent.")
         return sent_successfully
 
     def test_notify(self):
