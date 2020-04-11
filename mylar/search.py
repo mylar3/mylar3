@@ -967,7 +967,7 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueDa
                                     continue
 
                 if mylar.CONFIG.IGNORE_COVERS is True and 'coveronly' in re.sub('[\s\s+\_\.]', '', entry['title'].lower(), re.UNICODE):
-                    logger.febug('Cover only detected. Ignoring result.')
+                    logger.fdebug('Cover only detected. Ignoring result.')
                     continue
 
 #---- date constaints.
