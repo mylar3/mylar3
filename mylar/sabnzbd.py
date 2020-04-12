@@ -112,20 +112,13 @@ class SABnzbd(object):
         #logger.info(historyresponse)
         histqueue = historyresponse['history']
         found = {'status': False}
-
         nzo_exists = False
-        for hq in histqueue['slots']:
-            if hq['nzo_id'] == sendresponse:
-                nzo_exists = True
-                break
-        if not nzo_exists:
-            logger.info("Cannot find nzb %s in the queue.  Was it removed?" % sendresponse)
-            return {'status': 'nzb removed', 'failed': False}
 
         try:
             for hq in histqueue['slots']:
                 logger.info('nzo_id: %s --- %s [%s]' % (hq['nzo_id'], sendresponse, hq['status']))
                 if hq['nzo_id'] == sendresponse and any([hq['status'] == 'Completed', hq['status'] == 'Running', 'comicrn' in hq['script'].lower()]):
+                    nzo_exists = True
                     logger.info('found matching completed item in history. Job has a status of %s' % hq['status'])
                     if 'comicrn' in hq['script'].lower():
                         logger.warn('ComicRN has been detected as being active for this category & download. Completed Download Handling will NOT be performed due to this.')
@@ -148,6 +141,7 @@ class SABnzbd(object):
                         return {'status': 'file not found', 'failed': False}
 
                 elif hq['nzo_id'] == sendresponse and hq['status'] == 'Failed':
+                    nzo_exists = True
                     #get the stage / error message and see what we can do
                     stage = hq['stage_log']
                     for x in stage[0]:
@@ -167,7 +161,14 @@ class SABnzbd(object):
                                              'ddl':      False}
                             break
                     break
+                elif hq['nzo_id'] == sendresponse:
+                    nzo_exists = True
+                    logger.fdebug('nzo_id: %s found while processing queue in an unhandled status: %s' % (hq['nzo_id'], hq['status']))
+                    break
 
+            if not nzo_exists:
+                logger.info("Cannot find nzb %s in the queue.  Was it removed?" % sendresponse)
+                return {'status': 'nzb removed', 'failed': False}
         except Exception as e:
             logger.warn('error %s' % e)
             return {'status': False, 'failed': False}
