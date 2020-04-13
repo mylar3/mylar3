@@ -277,6 +277,11 @@ class carePackage(object):
                     with open(fname, 'r') as f:
                         line = f.readline()
                         while line:
+                            if mylar.KEYS_32P is not None:
+                                if mylar.KEYS_32P['auth'] in line:
+                                    line = line.replace(mylar.KEYS_32P['auth'], '-REDACTED-')
+                                if mylar.KEYS_32P['authkey'] in line:
+                                    line = line.replace(mylar.KEYS_32P['authkey'], '-REDACTED-')
                             for keyed in self.keylist:
                                 if keyed in line and len(keyed) > 0:
                                     cnt+=1
