@@ -79,7 +79,11 @@ class SABnzbd(object):
                 #logger.fdebug('queue: %s' % queueinfo)
                 logger.fdebug('Queue status : %s' % queueinfo['status'])
                 logger.fdebug('Queue mbleft : %s' % queueinfo['mbleft'])
-                while any([str(queueinfo['status']) == 'Downloading', str(queueinfo['status']) == 'Idle', str(queueinfo['status']) == 'Paused']) and float(queueinfo['mbleft']) > 0:
+
+                if str(queueinfo['status']) == 'Paused':
+                    logger.warn('[WARNING] SABnzbd has the active queue Paused. CDH will not work in this state.')
+                    return {'status': False, 'failed': False}
+                while any([str(queueinfo['status']) == 'Downloading', str(queueinfo['status']) == 'Idle']) and float(queueinfo['mbleft']) > 0:
                     #if 'comicrn' in queueinfo['script'].lower():
                     #    logger.warn('ComicRN has been detected as being active for this category & download. Completed Download Handling will NOT be performed due to this.')
                     #    logger.warn('Either disable Completed Download Handling for SABnzbd within Mylar, or remove ComicRN from your category script in SABnzbd.')
