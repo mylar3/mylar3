@@ -3158,10 +3158,13 @@ def nzb_monitor(queue):
                 logger.warn('There are no NZB Completed Download handlers enabled. Not sending item to completed download handling...')
                 break
 
+            known_nzb_id = item['nzo_id'] if (mylar.USE_SABNZBD is True) else item['NZBID']
             if any([nzstat['status'] == 'file not found', nzstat['status'] == 'double-pp']):
                 logger.warn('Unable to complete post-processing call due to not finding file in the location provided. [%s]' % item)
+            elif nzstat['status'] == 'nzb removed':
+                logger.warn('NZB seems to have been removed from queue: %s' % known_nzb_id)
             elif nzstat['status'] is False:
-                logger.info('Could not find NZBID %s in the downloader\'s queue. I will requeue this item for post-processing...' % item['NZBID'])
+                logger.info('Download %s failed. Requeue NZB to check later...' % known_nzb_id)
                 time.sleep(5)
                 mylar.NZB_QUEUE.put(item)
             elif nzstat['status'] is True:
