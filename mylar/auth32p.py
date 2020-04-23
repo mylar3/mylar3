@@ -60,7 +60,7 @@ class info32p(object):
         if any([mylar.CONFIG.MODE_32P is True, self.test is True]):
             lses = self.LoginSession(self.username_32p, self.password_32p)
             loginses = lses.login()
-            logger.fdebug('lses return: %s' % loginses)
+            #logger.fdebug('lses return: %s' % loginses)
             if not loginses:
                 self.status = False #return "disable"
                 mylar.INKDROPS_32P = None

@@ -967,7 +967,7 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueDa
                                     continue
 
                 if mylar.CONFIG.IGNORE_COVERS is True and 'coveronly' in re.sub('[\s\s+\_\.]', '', entry['title'].lower(), re.UNICODE):
-                    logger.febug('Cover only detected. Ignoring result.')
+                    logger.fdebug('Cover only detected. Ignoring result.')
                     continue
 
 #---- date constaints.
@@ -1404,7 +1404,7 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueDa
                         else:
                             pc_in = helpers.issuedigits(filecomic['justthedigits'])
                         #issue comparison now as well
-                        if int(intIss) == int(comintIss) or all([cmloopit == 4, findcomiciss is None, pc_in is None]) or all([cmloopit == 4, findcomiciss is None, pc_in == 1]):
+                        if intIss is not None and comintIss is not None and int(intIss) == int(comintIss) or all([cmloopit == 4, findcomiciss is None, pc_in is None]) or all([cmloopit == 4, findcomiciss is None, pc_in == 1]):
                             nowrite = False
                             if all([nzbprov == 'torznab', 'worldwidetorrents' in entry['link']]):
                                 nzbid = generate_id(nzbprov, entry['id'])
