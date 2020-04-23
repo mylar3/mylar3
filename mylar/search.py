@@ -1896,7 +1896,7 @@ def searchIssueIDList(issuelist):
     myDB = db.DBConnection()
     ens = [x for x in mylar.CONFIG.EXTRA_NEWZNABS if x[5] == '1']
     ets = [x for x in mylar.CONFIG.EXTRA_TORZNABS if x[5] == '1']
-    if (any([mylar.CONFIG.NZBSU is True, mylar.CONFIG.DOGNZB is True, mylar.CONFIG.EXPERIMENTAL is True]) or all([mylar.CONFIG.NEWZNAB is True, len(ens) > 0]) and any([mylar.USE_SABNZBD is True, mylar.USE_NZBGET is True, mylar.USE_BLACKHOLE is True])) or (all([mylar.CONFIG.ENABLE_TORRENT_SEARCH is True, mylar.CONFIG.ENABLE_TORRENTS is True]) and (any([mylar.CONFIG.ENABLE_PUBLIC is True, mylar.CONFIG.ENABLE_32P is True]) or all([mylar.CONFIG.NEWZNAB is True, len(ets) > 0]))):
+    if (any([mylar.CONFIG.ENABLE_DDL is True, mylar.CONFIG.NZBSU is True, mylar.CONFIG.DOGNZB is True, mylar.CONFIG.EXPERIMENTAL is True]) or all([mylar.CONFIG.NEWZNAB is True, len(ens) > 0]) and any([mylar.USE_SABNZBD is True, mylar.USE_NZBGET is True, mylar.USE_BLACKHOLE is True])) or (all([mylar.CONFIG.ENABLE_TORRENT_SEARCH is True, mylar.CONFIG.ENABLE_TORRENTS is True]) and (any([mylar.CONFIG.ENABLE_PUBLIC is True, mylar.CONFIG.ENABLE_32P is True]) or all([mylar.CONFIG.ENABLE_TORZNAB is True, len(ets) > 0]))):
         for issueid in issuelist:
             logger.info('searching for issueid: %s' % issueid)
             issue = myDB.selectone('SELECT * from issues WHERE IssueID=?', [issueid]).fetchone()
