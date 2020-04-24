@@ -38,7 +38,7 @@ import mylar
 from mylar import logger, helpers
 
 
-def extract_image(location, single=False, imquality=None):
+def extract_image(location, single=False, imquality=None, comicname=None):
     #location = full path to the cbr/cbz (filename included in path)
     #single = should be set to True so that a single file can have the coverfile
     #        extracted and have the cover location returned to the calling function
@@ -75,11 +75,16 @@ def extract_image(location, single=False, imquality=None):
                 except Exception as e:
                     logger.warn('[EXCEPTION] %s' % e)
                     return
-            except:
-                logger.warn('[EXCEPTION]: %s' % sys.exec_info()[0])
+            except Exception as e:
+                logger.warn('[EXCEPTION]: %s' % e)
                 return
         try:
+            cntr = 0
+            newlencnt = 0
+            newlen = 0
+            newlist = []
             for infile in location_in.infolist():
+                cntr +=1
                 basename = os.path.basename(infile.filename)
                 if infile.filename == 'ComicInfo.xml':
                     logger.fdebug('Extracting ComicInfo.xml to display.')
@@ -88,32 +93,54 @@ def extract_image(location, single=False, imquality=None):
                         break
                 filename, extension = os.path.splitext(basename)
                 tmp_infile = re.sub("[^0-9]","", filename).strip()
-                if any([tmp_infile == '', not getattr(infile, dir_opt), 'zzz' in filename]):
+                lenfile = len(infile.filename)
+                if any([tmp_infile == '', not getattr(infile, dir_opt), 'zzz' in filename.lower(), 'logo' in filename.lower()]) or ((comicname is not None) and all([comicname.lower().startswith('z'), filename.lower().startswith('z')])):
                     continue
-                #logger.fdebug('[%s]issue_ends: %s' % (tmp_infile, tmp_infile.endswith(issue_ends)))
-                #logger.fdebug('ext_ends: %s' % infile.filename.lower().endswith(pic_extensions))
-                #logger.fdebug('(%s) < (%s) == %s' % (int(tmp_infile), int(low_infile), int(tmp_infile)<int(low_infile)))
-                #logger.fdebug('is_dir == %s' % (not getattr(infile, dir_opt)))
                 if all([infile.filename.lower().endswith(pic_extensions), int(tmp_infile) < int(low_infile)]):
-                    low_infile = tmp_infile
-                    low_infile_name = infile.filename
+                    #logger.info('cntr: %s / infolist: %s' % (cntr, len(location_in.infolist())) )
+                    #get the length of the filename, compare it to others. scanner ones are always different named than the other 98% of the files.
+                    if lenfile >= newlen:
+                        newlen = lenfile
+                        newlencnt += 1
+                    newlist.append({'length':       lenfile,
+                                    'filename':     infile.filename,
+                                    'tmp_infile':   tmp_infile})
+
+                    #logger.info('newlen: %s / newlencnt: %s' % (newlen, newlencnt))
+                    if newlencnt > 0 and lenfile >= newlen:
+                        #logger.info('setting it to : %s' % infile.filename)
+                        low_infile = tmp_infile
+                        low_infile_name = infile.filename
                 elif any(['00a' in infile.filename, '00b' in infile.filename, '00c' in infile.filename, '00d' in infile.filename, '00e' in infile.filename, '00fc' in infile.filename.lower()]) and infile.filename.endswith(pic_extensions) and cover == "notfound":
-                    altlist = ('00a', '00b', '00c', '00d', '00e', '00fc')
-                    for alt in altlist:
-                        if alt in infile.filename.lower():
-                            cb_filename = infile.filename
-                            cover = "found"
-                            #logger.fdebug('[%s] cover found:%s' % (alt, infile.filename))
-                            break
+                    if cntr == 0:
+                        altlist = ('00a', '00b', '00c', '00d', '00e', '00fc')
+                        for alt in altlist:
+                            if alt in infile.filename.lower():
+                                cb_filename = infile.filename
+                                cover = "found"
+                                #logger.fdebug('[%s] cover found:%s' % (alt, infile.filename))
+                                break
                 elif all([tmp_infile.endswith(issue_ends), infile.filename.lower().endswith(pic_extensions), int(tmp_infile) < int(low_infile), cover == 'notfound']):
                     cb_filenames.append(infile.filename)
-                    #logger.fdebug('filename set to: %s' % infile.filename)
-                    #low_infile_name = infile.filename
-                    #low_infile = tmp_infile
+
             if cover != "found" and any([len(cb_filenames) > 0, low_infile != 9999999999999]):
                 logger.fdebug('Invalid naming sequence for jpgs discovered. Attempting to find the lowest sequence and will use as cover (it might not work). Currently : %s' % (low_infile_name))
-                cb_filename = low_infile_name
-                cover = "found"
+                # based on newlist - if issue doesn't end in 0 & 1, take the lowest numeric of the most common length of filenames within the rar
+                if not any([low_infile.endswith('0'),low_infile.endswith('1')]):
+                    from collections import Counter
+                    cnt = Counter([t['length'] for t in newlist])
+                    #logger.info('cnt: %s' % (cnt,)) #cnt: Counter({15: 23, 20: 1})
+                    tmpst = 999999999
+                    cntkey = max(cnt.items(), key=itemgetter(1))[0]
+                    #logger.info('cntkey: %s' % cntkey)
+                    for x in newlist:
+                        if x['length'] == cntkey and int(x['tmp_infile']) < tmpst:
+                            tmpst = int(x['tmp_infile'])
+                            cb_filename = x['filename']
+                            logger.fdebug('SETTING cb_filename set to : %s' % cb_filename)
+                else:
+                    cb_filename = low_infile_name
+                    cover = "found"
 
         except Exception as e:
             logger.error('[ERROR] Unable to properly retrieve the cover. It\'s probably best to re-tag this file : %s' % e)
@@ -133,15 +160,17 @@ def extract_image(location, single=False, imquality=None):
                 img.save(output, format="JPEG")
                 try:
                     ComicImage = str(base64.b64encode(output.getvalue()), 'utf-8')
+                    RawImage = output.getvalue()
                 except Exception as e:
                     ComicImage = str(base64.b64encode(output.getvalue() + "==="), 'utf-8')
+                    RawImage = output.getvalue() + "==="
                 output.close()
 
             except Exception as e:
                 logger.warn('[WARNING] Unable to resize existing image: %s' % e)
         else:
             ComicImage = local_filename
-    return {'ComicImage': ComicImage, 'metadata': metadata}
+    return {'ComicImage': ComicImage, 'metadata': metadata, 'rawImage': RawImage}
 
 def retrieve_image(url):
     try:
