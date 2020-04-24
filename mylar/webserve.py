@@ -5131,6 +5131,9 @@ class WebInterface(object):
                     "slack_enabled": helpers.checked(mylar.CONFIG.SLACK_ENABLED),
                     "slack_webhook_url": mylar.CONFIG.SLACK_WEBHOOK_URL,
                     "slack_onsnatch": helpers.checked(mylar.CONFIG.SLACK_ONSNATCH),
+                    "discord_enabled": helpers.checked(mylar.CONFIG.DISCORD_ENABLED),
+                    "discord_webhook_url": mylar.CONFIG.DISCORD_WEBHOOK_URL,
+                    "discord_onsnatch": helpers.checked(mylar.CONFIG.DISCORD_ONSNATCH),
                     "email_enabled": helpers.checked(mylar.CONFIG.EMAIL_ENABLED),
                     "email_from": mylar.CONFIG.EMAIL_FROM,
                     "email_to": mylar.CONFIG.EMAIL_TO,
@@ -5428,7 +5431,7 @@ class WebInterface(object):
                            'enable_meta', 'cbr2cbz_only', 'ct_tag_cr', 'ct_tag_cbl', 'ct_cbz_overwrite', 'rename_files', 'replace_spaces', 'zero_level',
                            'lowercase_filenames', 'autowant_upcoming', 'autowant_all', 'comic_cover_local', 'alternate_latest_series_covers', 'cvinfo', 'snatchedtorrent_notify',
                            'prowl_enabled', 'prowl_onsnatch', 'pushover_enabled', 'pushover_onsnatch', 'pushover_image', 'boxcar_enabled',
-                           'boxcar_onsnatch', 'pushbullet_enabled', 'pushbullet_onsnatch', 'telegram_enabled', 'telegram_onsnatch', 'telegram_image', 'slack_enabled', 'slack_onsnatch',
+                           'boxcar_onsnatch', 'pushbullet_enabled', 'pushbullet_onsnatch', 'telegram_enabled', 'telegram_onsnatch', 'telegram_image', 'discord_enabled', 'discord_onsnatch', 'slack_enabled', 'slack_onsnatch',
                            'email_enabled', 'email_enc', 'email_ongrab', 'email_onpost', 'opds_enable', 'opds_authentication', 'opds_metainfo', 'opds_pagesize', 'enable_ddl', 'deluge_pause'] #enable_public
 
         for checked_config in checked_configs:
@@ -6071,6 +6074,17 @@ class WebInterface(object):
             logger.warn('Test variables used [WEBHOOK_URL: %s][USERNAME: %s]' % (webhook_url, username))
             return "Error sending test message to Slack"
     testslack.exposed = True
+
+    def testdiscord(self, webhook_url):
+        discord = notifiers.DISCORD(test_webhook_url=webhook_url)
+        result = discord.test_notify()
+
+        if result == True:
+            return "Successfully sent Discord test -  check to make sure it worked"
+        else:
+            logger.warn('Test variables used [WEBHOOK_URL: %s]' % (webhook_url))
+            return "Error sending test message to Discord"
+    testdiscord.exposed = True
 
     def testemail(self, emailfrom, emailto, emailsvr, emailport, emailuser, emailpass, emailenc):
         email = notifiers.EMAIL(test_emailfrom=emailfrom, test_emailto=emailto, test_emailsvr=emailsvr, test_emailport=emailport, test_emailuser=emailuser, test_emailpass=emailpass, test_emailenc=emailenc)

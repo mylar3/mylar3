@@ -2770,6 +2770,10 @@ def notify_snatch(sent_to, comicname, comyear, IssueNumber, nzbprov, pack):
         logger.info("Sending Slack notification")
         slack = notifiers.SLACK()
         slack.notify("Snatched", snline, snatched_nzb=snatched_name, sent_to=sent_to, prov=nzbprov)
+    if mylar.CONFIG.DISCORD_ENABLED and mylar.CONFIG.DISCORD_ONSNATCH:
+        logger.info("Sending Discord notification")
+        discord = notifiers.DISCORD()
+        discord.notify("Snatched", snline, snatched_nzb=snatched_name, sent_to=sent_to, prov=nzbprov)
     if mylar.CONFIG.EMAIL_ENABLED and mylar.CONFIG.EMAIL_ONGRAB:
         logger.info("Sending email notification")
         email = notifiers.EMAIL()

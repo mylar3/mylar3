@@ -2844,6 +2844,10 @@ class PostProcessor(object):
             slack = notifiers.SLACK()
             slack.notify("Download and Postprocessing completed", prline2, module=module)
 
+        if mylar.CONFIG.DISCORD_ENABLED:
+            discord = notifiers.SLACK()
+            discord.notify("Download and Postprocessing completed", prline2, module=module)
+
         if mylar.CONFIG.EMAIL_ENABLED and mylar.CONFIG.EMAIL_ONPOST:
             logger.info("Sending email notification")
             email = notifiers.EMAIL()
