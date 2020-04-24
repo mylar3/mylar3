@@ -484,3 +484,43 @@ class SLACK:
 
     def test_notify(self):
         return self.notify('Test Message', 'Release the Ninjas!')
+
+class DISCORD:
+    def __init__ (self, test_webhook_url=None):
+        self.webhook_url = mylar.CONFIG.DISCORD_WEB_HOOK_URL if test_webhook_url is None else test_webhook_url
+
+    def notify(self, text, attachment_text, snatched_nzb=None, prov=None, sent_to=None, module=None):
+        if module is None:
+            module = ''
+        module += '[NOTIFIER]'
+
+        if 'snatched' in attachment_text.lower():
+            snatched_text = '%s: %s' % (attachment_text, snatched_nzb)
+            if all([sent_to is not None, prov is not None]):
+                snatched_text += ' from %s and %s' % (prov, sent_to)
+            elif sent_to is None:
+                snatched_text += ' from %s' % prov
+            attachment_text = snatched_text
+        else:
+            pass
+
+        payload = {}
+
+        payload["content"] = attachment_text
+
+        try:
+            response = requests.post(self.webhook_url, data=json.dumps(payload), headers={"Content-Type": "application/json"}, verify=True)
+        except Exception as e:
+            logger.info(module + 'Discord notify failed: ' + str(e))
+
+        # Error logging
+        sent_successfuly = True
+        if not response.status_code == 204 or response.status_code == 200:
+            logger.info(module + 'Could not send notification to Discord (webhook_url=%s). Response: [%s]' % (self.webhook_url, response.text))
+            sent_successfuly = False
+
+        logger.info(module + "Discord notifications sent.")
+        return sent_successfuly
+
+    def test_notify(self):
+        return self.notify('Test Message', 'Release the Ninjas!')
