@@ -2438,9 +2438,9 @@ def searcher(nzbprov, nzbname, comicinfo, link, IssueID, ComicID, tmpprov, direc
             rcheck.update({'torrent_filename': nzbname})
 
             if any([mylar.USE_RTORRENT, mylar.USE_DELUGE]) and mylar.CONFIG.AUTO_SNATCH:
-                mylar.SNATCHED_QUEUE.put(rcheck['hash'])
+                mylar.SNATCHED_QUEUE.put({'issueid': IssueID, 'comicid': ComicID, 'hash': rcheck['hash']})
             elif any([mylar.USE_RTORRENT, mylar.USE_DELUGE]) and mylar.CONFIG.LOCAL_TORRENT_PP:
-                mylar.SNATCHED_QUEUE.put(rcheck['hash'])
+                mylar.SNATCHED_QUEUE.put({'issueid': IssueID, 'comicid': ComicID, 'hash': rcheck['hash']})
             else:
                 if mylar.CONFIG.ENABLE_SNATCH_SCRIPT:
                     try:
