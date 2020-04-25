@@ -5806,19 +5806,23 @@ class WebInterface(object):
             issueyear = issue_rls[:4]
             issuesummary = None
         else:
+            myDB = db.DBConnection()
+            metadata_db = myDB.selectone('SELECT * FROM issues where IssueID=?', [issueid]).fetchone()
             seriestitle = meta_data['series']
             if any([seriestitle == 'None', seriestitle is None]):
                 seriestitle = urllib.parse.unquote_plus(comicname)
+                seriestitle = metadata_db['ComicName']
 
             issuenumber = meta_data['issue_number']
             if any([issuenumber == 'None', issuenumber is None]):
                 issuenumber = urllib.parse.unquote_plus(issue)
+                issuenumber = metadata_db['Issue_Number']
 
             issuetitle = meta_data['title']
             if any([issuetitle == 'None', issuetitle is None]):
-                issuetitle = urllib.parse.unquote_plus(title)
-            if re.sub('[\s\.\!\-\?\'\&\and\%\$\#\@\(\)\*\+\=\;\:\,]', '', issuetitle, re.I) != re.sub('[\s\.\!\-\?\'\&\and\%\$\#\@\(\)\*\+\=\;\:\,]', '', title, re.I):
-                issuetitle = urllib.parse.unquote_plus(title)
+                issuetitle = metadata_db['IssueName']
+            else:
+                issuetitle = issuetitle
             try:
                 pagecount = meta_data['pagecount']
             except:
