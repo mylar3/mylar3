@@ -487,7 +487,7 @@ class SLACK:
 
 class DISCORD:
     def __init__ (self, test_webhook_url=None):
-        self.webhook_url = mylar.CONFIG.DISCORD_WEB_HOOK_URL if test_webhook_url is None else test_webhook_url
+        self.webhook_url = mylar.CONFIG.DISCORD_WEBHOOK_URL if test_webhook_url is None else test_webhook_url
 
     def notify(self, text, attachment_text, snatched_nzb=None, prov=None, sent_to=None, module=None):
         if module is None:
