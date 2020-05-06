@@ -100,7 +100,6 @@ def search_init(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueD
     torznab_hosts = []
 
     logger.fdebug("Checking for torrent enabled.")
-    checked_once = False
     if mylar.CONFIG.ENABLE_TORRENT_SEARCH: #and mylar.CONFIG.ENABLE_TORRENTS:
         if mylar.CONFIG.ENABLE_32P and not helpers.block_provider_check('32P'):
             torprovider.append('32p')
@@ -295,6 +294,7 @@ def search_init(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueD
             searchprov = None
 
             while (tmp_prov_count > prov_count):
+                checked_once = False
                 provider_blocked = helpers.block_provider_check(prov_order[prov_count])
                 send_prov_count = tmp_prov_count - prov_count
                 newznab_host = None
