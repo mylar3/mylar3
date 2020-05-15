@@ -69,7 +69,11 @@ class WebInterface(object):
     index.exposed=True
 
     def home(self):
-        return serve_template(templatename="index.html", title="Home")
+        if mylar.CONFIG.ALPHAINDEX == True:
+            comics = helpers.havetotals()
+            return serve_template(templatename="index-alphaindex.html", title="Home", comics=comics, alphaindex=mylar.CONFIG.ALPHAINDEX)
+        else:
+            return serve_template(templatename="index.html", title="Home")
     home.exposed = True
 
     def loadhome(self, iDisplayStart=0, iDisplayLength=100, iSortCol_0=5, sSortDir_0="desc", sSearch="", **kwargs):
