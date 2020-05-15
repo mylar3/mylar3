@@ -1389,13 +1389,18 @@ def havetotals(refreshit=None):
                 continue
 
             if not haveissues:
-                havetracks = 0
+                haveissues = 0
 
             if refreshit is not None:
                 if haveissues > totalissues:
                     return True   # if it's 5/4, send back to updater and don't restore previous status'
                 else:
                     return False  # if it's 5/5 or 4/5, send back to updater and restore previous status'
+
+            if any([haveissues == 'None', haveissues is None]):
+                haveissues = 0
+            if any([totalissues == 'None', totalissues is None]):
+                totalissues = 0
 
             try:
                 percent = (haveissues *100.0) /totalissues
@@ -1445,6 +1450,18 @@ def havetotals(refreshit=None):
                     logger.warn('[Error: %s] No Publisher found for %s - you probably want to Refresh the series when you get a chance.' % (e, comic['ComicName']))
                     cpub = None
 
+            comictype = comic['Type']
+            try:
+                if (any([comictype == 'None', comictype is None, comictype == 'Print']) and comic['Corrected_Type'] != 'TPB') or all([comic['Corrected_Type'] is not None, comic['Corrected_Type'] == 'Print']):
+                    comictype = None
+                else:
+                    if comic['Corrected_Type'] is not None:
+                        comictype = comic['Corrected_Type']
+                    else:
+                        comictype = comictype
+            except:
+                comictype = None
+
             comics.append({"ComicID":         comic['ComicID'],
                            "ComicName":       comic['ComicName'],
                            "ComicSortName":   comic['ComicSortName'],
@@ -1461,7 +1478,8 @@ def havetotals(refreshit=None):
                            "haveissues":      haveissues,
                            "DateAdded":       comic['LastUpdated'],
                            "Type":            comic['Type'],
-                           "Corrected_Type":   comic['Corrected_Type']})
+                           "Corrected_Type":  comic['Corrected_Type'],
+                           "displaytype":     comictype})
 
         return comics
 

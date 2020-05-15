@@ -69,9 +69,49 @@ class WebInterface(object):
     index.exposed=True
 
     def home(self):
-        comics = helpers.havetotals()
-        return serve_template(templatename="index.html", title="Home", comics=comics, alphaindex=mylar.CONFIG.ALPHAINDEX)
+        if mylar.CONFIG.ALPHAINDEX == True:
+            comics = helpers.havetotals()
+            return serve_template(templatename="index-alphaindex.html", title="Home", comics=comics, alphaindex=mylar.CONFIG.ALPHAINDEX)
+        else:
+            return serve_template(templatename="index.html", title="Home")
     home.exposed = True
+
+    def loadhome(self, iDisplayStart=0, iDisplayLength=100, iSortCol_0=5, sSortDir_0="desc", sSearch="", **kwargs):
+        resultlist = helpers.havetotals()
+        iDisplayStart = int(iDisplayStart)
+        iDisplayLength = int(iDisplayLength)
+        filtered = []
+        if sSearch == "" or sSearch == None:
+            filtered = resultlist[::]
+        else:
+            filtered = [row for row in resultlist if any([sSearch.lower() in row['ComicPublisher'].lower(), sSearch.lower() in row['ComicName'].lower(), sSearch.lower() in row['ComicYear'], sSearch.lower() in row['LatestIssue'], sSearch.lower() in row['recentstatus']])]
+        sortcolumn = 'ComicName'
+        if iSortCol_0 == '0':
+            sortcolumn = 'ComicPublisher'
+        if iSortCol_0 == '1':
+            sortcolumn = 'ComicName'
+        elif iSortCol_0 == '2':
+            sortcolumn = 'ComicYear'
+        elif iSortCol_0 == '3':
+            sortcolumn = 'LatestIssue'
+        elif iSortCol_0 == '4':
+            sortcolumn = 'LatestDate'
+        elif iSortCol_0 == '5':
+            sortcolumn = 'percent'
+        elif iSortCol_0 == '6':
+            sortcolumn = 'Status'
+        #below sort is for multi-sort columns, maybe make them user configurable - not sure how to pass mutli-sort thru otherwise
+        #filtered.sort(key= itemgetter(sortcolumn2, sortcolumn), reverse=sSortDir_0 == "desc")
+
+        filtered.sort(key=lambda x: (x[sortcolumn] is None, x[sortcolumn] == '', x[sortcolumn]), reverse=sSortDir_0 == "desc")
+        rows = filtered[iDisplayStart:(iDisplayStart + iDisplayLength)]
+        rows = [[row['ComicPublisher'], row['ComicName'], row['ComicYear'], row['LatestIssue'], row['LatestDate'], row['recentstatus'], row['Status'], row['percent'], row['haveissues'], row['totalissues'], row['ComicID'], row['displaytype']] for row in rows]
+        return json.dumps({
+            'iTotalDisplayRecords': len(filtered),
+            'iTotalRecords': len(resultlist),
+            'aaData': rows,
+        })
+    loadhome.exposed = True
 
     def comicDetails(self, ComicID):
         myDB = db.DBConnection()
