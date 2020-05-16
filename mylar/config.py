@@ -188,6 +188,10 @@ _CONFIG_DEFINITIONS = OrderedDict({
     'SLACK_WEBHOOK_URL': (str, 'SLACK', None),
     'SLACK_ONSNATCH': (bool, 'SLACK', False),
 
+    'DISCORD_ENABLED': (bool, 'DISCORD', False),
+    'DISCORD_WEBHOOK_URL': (str, 'DISCORD', None),
+    'DISCORD_ONSNATCH': (bool, 'DISCORD', False),
+
     'EMAIL_ENABLED': (bool, 'Email', False),
     'EMAIL_FROM': (str, 'Email', ''),
     'EMAIL_TO': (str, 'Email', ''),

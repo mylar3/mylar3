@@ -100,7 +100,6 @@ def search_init(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueD
     torznab_hosts = []
 
     logger.fdebug("Checking for torrent enabled.")
-    checked_once = False
     if mylar.CONFIG.ENABLE_TORRENT_SEARCH: #and mylar.CONFIG.ENABLE_TORRENTS:
         if mylar.CONFIG.ENABLE_32P and not helpers.block_provider_check('32P'):
             torprovider.append('32p')
@@ -295,6 +294,7 @@ def search_init(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueD
             searchprov = None
 
             while (tmp_prov_count > prov_count):
+                checked_once = False
                 provider_blocked = helpers.block_provider_check(prov_order[prov_count])
                 send_prov_count = tmp_prov_count - prov_count
                 newznab_host = None
@@ -1896,7 +1896,7 @@ def searchIssueIDList(issuelist):
     myDB = db.DBConnection()
     ens = [x for x in mylar.CONFIG.EXTRA_NEWZNABS if x[5] == '1']
     ets = [x for x in mylar.CONFIG.EXTRA_TORZNABS if x[5] == '1']
-    if (any([mylar.CONFIG.NZBSU is True, mylar.CONFIG.DOGNZB is True, mylar.CONFIG.EXPERIMENTAL is True]) or all([mylar.CONFIG.NEWZNAB is True, len(ens) > 0]) and any([mylar.USE_SABNZBD is True, mylar.USE_NZBGET is True, mylar.USE_BLACKHOLE is True])) or (all([mylar.CONFIG.ENABLE_TORRENT_SEARCH is True, mylar.CONFIG.ENABLE_TORRENTS is True]) and (any([mylar.CONFIG.ENABLE_PUBLIC is True, mylar.CONFIG.ENABLE_32P is True]) or all([mylar.CONFIG.NEWZNAB is True, len(ets) > 0]))):
+    if (any([mylar.CONFIG.ENABLE_DDL is True, mylar.CONFIG.NZBSU is True, mylar.CONFIG.DOGNZB is True, mylar.CONFIG.EXPERIMENTAL is True]) or all([mylar.CONFIG.NEWZNAB is True, len(ens) > 0]) and any([mylar.USE_SABNZBD is True, mylar.USE_NZBGET is True, mylar.USE_BLACKHOLE is True])) or (all([mylar.CONFIG.ENABLE_TORRENT_SEARCH is True, mylar.CONFIG.ENABLE_TORRENTS is True]) and (any([mylar.CONFIG.ENABLE_PUBLIC is True, mylar.CONFIG.ENABLE_32P is True]) or all([mylar.CONFIG.ENABLE_TORZNAB is True, len(ets) > 0]))):
         for issueid in issuelist:
             logger.info('searching for issueid: %s' % issueid)
             issue = myDB.selectone('SELECT * from issues WHERE IssueID=?', [issueid]).fetchone()
@@ -2438,9 +2438,9 @@ def searcher(nzbprov, nzbname, comicinfo, link, IssueID, ComicID, tmpprov, direc
             rcheck.update({'torrent_filename': nzbname})
 
             if any([mylar.USE_RTORRENT, mylar.USE_DELUGE]) and mylar.CONFIG.AUTO_SNATCH:
-                mylar.SNATCHED_QUEUE.put(rcheck['hash'])
+                mylar.SNATCHED_QUEUE.put({'issueid': IssueID, 'comicid': ComicID, 'hash': rcheck['hash']})
             elif any([mylar.USE_RTORRENT, mylar.USE_DELUGE]) and mylar.CONFIG.LOCAL_TORRENT_PP:
-                mylar.SNATCHED_QUEUE.put(rcheck['hash'])
+                mylar.SNATCHED_QUEUE.put({'issueid': IssueID, 'comicid': ComicID, 'hash': rcheck['hash']})
             else:
                 if mylar.CONFIG.ENABLE_SNATCH_SCRIPT:
                     try:
@@ -2770,6 +2770,10 @@ def notify_snatch(sent_to, comicname, comyear, IssueNumber, nzbprov, pack):
         logger.info("Sending Slack notification")
         slack = notifiers.SLACK()
         slack.notify("Snatched", snline, snatched_nzb=snatched_name, sent_to=sent_to, prov=nzbprov)
+    if mylar.CONFIG.DISCORD_ENABLED and mylar.CONFIG.DISCORD_ONSNATCH:
+        logger.info("Sending Discord notification")
+        discord = notifiers.DISCORD()
+        discord.notify("Snatched", snline, snatched_nzb=snatched_name, sent_to=sent_to, prov=nzbprov)
     if mylar.CONFIG.EMAIL_ENABLED and mylar.CONFIG.EMAIL_ONGRAB:
         logger.info("Sending email notification")
         email = notifiers.EMAIL()

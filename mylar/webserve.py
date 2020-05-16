@@ -69,9 +69,49 @@ class WebInterface(object):
     index.exposed=True
 
     def home(self):
-        comics = helpers.havetotals()
-        return serve_template(templatename="index.html", title="Home", comics=comics, alphaindex=mylar.CONFIG.ALPHAINDEX)
+        if mylar.CONFIG.ALPHAINDEX == True:
+            comics = helpers.havetotals()
+            return serve_template(templatename="index-alphaindex.html", title="Home", comics=comics, alphaindex=mylar.CONFIG.ALPHAINDEX)
+        else:
+            return serve_template(templatename="index.html", title="Home")
     home.exposed = True
+
+    def loadhome(self, iDisplayStart=0, iDisplayLength=100, iSortCol_0=5, sSortDir_0="desc", sSearch="", **kwargs):
+        resultlist = helpers.havetotals()
+        iDisplayStart = int(iDisplayStart)
+        iDisplayLength = int(iDisplayLength)
+        filtered = []
+        if sSearch == "" or sSearch == None:
+            filtered = resultlist[::]
+        else:
+            filtered = [row for row in resultlist if any([sSearch.lower() in row['ComicPublisher'].lower(), sSearch.lower() in row['ComicName'].lower(), sSearch.lower() in row['ComicYear'], sSearch.lower() in row['LatestIssue'], sSearch.lower() in row['recentstatus']])]
+        sortcolumn = 'ComicName'
+        if iSortCol_0 == '0':
+            sortcolumn = 'ComicPublisher'
+        if iSortCol_0 == '1':
+            sortcolumn = 'ComicName'
+        elif iSortCol_0 == '2':
+            sortcolumn = 'ComicYear'
+        elif iSortCol_0 == '3':
+            sortcolumn = 'LatestIssue'
+        elif iSortCol_0 == '4':
+            sortcolumn = 'LatestDate'
+        elif iSortCol_0 == '5':
+            sortcolumn = 'percent'
+        elif iSortCol_0 == '6':
+            sortcolumn = 'Status'
+        #below sort is for multi-sort columns, maybe make them user configurable - not sure how to pass mutli-sort thru otherwise
+        #filtered.sort(key= itemgetter(sortcolumn2, sortcolumn), reverse=sSortDir_0 == "desc")
+
+        filtered.sort(key=lambda x: (x[sortcolumn] is None, x[sortcolumn] == '', x[sortcolumn]), reverse=sSortDir_0 == "desc")
+        rows = filtered[iDisplayStart:(iDisplayStart + iDisplayLength)]
+        rows = [[row['ComicPublisher'], row['ComicName'], row['ComicYear'], row['LatestIssue'], row['LatestDate'], row['recentstatus'], row['Status'], row['percent'], row['haveissues'], row['totalissues'], row['ComicID'], row['displaytype']] for row in rows]
+        return json.dumps({
+            'iTotalDisplayRecords': len(filtered),
+            'iTotalRecords': len(resultlist),
+            'aaData': rows,
+        })
+    loadhome.exposed = True
 
     def comicDetails(self, ComicID):
         myDB = db.DBConnection()
@@ -5131,6 +5171,9 @@ class WebInterface(object):
                     "slack_enabled": helpers.checked(mylar.CONFIG.SLACK_ENABLED),
                     "slack_webhook_url": mylar.CONFIG.SLACK_WEBHOOK_URL,
                     "slack_onsnatch": helpers.checked(mylar.CONFIG.SLACK_ONSNATCH),
+                    "discord_enabled": helpers.checked(mylar.CONFIG.DISCORD_ENABLED),
+                    "discord_webhook_url": mylar.CONFIG.DISCORD_WEBHOOK_URL,
+                    "discord_onsnatch": helpers.checked(mylar.CONFIG.DISCORD_ONSNATCH),
                     "email_enabled": helpers.checked(mylar.CONFIG.EMAIL_ENABLED),
                     "email_from": mylar.CONFIG.EMAIL_FROM,
                     "email_to": mylar.CONFIG.EMAIL_TO,
@@ -5428,7 +5471,7 @@ class WebInterface(object):
                            'enable_meta', 'cbr2cbz_only', 'ct_tag_cr', 'ct_tag_cbl', 'ct_cbz_overwrite', 'rename_files', 'replace_spaces', 'zero_level',
                            'lowercase_filenames', 'autowant_upcoming', 'autowant_all', 'comic_cover_local', 'alternate_latest_series_covers', 'cvinfo', 'snatchedtorrent_notify',
                            'prowl_enabled', 'prowl_onsnatch', 'pushover_enabled', 'pushover_onsnatch', 'pushover_image', 'boxcar_enabled',
-                           'boxcar_onsnatch', 'pushbullet_enabled', 'pushbullet_onsnatch', 'telegram_enabled', 'telegram_onsnatch', 'telegram_image', 'slack_enabled', 'slack_onsnatch',
+                           'boxcar_onsnatch', 'pushbullet_enabled', 'pushbullet_onsnatch', 'telegram_enabled', 'telegram_onsnatch', 'telegram_image', 'discord_enabled', 'discord_onsnatch', 'slack_enabled', 'slack_onsnatch',
                            'email_enabled', 'email_enc', 'email_ongrab', 'email_onpost', 'opds_enable', 'opds_authentication', 'opds_metainfo', 'opds_pagesize', 'enable_ddl', 'deluge_pause'] #enable_public
 
         for checked_config in checked_configs:
@@ -5803,19 +5846,23 @@ class WebInterface(object):
             issueyear = issue_rls[:4]
             issuesummary = None
         else:
+            myDB = db.DBConnection()
+            metadata_db = myDB.selectone('SELECT * FROM issues where IssueID=?', [issueid]).fetchone()
             seriestitle = meta_data['series']
             if any([seriestitle == 'None', seriestitle is None]):
                 seriestitle = urllib.parse.unquote_plus(comicname)
+                seriestitle = metadata_db['ComicName']
 
             issuenumber = meta_data['issue_number']
             if any([issuenumber == 'None', issuenumber is None]):
                 issuenumber = urllib.parse.unquote_plus(issue)
+                issuenumber = metadata_db['Issue_Number']
 
             issuetitle = meta_data['title']
             if any([issuetitle == 'None', issuetitle is None]):
-                issuetitle = urllib.parse.unquote_plus(title)
-            if re.sub('[\s\.\!\-\?\'\&\and\%\$\#\@\(\)\*\+\=\;\:\,]', '', issuetitle, re.I) != re.sub('[\s\.\!\-\?\'\&\and\%\$\#\@\(\)\*\+\=\;\:\,]', '', title, re.I):
-                issuetitle = urllib.parse.unquote_plus(title)
+                issuetitle = metadata_db['IssueName']
+            else:
+                issuetitle = issuetitle
             try:
                 pagecount = meta_data['pagecount']
             except:
@@ -6071,6 +6118,17 @@ class WebInterface(object):
             logger.warn('Test variables used [WEBHOOK_URL: %s][USERNAME: %s]' % (webhook_url, username))
             return "Error sending test message to Slack"
     testslack.exposed = True
+
+    def testdiscord(self, webhook_url):
+        discord = notifiers.DISCORD(test_webhook_url=webhook_url)
+        result = discord.test_notify()
+
+        if result == True:
+            return "Successfully sent Discord test -  check to make sure it worked"
+        else:
+            logger.warn('Test variables used [WEBHOOK_URL: %s]' % (webhook_url))
+            return "Error sending test message to Discord"
+    testdiscord.exposed = True
 
     def testemail(self, emailfrom, emailto, emailsvr, emailport, emailuser, emailpass, emailenc):
         email = notifiers.EMAIL(test_emailfrom=emailfrom, test_emailto=emailto, test_emailsvr=emailsvr, test_emailport=emailport, test_emailuser=emailuser, test_emailpass=emailpass, test_emailenc=emailenc)

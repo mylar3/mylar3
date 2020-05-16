@@ -1389,13 +1389,18 @@ def havetotals(refreshit=None):
                 continue
 
             if not haveissues:
-                havetracks = 0
+                haveissues = 0
 
             if refreshit is not None:
                 if haveissues > totalissues:
                     return True   # if it's 5/4, send back to updater and don't restore previous status'
                 else:
                     return False  # if it's 5/5 or 4/5, send back to updater and restore previous status'
+
+            if any([haveissues == 'None', haveissues is None]):
+                haveissues = 0
+            if any([totalissues == 'None', totalissues is None]):
+                totalissues = 0
 
             try:
                 percent = (haveissues *100.0) /totalissues
@@ -1445,6 +1450,18 @@ def havetotals(refreshit=None):
                     logger.warn('[Error: %s] No Publisher found for %s - you probably want to Refresh the series when you get a chance.' % (e, comic['ComicName']))
                     cpub = None
 
+            comictype = comic['Type']
+            try:
+                if (any([comictype == 'None', comictype is None, comictype == 'Print']) and comic['Corrected_Type'] != 'TPB') or all([comic['Corrected_Type'] is not None, comic['Corrected_Type'] == 'Print']):
+                    comictype = None
+                else:
+                    if comic['Corrected_Type'] is not None:
+                        comictype = comic['Corrected_Type']
+                    else:
+                        comictype = comictype
+            except:
+                comictype = None
+
             comics.append({"ComicID":         comic['ComicID'],
                            "ComicName":       comic['ComicName'],
                            "ComicSortName":   comic['ComicSortName'],
@@ -1461,7 +1478,8 @@ def havetotals(refreshit=None):
                            "haveissues":      haveissues,
                            "DateAdded":       comic['LastUpdated'],
                            "Type":            comic['Type'],
-                           "Corrected_Type":   comic['Corrected_Type']})
+                           "Corrected_Type":  comic['Corrected_Type'],
+                           "displaytype":     comictype})
 
         return comics
 
@@ -1485,7 +1503,7 @@ def filesafe(comic):
 
     return comicname_filesafe
 
-def IssueDetails(filelocation, IssueID=None, justinfo=False):
+def IssueDetails(filelocation, IssueID=None, justinfo=False, comicname=None):
     import zipfile
     from xml.dom.minidom import parseString
 
@@ -1498,7 +1516,7 @@ def IssueDetails(filelocation, IssueID=None, justinfo=False):
     else:
         filelocation = urllib.parse.unquote_plus(filelocation)
     if justinfo is False:
-        file_info = getimage.extract_image(filelocation, single=True, imquality='issue')
+        file_info = getimage.extract_image(filelocation, single=True, imquality='issue', comicname=comicname)
         IssueImage = file_info['ComicImage']
         data = file_info['metadata']
         if data:
@@ -1515,7 +1533,7 @@ def IssueDetails(filelocation, IssueID=None, justinfo=False):
                         break
         except:
             logger.info('ERROR. Unable to properly retrieve the cover for displaying. It\'s probably best to re-tag this file.')
-            return
+            return {'IssueImage': IssueImage, 'datamode': 'file', 'metadata': None}
 
 
     if issuetag is None:
@@ -2712,11 +2730,11 @@ def torrentinfo(issueid=None, torrent_hash=None, download=False, monitor=False):
         cinfo = myDB.selectone('SELECT a.Issue_Number, a.ComicName, a.Status, b.Hash from issues as a inner join snatched as b ON a.IssueID=b.IssueID WHERE a.IssueID=?', [issueid]).fetchone()
         if cinfo is None:
             logger.warn('Unable to locate IssueID of : ' + issueid)
-            snatch_status = 'ERROR'
+            snatch_status = 'MONITOR ERROR'
 
         if cinfo['Status'] != 'Snatched' or cinfo['Hash'] is None:
             logger.warn(cinfo['ComicName'] + ' #' + cinfo['Issue_Number'] + ' is currently in a ' + cinfo['Status'] + ' Status.')
-            snatch_status = 'ERROR'
+            snatch_status = 'MONITOR ERROR'
 
         torrent_hash = cinfo['Hash']
 
@@ -2726,7 +2744,7 @@ def torrentinfo(issueid=None, torrent_hash=None, download=False, monitor=False):
 
     if not len(torrent_hash) == 40:
        logger.error("Torrent hash is missing, or an invalid hash value has been passed")
-       snatch_status = 'ERROR'
+       snatch_status = 'MONITOR ERROR'
     else:
         if mylar.USE_RTORRENT:
             from . import test
@@ -2741,14 +2759,14 @@ def torrentinfo(issueid=None, torrent_hash=None, download=False, monitor=False):
 
             torrent_info = dp.get_torrent(torrent_hash)
         else:
-            snatch_status = 'ERROR'
+            snatch_status = 'MONITOR ERROR'
             return
 
     logger.info('torrent_info: %s' % torrent_info)
 
     if torrent_info is False or len(torrent_info) == 0:
         logger.warn('torrent returned no information. Check logs - aborting auto-snatch at this time.')
-        snatch_status = 'ERROR'
+        snatch_status = 'MONITOR ERROR'
     else:
         if mylar.USE_DELUGE:
             torrent_status = torrent_info['is_finished']
@@ -2766,7 +2784,7 @@ def torrentinfo(issueid=None, torrent_hash=None, download=False, monitor=False):
 
         if all([torrent_status is True, download is True]):
             if not issueid: 
-                torrent_info['snatch_status'] = 'STARTING...'
+                torrent_info['snatch_status'] = 'MONITOR STARTING'
                 #yield torrent_info
 
             import shlex, subprocess
@@ -2783,15 +2801,15 @@ def torrentinfo(issueid=None, torrent_hash=None, download=False, monitor=False):
 
             curScriptName = shell_cmd + ' ' + str(mylar.CONFIG.AUTO_SNATCH_SCRIPT) #.decode("string_escape")
             if torrent_files > 1:
-                downlocation = torrent_folder.encode('utf-8')
+                downlocation = torrent_folder
             else:
                 if mylar.USE_DELUGE:
-                    downlocation = os.path.join(torrent_folder.encode('utf-8'), torrent_info['files'][0]['path'])
+                    downlocation = os.path.join(torrent_folder, torrent_info['files'][0]['path'])
                 else:
-                    downlocation = torrent_info['files'][0].encode('utf-8')
+                    downlocation = torrent_info['files'][0]
 
             autosnatch_env = os.environ.copy()
-            autosnatch_env['downlocation'] = re.sub("'", "\\'",downlocation)
+            autosnatch_env['downlocation'] = downlocation.replace("'", "\\'")
 
             #these are pulled from the config and are the ssh values to use to retrieve the data
             autosnatch_env['host'] = mylar.CONFIG.PP_SSHHOST
@@ -2813,24 +2831,25 @@ def torrentinfo(issueid=None, torrent_hash=None, download=False, monitor=False):
             #downlocation = re.sub("&", "\&", downlocation)
 
             script_cmd = shlex.split(curScriptName, posix=False) # + [downlocation]
-            logger.fdebug("Executing command " +str(script_cmd))
+            logger.fdebug('Executing command %s' % script_cmd)
             try:
                 p = subprocess.Popen(script_cmd, env=dict(autosnatch_env), stdout=subprocess.PIPE, stderr=subprocess.STDOUT, cwd=mylar.PROG_DIR)
                 out, err = p.communicate()
-                logger.fdebug("Script result: " + out)
+                logger.fdebug('Script result: %s' % out)
             except OSError as e:
-                logger.warn("Unable to run extra_script: " + e)
-                snatch_status = 'ERROR'
+                logger.warn('Unable to run extra_script: %s' % e)
+                snatch_status = 'MONITOR ERROR'
             else:
-                if 'Access failed: No such file' in out:
+                if 'Access failed: No such file' in str(out):
                     logger.fdebug('Not located in location it is supposed to be in - probably has been moved by some script and I got the wrong location due to timing. Trying again...')
                     snatch_status = 'IN PROGRESS'
                 else:
-                    snatch_status = 'COMPLETED'
+                    snatch_status = 'MONITOR COMPLETE' #COMPLETED
                 torrent_info['completed'] = torrent_status
                 torrent_info['files'] = torrent_files
                 torrent_info['folder'] = torrent_folder
-
+                torrent_info['copied_filepath'] = os.path.join(mylar.CONFIG.PP_SSHLOCALCD, torrent_info['name'])
+                torrent_info['snatch_status'] = snatch_status
         else:
             if download is True:
                 snatch_status = 'IN PROGRESS'
@@ -2858,7 +2877,7 @@ def torrentinfo(issueid=None, torrent_hash=None, download=False, monitor=False):
             else:
                 snatch_status = 'NOT SNATCHED'
 
-    torrent_info['snatch_status'] = snatch_status
+    #torrent_info['snatch_status'] = snatch_status
     return torrent_info
 
 def weekly_info(week=None, year=None, current=None):
@@ -3125,18 +3144,25 @@ def worker_main(queue):
     while True:
         if queue.qsize() >= 1:
             item = queue.get(True)
-            logger.info('Now loading from queue: ' + item)
+            logger.info('Now loading from queue: %s' % item)
             if item == 'exit':
                 logger.info('Cleaning up workers for shutdown')
                 break
-            snstat = torrentinfo(torrent_hash=item, download=True)
+            snstat = torrentinfo(torrent_hash=item['hash'], download=True)
             if snstat['snatch_status'] == 'IN PROGRESS':
                 logger.info('Still downloading in client....let us try again momentarily.')
                 time.sleep(30)
                 mylar.SNATCHED_QUEUE.put(item)
             elif any([snstat['snatch_status'] == 'MONITOR FAIL', snstat['snatch_status'] == 'MONITOR COMPLETE']):
                 logger.info('File copied for post-processing - submitting as a direct pp.')
-                threading.Thread(target=self.checkFolder, args=[os.path.abspath(os.path.join(snstat['copied_filepath'], os.pardir))]).start()
+                mylar.PP_QUEUE.put({'nzb_name':     os.path.basename(snstat['copied_filepath']),
+                                    'nzb_folder':   snstat['copied_filepath'], #os.path.abspath(os.path.join(snstat['copied_filepath'], os.pardir)),
+                                    'failed':       False,
+                                    'issueid':      item['issueid'],
+                                    'comicid':      item['comicid'],
+                                    'apicall':      True,
+                                    'ddl':          False})
+                #threading.Thread(target=self.checkFolder, args=[os.path.abspath(os.path.join(snstat['copied_filepath'], os.pardir))]).start()
         else:
             time.sleep(15)
 

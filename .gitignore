@@ -14,3 +14,6 @@ lib/comictaggerlib/ct_settings/
 settings.json
 .DS_Store
 version.py
+env/
+.nova/
+*.swp

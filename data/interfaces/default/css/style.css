@@ -1346,11 +1346,11 @@ div#artistheader h2 a {
 }
 #series_table th#publisher {
   min-width: 100px;
-  text-align: left;
+  text-align: center;
 }
 #series_table th#name {
   min-width: 300px;
-  text-align: left;
+  text-align: center;
 }
 #series_table th#year {
   max-width: 25px;
@@ -1381,10 +1381,10 @@ div#artistheader h2 a {
 }
 #series_table th#published {
   max-width: 50px;
-  text-align: left;
+  text-align: center;
 }
 #series_table th#have {
-  text-align: left;
+  text-align: center;
 }
 #series_table td#publisher {
   min-width: 100px;
