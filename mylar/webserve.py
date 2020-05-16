@@ -84,8 +84,17 @@ class WebInterface(object):
         if sSearch == "" or sSearch == None:
             filtered = resultlist[::]
         else:
-            filtered = [row for row in resultlist if any([sSearch.lower() in row['ComicPublisher'].lower(), sSearch.lower() in row['ComicName'].lower(), sSearch.lower() in row['ComicYear'], sSearch.lower() in row['LatestIssue'], sSearch.lower() in row['recentstatus']])]
-        sortcolumn = 'ComicName'
+            for row in resultlist:
+                try:
+                    if any([sSearch.lower() in row['ComicPublisher'].lower(), sSearch.lower() in row['ComicName'].lower(), sSearch.lower() in row['ComicYear'], sSearch.lower() in row['LatestIssue'].lower(), sSearch.lower() in row['recentstatus'].lower()]):
+                        filtered.append(row)
+                    elif row['displaytype'] is not None and sSearch.lower() in row['displaytype'].lower():
+                        filtered.append(row)
+                except Exception as e:
+                    filtered = [row for row in resultlist if any([sSearch.lower() in row['ComicName'].lower(), sSearch.lower() in row['ComicYear'], sSearch.lower() in row['recentstatus']]) or (row['LatestIssue'] is not None and sSearch.lower() in row['LatestIssue'].lower())]
+
+            #filtered = [row for row in resultlist if any([sSearch.lower() in row['ComicPublisher'].lower(), sSearch.lower() in row['ComicName'].lower(), sSearch.lower() in row['ComicYear'], False if row['displaytype'] is None else (True if sSearch.lower() in row['displaytype'] else False), sSearch.lower() in row['LatestIssue'], sSearch.lower() in row['recentstatus']])]
+        sortcolumn = 'ComicPublisher'
         if iSortCol_0 == '0':
             sortcolumn = 'ComicPublisher'
         if iSortCol_0 == '1':
@@ -100,12 +109,13 @@ class WebInterface(object):
             sortcolumn = 'percent'
         elif iSortCol_0 == '6':
             sortcolumn = 'Status'
+
         #below sort is for multi-sort columns, maybe make them user configurable - not sure how to pass mutli-sort thru otherwise
         #filtered.sort(key= itemgetter(sortcolumn2, sortcolumn), reverse=sSortDir_0 == "desc")
 
         filtered.sort(key=lambda x: (x[sortcolumn] is None, x[sortcolumn] == '', x[sortcolumn]), reverse=sSortDir_0 == "desc")
         rows = filtered[iDisplayStart:(iDisplayStart + iDisplayLength)]
-        rows = [[row['ComicPublisher'], row['ComicName'], row['ComicYear'], row['LatestIssue'], row['LatestDate'], row['recentstatus'], row['Status'], row['percent'], row['haveissues'], row['totalissues'], row['ComicID'], row['displaytype']] for row in rows]
+        rows = [[row['ComicPublisher'], row['ComicName'], row['ComicYear'], row['LatestIssue'], row['LatestDate'], row['recentstatus'], row['Status'], row['percent'], row['haveissues'], row['totalissues'], row['ComicID'], row['displaytype'], row['ComicVolume']] for row in rows]
         return json.dumps({
             'iTotalDisplayRecords': len(filtered),
             'iTotalRecords': len(resultlist),

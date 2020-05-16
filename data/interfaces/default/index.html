@@ -37,7 +37,7 @@
         $.fn.DataTable.ext.pager.numbers_length = 3;
         function initThisPage() {
             initActions();
-            $('#series_table').DataTable( {
+            $('#series_table').dataTable( {
                 "sDom": '<"clear"f><"clear"lp><"clear">rt<"clear"ip>',
                 "processing": true,
                 "serverSide": true,
@@ -62,6 +62,11 @@
                        "visible": true,
                        "data": "Series",
                        "render":function (data,type,full) {
+                            if (full[12] && full[12] != 'v1'){
+                                vol = ' ' + full[12];
+                            } else {
+                                vol = '';
+                            }
                             if (full[11]){
                                 bt = ' [' + full[11] + ']';
                             } else {
@@ -72,7 +77,7 @@
                             } else {
                                cn = full[1];
                             }
-                            return '<span title="' + full[1] + '"></span><a title="'+ full[1] +'"href="comicDetails?ComicID=' + full[10] + '">' + cn + bt + '</a>';
+                            return '<span title="' + full[1] + '"></span><a title="'+ full[1] +'"href="comicDetails?ComicID=' + full[10] + '">' + cn + vol + bt + '</a>';
                        }
                     },
                     {
@@ -175,10 +180,10 @@
             });
         };
         $(document).ready(function(){
-                        initThisPage();
+            initThisPage();
         });
 	$(window).load(function(){
-		initFancybox();
+	    initFancybox();
 	});
 	</script>
 	
