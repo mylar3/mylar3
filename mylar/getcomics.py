@@ -55,7 +55,11 @@ class GC(object):
     def search(self):
 
         with cfscrape.create_scraper() as s:
-            cf_cookievalue, cf_user_agent = s.get_tokens(self.url, headers=self.headers)
+            try:
+                cf_cookievalue, cf_user_agent = s.get_tokens(self.url, headers=self.headers)
+            except Exception as e:
+                logger.warn('[WARNING] Unable to scrape remote site, stopped by a small tank. Error returned as : %s' % e)
+                return self.search_results()
 
             t = s.get(self.url+'/', params={'s': self.query}, verify=True, cookies=cf_cookievalue, headers=self.headers, stream=True, timeout=30)
 
