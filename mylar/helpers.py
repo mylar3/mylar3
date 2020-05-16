@@ -1462,6 +1462,11 @@ def havetotals(refreshit=None):
             except:
                 comictype = None
 
+            if any([comic['ComicVersion'] == None, comic['ComicVersion'] == 'None', comic['ComicVersion'] == '']):
+                cversion = None
+            else:
+                cversion = comic['ComicVersion']
+
             comics.append({"ComicID":         comic['ComicID'],
                            "ComicName":       comic['ComicName'],
                            "ComicSortName":   comic['ComicSortName'],
@@ -1470,6 +1475,7 @@ def havetotals(refreshit=None):
                            "ComicImage":      comic['ComicImage'],
                            "LatestIssue":     comic['LatestIssue'],
                            "LatestDate":      comic['LatestDate'],
+                           "ComicVolume":     cversion,
                            "ComicPublished":  cpub,
                            "Status":          comic['Status'],
                            "recentstatus":    recentstatus,

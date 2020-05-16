@@ -287,8 +287,7 @@ button {
 input,
 select,
 form .checkbox input,
-.configtable td#middle,
-#series_table td#have {
+.configtable td#middle {
   vertical-align: middle;
 }
 input[type="radio"] {
@@ -1385,6 +1384,7 @@ div#artistheader h2 a {
 }
 #series_table th#have {
   text-align: center;
+  vertical-align: middle;
 }
 #series_table td#publisher {
   min-width: 100px;
@@ -1432,6 +1432,10 @@ div#artistheader h2 a {
 }
 #series_table td#published {
   max-width: 50px;
+  text-align: center;
+  vertical-align: middle;
+}
+#series_table td#have {
   text-align: center;
   vertical-align: middle;
 }
@@ -1834,7 +1838,7 @@ DIV.progress-container > DIV
 	background-repeat: repeat-x;
 	filter: progid:DXImageTransform.Microsoft.gradient(startColorstr='#ff5bc0de', endColorstr='#ff339bb9', GradientType=0);
 }
-.havetracks {
+.have {
   font-size: 12px;
   line-height: normal;
   margin-left: 36px;
