@@ -110,23 +110,22 @@ def getVersion():
             except Exception as e:
                 logger.warn('[ERROR] %s' % e)
                 pass
-            else:
-                if git[0]['name'] is not None:
-                    for x in git:
-                        if x['name'] == output[:opp]:
-                            current_version_name = x['name']
-                            cur_commit_hash = x['commit']['sha']
-                            break
-                    logger.info('version_name: %s' % current_version_name)
-                    url3 = 'https://api.github.com/repos/%s/mylar3/releases/tags/%s' % (mylar.CONFIG.GIT_USER, current_version_name)
-                    logger.info('url3: %s' % url3)
-                    try:
-                        repochk = requests.get(url3, verify=True)
-                        repo_resp = repochk.json()
-                        logger.info('repo_resp: %s' % repo_resp)
-                        current_release_name = repo_resp['name']
-                    except Exception as e:
-                        pass
+            elif git and git[0].get('name') is not None:
+                for x in git:
+                    if x['name'] == output[:opp]:
+                        current_version_name = x['name']
+                        cur_commit_hash = x['commit']['sha']
+                        break
+                logger.info('version_name: %s' % current_version_name)
+                url3 = 'https://api.github.com/repos/%s/mylar3/releases/tags/%s' % (mylar.CONFIG.GIT_USER, current_version_name)
+                logger.info('url3: %s' % url3)
+                try:
+                    repochk = requests.get(url3, verify=True)
+                    repo_resp = repochk.json()
+                    logger.info('repo_resp: %s' % repo_resp)
+                    current_release_name = repo_resp['name']
+                except Exception as e:
+                    pass
 
         logger.info('cur_commit_hash: %s' % cur_commit_hash)
         logger.info('cur_branch: %s' % cur_branch)
