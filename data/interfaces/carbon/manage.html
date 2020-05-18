@@ -1,0 +1,333 @@
+<%inherit file="base.html" />
+<%!
+	import mylar
+	from mylar.helpers import checked
+%>
+<%def name="headerIncludes()">
+	<div id="subhead_container">
+		<div id="subhead_menu">
+			<a id="menu_link_edit" href="manageComics">Manage Comics</a>
+			<a id="menu_link_edit" href="manageIssues?status=Wanted">Manage Issues</a>
+			<a id="menu_link_edit" href="manageFailed">Manage Failed Links</a>
+			<a id="menu_link_edit" href="queueManage">Manage DDL Queue</a>
+		</div>
+	</div>	
+</%def>
+
+<%def name="body()">
+	<div id="paddingheader">
+		<h1 class="clearfix">Manage</h1>
+	</div>
+	<div id="tabs">
+		<ul>
+			<li><a href="#tabs-1">Scan Comic Library</a></li>
+                        <li><a href="#tabs-2">Manual Post-Processing</a></li>
+                        <li><a href="#tabs-3">Advanced Options</a></li>
+                        <li><a href="#tabs-4" title="jobs">Activity / Jobs</a></li>
+		</ul>
+		<div id="tabs-1" class="configtable">
+                               <div style="float:right;position:absolute;right:0;top;0;margin-right:50px;">
+                                  <legend>Current Import Status</legend>
+                                     %if mylar.IMPORT_STATUS:
+                                         %if mylar.IMPORT_STATUS == 'Import completed.':
+                                             <input type="text" name="importstatus" id="importstatus" style="text-align:center; font-size:11px;" size="60" DISABLED /></br>
+                                             <script>
+                                             $(function() {
+                                               turnitoff();
+                                             });
+                                             </script>
+                                         %else:
+                                             <input type="text" name="importstatus" id="importstatus" style="text-align:center; font-size:11px;" size="60" DISABLED /></br>
+                                             <script>
+                                             $(function() {
+                                               turniton();
+                                             });
+                                             </script>
+                                         %endif
+                                     %else:
+                                         <script>
+                                         $(function() {
+                                           turnitoff();
+                                         });
+                                         </script>
+                                         <input type="text" name="importstatus" id="importstatus" style="text-align:center; font-size:11px;" size="60" value="Import is currently not running" DISABLED /></br>
+                                     %endif
+                                     <label>Number of valid files to process:&nbsp</label>${mylar.IMPORT_TOTALFILES}
+                                     %if int(mylar.IMPORT_FILES) != int(mylar.IMPORT_TOTALFILES):
+                                          / ${mylar.IMPORT_FILES}
+                                     %endif
+                                     </br>
+                                     <label>Files with ComicID's present:&nbsp</label>${mylar.IMPORT_CID_COUNT}</br>
+                                     <label>Files that were parsed:&nbsp</label>${mylar.IMPORT_PARSED_COUNT}</br>
+                                     <label>Files that couldn't be parsed:&nbsp</label>${mylar.IMPORT_FAILURE_COUNT}</br>
+
+                                     %if mylar.IMPORTLOCK:
+                                         </br></br></br></br>
+                                         <div class="row checkbox">
+                                            <input type="checkbox" style="vertical-align: middle; margin: 3px; margin-top: -1px;" name="forcescan" id="forcescan" value="1"><label>Existing Import Running. Force this import?</label>
+                                         </div>
+                                     %endif                                                                       
+                                </div>
+				<form action="comicScan" method="GET" id="comicScan">
+                                   <fieldset>
+					<legend>Scan Comic Library</legend>
+					<p><strong>Where are the comics you want scanned in located?</strong></p>
+					<p>You can put in any directory, and it will scan for comics</br>
+                                        in that folder (including all subdirectories). <br/>
+                                        <small>For example: '/Users/name/Comics'</small></p>	
+					<p>
+					It may take a while depending on how many files you have.</br>
+                                        You can navigate away from the page as soon as you click 'Save changes'
+					</p>	
+					<br/>
+					<div class="row">
+                                           <label for="">Path to directory</label>
+                                           %if mylar.CONFIG.COMIC_DIR:
+                                               <input type="text" value="${mylar.CONFIG.COMIC_DIR}" name="path" size="70" />
+                                           %else:
+                                               <input type="text" value="Enter a Comic Directory to scan" onfocus="if
+                                               (this.value==this.defaultValue) this.value='';" name="path" size="70" />
+                                           %endif
+                                        </div>
+                                        <div class="row checkbox">
+                                           <input type="checkbox" name="autoadd" id="autoadd" value="1" ${scan_info['autoadd']} /><label>Auto-add new series</label>
+                                        </div>
+                                        <div class="row checkbox">
+                                             <input type="checkbox" style="vertical-align: middle; margin: 3px; margin-top: -1px;" name="imp_metadata" id="imp_metadata" value="1" ${scan_info['imp_metadata']} /><label>Use existing Metadata</label>
+                                             <small>Use existing Metadata to better locate series for import</small>
+                                        </div>
+                                        <div class="row checkbox">
+                                           <input type="checkbox" style="vertical-align: middle; margin: 3px; margin-top: -1px;" name="imp_seriesfolders" id="imp_seriesfolders" value="1" ${scan_info['imp_seriesfolders']} /><label>Folder for each Series</label>
+                                           <small>Do the comics reside in their own directories, or is there no organizaiton to the directories?</small>
+                                           </br>
+                                        </div>
+                                        <div class="row checkbox">
+                                           <input type="checkbox" style="vertical-align: middle; margin: 3px; margin-top: -1px;" name="imp_move" id="imps" value="1" ${scan_info['imp_move']} /><label>Move files</label>
+                                           <small>Unchecked will not move anything, but will mark the issues as Archived</small>
+                                           </br>
+                                        </div>
+                                        <div id="move_options" class="row checkbox">
+                                           <input type="checkbox" style="vertical-align: middle; margin: 3px; margin-top: -1px;" name="imp_rename" id="imp_rename" value="1" ${scan_info['imp_rename']} /><label>Rename Files</label>
+                                           <small>Rename files to configuration settings</small>
+                                        </div>
+                                        <div id="path_options" class="row checkbox">
+                                               <input type="checkbox" style="vertical-align: middle; margin: 3px; margin-top: -1px;" name="imp_paths" id="imp_paths" value="1" ${scan_info['imp_paths']} /><label>Set import paths to series location paths</label>
+                                               <small>Use the folder paths during import as the series location path</small>
+                                        </div>
+                                        <br/>
+                                      <input type="button" value="Save Changes and Scan" onclick="addScanAction();doAjaxCall('comicScan',$(this),'tabs',true);return true;" data-success="Import Scan now submitted." data-error="Unable to start the scan. Check the logs." />
+                                      <input type="button" value="Save Changes without Scanning Library" onclick="doAjaxCall('comicScan',$(this),'tabs',true);return false;" data-success="Changes Saved Successfully" data-error="Unable to save settings. Check the logs." />
+                                      %if mylar.IMPORTBUTTON:
+                                          <input type="button" value="Import Results Management" style="float: right;" onclick="location.href='importResults';" />
+                                      %endif
+                                   </fieldset>
+                              </form>
+		</div>
+                <div id="tabs-2" class="configtable">
+                  <tr>
+                    <td>
+                         <form action="post_process" method="GET" id="post_process">
+                                   <fieldset>
+                                        <legend>Manual Run</legend>
+                                        <p><strong>Manual Post-Processing</strong></p>
+                                        <p>You can put in any directory, and it will scan for comic files in that folder
+                                        (including all subdirectories) that exist on your watchlist.
+                                        <br/><small>For example: '/Users/name/Comics'</small></p>
+                                        <p>
+                                        It may take a while depending on how many files you have. You can navigate away from this
+                                        as soon as you click 'Go'.
+                                        </p>
+                                        <br/>
+                                        <p><strong>Only series' that exist on your watchlist will be post-processed with your current
+                                        post-processing options.<br/> The remainder will not be moved from the given directory</strong></p>
+                                        <div class="row">
+                                            <label for="">Path to Manually Run</label>
+                                            %if mylar.CONFIG.CHECK_FOLDER:
+                                              <input type="text" value="${mylar.CONFIG.CHECK_FOLDER}" name="nzb_folder" size="70" />
+                                            %else:
+                                              <input type="text" value="Enter the full path to post-process" onfocus="if
+                                              (this.value==this.defaultValue) this.value='';" name="nzb_folder" size="70" />
+                                            %endif
+                                            <input type="hidden" name="nzb_name" value='Manual Run' />
+                                        </div>
+                                      <input type="button" value="Go Manual Run!" onclick="doAjaxCall('post_process',$(this),'tabs',true);return false;" data-success="Manual post-processing now running." data-error="Manual post-processing unable to run at this time.">
+                                   </fieldset>
+                         </form>
+                    </td>
+                  </tr>
+                </div>
+
+        <div id="tabs-3">
+           <table summary="Advanced Options" class="configtable">
+              <tr>
+                <td>
+                    <fieldset>
+                        <legend>Export</legend>
+                        <div class="links">
+                          <a href="#" onclick="doAjaxCall('wanted_Export?mode=Wanted',$(this))" data-sucess="Exported to Wanted list." data-error="Failed to export. Check logs"><span class="ui-icon ui-icon-refresh"></span>Export Wanted to CSV</a>
+                          <a href="#" onclick="doAjaxCall('wanted_Export?mode=Downloaded',$(this))" data-sucess="Exported to Downloaded list." data-error="Failed to export. Check logs"><span class="ui-icon ui-icon-refresh"></span>Export Downloaded to CSV</a>
+                        </div>
+                    </fieldset>
+                </td>
+                <td>
+                    <fieldset>
+                        <legend>Additional Options</legend>
+                        <div class="links">
+                          <a href="readlist">Reading List Management</a><br/>
+                          <a href="storyarc_main">Story Arc Management</a><br/>
+                          <a href="importResults">Import Results Management</a>
+                        </div>
+                    </fieldset>
+                </td>
+              </tr>
+           </table>
+        </div>
+
+        <div id="tabs-4">
+          <div id="curtime" style="float:right;"></div>
+           <table summary="Activity / Jobs" width="100%" cellpadding="6px" cellspacing="2px">
+                      <legend><center><h1>Schedulers<h1><center></legend>
+                      <br />
+                        <thead>
+                           <tr border="1">
+                                <th id="job" style="width: 50px;text-align: center;">Name</th>
+                                <th id="nextrun" style="width: 90px;text-align: center;">Next</th>
+                                <th id="interval" style="width: 20px;text-align: center;">Interval</th>
+                                <th id="prevrun" style="width: 90px;text-align: center;">Prev</th>
+                                <th id="status" style="width: 50px;text-align: center;">Status</th>
+                                <th id="options" style="width: 50px;;text-align: center;">Options</th>
+                           </tr>
+                        </thead>
+                        <tbody>
+                           %for j in jobs:
+                              <%
+                                    if j['status'] == 'Paused':
+                                        grade = '#D9150F'
+                                    elif j['status'] == 'Waiting':
+                                        grade = '#0F49D9'
+                                    elif j['status'] == 'Running':
+                                        grade = '#55D90F'
+                               %>
+                              <tr>
+                                <td id="job" style="width: 50px;text-align: center;">${j['jobname']}</td>
+                                <td id="nextrun" style="width: 90px;text-align: center;">${j['next_run_datetime']}</td>
+                                <td id="interval" style="width: 20px;text-align: center;">${j['interval']}</td>
+                                <td id="prevrun" style="width: 90px;text-align: center;">${j['prev_run_datetime']}</td>
+                                <td id="status" style="width: 50px;text-align: center;color: ${grade};">${j['status']}</td>
+                                <td id="options" style="width: 50px;text-align: center;">
+                                %if any([j['status'] == 'Running', j['status'] == 'Waiting']):
+                                    <a href="#" onclick="doAjaxCall('jobmanage?job=${j['jobname']}&mode=pause',$(this),'tabs',true);return true;" data-success="Successfully paused ${j['jobname']}" data-error="Error Pausing ${j['jobname']}."><span class="ui-icon ui-icon-stop"></span>Pause</a>
+                                %elif j['status'] == 'Paused':
+                                    <a href="#" onclick="doAjaxCall('jobmanage?job=${j['jobname']}&mode=resume',$(this),'tabs',true);return true;" data-success="Successfully resumed ${j['jobname']}" data-error="Error Pausing ${j['jobname']}."><span class="ui-icon ui-icon-play"></span>Resume</a>
+                                %endif
+                                %if j['jobname'] == 'Auto-Search':
+                                    <a href="#" onclick="doAjaxCall('schedulerForceCheck?jobid=search',$(this),'tabs',true);return true;" data-success="Force Search successfully submitted" data-error="Error checking wanted issues"><span class="ui-icon ui-icon-star"></span>Force</a>
+                                %elif j['jobname'] == 'DB Updater':
+                                    <a href="#" onclick="doAjaxCall('schedulerForceCheck?jobid=updater',$(this),'tabs',true);return true;" data-success="Update active series now running" data-error="Error forcing update Comics"><span class="ui-icon ui-icon-star"></span>Force</a>
+                                %elif j['jobname'] == 'Weekly Pullist':
+                                    <a href="#" onclick="doAjaxCall('schedulerForceCheck?jobid=weekly',$(this),'tabs',true);return true;" data-success="Now updating Weekly Pullist" data-error="Error forcing update to Weekly Pullist"><span class="ui-icon ui-icon-star"></span>Force</a>
+                                %elif j['jobname'] == 'Folder Monitor':
+                                    <a href="#" onclick="doAjaxCall('schedulerForceCheck?jobid=monitor',$(this),'tabs',true);return true;" data-success="Folder Monitor now running" data-error="Error forcing Folder Monitor to run"><span class="ui-icon ui-icon-star"></span>Force</a>
+                                %elif j['jobname'] == 'RSS Feeds':
+                                    <a href="#" onclick="doAjaxCall('schedulerForceCheck?jobid=rss',$(this),'tabs',true);return true;" data-success="Force RSS Check now running" data-error="Error forcing update Comics"><span class="ui-icon ui-icon-star"></span>Force</a>
+                                %elif j['jobname'] == 'Check Version':
+                                    <a href="#" onclick="doAjaxCall('schedulerForceCheck?jobid=version',$(this),'tabs',true);return true;" data-success="Version check successfully submitted" data-error="Error checking for update"><span class="ui-icon ui-icon-star"></span>Force</a>
+                                %endif
+                                </td>                                    
+                              </tr>
+                           %endfor
+                        </tbody>
+           </table>
+           </br><small><center>There could be up to a 60s delay in a given scheduler running due to other processes currently running</center></small>
+        </div>
+
+
+</div>
+</%def>
+<%def name="javascriptIncludes()">
+        <script>
+        var CheckEnabled = true;
+        function startTime() {
+                var today = new Date();
+                var h = today.getHours();
+                var m = today.getMinutes();
+                var s = today.getSeconds();
+                h = checkTime(h);
+                m = checkTime(m);
+                s = checkTime(s);
+                document.getElementById('curtime').innerHTML = h + ":" + m + ":" + s;
+                var t = setTimeout(startTime, 500);
+        };
+        function checkTime(i) {
+                if (i < 10) {i = "0" + i}; // add zero in front of numbers if < 10
+                return i;
+        };
+        function addScanAction() {
+                $('#autoadd').append('<input type="hidden" name="scan" id="scan" value=1 />');
+                CheckEnabled = true;
+                statuscheck();
+        };
+        function statuscheck() {
+                if (CheckEnabled == true){
+                    var ImportTimer = setInterval(function(){
+                        $.get('Check_ImportStatus',
+                            function(data){
+                                if (data.error != undefined) {
+                                    alert(data.error);
+                                    return;
+                                }
+                                $('#importstatus').val(data);
+                                if (data == 'Import completed.') {
+                                    CheckEnabled = false;
+                                    clearInterval(ImportTimer);
+                                    return;
+                                }
+                        });
+                    }, 5000);
+                };
+        };
+        function turnitoff() {
+            CheckEnabled = false;
+            if (typeof ImportTimer !== 'undefined') {
+                clearInterval(ImportTimer);
+            }
+        };
+        function turniton() {
+            if (CheckEnabled == false) {
+                CheckEnabled = true;
+                statuscheck();
+            }
+        };
+        function initThisPage() {
+                if ($("#imps").is(":checked"))
+                        {
+                                $("#move_options").show();
+                                $("#path_options").hide();
+                        }
+                else
+                        {
+                                $("#path_options").show();
+                                $("#move_options").hide();
+                        }
+
+                $("#imps").click(function(){
+                        if ($("#imps").is(":checked"))
+                        {
+                                $("#move_options").slideDown();
+                                $("#path_options").slideUp();
+                        }
+                        else
+                        {
+                                $("#path_options").slideDown();
+                                $("#move_options").slideUp();
+                        }
+                });
+                jQuery( "#tabs" ).tabs();
+		initActions();
+                startTime();
+	};
+	$(document).ready(function() {
+		initThisPage();
+	});
+	</script>
+</%def>
