@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en" >
+
+<head>
+  <meta charset="UTF-8">
+  <title>Mylar</title>
+  
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/meyer-reset/2.0/reset.min.css">
+
+  
+      <link rel="stylesheet" href="${http_root}css/login.css">
+
+  
+</head>
+
+<body>
+      <form action="${http_root}auth/login" method="post">
+      <input type="hidden" name="from_page" value="${from_page}" />
+      <div class="wrap">
+		<div class="avatar">
+                     <img src="${http_root}images/mylarlogo.png" />
+		</div>
+		<input type="text" placeholder="username" name="current_username" id="current_username" required autofocus autocomplete/>
+		<div class="bar">
+			<i></i>
+		</div>
+		<input type="password" placeholder="password" name="current_password" id="current_password" required autocomplete/>
+         	<button>Sign in</button>
+	</div>
+
+</body>
+
+</html>
