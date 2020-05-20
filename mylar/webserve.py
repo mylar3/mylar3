@@ -6049,10 +6049,10 @@ class WebInterface(object):
     CreateFolders.exposed = True
 
     def getPushbulletDevices(self, api=None):
-        notifythis = notifiers.pushbullet
-        result = notifythis.get_devices(api)
+        notifythis = notifiers.PUSHBULLET(test_apikey=api)
+        result = notifythis.get_devices()
         if result:
-            return result
+            return json.dumps(result)
         else:
             return 'Error sending Pushbullet notifications.'
     getPushbulletDevices.exposed = True
@@ -6098,14 +6098,14 @@ class WebInterface(object):
             return "Error sending test message to Pushover"
     testpushover.exposed = True
 
-    def testpushbullet(self, apikey):
-        pushbullet = notifiers.PUSHBULLET(test_apikey=apikey)
+    def testpushbullet(self, apikey, channel):
+        pushbullet = notifiers.PUSHBULLET(test_apikey=apikey, channel=channel)
         result = pushbullet.test_notify()
         if result['status'] == True:
-            return result['message']
+            return "Successfully sent Pushbullet test -  check to make sure it worked"
         else:
-            logger.warn('APIKEY used for test was : %s' % apikey)
-            return result['message']
+            logger.warn('Last six characters of the test variables used [APIKEY: %s][CHANNEL: %s]' % (apikey[-6:], channel[-6:]))
+            return "Error sending test message to Pushbullet"
     testpushbullet.exposed = True
 
     def testtelegram(self, userid, token):
