@@ -628,7 +628,7 @@ footer {
   margin-right: 3px;
 }
 #updatebar {
-  border: 1px solid #cccccc;
+  border: 1px solid ##1c1e22;
   background-image: -moz-linear-gradient(#ffffff, #eeeeee) !important;
   background-image: linear-gradient(#ffffff, #eeeeee) !important;
   background-image: -webkit-linear-gradient(#ffffff, #eeeeee) !important;
@@ -644,7 +644,7 @@ footer {
   -moz-box-shadow: 0px 0px 2px #aaaaaa;
   -webkit-box-shadow: 0px 0px 2px #aaaaaa;
   -o-box-shadow: 0px 0px 2px #aaaaaa;
-  box-shadow: 0px 0px 2px #aaaaaa;
+  box-shadow: 0px 0px 2px #1c1e22;
   padding: 7px 10px;
   position: fixed;
   text-align: center;
@@ -660,7 +660,7 @@ footer {
   display: block;
   background-image: -moz-linear-gradient(#fcf5c2, #fff6a9) !important;
   background-image: linear-gradient(#fcf5c2, #fff6a9) !important;
-  background-image: -webkit-linear-gradient(#fcf5c2, #fff6a9) !important;
+  background-image: -webkit-linear-gradient(#484e55, #3a3f44) !important;
   background-image: -o-linear-gradient(#fcf5c2, #fff6a9) !important;
   filter: progid:dximagetransform.microsoft.gradient(startColorstr=#fafafa, endColorstr=#eaeaea) !important;
   -ms-filter: progid:dximagetransform.microsoft.gradient(startColorstr=#fafafa, endColorstr=#eaeaea) !important;
