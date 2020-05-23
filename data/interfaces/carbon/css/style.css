@@ -787,7 +787,7 @@ div#searchbar .mini-icon {
   margin-left: 0;
 }
 .Skipped {
-  background-color: #666;
+  background-color: #353a41;
   height: 30px;
 }
 .Downloaded {
@@ -795,15 +795,15 @@ div#searchbar .mini-icon {
   height: 30px;
 }
 .Archived {
-  background-color: #666;
+  background-color: #0d4a0b;
   height: 30px;
 }
 .Wanted {
-  background-color: #666;
+  background-color: #641716;
   height: 30px;
 }
 .Snatched {
-  background-color: #666;
+  background-color: #1a4977;
   height: 30px;
 }
 .Failed {
@@ -811,7 +811,7 @@ div#searchbar .mini-icon {
   height: 30px;
 }
 .Ignored {
-  background-color: #666;
+  background-color: #353a41;
   height: 30px;
 }
 .comictable legend {
@@ -1393,16 +1393,19 @@ div#artistheader h2 a {
   text-align: left;
   vertical-align: middle;
   font-size: 12px;
+  background-color: #353a41;
 }
 #series_table td#name {
   min-width: 300px;
   text-align: left;
   vertical-align: middle;
+  background-color: #353a41;
 }
 #series_table td#year {
   max-width: 25px;
   text-align: left;
   vertical-align: middle;
+  background-color: #353a41;
 }
 #series_table td#havepercent,
 #series_table td#totalcount {
@@ -1421,25 +1424,30 @@ div#artistheader h2 a {
   max-width: 25px;
   text-align: center;
   vertical-align: middle;
+  background-color: #353a41;
 }
 #series_table td#issue {
   max-width: 30px;
-  text-align: left;
+  text-align: center;
   vertical-align: middle;
+  background-color: #353a41;
 }
 #series_table td#status {
   max-width: 50px;
   text-align: center;
   vertical-align: middle;
+  background-color: #353a41;
 }
 #series_table td#published {
   max-width: 50px;
   text-align: center;
   vertical-align: middle;
+  background-color: #353a41;
 }
 #series_table td#have {
   text-align: center;
   vertical-align: middle;
+  background-color: #353a41;
 }
 #manageheader {
   margin-top: 45px;

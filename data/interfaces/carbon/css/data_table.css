@@ -269,11 +269,11 @@ table.display_log td.center {
  * DataTables row classes
  */
 table.display tr.odd.gradeA {
-	background-color: #353a41;
+	-background-color: #353a41;
 }
 
 table.display tr.even.gradeA {
-	background-color: #2e3338;
+	-background-color: #2e3338;
 }
 
 table.display tr.odd.gradeC {
@@ -293,7 +293,7 @@ table.display tr.odd.gradeE {
 }
 
 table.display tr.even.gradeH {
-        background-color: #FFF5CC;
+        background-color: #ae3431;
 }
 
 table.display tr.odd.gradeH {
@@ -308,7 +308,7 @@ table.display tr.odd.gradeL {
 }
 
 table.display tr.odd.gradeX {
-	background-color: #ae3431;
+	-background-color: #ae3431;
 }
 
 table.display tr.even.gradeX {
