@@ -316,11 +316,11 @@ table.display tr.even.gradeX {
 }
 
 table.display tr.odd.gradeU {
-	background-color: #ddd;
+	background-color: #382f64;
 }
 
 table.display tr.even.gradeU {
-	background-color: #eee;
+	background-color: #221853;
 }
 
 table.display tr.odd.gradeP {
