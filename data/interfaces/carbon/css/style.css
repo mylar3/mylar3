@@ -603,7 +603,7 @@ footer {
 #ajaxMsg.success {
   background-image: -moz-linear-gradient(#d3ffd7, #c2edc6) !important;
   background-image: linear-gradient(#d3ffd7, #c2edc6) !important;
-  background-image: -webkit-linear-gradient(#d3ffd7, #c2edc6) !important;
+  background-image: -webkit-linear-gradient(#000, #000) !important;
   background-image: -o-linear-gradient(#d3ffd7, #c2edc6) !important;
   filter: progid:dximagetransform.microsoft.gradient(startColorstr=#fafafa, endColorstr=#eaeaea) !important;
   -ms-filter: progid:dximagetransform.microsoft.gradient(startColorstr=#fafafa, endColorstr=#eaeaea) !important;
@@ -791,7 +791,7 @@ div#searchbar .mini-icon {
   height: 30px;
 }
 .Downloaded {
-  background-color: #666;
+  background-color: #0d4a0b;
   height: 30px;
 }
 .Archived {
@@ -1403,7 +1403,7 @@ div#artistheader h2 a {
 }
 #series_table td#year {
   max-width: 25px;
-  text-align: left;
+  text-align: center;
   vertical-align: middle;
   background-color: #353a41;
 }
