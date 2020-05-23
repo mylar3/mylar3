@@ -1242,6 +1242,14 @@ def updateissuedata(comicid, comicname=None, issued=None, comicIssues=None, call
                                 issnum = '9\xbd'
                                 logger.fdebug('issue: 9-5 is an invalid entry. Correcting to : ' + issnum)
                                 int_issnum = (9 * 1000) + (.5 * 1000)
+                            elif issnum == '2 & 3':
+                                issnum = '2\xbd'
+                                logger.fdebug('issue: 2 & 3 is an invalid entry. Correcting to : ' + issnum)
+                                int_issnum = (2 * 1000) + (3 * 1000)
+                            elif issnum == '4 & 5':
+                                issnum = '4\xbd'
+                                logger.fdebug('issue: 4 & 5 is an invalid entry. Correcting to : ' + issnum)
+                                int_issnum = (4 * 1000) + (5 * 1000)
                             elif issnum == '112/113':
                                 int_issnum = (112 * 1000) + (.5 * 1000)
                             elif issnum == '14-16':
