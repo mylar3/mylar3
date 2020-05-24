@@ -38,7 +38,7 @@ from base64 import b16encode, b32decode
 from operator import itemgetter
 from wsgiref.handlers import format_date_time
 
-def search_init(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueDate, StoreDate, IssueID, AlternateSearch=None, UseFuzzy=None, ComicVersion=None, SARC=None, IssueArcID=None, mode=None, rsscheck=None, ComicID=None, manualsearch=None, filesafe=None, allow_packs=None, oneoff=False, manual=False, torrentid_32p=None, digitaldate=None, booktype=None):
+def search_init(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueDate, StoreDate, IssueID, AlternateSearch=None, UseFuzzy=None, ComicVersion=None, SARC=None, IssueArcID=None, mode=None, rsscheck=None, ComicID=None, manualsearch=None, filesafe=None, allow_packs=None, oneoff=False, manual=False, torrentid_32p=None, digitaldate=None, booktype=None, ignore_booktype=False):
 
     mylar.COMICINFO = []
     unaltered_ComicName = None
@@ -274,6 +274,9 @@ def search_init(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueD
             else:
                 cmloopit = 1
 
+        chktpb = 0
+        if booktype == 'TPB':
+            chktpb = 1
 
         if findit['status'] is True:
             logger.fdebug('Found result on first run, exiting search module now.')
@@ -337,7 +340,7 @@ def search_init(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueD
                     #if searchprov.lower() == 'ddl':
                     #    prov_count+=1
                     #    continue
-                    findit = NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueDate, StoreDate, searchprov, send_prov_count, IssDateFix, IssueID, UseFuzzy, newznab_host, ComicVersion=ComicVersion, SARC=SARC, IssueArcID=IssueArcID, RSS="yes", ComicID=ComicID, issuetitle=issuetitle, unaltered_ComicName=unaltered_ComicName, oneoff=oneoff, cmloopit=cmloopit, manual=manual, torznab_host=torznab_host, digitaldate=digitaldate, booktype=booktype)
+                    findit = NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueDate, StoreDate, searchprov, send_prov_count, IssDateFix, IssueID, UseFuzzy, newznab_host, ComicVersion=ComicVersion, SARC=SARC, IssueArcID=IssueArcID, RSS="yes", ComicID=ComicID, issuetitle=issuetitle, unaltered_ComicName=unaltered_ComicName, oneoff=oneoff, cmloopit=cmloopit, manual=manual, torznab_host=torznab_host, digitaldate=digitaldate, booktype=booktype, chktpb=chktpb, ignore_booktype=ignore_booktype)
                     if findit['status'] is False:
                         if AlternateSearch is not None and AlternateSearch != "None":
                             chkthealt = AlternateSearch.split('##')
@@ -347,7 +350,7 @@ def search_init(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueD
                             for calt in chkthealt:
                                 AS_Alternate = re.sub('##', '', calt)
                                 logger.info('Alternate Search pattern detected...re-adjusting to : %s' % AS_Alternate)
-                                findit = NZB_SEARCH(AS_Alternate, IssueNumber, ComicYear, SeriesYear, Publisher, IssueDate, StoreDate, searchprov, send_prov_count, IssDateFix, IssueID, UseFuzzy, newznab_host, ComicVersion=ComicVersion, SARC=SARC, IssueArcID=IssueArcID, RSS="yes", ComicID=ComicID, issuetitle=issuetitle, unaltered_ComicName=AS_Alternate, allow_packs=allow_packs, oneoff=oneoff, cmloopit=cmloopit, manual=manual, torznab_host=torznab_host, digitaldate=digitaldate, booktype=booktype)
+                                findit = NZB_SEARCH(AS_Alternate, IssueNumber, ComicYear, SeriesYear, Publisher, IssueDate, StoreDate, searchprov, send_prov_count, IssDateFix, IssueID, UseFuzzy, newznab_host, ComicVersion=ComicVersion, SARC=SARC, IssueArcID=IssueArcID, RSS="yes", ComicID=ComicID, issuetitle=issuetitle, unaltered_ComicName=AS_Alternate, allow_packs=allow_packs, oneoff=oneoff, cmloopit=cmloopit, manual=manual, torznab_host=torznab_host, digitaldate=digitaldate, booktype=booktype, chktpb=chktpb, ignore_booktype=ignore_booktype)
                                 if findit['status'] is True:
                                     break
                             if findit['status'] is True:
@@ -357,7 +360,7 @@ def search_init(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueD
                         break
 
                 else:
-                    findit = NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueDate, StoreDate, searchprov, send_prov_count, IssDateFix, IssueID, UseFuzzy, newznab_host, ComicVersion=ComicVersion, SARC=SARC, IssueArcID=IssueArcID, RSS="no", ComicID=ComicID, issuetitle=issuetitle, unaltered_ComicName=unaltered_ComicName, allow_packs=allow_packs, oneoff=oneoff, cmloopit=cmloopit, manual=manual, torznab_host=torznab_host, torrentid_32p=torrentid_32p, digitaldate=digitaldate, booktype=booktype)
+                    findit = NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueDate, StoreDate, searchprov, send_prov_count, IssDateFix, IssueID, UseFuzzy, newznab_host, ComicVersion=ComicVersion, SARC=SARC, IssueArcID=IssueArcID, RSS="no", ComicID=ComicID, issuetitle=issuetitle, unaltered_ComicName=unaltered_ComicName, allow_packs=allow_packs, oneoff=oneoff, cmloopit=cmloopit, manual=manual, torznab_host=torznab_host, torrentid_32p=torrentid_32p, digitaldate=digitaldate, booktype=booktype, chktpb=chktpb, ignore_booktype=ignore_booktype)
                     if all([searchprov == '32P', checked_once is False]) or all([searchprov.lower() == 'ddl', checked_once is False]) or all([searchprov == 'Public Torrents', checked_once is False]) or all([searchprov == 'experimental', checked_once is False]):
                         checked_once = True
                     if findit['status'] is False:
@@ -369,7 +372,7 @@ def search_init(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueD
                             for calt in chkthealt:
                                 AS_Alternate = re.sub('##', '', calt)
                                 logger.info('Alternate Search pattern detected...re-adjusting to : %s' % AS_Alternate)
-                                findit = NZB_SEARCH(AS_Alternate, IssueNumber, ComicYear, SeriesYear, Publisher, IssueDate, StoreDate, searchprov, send_prov_count, IssDateFix, IssueID, UseFuzzy, newznab_host, ComicVersion=ComicVersion, SARC=SARC, IssueArcID=IssueArcID, RSS="no", ComicID=ComicID, issuetitle=issuetitle, unaltered_ComicName=unaltered_ComicName, allow_packs=allow_packs, oneoff=oneoff, cmloopit=cmloopit, manual=manual, torznab_host=torznab_host, torrentid_32p=torrentid_32p, digitaldate=digitaldate, booktype=booktype)
+                                findit = NZB_SEARCH(AS_Alternate, IssueNumber, ComicYear, SeriesYear, Publisher, IssueDate, StoreDate, searchprov, send_prov_count, IssDateFix, IssueID, UseFuzzy, newznab_host, ComicVersion=ComicVersion, SARC=SARC, IssueArcID=IssueArcID, RSS="no", ComicID=ComicID, issuetitle=issuetitle, unaltered_ComicName=unaltered_ComicName, allow_packs=allow_packs, oneoff=oneoff, cmloopit=cmloopit, manual=manual, torznab_host=torznab_host, torrentid_32p=torrentid_32p, digitaldate=digitaldate, booktype=booktype, chktpb=chktpb, ignore_booktype=ignore_booktype)
                                 if findit['status'] is True:
                                     break
                             if findit['status'] is True:
@@ -439,7 +442,7 @@ def search_init(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueD
 
     return findit, 'None'
 
-def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueDate, StoreDate, nzbprov, prov_count, IssDateFix, IssueID, UseFuzzy, newznab_host=None, ComicVersion=None, SARC=None, IssueArcID=None, RSS=None, ComicID=None, issuetitle=None, unaltered_ComicName=None, allow_packs=None, oneoff=False, cmloopit=None, manual=False, torznab_host=None, torrentid_32p=None, digitaldate=None, booktype=None):
+def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueDate, StoreDate, nzbprov, prov_count, IssDateFix, IssueID, UseFuzzy, newznab_host=None, ComicVersion=None, SARC=None, IssueArcID=None, RSS=None, ComicID=None, issuetitle=None, unaltered_ComicName=None, allow_packs=None, oneoff=False, cmloopit=None, manual=False, torznab_host=None, torrentid_32p=None, digitaldate=None, booktype=None, chktpb=0, ignore_booktype=False):
 
     if any([allow_packs is None, allow_packs == 'None', allow_packs == 0, allow_packs == '0']) and all([mylar.CONFIG.ENABLE_TORRENT_SEARCH, mylar.CONFIG.ENABLE_32P]):
         allow_packs = False
@@ -573,7 +576,6 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueDa
     #---issue problem
     # if issue is '011' instead of '11' in nzb search results, will not have same
     # results. '011' will return different than '11', as will '009' and '09'.
-
     while (findloop < findcount):
         logger.fdebug('findloop: %s / findcount: %s' % (findloop, findcount))
         comsrc = comsearch
@@ -603,6 +605,11 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueDa
             elif cmloopit == 1:
                 comsearch = comsrc + "%20" + str(isssearch) #+ "%20" + str(filetype)
                 issdig = ''
+                if chktpb == 1:
+                    #this will open end the search based on just the series title, no issue number, no volume.
+                    #putting it at the last search option and ONLY for tpb items hopefully will help it not retrieve thousands.
+                    comsearch = comsrc
+                    chktpb+=1
             else:
                 foundc['status'] = False
                 done = True
@@ -610,6 +617,8 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueDa
             mod_isssearch = str(issdig) + str(isssearch)
         else:
             if cmloopit == 4:
+                if booktype == 'TPB':
+                    comsearch = comsrc + "%20v" + str(isssearch)
                 mod_isssearch = ''
             else:
                 comsearch = StoreDate
@@ -1128,7 +1137,8 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueDa
                 parsed_comic = p_comic.listFiles()
 
                 logger.fdebug('parsed_info: %s' % parsed_comic)
-                if parsed_comic['parse_status'] == 'success' and (all([booktype is None, parsed_comic['booktype'] == 'issue']) or all([booktype == 'Print', parsed_comic['booktype'] == 'issue']) or all([booktype == 'One-Shot', parsed_comic['booktype'] == 'issue']) or booktype == parsed_comic['booktype']):
+                logger.info('booktype: %s / parsed_booktype: %s [ignore_booktype: %s]' % (booktype, parsed_comic['booktype'], ignore_booktype))
+                if parsed_comic['parse_status'] == 'success' and (all([booktype is None, parsed_comic['booktype'] == 'issue']) or all([booktype == 'Print', parsed_comic['booktype'] == 'issue']) or all([booktype == 'One-Shot', parsed_comic['booktype'] == 'issue']) or all([booktype != parsed_comic['booktype'], ignore_booktype is True]) or booktype == parsed_comic['booktype']):
                     try:
                         fcomic = filechecker.FileChecker(watchcomic=ComicName)
                         filecomic = fcomic.matchIT(parsed_comic)
@@ -1140,11 +1150,11 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueDa
                         if filecomic['process_status'] == 'fail':
                             logger.fdebug('%s was not a match to %s (%s)' % (cleantitle, ComicName, SeriesYear))
                             continue
-                elif booktype != parsed_comic['booktype']:
+                elif booktype != parsed_comic['booktype'] and ignore_booktype is False:
                     logger.fdebug('Booktypes do not match. Looking for %s, this is a %s. Ignoring this result.' % (booktype, parsed_comic['booktype']))
                     continue
                 else:
-                    logger.fdebug('Unable to parse name properly: %s. Ignoring this result' % filecomic)
+                    logger.fdebug('Unable to parse name properly: %s. Ignoring this result' % parsed_comic)
                     continue
 
                 #adjust for covers only by removing them entirely...
@@ -1287,11 +1297,16 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueDa
                     # instead of the Series they belong to (V2012 vs V2013)
                     if annualize == "true" and int(ComicYear) == int(F_ComicVersion):
                         logger.fdebug("We matched on versions for annuals %s" % fndcomicversion)
-                    elif int(F_ComicVersion) == int(D_ComicVersion) or int(F_ComicVersion) == int(S_ComicVersion):
+                    elif booktype != 'TPB' and (int(F_ComicVersion) == int(D_ComicVersion) or int(F_ComicVersion) == int(S_ComicVersion)):
                         logger.fdebug("We matched on versions...%s" %fndcomicversion)
                     else:
-                        logger.fdebug("Versions wrong. Ignoring possible match.")
-                        continue
+                        if booktype == 'TPB' and int(F_ComicVersion) == int(findcomiciss) and filecomic['justthedigits'] is None:
+                            logger.fdebug('TPB detected - reassigning volume %s to match as the issue number based on Volume' % fndcomicversion)
+                        elif all([int(F_ComicVersion) == int(findcomiciss), fndcomicversion is not None, booktype == 'TPB', filecomic['booktype'] == 'TPB', filecomic['justthedigits'] is None]):
+                            logger.fdebug('TPB detected - reassigning volume %s to match as the issue number' % fndcomicversion)
+                        else:
+                            logger.fdebug("Versions wrong. Ignoring possible match.")
+                            continue
 
                 downloadit = False
 #-------------------------------------fix this!
@@ -1404,7 +1419,7 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueDa
                         else:
                             pc_in = helpers.issuedigits(filecomic['justthedigits'])
                         #issue comparison now as well
-                        if intIss is not None and comintIss is not None and int(intIss) == int(comintIss) or all([cmloopit == 4, findcomiciss is None, pc_in is None]) or all([cmloopit == 4, findcomiciss is None, pc_in == 1]):
+                        if all([intIss is not None, comintIss is not None]) and int(intIss) == int(comintIss) or all([chktpb !=0, filecomic['booktype'] == 'TPB', pc_in is None, helpers.issuedigits(F_ComicVersion) == intIss]) or all([chktpb == 2, filecomic['booktype'] == 'TPB', pc_in is None, cmloopit == 1]) or all([cmloopit == 4, findcomiciss is None, pc_in is None]) or all([cmloopit == 4, findcomiciss is None, pc_in == 1]):
                             nowrite = False
                             if all([nzbprov == 'torznab', 'worldwidetorrents' in entry['link']]):
                                 nzbid = generate_id(nzbprov, entry['id'])
@@ -1531,8 +1546,11 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueDa
         #    logger.info("Alphanumerics detected within IssueNumber. Seperating from Issue # and re-trying.")
         #    cmloopit = origcmloopit
         #    seperatealpha = "yes"
-
-        findloop+=1
+        logger.info('booktype:%s / chktpb: %s / findloop: %s' % (booktype, chktpb, findloop))
+        if booktype == 'TPB' and chktpb == 1 and findloop+1 > findcount:
+            pass #findloop=-1
+        else:
+            findloop+=1
 
     if foundc['status'] is True:
         if 'Public Torrents' in tmpprov and any([nzbprov == 'WWT', nzbprov == 'DEM']):
@@ -1731,6 +1749,7 @@ def searchforissue(issueid=None, new=False, rsscheck=None, manual=False):
                     ComicVersion = comic['Volume']
                     TorrentID_32p = None
                     booktype = comic['Type']
+                    ignore_booktype = False
                 else:
                     Comicname_filesafe = comic['ComicName_Filesafe']
                     SeriesYear = comic['ComicYear']
@@ -1740,6 +1759,9 @@ def searchforissue(issueid=None, new=False, rsscheck=None, manual=False):
                     ComicVersion = comic['ComicVersion']
                     TorrentID_32p = comic['TorrentID_32P']
                     booktype = comic['Type']
+                    if comic['Corrected_Type'] is not None and comic['Type'] != comic['Corrected_Type']:
+                        booktype = comic['Corrected_Type']
+                    ignore_booktype = bool(comic['IgnoreType'])
                     if any([comic['AllowPacks'] == 1, comic['AllowPacks'] == '1']):
                         AllowPacks = True
 
@@ -1773,7 +1795,7 @@ def searchforissue(issueid=None, new=False, rsscheck=None, manual=False):
                     continue
 
                 mode = result['mode']
-                foundNZB, prov = search_init(comic['ComicName'], result['Issue_Number'], str(ComicYear), SeriesYear, Publisher, IssueDate, StoreDate, result['IssueID'], AlternateSearch, UseFuzzy, ComicVersion, SARC=result['SARC'], IssueArcID=result['IssueArcID'], mode=mode, rsscheck=rsscheck, ComicID=result['ComicID'], filesafe=Comicname_filesafe, allow_packs=AllowPacks, oneoff=OneOff, torrentid_32p=TorrentID_32p, digitaldate=DigitalDate, booktype=booktype)
+                foundNZB, prov = search_init(comic['ComicName'], result['Issue_Number'], str(ComicYear), SeriesYear, Publisher, IssueDate, StoreDate, result['IssueID'], AlternateSearch, UseFuzzy, ComicVersion, SARC=result['SARC'], IssueArcID=result['IssueArcID'], mode=mode, rsscheck=rsscheck, ComicID=result['ComicID'], filesafe=Comicname_filesafe, allow_packs=AllowPacks, oneoff=OneOff, torrentid_32p=TorrentID_32p, digitaldate=DigitalDate, booktype=booktype, ignore_booktype=ignore_booktype)
                 if foundNZB['status'] is True:
                     updater.foundsearch(result['ComicID'], result['IssueID'], mode=mode, provider=prov, SARC=result['SARC'], IssueArcID=result['IssueArcID'], hash=foundNZB['info']['t_hash'])
 
@@ -1826,6 +1848,7 @@ def searchforissue(issueid=None, new=False, rsscheck=None, manual=False):
                 DigitalDate = result['DigitalDate']
                 TorrentID_32p = None
                 booktype = result['Type']
+                ignore_booktype = False
             elif mode == 'pullwant':
                 ComicName = result['COMIC']
                 Comicname_filesafe = helpers.filesafe(ComicName)
@@ -1843,6 +1866,7 @@ def searchforissue(issueid=None, new=False, rsscheck=None, manual=False):
                 StoreDate = IssueDate
                 DigitalDate = '0000-00-00'
                 booktype = result['format']
+                ignore_booktype = False
             else:
                 comic = myDB.selectone('SELECT * FROM comics where ComicID=?', [ComicID]).fetchone()
                 if mode == 'want_ann':
@@ -1866,6 +1890,9 @@ def searchforissue(issueid=None, new=False, rsscheck=None, manual=False):
                 actissueid = issueid
                 TorrentID_32p = comic['TorrentID_32P']
                 booktype = comic['Type']
+                if comic['Corrected_Type'] is not None and comic['Type'] != comic['Corrected_Type']:
+                    booktype = comic['Corrected_Type']
+                ignore_booktype = bool(comic['IgnoreType'])
                 if any([comic['AllowPacks'] == 1, comic['AllowPacks'] == '1']):
                     allow_packs = True
 
@@ -1874,7 +1901,7 @@ def searchforissue(issueid=None, new=False, rsscheck=None, manual=False):
             else:
                 IssueYear = str(IssueDate)[:4]
 
-            foundNZB, prov = search_init(ComicName, IssueNumber, str(IssueYear), SeriesYear, Publisher, IssueDate, StoreDate, actissueid, AlternateSearch, UseFuzzy, ComicVersion, SARC=SARC, IssueArcID=IssueArcID, mode=mode, rsscheck=rsscheck, ComicID=ComicID, filesafe=Comicname_filesafe, allow_packs=allow_packs, oneoff=oneoff, manual=manual, torrentid_32p=TorrentID_32p, digitaldate=DigitalDate, booktype=booktype)
+            foundNZB, prov = search_init(ComicName, IssueNumber, str(IssueYear), SeriesYear, Publisher, IssueDate, StoreDate, actissueid, AlternateSearch, UseFuzzy, ComicVersion, SARC=SARC, IssueArcID=IssueArcID, mode=mode, rsscheck=rsscheck, ComicID=ComicID, filesafe=Comicname_filesafe, allow_packs=allow_packs, oneoff=oneoff, manual=manual, torrentid_32p=TorrentID_32p, digitaldate=DigitalDate, booktype=booktype, ignore_booktype=ignore_booktype)
             if manual is True:
                 mylar.SEARCHLOCK = False
                 return foundNZB

@@ -236,12 +236,22 @@ class WebInterface(object):
             issues_list = None
         #logger.info('issues_list: %s' % issues_list)
 
-        if comic['Corrected_Type'] == 'TPB':
-            force_type = 1
-        elif comic['Corrected_Type'] == 'Print':
-            force_type = 2
+        if comic['Corrected_Type'] == comic['Type']:
+            force_type = None
         else:
-            force_type = 0
+            if comic['Corrected_Type'] == 'TPB':
+                force_type = 'TPB'
+            elif comic['Corrected_Type'] == 'Digital':
+                force_type = 'Digital'
+            elif comic['Corrected_Type'] == 'One-Shot':
+                force_type = 'One-Shot'
+            elif comic['Corrected_Type'] == 'Print' or comic['Corrected_Type'] is None:
+                if comic['Type'] is None:
+                    force_type = 'Print'
+                elif comic['Corrected_Type'] is None:
+                    force_type = None
+                else:
+                    force_type = comic['Corrected_Type']
 
         comicConfig = {
                     "fuzzy_year0":                    helpers.radio(int(usethefuzzy), 0),
@@ -249,7 +259,8 @@ class WebInterface(object):
                     "fuzzy_year2":                    helpers.radio(int(usethefuzzy), 2),
                     "skipped2wanted":                 helpers.checked(skipped2wanted),
                     "force_continuing":               helpers.checked(force_continuing),
-                    "force_type":                     helpers.checked(force_type),
+                    "ignore_type":                    helpers.checked(comic['IgnoreType']),
+                    "force_type":                     force_type,
                     "delete_dir":                     helpers.checked(mylar.CONFIG.DELETE_REMOVE_DIR),
                     "allow_packs":                    helpers.checked(int(allowpacks)),
                     "corrected_seriesyear":           comic['ComicYear'],
@@ -1474,6 +1485,8 @@ class WebInterface(object):
             ComicName = cdname['ComicName']
             TorrentID_32p = cdname['TorrentID_32P']
             BookType = cdname['Type']
+            if cdname['Corrected_Type'] is not None:
+                BookType = cdname['Corrected_Type']
             controlValueDict = {"IssueID": IssueID}
             newStatus = {"Status": "Wanted"}
             if mode == 'want':
@@ -5281,17 +5294,23 @@ class WebInterface(object):
         raise cherrypy.HTTPRedirect("comicDetails?ComicID=%s" % comicid)
     manual_annual_add.exposed = True
 
-    def comic_config(self, com_location, ComicID, alt_search=None, fuzzy_year=None, comic_version=None, force_continuing=None, force_type=None, alt_filename=None, allow_packs=None, corrected_seriesyear=None, torrentid_32p=None):
+    def comic_config(self, com_location, ComicID, alt_search=None, fuzzy_year=None, comic_version=None, force_continuing=None, force_type=None, alt_filename=None, allow_packs=None, corrected_seriesyear=None, torrentid_32p=None, ignore_type=None):
         myDB = db.DBConnection()
-        chk1 = myDB.selectone('SELECT ComicLocation, Corrected_Type FROM comics WHERE ComicID=?', [ComicID]).fetchone()
+        chk1 = myDB.selectone('SELECT ComicLocation, Type, Corrected_Type FROM comics WHERE ComicID=?', [ComicID]).fetchone()
         if chk1[0] is None:
             orig_location = com_location
         else:
             orig_location = chk1[0]
+
         if chk1[1] is None:
             orig_type = None
         else:
             orig_type = chk1[1]
+
+        if chk1[2] is None:
+            orig_corr_type = None
+        else:
+            orig_corr_type = chk1[2]
 
 #--- this is for multiple search terms............
 #--- works, just need to redo search.py to accomodate multiple search terms
@@ -5335,29 +5354,46 @@ class WebInterface(object):
             newValues['ComicYear'] = str(corrected_seriesyear)
 
         if comic_version is None or comic_version == 'None':
-            newValues['ComicVersion'] = "None"
+            newValues['ComicVersion'] = None
         else:
             if comic_version[1:].isdigit() and comic_version[:1].lower() == 'v':
                 newValues['ComicVersion'] = str(comic_version)
             else:
                 logger.info("Invalid Versioning entered - it must be in the format of v#")
-                newValues['ComicVersion'] = "None"
+                newValues['ComicVersion'] = None
 
         if force_continuing is None:
             newValues['ForceContinuing'] = 0
         else:
             newValues['ForceContinuing'] = 1
 
-        if force_type == '1':
-            newValues['Corrected_Type'] = 'TPB'
-        elif force_type == '2':
+        if force_type == 'TPB':
+             newValues['Corrected_Type'] = 'TPB'
+        elif force_type == 'Digital':
+            newValues['Corrected_Type'] = 'Digital'
+        elif force_type == 'One-Shot':
+            newValues['Corrected_Type'] = 'One-Shot'
+        elif force_type == 'Print':
             newValues['Corrected_Type'] = 'Print'
         else:
-            newValues['Corrected_Type'] = None
+            if orig_corr_type is not None:
+                newValues['Corrected_Type'] = orig_corr_type
+            else:
+                newValues['Corrected_Type'] = None
 
-        if orig_type != force_type:
-            if '$Type' in mylar.CONFIG.FOLDER_FORMAT and com_location == orig_location:
-                #rename folder to accomodate new forced TPB format.
+        if any([ignore_type == '0', ignore_type is None, ignore_type == 'None']):
+            newValues['IgnoreType'] = 0
+        else:
+            newValues['IgnoreType'] = 1
+
+        #logger.fdebug('orig_type:%s -- force_type: %s' % (orig_type, force_type))
+        #logger.fdebug('orig_corr_type: %s-- corrected_type: %s' % (orig_corr_type, newValues['Corrected_Type']))
+        #logger.fdebug('config_folder_format:%s' % (mylar.CONFIG.FOLDER_FORMAT))
+        #logger.fdebug('config_format_booktype:%s' % (mylar.CONFIG.FORMAT_BOOKTYPE))
+        #logger.fdebug('com_location:%s -- orig_location: %s' % (com_location, orig_location))
+        if orig_corr_type != newValues['Corrected_Type']:
+            if all(['$Type' in mylar.CONFIG.FOLDER_FORMAT, com_location == orig_location, mylar.CONFIG.FORMAT_BOOKTYPE is True]):
+                #rename folder if the $Type is in folder format to accomodate new forced format.
                 from . import filers
                 x = filers.FileHandlers(ComicID=ComicID)
                 newcom_location = x.folder_create(booktype=newValues['Corrected_Type'])

@@ -975,6 +975,7 @@ class FileChecker(object):
                     issue_year = None
                 elif len(volume_found) > 0:
                     logger.fdebug('UNKNOWN TPB/GN detected. Volume assumption is number: %s' % (volume_found))
+                    booktype = 'TPB'
                 else:
                     logger.fdebug('No issue number present in filename.')
         else:
