@@ -96,11 +96,11 @@
                                 cpercent = full[7]
                                 var css;
                                 if (cpercent >= 101){
-                                    css = '<div class="progress-container warning">';
+                                    css = '<div class=\"progress-container warning\">';
                                 } else if (cpercent == 100) {
-                                    css = '<div class="progress-container complete">';
+                                    css = '<div class=\"progress-container complete\">';
                                 } else if (cpercent < 100) {
-                                    css = '<div class="progress-container missing">';
+                                    css = '<div class=\"progress-container missing\">';
                                 }
                                 return '<span title="' + full[7] +'"></span>' + css + '<div style="' + 'width:' + full[7] + '%;"><span class="progressbar-front-text">' + full[8] + '/' + full[9] + '</span></div>';
                         }
@@ -160,6 +160,7 @@
                      nRow.children[2].id = 'year';
                      nRow.children[3].id = 'issue';
                      nRow.children[4].id = 'published';
+                     nRow.children[5].id = 'have';
                      nRow.children[6].id = 'status';
                      nRow.children[7].id = 'active';
                      return nRow;

@@ -1780,7 +1780,7 @@ DIV.progress-container
 	margin: 2px 5px 2px 0;
 	float: right;
         -border:1px solid #ccc;
-	background-color: #F7F7F7;
+	background-color: #272b30;
 	background-image: -moz-linear-gradient(top, whiteSmoke, #F9F9F9);
 	background-image: -webkit-gradient(linear, 0 0, 0 100%, from(whiteSmoke), to(#F9F9F9));
 	background-image: -webkit-linear-gradient(top, whiteSmoke, #F9F9F9);
