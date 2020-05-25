@@ -203,7 +203,7 @@ def replace_all(text, dic):
 def cleanName(string):
 
     pass1 = latinToAscii(string).lower()
-    out_string = re.sub('[\/\@\#\$\%\^\*\+\"\[\]\{\}\<\>\=\_]', ' ', pass1).encode('utf-8')
+    out_string = re.sub('[\/\@\#\$\%\^\*\+\"\[\]\{\}\<\>\=\_]', ' ', pass1) #.encode('utf-8')
 
     return out_string
 
@@ -3067,7 +3067,7 @@ def ddl_downloader(queue):
             if all([ddzstat['success'] is True, mylar.CONFIG.POST_PROCESSING is True]):
                 try:
                     if ddzstat['filename'] is None:
-                        logger.info('%s successfully downloaded - now initiating post-processing.' % (os.path.basename(ddzstat['path'])))
+                        logger.info('%s successfully downloaded - now initiating post-processing for %s.' % (os.path.basename(ddzstat['path']), ddzstat['path']))
                         mylar.PP_QUEUE.put({'nzb_name':     os.path.basename(ddzstat['path']),
                                             'nzb_folder':   ddzstat['path'],
                                             'failed':       False,
@@ -3076,7 +3076,7 @@ def ddl_downloader(queue):
                                             'apicall':      True,
                                             'ddl':          True})
                     else:
-                        logger.info('%s successfully downloaded - now initiating post-processing.' % (ddzstat['filename']))
+                        logger.info('%s successfully downloaded - now initiating post-processing for %s' % (ddzstat['filename'], ddzstat['path']))
                         mylar.PP_QUEUE.put({'nzb_name':     ddzstat['filename'],
                                             'nzb_folder':   ddzstat['path'],
                                             'failed':       False,
