@@ -18,7 +18,7 @@ div.alphabet span:hover {
 }
 
 div.alphabet span.active {
-        color: black;
+        color: #f9de06;
 }
 
 div.alphabet span.empty {
