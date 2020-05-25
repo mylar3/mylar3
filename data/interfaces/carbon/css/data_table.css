@@ -104,7 +104,7 @@ table.display {
 }
 
 table.display thead th {
-	padding: 3px 16px 8px 10px;
+	padding: 3px 16px 8px 15px;
 	background-color: white;
 	-font-weight: bold;
 	font-size: 13px;
@@ -125,6 +125,8 @@ table.display tr.heading2 td {
 table.display td {
 	padding: 8px 10px;
 	font-size: 12px;
+	border-bottom: 1px solid #1c1e22;
+ 	border-right: 1px solid #1c1e22;
 }
 table
 table.display td.center {
@@ -225,6 +227,7 @@ table.display_log td {
         font-size: 12px;
 	background-color: #272b30;
 	border-left: 1px solid #1c1e22;
+	border-bottom: 1px solid #1c1e22;
 }
 table
 table.display_log td.center {
@@ -269,19 +272,19 @@ table.display_log td.center {
  * DataTables row classes
  */
 table.display tr.odd.gradeA {
-	background-color: #353a41;
+	-background-color: #353a41;
 }
 
 table.display tr.even.gradeA {
-	background-color: #2e3338;
+	-background-color: #2e3338;
 }
 
 table.display tr.odd.gradeC {
-	background-color: #ebf5ff;
+	background-color: #1a4977;
 }
 
 table.display tr.even.gradeC {
-	background-color: #ebf5ff;
+	background-color: #1a4977;
 }
 
 table.display tr.even.gradeE {
@@ -293,7 +296,7 @@ table.display tr.odd.gradeE {
 }
 
 table.display tr.even.gradeH {
-        background-color: #FFF5CC;
+        background-color: #ae3431;
 }
 
 table.display tr.odd.gradeH {
@@ -301,26 +304,26 @@ table.display tr.odd.gradeH {
 }
 
 table.display tr.even.gradeL {
-	background-color: #ebf5ff;
+	background-color: #1c5188;
 }
 table.display tr.odd.gradeL {
 	background-color: #ebf5ff;
 }
 
 table.display tr.odd.gradeX {
-	background-color: #ae3431;
+	-background-color: #ae3431;
 }
 
 table.display tr.even.gradeX {
-	background-color: #ae3431;
+	-background-color: #ae3431;
 }
 
 table.display tr.odd.gradeU {
-	background-color: #ddd;
+	background-color: #382f64;
 }
 
 table.display tr.even.gradeU {
-	background-color: #eee;
+	background-color: #382f64;
 }
 
 table.display tr.odd.gradeP {
@@ -393,7 +396,7 @@ table.display tr.gradeT td,
 table.display tr.gradeF td,
 table.display tr.gradeT1 td,
 table.display tr.gradeT2 td,
-table.display tr.gradeZ td {border-bottom: 1px solid #1c1e22;border-right: 1px solid #1c1e22;-text-align:center;}
+table.display tr.gradeZ td {border-bottom: 1px solid #1c1e22;border-right: 1px solid #1c1e22;-text-align:center;-padding:3px 16px 8px 15px;}
 table.display tr:last-child td {
 	-border-bottom: 1px solid #eee;
 }

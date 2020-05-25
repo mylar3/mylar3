@@ -116,7 +116,7 @@ a.blue {
 a .ui-icon {
   display: inline-block;
   position: relative;
-  top: 2px;
+  top: 3px;
 }
 .links a {
   color: #b5b5b5;
@@ -524,7 +524,7 @@ header #logo {
   position: relative;
   top: -3px;
   margin-left: 10px;
-  opacity:0.4;
+  opacity:0.8;
   filter:alpha(opacity=40); /* For IE8 and earlier */
 }
 footer {
@@ -561,7 +561,7 @@ footer {
   top: 4px;
 }
 #ajaxMsg {
-  border: 1px solid #cccccc;
+  -border: 1px solid #000;
   background-image: -moz-linear-gradient(#ffffff, #eeeeee) !important;
   background-image: linear-gradient(#ffffff, #eeeeee) !important;
   background-image: -webkit-linear-gradient(#ffffff, #eeeeee) !important;
@@ -577,7 +577,7 @@ footer {
   -moz-box-shadow: 0px 0px 2px #aaaaaa;
   -webkit-box-shadow: 0px 0px 2px #aaaaaa;
   -o-box-shadow: 0px 0px 2px #aaaaaa;
-  box-shadow: 0px 0px 2px #aaaaaa;
+  box-shadow: 0px 0px 2px #fff;
   padding: 7px 10px;
   position: fixed;
   text-align: center;
@@ -603,7 +603,7 @@ footer {
 #ajaxMsg.success {
   background-image: -moz-linear-gradient(#d3ffd7, #c2edc6) !important;
   background-image: linear-gradient(#d3ffd7, #c2edc6) !important;
-  background-image: -webkit-linear-gradient(#d3ffd7, #c2edc6) !important;
+  background-image: -webkit-linear-gradient(#113010, #1c521a) !important;
   background-image: -o-linear-gradient(#d3ffd7, #c2edc6) !important;
   filter: progid:dximagetransform.microsoft.gradient(startColorstr=#fafafa, endColorstr=#eaeaea) !important;
   -ms-filter: progid:dximagetransform.microsoft.gradient(startColorstr=#fafafa, endColorstr=#eaeaea) !important;
@@ -613,7 +613,7 @@ footer {
 #ajaxMsg.error {
   background-image: -moz-linear-gradient(#ffd3d3, #edc4c4) !important;
   background-image: linear-gradient(#ffd3d3, #edc4c4) !important;
-  background-image: -webkit-linear-gradient(#ffd3d3, #edc4c4) !important;
+  background-image: -webkit-linear-gradient(#7a0f0f, #a61212) !important;
   background-image: -o-linear-gradient(#ffd3d3, #edc4c4) !important;
   filter: progid:dximagetransform.microsoft.gradient(startColorstr=#fafafa, endColorstr=#eaeaea) !important;
   -ms-filter: progid:dximagetransform.microsoft.gradient(startColorstr=#fafafa, endColorstr=#eaeaea) !important;
@@ -628,7 +628,7 @@ footer {
   margin-right: 3px;
 }
 #updatebar {
-  border: 1px solid #cccccc;
+  border: 1px solid ##1c1e22;
   background-image: -moz-linear-gradient(#ffffff, #eeeeee) !important;
   background-image: linear-gradient(#ffffff, #eeeeee) !important;
   background-image: -webkit-linear-gradient(#ffffff, #eeeeee) !important;
@@ -644,7 +644,7 @@ footer {
   -moz-box-shadow: 0px 0px 2px #aaaaaa;
   -webkit-box-shadow: 0px 0px 2px #aaaaaa;
   -o-box-shadow: 0px 0px 2px #aaaaaa;
-  box-shadow: 0px 0px 2px #aaaaaa;
+  box-shadow: 0px 0px 2px #1c1e22;
   padding: 7px 10px;
   position: fixed;
   text-align: center;
@@ -660,7 +660,7 @@ footer {
   display: block;
   background-image: -moz-linear-gradient(#fcf5c2, #fff6a9) !important;
   background-image: linear-gradient(#fcf5c2, #fff6a9) !important;
-  background-image: -webkit-linear-gradient(#fcf5c2, #fff6a9) !important;
+  background-image: -webkit-linear-gradient(#484e55, #3a3f44) !important;
   background-image: -o-linear-gradient(#fcf5c2, #fff6a9) !important;
   filter: progid:dximagetransform.microsoft.gradient(startColorstr=#fafafa, endColorstr=#eaeaea) !important;
   -ms-filter: progid:dximagetransform.microsoft.gradient(startColorstr=#fafafa, endColorstr=#eaeaea) !important;
@@ -787,23 +787,23 @@ div#searchbar .mini-icon {
   margin-left: 0;
 }
 .Skipped {
-  background-color: #666;
+  background-color: #353a41;
   height: 30px;
 }
 .Downloaded {
-  background-color: #666;
+  background-color: #0d4a0b;
   height: 30px;
 }
 .Archived {
-  background-color: #666;
+  background-color: #0d4a0b;
   height: 30px;
 }
 .Wanted {
-  background-color: #666;
+  background-color: #641716;
   height: 30px;
 }
 .Snatched {
-  background-color: #666;
+  background-color: #1a4977;
   height: 30px;
 }
 .Failed {
@@ -811,14 +811,14 @@ div#searchbar .mini-icon {
   height: 30px;
 }
 .Ignored {
-  background-color: #666;
+  background-color: #353a41;
   height: 30px;
 }
 .comictable legend {
-  font-size: 14px
+  font-size: 14px;
   font-weight: bold;
   margin-bottom: 10px;
-  text-shadow: 1px 1px 0 #FFFFFF;
+  -text-shadow: 1px 1px 0 #FFFFFF;
 }
 .comictable tr td:last-child {
   border-left: 1px dotted #ddd;
@@ -1393,16 +1393,19 @@ div#artistheader h2 a {
   text-align: left;
   vertical-align: middle;
   font-size: 12px;
+  background-color: #353a41;
 }
 #series_table td#name {
   min-width: 300px;
   text-align: left;
   vertical-align: middle;
+  background-color: #353a41;
 }
 #series_table td#year {
   max-width: 25px;
-  text-align: left;
+  text-align: center;
   vertical-align: middle;
+  background-color: #353a41;
 }
 #series_table td#havepercent,
 #series_table td#totalcount {
@@ -1421,25 +1424,30 @@ div#artistheader h2 a {
   max-width: 25px;
   text-align: center;
   vertical-align: middle;
+  background-color: #353a41;
 }
 #series_table td#issue {
   max-width: 30px;
-  text-align: left;
+  text-align: center;
   vertical-align: middle;
+  background-color: #353a41;
 }
 #series_table td#status {
   max-width: 50px;
   text-align: center;
   vertical-align: middle;
+  background-color: #353a41;
 }
 #series_table td#published {
   max-width: 50px;
   text-align: center;
   vertical-align: middle;
+  background-color: #353a41;
 }
 #series_table td#have {
   text-align: center;
   vertical-align: middle;
+  background-color: #353a41;
 }
 #manageheader {
   margin-top: 45px;
@@ -1832,7 +1840,8 @@ DIV.progress-container > DIV
 .missing > DIV
 {
 	background-color: #4BB1CF;
-	background-image: -moz-linear-gradient(top, #5BC0DE, #339BB9);
+	color: #000;
+  background-image: -moz-linear-gradient(top, #5BC0DE, #339BB9);
 	background-image: -webkit-gradient(linear, 0 0, 0 100%, from(#5BC0DE), to(#339BB9));
 	background-image: -webkit-linear-gradient(top, #5BC0DE, #339BB9);
 	background-image: -o-linear-gradient(top, #5BC0DE, #339BB9);
