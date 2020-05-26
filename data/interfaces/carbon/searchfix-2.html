@@ -1,0 +1,72 @@
+<%inherit file="base.html" />
+<%!
+	import mylar
+	from mylar.helpers import checked
+%>
+<%def name="headerIncludes()">
+	<div id="subhead_container">
+		<div id="subhead_menu">
+			<a id="menu_link_edit" href="manageComics">Some Button</a>
+		</div>
+	</div>	
+</%def>
+
+<%def name="body()">
+	<div id="paddingheader">
+		<h1 class="clearfix">Search Question</h1>
+	</div>
+	<div id="tabs">
+		<ul>
+			<li><a href="#tabs-1">More Information</a></li>
+		</ul>
+		<div id="tabs-1" class="configtable">
+			<fieldset>
+				<form action="searchScan" method="GET" id="searchScan">
+					<legend>Volume-Spanning Comic Series</legend>
+					<p><strong>I've detected multiple series with the same name</strong></p>
+					<p>I've figured out that the Comic that you've selected to watch is actually
+					part of a larger series that contains multiple volumes. 
+                                        Because of the way the data is provided, I can't maintain an up-to-date
+                                        listing with much reliability or accuracy. So you need to pick from the list
+                                        below which volume from the series that you want to add.<br/></p>	
+                                        <br/><br/>
+        <table class="display" id="searchmanage_table">
+                <thead>
+                        <tr>
+                                <th id="comicname">Comic Name</th>
+                                <th id="comicpub">Year</th>
+                                <th id="comicissues">Issues</th>
+                                <th id="addcomic"></th>
+                        </tr>
+                </thead>
+                <tbody>
+                                        %if sresults:
+                                           %for result in sresults:
+
+                                        <tr>           
+                                        <td id="comicname"><title="${result['ComicName']}">${result['ComicName']}</td>
+                                        <td id="comicpub"><title="${result['ComicYear']}">${result['ComicYear']}</td>
+                                        <td id="comicissues">${result['ComicIssues']}</td>   
+                                        <td id="addcomic"><a href="GCDaddComic?comicid=${result['ComicID']}&comicname=${result['ComicName']}&comicyear=${result['ComicYear']}&comiccover=${result['ComicCover']}&comicissues=${result['ComicIssues']}&comicpublisher=${result['ComicPublisher']}"><span class="ui-icon-plus"></span>Add Series</a></td>
+                                        </tr>
+                                           %endfor
+                                        %endif
+                                </fieldset>
+                            </div>
+                          </tbody>
+                          </table>
+                        </form>
+                </div>
+</div>
+</%def>
+<%def name="javascriptIncludes()">
+	<script>
+		function initThisPage() {
+			jQuery( "#tabs" ).tabs();
+			initActions();
+		};
+		$(document).ready(function() {
+			initThisPage();
+		});
+	</script>
+</%def>

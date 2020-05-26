@@ -1,0 +1,24 @@
+<%inherit file="base.html"/>
+
+<%def name="headIncludes()">
+</%def>
+
+<%def name="body()">
+        <div id="paddingheader">
+                <h1 class="clearfix">${title}</h1>
+        </div>
+            </tbody>
+            <div>
+            <table><tr>
+            %for ti in torrent_info:
+                <td>Completed: ${ti['completed']}</td>
+                <td>Download: ${ti['download']}</td>
+                <td>Upload: ${ti['upload']}</td>
+                <td>Ratio: ${ti['ratio']}</td>
+                <td>Seedtime: ${ti['seedtime']}</td>
+
+            %endfor
+            </table>
+            </div>
+            </tbody>
+</%def>
