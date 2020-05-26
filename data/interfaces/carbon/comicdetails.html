@@ -109,7 +109,7 @@
                                     <label><big>Status: </big><norm>${comic['Status']}</norm></label>
                                 </div>
                                 <%
-                                      if any([comic['Type'] == 'None', comic['Type'] is None, comic['Type'] == 'Print']) and comic['Corrected_Type'] != 'TPB':
+                                      if any([comic['Type'] == 'None', comic['Type'] is None, comic['Type'] == 'Print']) and comic['Corrected_Type'] is None:
                                           comictype = 'Print'
                                       else:
                                           if comic['Corrected_Type'] is not None:
@@ -217,16 +217,42 @@
                                    <input type="checkbox" style="vertical-align: bottom; margin: 3px; margin-top: -3px;" name="force_continuing" value="1" ${comicConfig['force_continuing']} />
                                    <a href="#" title="Will forcibly mark this series as 'Continuing' regardless of actual status"><img src="interfaces/carbon/images/info32.png" height="16" alt="" /></a>
                                 </div>
+			        <div class="row checkbox right clearfix">
+                                    <label>Force-Type (original:${comic['Type']})</label>
+                                        <select name="force_type">
+                                                 <%
+                                                     ftt_list = ['Select', 'TPB', 'Digital', 'One-Shot', 'Print']
+                                                 %>
+                                                 %for ftt in ftt_list:
+                                                         <%
+                                                                 if comicConfig['force_type'] == ftt:
+                                                                         outputselect = 'selected'
+                                                                 else:
+                                                                         outputselect = ''
+                                                         %>
+                                                         %if comicConfig['force_type'] is None:
+                                                             %if ftt == 'Select':
+                                                                 <option value='' selected disabled hidden>Select...</option>
+                                                             %elif comic['Type'] == ftt:
+                                                                 <option value=${ftt} disabled>${ftt}</option>
+                                                             %else:
+                                                                 <option value=${ftt} ${outputselect}>${ftt}</option>
+                                                             %endif
+                                                         %elif comicConfig['force_type'] == ftt:
+                                                             <option value=${ftt} selected disabled>${ftt}</option>
+                                                         %else:
+                                                             <option value=${ftt} ${outputselect}>${ftt}</option>
+                                                         %endif
+                                                 %endfor
+                                             </select>
+                                                 <a href="#" title="Will forcibly mark this series as selected in those instances where it assumes it's a ${comic['Type']}-based series"><img src="interfaces/default/images/info32.png" height="16" alt="" /></a>
+                                 </div>
                                 <div class="row checkbox right clearfix">
                                    %if comic['Type'] != 'TPB':
-                                       <label>Forcibly Mark series as TPB/GN</label>
-                                       <input type="checkbox" style="vertical-align: bottom; margin: 3px; margin-top: -3px;" name="force_type" value="1" ${comicConfig['force_type']} />
-                                       <a href="#" title="Will forcibly mark this series as TPB/GN in those instances where it assumes it's a normal issue-based series"><img src="interfaces/carbon/images/info32.png" height="16" alt="" /></a>
-                                   %else:
-                                       <label>Forcibly Mark series as Print</label>
-                                       <input type="checkbox" style="vertical-align: bottom; margin: 3px; margin-top: -3px;" name="force_type" value="2" ${comicConfig['force_type']} />
-                                       <a href="#" title="Will forcibly mark this series as an Issue-Based series in those instances where it assumes it's a TPB/GN series"><img src="interfaces/carbon/images/info32.png" height="16" alt="" /></a>
-                                   %endif
+                                        <label>Accept all booktype search matches</label>
+                                        <input type="checkbox" style="vertical-align: bottom; margin: 3px; margin-top: -3px;" name="ignore_type" value="1" ${comicConfig['ignore_type']} />
+                                        <a href="#" title="Will not restrict search matches to just being a matching Edition type (ie. One-Shots/Digitals will match against normal Issues."><img src="interfaces/default/images/info32.png" height="16" alt="" /></a>
+				   %endif
                                 </div>
                                 %if any([comic['ComicYear'] == '2099',comic['ComicYear'] == '0000', comic['ComicYear'] == '', comic['Corrected_SeriesYear']]):
                                     <div class="row">
@@ -759,6 +785,7 @@
                  data: { filelocation: filelink, comicname: comicname, issue: issue, date: date, title: title, issueid: issueid },
                  success: function(response) {
                    $('#responsethis').html(response);
+		   $("#issue-box").draggable();
                  },
                  error: function(data)
                  {
