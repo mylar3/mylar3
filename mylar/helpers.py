@@ -3794,178 +3794,224 @@ def getImage(comicid, url, issueid=None):
         return 'retry'
 
 def publisherImages(publisher):
+    comicpublisher = None
+    if mylar.CONFIG.INTERFACE == 'default':
+        #these are specific images taht are better displayed in the default theme.
+        if publisher == 'Image':
+            comicpublisher = {'publisher_image':       'images/publisherlogos/logo-imagecomics.png',
+                              'publisher_image_alt':   'Image',
+                              'publisher_imageH':      '125',
+                              'publisher_imageW':      '75'}
+        elif publisher == 'IDW Publishing':
+            comicpublisher = {'publisher_image':       'images/publisherlogos/logo-idwpublish.png',
+                              'publisher_image_alt':   'IDW',
+                              'publisher_imageH':      '50',
+                              'publisher_imageW':      '100'}
+        elif publisher == 'Boom! Studios':
+            comicpublisher = {'publisher_image':       'images/publisherlogos/logo-boom.jpg',
+                              'publisher_image_alt':   'Boom!',
+                              'publisher_imageH':      '50',
+                              'publisher_imageW':      '100'}
+
+    else:
+        # --- for carbon theme (any non-white theme)
+        if publisher == 'Image':
+            comicpublisher = {'publisher_image':       'images/publisherlogos/logo-imagecomics_carbon.png',
+                              'publisher_image_alt':   'Image',
+                              'publisher_imageH':      '125',
+                              'publisher_imageW':      '75'}
+        elif publisher == 'IDW Publishing':
+            comicpublisher = {'publisher_image':       'images/publisherlogos/logo-idwpublish_carbon.png',
+                              'publisher_image_alt':   'IDW',
+                              'publisher_imageH':      '50',
+                              'publisher_imageW':      '100'}
+        elif publisher == 'Boom! Studios':
+            comicpublisher = {'publisher_image':       'images/publisherlogos/logo-boom_carbon.png',
+                              'publisher_image_alt':   'Boom!',
+                              'publisher_imageH':      '50',
+                              'publisher_imageW':      '100'}
+
+    if comicpublisher is not None:
+        return comicpublisher
+
+    #--- all other logos are safe for current interface changes.
     if publisher == 'DC Comics':
-        comicpublisher = {'publisher_image':       'interfaces/default/images/publisherlogos/logo-dccomics.png',
+        comicpublisher = {'publisher_image':       'images/publisherlogos/logo-dccomics.png',
                           'publisher_image_alt':   'DC',
-                          'publisher_imageH':      '50',
-                          'publisher_imageW':      '50'}
+                          'publisher_imageH':      '75',
+                          'publisher_imageW':      '75'}
     elif publisher == 'Marvel':
-        comicpublisher = {'publisher_image':       'interfaces/default/images/publisherlogos/logo-marvel.jpg',
+        comicpublisher = {'publisher_image':       'images/publisherlogos/logo-marvel.png',
                           'publisher_image_alt':   'Marvel',
                           'publisher_imageH':      '50',
                           'publisher_imageW':      '100'}
-    elif publisher == 'Image':
-        comicpublisher = {'publisher_image':       'interfaces/default/images/publisherlogos/logo-imagecomics.png',
-                          'publisher_image_alt':   'Image',
-                          'publisher_imageH':      '100',
-                          'publisher_imageW':      '50'}
     elif publisher == 'Dark Horse Comics' or publisher == 'Dark Horse':
-        comicpublisher = {'publisher_image':       'interfaces/default/images/publisherlogos/logo-darkhorse.png',
+        comicpublisher = {'publisher_image':       'images/publisherlogos/logo-darkhorse.png',
                           'publisher_image_alt':   'DarkHorse',
                           'publisher_imageH':      '100',
                           'publisher_imageW':      '75'}
-    elif publisher == 'IDW Publishing':
-        comicpublisher = {'publisher_image':       'interfaces/default/images/publisherlogos/logo-idwpublish.png',
-                          'publisher_image_alt':   'IDW',
-                          'publisher_imageH':      '50',
-                          'publisher_imageW':      '100'}
-    elif publisher == 'Icon':
-        comicpublisher = {'publisher_image':       'interfaces/default/images/publisherlogos/logo-iconcomics.png',
+    elif publisher == 'Icon Comics':
+        comicpublisher = {'publisher_image':       'images/publisherlogos/logo-iconcomics.png',
                           'publisher_image_alt':   'Icon',
-                          'publisher_imageH':      '50',
+                          'publisher_imageH':      '100',
+                          'publisher_imageW':      '100'}
+    elif publisher == 'Magnetic Press':
+        comicpublisher = {'publisher_image':       'images/publisherlogos/logo-magneticpress.png',
+                          'publisher_image_alt':   'Magnetic Press',
+                          'publisher_imageH':      '100',
+                          'publisher_imageW':      '100'}
+    elif publisher == 'Max':
+        comicpublisher = {'publisher_image':       'images/publisherlogos/logo-max.png',
+                          'publisher_image_alt':   'Max Comics',
+                          'publisher_imageH':      '120',
+                          'publisher_imageW':      '80'}
+    elif publisher == 'Rebellion':
+        comicpublisher = {'publisher_image':       'images/publisherlogos/logo-rebellion.png',
+                          'publisher_image_alt':   'Rebellion',
+                          'publisher_imageH':      '75',
                           'publisher_imageW':      '100'}
     elif publisher == 'Red5':
-        comicpublisher = {'publisher_image':       'interfaces/default/images/publisherlogos/logo-red5comics.png',
+        comicpublisher = {'publisher_image':       'images/publisherlogos/logo-red5comics.png',
                           'publisher_image_alt':   'Red5',
                           'publisher_imageH':      '50',
                           'publisher_imageW':      '100'}
     elif publisher == 'Vertigo':
-        comicpublisher = {'publisher_image':       'interfaces/default/images/publisherlogos/logo-vertigo.png',
+        comicpublisher = {'publisher_image':       'images/publisherlogos/logo-vertigo.png',
                           'publisher_image_alt':   'Vertigo',
                           'publisher_imageH':      '50',
                           'publisher_imageW':      '100'}
     elif publisher == 'Shadowline':
-        comicpublisher = {'publisher_image':       'interfaces/default/images/publisherlogos/logo-shadowline.png',
+        comicpublisher = {'publisher_image':       'images/publisherlogos/logo-shadowline.png',
                           'publisher_image_alt':   'Shadowline',
                           'publisher_imageH':      '50',
                           'publisher_imageW':      '150'}
     elif publisher == 'Archie Comics':
-        comicpublisher = {'publisher_image':       'interfaces/default/images/publisherlogos/logo-archiecomics.jpg',
+        comicpublisher = {'publisher_image':       'images/publisherlogos/logo-archiecomics.png',
                           'publisher_image_alt':   'Archie',
                           'publisher_imageH':      '75',
                           'publisher_imageW':      '75'}
     elif publisher == 'Oni Press':
-        comicpublisher = {'publisher_image':       'interfaces/default/images/publisherlogos/logo-onipress.jpg',
+        comicpublisher = {'publisher_image':       'images/publisherlogos/logo-onipress.jpg',
                           'publisher_image_alt':   'Oni Press',
                           'publisher_imageH':      '50',
                           'publisher_imageW':      '100'}
     elif publisher == 'Tokyopop':
-        comicpublisher = {'publisher_image':       'interfaces/default/images/publisherlogos/logo-tokyopop.jpg',
+        comicpublisher = {'publisher_image':       'images/publisherlogos/logo-tokyopop.jpg',
                           'publisher_image_alt':   'Tokyopop',
                           'publisher_imageH':      '100',
                           'publisher_imageW':      '50'}
     elif publisher == 'Midtown Comics':
-        comicpublisher = {'publisher_image':       'interfaces/default/images/publisherlogos/logo-midtowncomics.jpg',
+        comicpublisher = {'publisher_image':       'images/publisherlogos/logo-midtowncomics.jpg',
                           'publisher_image_alt':   'Midtown',
                           'publisher_imageH':      '50',
                           'publisher_imageW':      '100'}
-    elif publisher == 'Boom! Studios':
-        comicpublisher = {'publisher_image':       'interfaces/default/images/publisherlogos/logo-boom.jpg',
-                          'publisher_image_alt':   'Boom!',
-                          'publisher_imageH':      '50',
-                          'publisher_imageW':      '100'}
     elif publisher == 'Skybound':
-        comicpublisher = {'publisher_image':       'interfaces/default/images/publisherlogos/logo-skybound.jpg',
+        comicpublisher = {'publisher_image':       'images/publisherlogos/logo-skybound.jpg',
                           'publisher_image_alt':   'Skybound',
                           'publisher_imageH':      '50',
                           'publisher_imageW':      '100'}
     elif publisher == 'Dynamite Entertainment':
-        comicpublisher = {'publisher_image':       'interfaces/default/images/publisherlogos/logo-dynamite.png',
+        comicpublisher = {'publisher_image':       'images/publisherlogos/logo-dynamite.png',
                           'publisher_image_alt':   'Dynamite',
                           'publisher_imageH':      '50',
                           'publisher_imageW':      '125'}
     elif publisher == 'Top Cow':
-        comicpublisher = {'publisher_image':       'interfaces/default/images/publisherlogos/logo-topcow.gif',
+        comicpublisher = {'publisher_image':       'images/publisherlogos/logo-topcow.png',
                           'publisher_image_alt':   'Top Cow',
-                          'publisher_imageH':      '75',
+                          'publisher_imageH':      '100',
                           'publisher_imageW':      '100'}
     elif publisher == 'Cartoon Books':
-        comicpublisher = {'publisher_image':       'interfaces/default/images/publisherlogos/logo-cartoonbooks.jpg',
+        comicpublisher = {'publisher_image':       'images/publisherlogos/logo-cartoonbooks.jpg',
                           'publisher_image_alt':   'Cartoon Books',
                           'publisher_imageH':      '75',
                           'publisher_imageW':      '90'}
     elif publisher == 'Valiant':
-        comicpublisher = {'publisher_image':       'interfaces/default/images/publisherlogos/logo-valiant.png',
+        comicpublisher = {'publisher_image':       'images/publisherlogos/logo-valiant.png',
                           'publisher_image_alt':   'Valiant',
                           'publisher_imageH':      '100',
                           'publisher_imageW':      '100'}
     elif publisher == 'Action Lab':
-        comicpublisher = {'publisher_image':       'interfaces/default/images/publisherlogos/logo-actionlabs.png',
+        comicpublisher = {'publisher_image':       'images/publisherlogos/logo-actionlabs.png',
                           'publisher_image_alt':   'Action Lab',
                           'publisher_imageH':      '100',
                           'publisher_imageW':      '100'}
+    elif publisher == 'Aspen MLT':
+        comicpublisher = {'publisher_image':       'images/publisherlogos/logo-aspen.png',
+                          'publisher_image_alt':   'Aspen MLT',
+                          'publisher_imageH':      '65',
+                          'publisher_imageW':      '65'}
     elif publisher == 'Zenescope Entertainment':
-        comicpublisher = {'publisher_image':       'interfaces/default/images/publisherlogos/logo-zenescope.png',
+        comicpublisher = {'publisher_image':       'images/publisherlogos/logo-zenescope.png',
                           'publisher_image_alt':   'Zenescope',
                           'publisher_imageH':      '125',
                           'publisher_imageW':      '125'}
     elif publisher == '2000 ad':
-        comicpublisher = {'publisher_image':       'interfaces/default/images/publisherlogos/logo-2000ad.jpg',
+        comicpublisher = {'publisher_image':       'images/publisherlogos/logo-2000ad.jpg',
                           'publisher_image_alt':   '2000 AD',
                           'publisher_imageH':      '75',
                           'publisher_imageW':      '50'}
     elif publisher == 'Aardvark':
-        comicpublisher = {'publisher_image':       'interfaces/default/images/publisherlogos/logo-aardvark.png',
+        comicpublisher = {'publisher_image':       'images/publisherlogos/logo-aardvark.png',
                           'publisher_image_alt':   'Aardvark',
                           'publisher_imageH':      '100',
                           'publisher_imageW':      '100'}
     elif publisher == 'Abstract Studio':
-        comicpublisher = {'publisher_image':       'interfaces/default/images/publisherlogos/logo-abstract.jpg',
+        comicpublisher = {'publisher_image':       'images/publisherlogos/logo-abstract.png',
                           'publisher_image_alt':   'Abstract Studio',
-                          'publisher_imageH':      '75',
-                          'publisher_imageW':      '50'}
+                          'publisher_imageH':      '100',
+                          'publisher_imageW':      '100'}
     elif publisher == 'Aftershock Comics':
-        comicpublisher = {'publisher_image':       'interfaces/default/images/publisherlogos/logo-aftershock.jpg',
+        comicpublisher = {'publisher_image':       'images/publisherlogos/logo-aftershock.png',
                           'publisher_image_alt':   'Aftershock',
                           'publisher_imageH':      '100',
                           'publisher_imageW':      '75'}
     elif publisher == 'Avatar Press':
-        comicpublisher = {'publisher_image':       'interfaces/default/images/publisherlogos/logo-avatarpress.jpg',
+        comicpublisher = {'publisher_image':       'images/publisherlogos/logo-avatarpress.jpg',
                           'publisher_image_alt':   'Avatar Press',
                           'publisher_imageH':      '100',
                           'publisher_imageW':      '75'}
     elif publisher == 'Benitez Productions':
-        comicpublisher = {'publisher_image':       'interfaces/default/images/publisherlogos/logo-benitez.png',
+        comicpublisher = {'publisher_image':       'images/publisherlogos/logo-benitez.png',
                           'publisher_image_alt':   'Benitez',
                           'publisher_imageH':      '75',
                           'publisher_imageW':      '125'}
     elif publisher == 'Boundless Comics':
-        comicpublisher = {'publisher_image':       'interfaces/default/images/publisherlogos/logo-boundless.png',
+        comicpublisher = {'publisher_image':       'images/publisherlogos/logo-boundless.png',
                           'publisher_image_alt':   'Boundless',
                           'publisher_imageH':      '75',
                           'publisher_imageW':      '75'}
     elif publisher == 'Darby Pop':
-        comicpublisher = {'publisher_image':       'interfaces/default/images/publisherlogos/logo-darbypop.png',
+        comicpublisher = {'publisher_image':       'images/publisherlogos/logo-darbypop.png',
                           'publisher_image_alt':   'Darby Pop',
                           'publisher_imageH':      '75',
                           'publisher_imageW':      '125'}
     elif publisher == 'Devil\'s Due':
-        comicpublisher = {'publisher_image':       'interfaces/default/images/publisherlogos/logo-devilsdue.png',
+        comicpublisher = {'publisher_image':       'images/publisherlogos/logo-devilsdue.png',
                           'publisher_image_alt':   'Devil\'s Due',
                           'publisher_imageH':      '75',
                           'publisher_imageW':      '75'}
     elif publisher == 'Joe Books':
-        comicpublisher = {'publisher_image':       'interfaces/default/images/publisherlogos/logo-joebooks.png',
+        comicpublisher = {'publisher_image':       'images/publisherlogos/logo-joebooks.png',
                           'publisher_image_alt':   'Joe Books',
                           'publisher_imageH':      '100',
                           'publisher_imageW':      '100'}
     elif publisher == 'Titan Comics':
-        comicpublisher = {'publisher_image':       'interfaces/default/images/publisherlogos/logo-titan.png',
+        comicpublisher = {'publisher_image':       'images/publisherlogos/logo-titan.png',
                           'publisher_image_alt':   'Titan',
                           'publisher_imageH':      '75',
                           'publisher_imageW':      '75'}
     elif publisher == 'Viz':
-        comicpublisher = {'publisher_image':       'interfaces/default/images/publisherlogos/logo-viz.png',
+        comicpublisher = {'publisher_image':       'images/publisherlogos/logo-viz.png',
                           'publisher_image_alt':   'Viz',
                           'publisher_imageH':      '50',
                           'publisher_imageW':      '50'}
     elif publisher == 'Warp Graphics':
-        comicpublisher = {'publisher_image':       'interfaces/default/images/publisherlogos/logo-warpgraphics.png',
+        comicpublisher = {'publisher_image':       'images/publisherlogos/logo-warpgraphics.png',
                           'publisher_image_alt':   'Warp Graphics',
                           'publisher_imageH':      '125',
                           'publisher_imageW':      '75'}
     elif publisher == 'Wildstorm':
-        comicpublisher = {'publisher_image':       'interfaces/default/images/publisherlogos/logo-wildstorm.png',
+        comicpublisher = {'publisher_image':       'images/publisherlogos/logo-wildstorm.png',
                           'publisher_image_alt':   'Wildstorm',
                           'publisher_imageH':      '50',
                           'publisher_imageW':      '100'}
