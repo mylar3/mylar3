@@ -100,7 +100,8 @@ class FileHandlers(object):
             chunk_fb = re.sub('\$Type', '', folder_format)
             chunk_b = re.compile(r'\s+')
             chunk_folder_format = chunk_b.sub(' ', chunk_fb)
-            booktype = 'None'
+            if booktype != 'Print':
+                booktype = 'None'
         else:
             chunk_folder_format = folder_format
 

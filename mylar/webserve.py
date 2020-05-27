@@ -5368,7 +5368,7 @@ class WebInterface(object):
             newValues['ForceContinuing'] = 1
 
         if force_type == 'TPB':
-             newValues['Corrected_Type'] = 'TPB'
+            newValues['Corrected_Type'] = 'TPB'
         elif force_type == 'Digital':
             newValues['Corrected_Type'] = 'Digital'
         elif force_type == 'One-Shot':
@@ -5725,6 +5725,8 @@ class WebInterface(object):
         try:
             r = nzbserver.status()
         except Exception as e:
+            if all([nzbpassword is not None, nzbpassword in e]):
+                e = re.sub(nzbpassword, 'REDACTED', e)
             logger.warn('Error fetching data: %s' % e)
             return 'Unable to retrieve data from NZBGet'
         logger.info('Successfully verified connection to NZBGet at %s:%s' % (nzbgethost, nzbport))
@@ -5896,12 +5898,10 @@ class WebInterface(object):
             metadata_db = myDB.selectone('SELECT * FROM issues where IssueID=?', [issueid]).fetchone()
             seriestitle = meta_data['series']
             if any([seriestitle == 'None', seriestitle is None]):
-                seriestitle = urllib.parse.unquote_plus(comicname)
                 seriestitle = metadata_db['ComicName']
 
             issuenumber = meta_data['issue_number']
             if any([issuenumber == 'None', issuenumber is None]):
-                issuenumber = urllib.parse.unquote_plus(issue)
                 issuenumber = metadata_db['Issue_Number']
 
             issuetitle = meta_data['title']
