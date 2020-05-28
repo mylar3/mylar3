@@ -402,7 +402,7 @@ class FileChecker(object):
                     wrdcnt+=1
                     spf.append(x)
                     continue
-            elif mini is True:
+            if mini is True:
                 mini = False
                 try:
                     logger.fdebug('checking now: %s' % x)
