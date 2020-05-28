@@ -392,15 +392,17 @@
                                 <td id="issuenumber">${issue['Issue_Number']}</td>
 
                                 <%
-                                    if len(issue['IssueName']) > 70:
-                                        issuename = "%s..." % issue['IssueName'][:70]
+                                    if issue['IssueName'] is not None:
+                                        if len(issue['IssueName']) > 70:
+                                            issuename = "%s..." % issue['IssueName'][:70]
+                                        else:
+                                            issuename = issue['IssueName']
+                                        try:
+                                            issuename = issuename.decode('utf-8')
+                                        except:
+                                            issuename = issuename
                                     else:
-                                        issuename = issue['IssueName']
-                                    endif
-                                    try:
-                                        issuename = issuename.decode('utf-8')
-                                    except:
-                                        issuename = issuename
+                                        issuename = None
                                 %>
                                 <td id="issuename">${issuename}</td>
                                 <%
