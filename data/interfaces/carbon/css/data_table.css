@@ -228,6 +228,7 @@ table.display_log td {
 	background-color: #272b30;
 	border-left: 1px solid #1c1e22;
 	border-bottom: 1px solid #1c1e22;
+	text-align: left;
 }
 table
 table.display_log td.center {
