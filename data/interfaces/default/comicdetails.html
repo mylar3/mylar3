@@ -584,15 +584,17 @@
                                 <td id="aint_issuenumber">${annual_Number}</td>
                                 <td id="aissuenumber">${annual['Issue_Number']}</td>
                                 <%
-                                    if len(annual['IssueName']) > 70:
-                                        aissuename = "%s..." % annual['IssueName'][:70]
+                                    if annual['Issuename'] is not None:
+                                       if len(annual['IssueName']) > 70:
+                                           aissuename = "%s..." % annual['IssueName'][:70]
+                                       else:
+                                           aissuename = annual['IssueName']
+                                       try:
+                                           aissuename = aissuename.decode('utf-8')
+                                       except:
+                                           aissuename = aissuename
                                     else:
-                                        aissuename = annual['IssueName']
-                                    endif
-                                    try:
-                                        aissuename = aissuename.decode('utf-8')
-                                    except:
-                                        aissuename = aissuename
+                                        aissuename = None
                                 %>
                                 <td id="aissuename">${aissuename}</td>
                                 <%
