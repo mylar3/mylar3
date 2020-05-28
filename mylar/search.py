@@ -1255,6 +1255,9 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueDa
                 if 'annual' in ComicName.lower():
                     logger.fdebug("IssueID of : %s This is an annual...let's adjust." % IssueID)
                     annualize = "true"
+
+                F_ComicVersion = None
+
                 if versionfound == "yes":
                     logger.fdebug("volume detection commencing - adjusting length.")
                     logger.fdebug("watch comicversion is %s" % ComicVersion)
