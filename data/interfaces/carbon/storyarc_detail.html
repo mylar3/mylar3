@@ -1,0 +1,335 @@
+<%inherit file="base.html"/>
+<%!
+        import os
+        import mylar
+	from mylar.helpers import checked, listLibrary
+%>
+
+<%def name="headerIncludes()">
+	<div id="subhead_container">
+		<div id="subhead_menu">
+                        %if mylar.CONFIG.TAB_ENABLE:
+  			    <a id="menu_link_delete" onclick="doAjaxCall('syncfiles',$(this),'table')" data-success="Successfully sent issues to your device">Sync</a>
+                        %endif
+			<a id="menu_link_delete" href="#">Remove Read</a>
+			<a id="menu_link_delete" href="#">Clear File Cache</a>
+                        <a id="menu_link_refresh" onclick="doAjaxCall('SearchArcIssues?StoryArcID=${storyarcid}',$(this),'table')" data-success="Now searching for Missing StoryArc Issues">Search for Missing</a>
+                        <a id="menu_link_refresh" onclick="doAjaxCall('ArcWatchlist?StoryArcID=${storyarcid}',$(this),'table')" data-success="Now searching for matches on Watchlist & Rechecking files">Search for Watchlist matches/Recheck Files</a>
+                        %if cvarcid:
+                            <a id="menu_link_refresh" onclick="doAjaxCall('addStoryArc_thread?arcid=${storyarcid}&cvarcid=${cvarcid}&storyarcname=${storyarcname}&arcrefresh=True',$(this),'table')" data-success="Refreshed Story Arc">Refresh Story Arc</a>
+                        %endif
+		</div>
+	</div>
+</%def>
+
+<%def name="body()">
+         <h1 class="clearfix"><a href="storyarc_main"><img src="interfaces/carbon/images/ReadingList-icon.png" height="26" width="26" align="left" alt="Story Arc Management"/></a></h1>
+         %if storyarcbanner is not None:
+             <img src="${storyarcbanner}" onload="resizeimage('${bannerheight}')" width="960" height="${bannerheight}" id="banner" style="text-decoration: none; position: relative; top: 40px;"/>
+         %else:
+             </br>
+         %endif
+
+         <div id="tabs" style="z-index:10">
+                <ul>
+                        <li><a href="#tabs-1">Options</a></li>
+                </ul>
+
+          <div id="tabs-1">
+
+            <table class="configtable">
+               <tr>
+                <form action="arcOptions" id="chkoptions" method="GET">
+                                 <%
+                                         if arcdetail['percent'] == 101:
+                                                 css = '<div class=\"progress-container warning\">'
+                                         if arcdetail['percent'] == 100:
+                                                 css = '<div class=\"progress-container complete\">'
+                                         if arcdetail['percent'] < 100:
+                                                 css = '<div class=\"progress-container missing\">'
+
+                                  %>
+                     <fieldset>
+                     <div class="row checkbox left clearfix">
+                         </br>
+                         %if mylar.CONFIG.STORYARCDIR is True:
+                             <label>Location: ${sdir}</label>
+                         %endif
+                         </br>
+<!--
+                         <input type="checkbox" style="vertical-align: middle; margin: 3px; margin-top: -1px;" /><label>Show Downloaded Story Arc Issues on ReadingList tab</label><br/>
+                         <input type="checkbox" style="vertical-align: middle; margin: 3px; margin-top: -1px;" /><label>Enforce Renaming/MetaTagging options (if enabled)</label><br/>
+-->
+                         <input type="checkbox" style="vertical-align: middle; margin: 3px; margin-top: -1px;" name="read2filename" id="read2filename" value="1" ${checked(mylar.CONFIG.READ2FILENAME)} disabled/><label>Prepend Reading# to filename</label><br/>
+                         <%
+                               if mylar.CONFIG.STORYARCDIR:
+                                   carcdir = 'StoryArc'
+                               else:
+                                   carcdir = 'GrabBag'
+                         %>
+                         <input type="checkbox" style="vertical-align: middle; margin: 3px; margin-top: -1px;" name="copy2arcdir" id="copy2arcdir" value="1" ${checked(mylar.CONFIG.COPY2ARCDIR)} disabled /><label>Copy watchlisted issues to ${carcdir} Directory</label>
+
+                       <input type="hidden" name="StoryArcID" value="${storyarcid}">
+                       <input type="hidden" name="StoryArcName" value="${storyarcname}">
+                     </div>
+                    </fieldset>
+                    </form>
+                     <div style="display:block;position:relative;top:10px;">
+                        &nbsp;
+<!--
+                        <input type="submit" value="Update"/>
+-->
+                     </div>
+                     <div style="display:block;float:right;position:relative;text-color:black;top:-130px;">
+                         <h1><p style="display:inline;float:right;">${storyarcname}</h1>
+                         <div style="display:inline;float:right;"><span title="${arcdetail['percent']}"></span>${css}<div style="width:${arcdetail['percent']}%"><span class="progressbar-front-text">${arcdetail['Have']}/${arcdetail['Total']}</span></div></div></div>
+                     </div>
+                         <%
+                             if storyarcbanner is None:
+                                 optpos = '<div style=\"display:block;float:right;position:absolute;right:20px;top:120px;\">'
+                             else:
+                                 optpos = '<div style=\"display:block;float:right;position:absolute;right:20px;top:100px;\">'
+                         %>
+                     ${optpos}
+                         <form action="downloadBanner" method="GET">
+                         <label style="display:inline;float:right;">Banner Image Retrieval</label></br>
+                               <input style="display:inline;float:right;" type="text" title="enter full url where image resides" placeholder="full URL where image resides" onfocus="if(this.value==this.defaultValue) this.value='';" name="url" size="25">
+                               <input style="display:inline;float:right;" type="image" src="interfaces/carbon/images/download_icon.png" height="20" width="20" alt="submit"></br>
+                               <input type="hidden" name="storyarcid" value="${storyarcid}">
+                               <input type="hidden" name="storyarcname" value="${storyarcname}">
+                          %if storyarcbanner is not None:
+                             <p style="display:inline;float:right;">
+                             <input type="hidden" name="height" id="height" value="" />
+                             <button type="button" onclick="zoomin()">Zoom In</button>
+                             <button type="button" onclick="zoomout()">Zoom Out</button>
+                             <button type="button" onclick="getHeight('${storyarcid}', 'delete')" data-success="Successfully deleted banner image">Clear</button>
+                             <button type="button" onclick="getHeight('${storyarcid}', 'save')" data-success="Saved new height dimensions for banner">Save</button>
+                             </p>
+                          %endif
+                         </form>
+                     </div>
+
+               </tr>
+           </table>
+          </div>
+         </div>
+
+<!--
+        <button type="button" onclick="">Finalize & Rename</button>
+-->
+	<table class="display" id="arc_detail">
+		<thead>
+			<tr>
+        <th id="readingorder"></th>
+        <th id="comicname">ComicName</th>
+        <th id="issue">#</th>
+        <th id="issuedate">Date</th>
+        <th id="status">Status</th>
+        <th id="options">Options</th>
+			</tr>
+		</thead>
+		<tbody>
+        <%
+             cids = listLibrary()
+        %>
+		%for item in readlist:
+        <%
+
+                if item['Status'] == 'Skipped':
+                        grade = 'Z'
+                elif item['Status'] == 'Wanted':
+                        grade = 'X'
+                elif item['Status'] == 'Snatched':
+                        grade = 'C'
+                elif item['Status'] == 'Downloaded':
+                        grade = 'A'
+                elif item['Status'] == 'Archived':
+                        grade = 'A'
+                elif item['Status'] == 'Ignored':
+                        grade = 'A'
+                elif item['Status'] == 'Failed':
+                        grade = 'C'
+                elif item['Status'] == 'Read':
+                        grade = 'C'
+                elif item['Status'] == 'Not Watched':
+                        grade = 'X'
+                else:
+                        grade = 'Z'
+
+                if item['ComicID'] in cids:
+                        ht = cids[item['ComicID']]
+                        haveit = ht['comicid']
+                else:
+                        haveit = "No"
+
+                if all([item['Volume'] is not None, item['Volume'] != 'None']):
+                        volume = 'V' + item['Volume']
+                else:
+                        volume = ''
+
+        %>
+
+         <tr id="${item['ReadingOrder']}" class="grade${grade}">
+                <td class="edit" title="Change the order (click to edit)" id="${storyarcid}.${item['IssueArcID']}">${item['ReadingOrder']}</td>
+                <td id="comicname" title="${item['IssueName']}">
+                %if haveit == "No":
+                     ${item['ComicName']} ${volume} (${item['SeriesYear']})
+                %else:
+                    <a href="comicDetails?ComicID=${haveit}">${item['ComicName']} ${volume} (${item['SeriesYear']})</a>
+
+                %endif
+                </td>
+
+                <td id="issue">${item['IssueNumber']}</td>
+                <%
+                    try:
+                        if item['IssueDate'] != '0000-00-00' and item['IssueDate'] is not None:
+                            issuedate = item['IssueDate']
+                        else:
+                            if item['ReleaseDate'] != '0000-00-00' and item['ReleaseDate'] is not None:
+                                issuedate = item['ReleaseDate']
+                            else:
+                                # this is needed for imported cbl's
+                                try:
+                                    issuedate = item['issueYEAR']
+                                except:
+                                    issuedate = '0000-00-00'
+                    except:
+                        issuedate = '0000-00-00'
+                 %>
+                <td id="issuedate">${issuedate}</td>
+                <td id="status">${item['Status']}
+                    %if item['Status'] == 'Downloaded' or item['Status'] == 'Archived':
+                        <a href="#" title="${item['Location']}"><img src="interfaces/carbon/images/info32.png" height="16" alt="" class="highqual" /></a>
+                    %endif
+                </td>
+                <td id="options">
+                 %if any([item['Status'] is None, item['Status'] == None, item['Status'] == 'Skipped']):
+                     <a href="#" onclick="doAjaxCall('queueit?ComicName=${item['ComicName'] | u}&ComicIssue=${item['IssueNumber']}&ComicYear=${issuedate}&mode=readlist&SARC=${item['StoryArc']}&IssueArcID=${item['IssueArcID']}&SeriesYear=${item['SeriesYear']}',$(this),'table')" data-success="Now searching for ${item['ComicName']} #${item['IssueNumber']}"><span class="ui-icon ui-icon-plus"></span>Grab</a>
+                 %elif item['Status'] == 'Snatched':
+                     <a href="#" onclick="doAjaxCall('queueit?ComicName=${item['ComicName'] | u}&ComicIssue=${item['IssueNumber']}&ComicYear=${issuedate}&mode=readlist&SARC=${item['StoryArc']}&IssueArcID=${item['IssueArcID']}&SeriesYear=${item['SeriesYear']}',$(this),'table')" data-success="Trying to search again for issue"><span class="ui-icon ui-icon-plus"></span>Retry</a>
+                     <a href="#" onclick="doAjaxCall('clear_arcstatus?issuearcid=${item['IssueArcID']}',$(this),'table')"><data success="Clearing status of ${item['Status']} for ${item['ComicName']} #${item['IssueNumber']}"><span class="ui-icon ui-icon-plus"></span>Clear Status</a>
+                 %elif item['Status'] == 'Downloaded' and item['Location'] is not None:
+                     <a href="downloadthis?pathfile=${item['Location'] |u}"><span class="ui-icon ui-icon-plus"></span>Download</a>
+                 %endif
+                 <a href="#" title="Remove Issue from Story Arc" onclick="doAjaxCall('removefromreadlist?IssueArcID=${item['IssueArcID']}&manual=${item['Manual']}',$(this),'table')" data-success='Successfully deleted ${item['IssueArcID']}'><span class="ui-icon ui-icon-minus"></span>Remove</a>
+                </td>
+         </tr>
+		%endfor
+		</tbody>
+	</table>
+        </br>
+        <div style="position:relative; width:960px; height:10px; margin:10px auto;">
+            <form action="manual_arc_add" method="GET">
+                <input type="hidden" name="storyarcid" value=${storyarcid}>
+                    <div style="position:absolute; top:30px; right:10px;">
+                        <center><label><strong><a href="#" title="Enter the IssueID of the issue you want to add to the arc"/>Issue ID</a></strong></label>
+                        <input type="text" name="manual_issueid" size="10">
+                        <label><strong><a href="#" title="Enter the Reading Order # for the given issue"/>Reading Order</a></strong></label>
+                        <input type="text" name="manual_readingorder" size="2"><input type="image" src="interfaces/carbon/images/submit.png" height="25" width="25" class="highqual" /></center>
+                    </div>
+            </form>
+        </div>
+</%def>
+
+<%def name="headIncludes()">
+	<link rel="stylesheet" href="interfaces/carbon/css/data_table.css">
+</%def>
+
+<%def name="javascriptIncludes()">
+	<script src="js/libs/jquery.dataTables.min.js"></script>
+        <script src="js/libs/jquery.jeditable.js"></script>
+        <script>
+        $(document).ready(function() {
+            $('.edit').editable('order_edit', {
+                callback : function(value, settings) {
+                    console.log(this);
+                    console.log(value);
+                    console.log(settings);
+                    refreshTable();
+                    return(value);
+                }
+            });
+        });
+        </script>
+        <script type="text/javascript">
+        $("#menu_link_scan").click(function() {
+            $('#chkoptions').submit();
+            return true;
+        });
+        </script>
+        <script type="text/javascript">
+        function zoomin(){
+            var myImg = document.getElementById("banner");
+            var currHeight = myImg.clientHeight;
+            if(currHeight == 400){
+                alert("Maximum zoom-in level reached.");
+            } else{
+                myImg.style.height = (currHeight + 50) + "px";
+            } 
+        }
+        function zoomout(){
+            var myImg = document.getElementById("banner");
+            var currHeight = myImg.clientHeight;
+            if(currHeight == 50){
+                alert("Maximum zoom-out level reached.");
+            } else{
+                myImg.style.height = (currHeight - 50) + "px";
+            }
+        }
+        function resizeimage(height) {
+            var myImg = document.getElementById("banner");
+            myImg.style.height = height + "px";
+        }
+        function getHeight(comicid, action) {
+            var myImg = document.getElementById("banner");
+            var curHeight = myImg.clientHeight;
+            //document.getElementById("#height").setAttribute("value", curHeight);
+            $.ajax({
+               type: "GET",
+               url: "manageBanner",
+               data: { comicid: comicid, action: action, height: curHeight },
+               success: function(response) {
+                 if (action = "save") {
+                     myImg.style.height = curHeight + "px";
+                 } else{
+                     document.getElementById("#height").src="";
+                 }
+               },
+               error: function(data)
+               {
+                 alert('ERROR'+data.responseText);
+               },
+            });
+        }            
+        </script>
+	<script>
+	function initThisPage() {
+                $(function() {
+                        $( "#tabs" ).tabs();
+                });
+                initActions();
+		$('#arc_detail').dataTable(
+                        {
+			        "bDestroy": true,
+			        "oLanguage": {
+				       "sLengthMenu":"Show _MENU_ items per page",
+    				       "sEmptyTable": "<em>No History to Display</em>",
+				       "sInfo":"Showing _START_ to _END_ of _TOTAL_ items",
+			 	       "sInfoEmpty":"Showing 0 to 0 of 0 items",
+				       "sInfoFiltered":"(filtered from _MAX_ total items)"},
+			        "iDisplayLength": 25,
+			        "sPaginationType": "full_numbers",
+			        "stateDuration": 0,
+			        "stateSave": true,
+			        "aaSorting": []
+                        })
+		        resetFilters("item");
+	}
+
+	$(document).ready(function() {
+		initThisPage();
+		initActions();
+	});
+	</script>
+</%def>

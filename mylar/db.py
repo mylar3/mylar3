@@ -94,7 +94,7 @@ class DBConnection:
                     # get out of the connection attempt loop since we were successful
                     break
                 except sqlite3.OperationalError as e:
-                    if "unable to open database file" in e.args[0] or "database is locked" in e.args[0]:
+                    if any(['unable to open database file' in e.args[0], 'database is locked' in e.args[0]]):
                         logger.warn('Database Error: %s' % e)
                         attempt += 1
                         time.sleep(1)
@@ -129,7 +129,7 @@ class DBConnection:
                     self.connection.commit()
                     break
                 except sqlite3.OperationalError as e:
-                    if any(['unable to open database file' in e, 'database is locked' in e]):
+                    if any(['unable to open database file' in e.args[0], 'database is locked' in e.args[0]]):
                         logger.warn('Database Error: %s' % e)
                         logger.warn('sqlresult: %s' %  query)
                         attempt += 1

@@ -1,0 +1,106 @@
+<%inherit file="base.html"/>
+<%!
+	import mylar
+	from mylar import db
+        from mylar.helpers import checked
+
+%>
+
+<%def name="headerIncludes()">
+	<div id="subhead_container">
+		<div id="subhead_menu">		
+                        <a id="menu_link_refresh" href="futurepull">Recreate/Refresh Pull-list</a>
+		</div>
+	</div>	
+	<a href="home" class="back">&laquo; Back to overview</a>
+</%def>
+
+<%def name="body()">
+        <div class="clearfix">
+                <h1>Upcoming Pull list</h1>
+        </div>
+
+        <div class="table_wrapper">
+
+	<table class="display" id="pull_table">
+		<thead>
+			<tr>
+                                <th id="publishdate">Date</th>
+                                <th id="publisher">Publisher</th>
+                                <th id="comicname">Comic</th>
+				<th id="comicnumber">Number</th>
+				<th id="status">Status</th>
+			</tr>
+		</thead>
+		<tbody>
+		%for future in futureresults:
+			<tr>
+                                %if pullfilter is True:
+                                        <td id="publishdate">${future['SHIPDATE']}</td>
+                                        <td id="publisher">${future['PUBLISHER']}</td>
+				        <td id="comicname">${future['COMIC']}
+                                        %if future['EXTRA'] != '':
+                                             (${future['EXTRA']})
+                                        %endif
+                                        </td>
+                                        <td id="comicnumber">${future['ISSUE']}</td>
+          				<td id="status">${future['STATUS']}
+                                        %if future['STATUS'] == 'Wanted':
+                                             <a href="unqueueissue?IssueID=None&ComicID=${future['COMICID']}&ComicName=${future['COMIC'] | u}&Issue=${future['ISSUE']}&FutureID=${future['FUTUREID']}"><span class="ui-icon ui-icon-plus"></span>UnWant</a>
+                                        %elif future['STATUS'] == 'Skipped':
+                                             <a href="searchit?name=${future['COMIC'] | u}&issue=${future['ISSUE']}&mode=pullseries"><span class="ui-icon ui-icon-plus"></span>add series</a>
+                                             <a href="queueissue?ComicName=${future['COMIC'] | u}&ComicIssue=${future['ISSUE']}&mode=pullwant"><span class="ui-icon ui-icon-plus"></span>one off</a>
+                                             <a href="#" onclick="doAjaxCall('add2futurewatchlist?ComicName=${future['COMIC'] |u}&Issue=${future['ISSUE']}&Publisher=${future['PUBLISHER']}}&ShipDate=${future['SHIPDATE']}&FutureID=${future['FUTUREID']}', $(this), 'table')" data-success="Adding ${future['COMIC']} Issue: ${future['ISSUE']} to Upcoming Watchlist"><span class="ui-icon ui-icon-plus"></span>Watch For</a>
+                                        %endif
+                                        </td>
+                                %endif
+			</tr>			
+		%endfor
+		</tbody>
+	</table>
+      </div>
+</%def>
+
+<%def name="headIncludes()">
+	<link rel="stylesheet" href="interfaces/carbon/css/data_table.css">
+</%def>
+
+<%def name="javascriptIncludes()">
+	<script src="js/libs/jquery.dataTables.min.js"></script>
+	<script>
+
+        function initThisPage() {
+
+                initActions();
+                $('#pull_table').dataTable (
+                        {
+                                "bDestroy": true,
+                                //"aoColumnDefs": [
+                                //       { 'bSortable': false, 'aTargets': [ 2,3 ] }
+                                //],
+                                "aLengthMenu": [[10, 25, 50, -1], [10, 25, 50, 'All' ]],
+                                "oLanguage": {
+                                       "sLengthMenu":"Show _MENU_ issues per page",
+                                       "sEmptyTable": "No issue information available",
+                                       "sInfo":"Showing _TOTAL_ issues",
+                                       "sInfoEmpty":"Showing 0 to 0 of 0 issues",
+                                       "sInfoFiltered":"(filtered from _MAX_ total issues)",
+                                       "sSearch": ""},
+                                "bStateSave": true,
+                                "stateSave": true,
+                                "stateDuration": 0,
+                                "iDisplayLength": 25,
+                                "sPaginationType": "full_numbers",
+                                "aaSorting": [[0, 'desc'],[1, 'asc']]
+                        });
+                        resetFilters("future");
+                        setTimeout(function(){
+                            initFancybox();
+                        },1500)
+        }
+
+        $(document).ready(function() {
+                initThisPage();
+        });
+      </script>
+</%def>

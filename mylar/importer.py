@@ -94,7 +94,7 @@ def addComictoDB(comicid, mismatch=None, pullupd=None, imported=None, ogcname=No
             checkdirectory = filechecker.validateAndCreateDirectory(comlocation, True)
             if not checkdirectory:
                logger.warn('Error trying to validate/create directory. Aborting this process at this time.')
-               return
+               return {'status': 'incomplete'}
         oldcomversion = dbcomic['ComicVersion'] #store the comicversion and chk if it exists before hammering.
     myDB.upsert("comics", newValueDict, controlValueDict)
 
@@ -114,7 +114,7 @@ def addComictoDB(comicid, mismatch=None, pullupd=None, imported=None, ogcname=No
             if series_status == 'Active' or series_status == 'Loading':
                 newValueDict = {"Status":   "Active"}
         myDB.upsert("comics", newValueDict, controlValueDict)
-        return
+        return {'status': 'incomplete'}
 
     if comic['ComicName'].startswith('The '):
         sortname = comic['ComicName'][4:]
@@ -221,14 +221,18 @@ def addComictoDB(comicid, mismatch=None, pullupd=None, imported=None, ogcname=No
 
     #moved this out of the above loop so it will chk for existance of comlocation in case moved
     #if it doesn't exist - create it (otherwise will bugger up later on)
-    if os.path.isdir(comlocation):
-        logger.info('Directory (' + comlocation + ') already exists! Continuing...')
+    if comlocation is not None:
+        if os.path.isdir(comlocation):
+            logger.info('Directory (' + comlocation + ') already exists! Continuing...')
+        else:
+            if mylar.CONFIG.CREATE_FOLDERS is True:
+                checkdirectory = filechecker.validateAndCreateDirectory(comlocation, True)
+                if not checkdirectory:
+                    logger.warn('Error trying to validate/create directory. Aborting this process at this time.')
+                    return {'status': 'incomplete'}
     else:
-        if mylar.CONFIG.CREATE_FOLDERS is True:
-            checkdirectory = filechecker.validateAndCreateDirectory(comlocation, True)
-            if not checkdirectory:
-                logger.warn('Error trying to validate/create directory. Aborting this process at this time.')
-                return
+        logger.warn('Comic Location path has not been specified as required in your configuration. Aborting this process at this time.')
+        return {'status': 'incomplete'}
 
     #try to account for CV not updating new issues as fast as GCD
     #seems CV doesn't update total counts
@@ -339,7 +343,7 @@ def addComictoDB(comicid, mismatch=None, pullupd=None, imported=None, ogcname=No
         issued = cv.getComic(comicid, 'issue')
         if issued is None:
             logger.warn('Unable to retrieve data from ComicVine. Get your own API key already!')
-            return
+            return {'status': 'incomplete'}
     logger.info('Sucessfully retrieved issue details for ' + comic['ComicName'])
 
     #move to own function so can call independently to only refresh issue data
@@ -987,7 +991,7 @@ def manualAnnual(manual_comicid=None, comicname=None, comicyear=None, comicid=No
                     except IndexError:
                         break
                     try:
-                        cleanname = helpers.cleanName(firstval['Issue_Name'])
+                        cleanname = firstval['Issue_Name'] #helpers.cleanName(firstval['Issue_Name'])
                     except:
                         cleanname = 'None'
 
@@ -1106,7 +1110,7 @@ def updateissuedata(comicid, comicname=None, issued=None, comicIssues=None, call
             except IndexError:
                 break
             try:
-                cleanname = helpers.cleanName(firstval['Issue_Name'])
+                cleanname = firstval['Issue_Name'] #helpers.cleanName(firstval['Issue_Name'])
             except:
                 cleanname = 'None'
             issid = str(firstval['Issue_ID'])
@@ -1242,6 +1246,12 @@ def updateissuedata(comicid, comicname=None, issued=None, comicIssues=None, call
                                 issnum = '9\xbd'
                                 logger.fdebug('issue: 9-5 is an invalid entry. Correcting to : ' + issnum)
                                 int_issnum = (9 * 1000) + (.5 * 1000)
+                            elif issnum == '2 & 3':
+                                logger.fdebug('issue: 2 & 3 is an invalid entry. Ensuring things match up')
+                                int_issnum = (2 * 1000) + (.5 * 1000)
+                            elif issnum == '4 & 5':
+                                logger.fdebug('issue: 4 & 5 is an invalid entry. Ensuring things match up')
+                                int_issnum = (4 * 1000) + (.5 * 1000)
                             elif issnum == '112/113':
                                 int_issnum = (112 * 1000) + (.5 * 1000)
                             elif issnum == '14-16':
@@ -1510,7 +1520,7 @@ def annual_check(ComicName, SeriesYear, comicid, issuetype, issuechk, annualslis
                             except IndexError:
                                break
                             try:
-                               cleanname = helpers.cleanName(firstval['Issue_Name'])
+                                cleanname = firstval['Issue_Name'] #helpers.cleanName(firstval['Issue_Name'])
                             except:
                                 cleanname = 'None'
                             issid = str(firstval['Issue_ID'])

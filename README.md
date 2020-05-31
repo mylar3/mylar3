@@ -114,4 +114,4 @@ You can specify how Mylar renames files during post-processing / import in addit
 
 
 _<p align="center">You can contribute by sending in your bug reports / enhancement requests via <a href="https://github.com/mylar3/mylar3">Github</a>.</br> 
-Telling us what's working helps too!</p>_
+Telling us what's working helps too!</p>__

@@ -244,27 +244,27 @@
                 initActions();
                 $('#impresults_table').dataTable(
                         {
-                                "Destroy": true,
-                                "sDom": '<"clear"Af><"clear"lp><"clear">rt<"clear"ip>',
+                                destroy: true,
+                                sDom: '<"clear"Af><"clear"lp><"clear">rt<"clear"ip>',
                                 //"aoColumnDefs": [
                                 //  { 'bSortable': false, 'aTargets': [ 0 , 2 ] },
                                 //  { 'bVisible': false, 'aTargets': [2] },
                                 //  { 'sType': 'numeric', 'aTargets': [2] },
                                 //  { 'iDataSort': [2], 'aTargets': [3] }
                                 //],
-                                "LengthMenu": [[10, 25, 50, -1], [10, 25, 50, 'All' ]],
-                                "Language": {
-                                        "LengthMenu":"Show _MENU_ results per page",
-                                        "EmptyTable": "No results",
-                                        "Info":"Showing _START_ to _END_ of _TOTAL_ results",
-                                        "InfoEmpty":"Showing 0 to 0 of 0 results",
-                                        "InfoFiltered":"(filtered from _MAX_ total results)",
-                                        "Search" : ""},
-                                "StateSave": true,
-                                "stateDuration": 0,
-                                "pageLength": 25,
-                                "pagingType": "simple_numbers",
-                                "aaSorting": [2, 'desc']
+                                LengthMenu: [[10, 25, 50, -1], [10, 25, 50, 'All' ]],
+                                Language: {
+                                        LengthMenu:"Show _MENU_ results per page",
+                                        EmptyTable: "No results",
+                                        Info:"Showing _START_ to _END_ of _TOTAL_ results",
+                                        InfoEmpty:"Showing 0 to 0 of 0 results",
+                                        InfoFiltered:"(filtered from _MAX_ total results)",
+                                        Search : ""},
+                                StateSave: true,
+                                stateDuration: 0,
+                                pageLength: 25,
+                                pagingType: "simple_numbers",
+                                aaSorting: [2, 'desc']
                         });
                         resetFilters("result");
         }
