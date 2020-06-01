@@ -17,6 +17,8 @@
 
 import re
 import os
+import pathlib
+import json
 import mylar
 from mylar import helpers, db, logger
 
@@ -45,11 +47,32 @@ class FileHandlers(object):
             self.issue = None
             self.issueid = None
 
-    def folder_create(self, booktype=None):
-        # dictionary needs to passed called comic with {'ComicPublisher', 'CorrectedType, 'Type', 'ComicYear', 'ComicName', 'ComicVersion'}
+    def folder_create(self, booktype=None, update_loc=None):
+        # dictionary needs to passed called comic with 
+        #  {'ComicPublisher', 'CorrectedType, 'Type', 'ComicYear', 'ComicName', 'ComicVersion'}
         # or pass in comicid value from __init__
 
         # setup default location here
+        if update_loc is not None:
+            comic_location = update_loc['temppath']
+            enforce_format = update_loc['tempff']
+            folder_format = update_loc['tempformat']
+            comicid = update_loc['comicid']
+        else:
+            comic_location = mylar.CONFIG.DESTINATION_DIR
+            enforce_format = False
+            folder_format = mylar.CONFIG.FOLDER_FORMAT
+
+        if folder_format is None:
+            folder_format = '$Series ($Year)'
+
+        if mylar.OS_DETECT == 'Windows':
+            if '/' in folder_format:
+                folder_format = re.sub('/', '\\', folder_format).strip()
+        else:
+            if '\\' in folder_format:
+                folder_format = folder_format.replace('\\', '/').strip()
+
         u_comicnm = self.comic['ComicName']
         # let's remove the non-standard characters here that will break filenaming / searching.
         comicname_filesafe = helpers.filesafe(u_comicnm)
@@ -64,18 +87,23 @@ class FileHandlers(object):
 
         if booktype is not None:
             if self.comic['Corrected_Type'] is not None:
-                booktype = self.comic['Corrected_Type']
+                if self.comic['Corrected_Type'] != booktype:
+                    booktype = booktype
+                else:
+                    booktype = self.comic['Corrected_Type']
             else:
                 booktype = booktype
         else:
             booktype = self.comic['Type']
 
         if any([booktype is None, booktype == 'None', booktype == 'Print']) or all([booktype != 'Print', mylar.CONFIG.FORMAT_BOOKTYPE is False]):
-            chunk_fb = re.sub('\$Type', '', mylar.CONFIG.FOLDER_FORMAT)
+            chunk_fb = re.sub('\$Type', '', folder_format)
             chunk_b = re.compile(r'\s+')
             chunk_folder_format = chunk_b.sub(' ', chunk_fb)
+            if booktype != 'Print':
+                booktype = 'None'
         else:
-            chunk_folder_format = mylar.CONFIG.FOLDER_FORMAT
+            chunk_folder_format = folder_format
 
         if any([self.comic['ComicVersion'] is None, booktype != 'Print']):
             comicVol = 'None'
@@ -87,8 +115,14 @@ class FileHandlers(object):
             chunk_f_f = re.sub('\$VolumeN', '', chunk_folder_format)
             chunk_f = re.compile(r'\s+')
             chunk_folder_format = chunk_f.sub(' ', chunk_f_f)
-            logger.fdebug('No version # found for series, removing from folder format')
-            logger.fdebug("new folder format: " + str(chunk_folder_format))
+
+        chunk_folder_format = re.sub("[()|[]]", '', chunk_folder_format).strip()
+        ccf = chunk_folder_format.find('/ ')
+        if ccf != -1:
+            chunk_folder_format = chunk_folder_format[:ccf+1] + chunk_folder_format[ccf+2:]
+        ccf = chunk_folder_format.find('\ ')
+        if ccf != -1:
+            chunk_folder_format = chunk_folder_format[:ccf+1] + chunk_folder_format[ccf+2:]
 
         #do work to generate folder path
         values = {'$Series':        series,
@@ -101,41 +135,134 @@ class FileHandlers(object):
                   '$Annual':        'Annual',
                   '$Type':          booktype
                   }
-        try:
-            if mylar.CONFIG.FOLDER_FORMAT == '':
-                comlocation = os.path.join(mylar.CONFIG.DESTINATION_DIR, comicdir, " (" + comic['SeriesYear'] + ")")
+
+        if update_loc is not None:
+            #set the paths here with the seperator removed allowing for cross-platform altering.
+            ccdir = pathlib.PurePath(comic_location)
+            ddir = pathlib.PurePath(mylar.CONFIG.DESTINATION_DIR)
+            dlc = pathlib.PurePath(self.comic['ComicLocation'])
+            path_convert = True
+            i = 0
+            bb = []
+            while i < len(dlc.parts):
+                try:
+                    if dlc.parts[i] == ddir.parts[i]:
+                        i+=1
+                        continue
+                    else:
+                        bb.append(dlc.parts[i])
+                        i+=1 #print('d.parts: %s' % ccdir.parts[i])
+                except IndexError:
+                    bb.append(dlc.parts[i])
+                    i+=1
+            bb_tuple = pathlib.PurePath(os.path.sep.join(bb))
+            try:
+                com_base = pathlib.PurePath(dlc).relative_to(ddir)
+            except ValueError as e:
+                #if the original path is not located in the same path as the ComicLocation (destination_dir).
+                #this can happen when manually altered to a new path, or thru various changes to the ComicLocation path over time.
+                #ie. ValueError: '/mnt/Comics/Death of Wolverine The Logan Legacy-(2014)' does not start with '/mnt/mediavg/Comics/Comics-2'
+                dir_fix = []
+                dir_parts = pathlib.PurePath(dlc).parts
+                for dp in dir_parts:
+                    try:
+                        if self.comic['ComicYear'] is not None:
+                            if self.comic['ComicYear'] in dp:
+                                break
+                        if self.comic['ComicName'] is not None:
+                            if self.comic['ComicName'] in dp:
+                                break
+                        if self.comic['ComicPublisher'] is not None:
+                            if self.comic['ComicPublisher'] in dp:
+                                break
+                        if self.comic['ComicVersion'] is not None:
+                            if self.comic['ComicVersion'] in dp:
+                                break
+                        dir_fix.append(dp)
+                    except:
+                        pass
+
+                if len(dir_fix) > 0:
+                    spath = ''
+                    t=0
+                    while (t < len(dir_parts)):
+                        newpath = os.path.join(spath, dir_parts[t])
+                        t+=1
+                    com_base = newpath
+                    #path_convert = False
+            #print('com_base: %s' % com_base)
+            #detect comiclocation path based on OS so that the path seperators are correct
+            #have to figure out how to determine OS of original location...
+            if mylar.OS_DETECT == 'Windows':
+                p_path = pathlib.PureWindowsPath(ccdir)
             else:
-                chunk_folder_format = re.sub('[()|[]]', '', chunk_folder_format).strip()
-                comlocation = os.path.join(mylar.CONFIG.DESTINATION_DIR, helpers.replace_all(chunk_folder_format, values))
-
-        except TypeError as e:
-            if mylar.CONFIG.DESTINATION_DIR is None:
-                logger.error('[ERROR] %s' % e)
-                logger.error('No Comic Location specified. This NEEDS to be set before anything can be added successfully.')
-                return
+                p_path = pathlib.PurePosixPath(ccdir)
+            if enforce_format is True:
+                first = helpers.replace_all(chunk_folder_format, values)
+                if mylar.CONFIG.REPLACE_SPACES:
+                    #mylar.CONFIG.REPLACE_CHAR ...determines what to replace spaces with underscore or dot
+                    first = first.replace(' ', mylar.CONFIG.REPLACE_CHAR)
+                comlocation = str(p_path.joinpath(first))
             else:
-                logger.error('[ERROR] %s' % e)
+                comlocation = str(p_path.joinpath(com_base))
+
+            return {'comlocation':  comlocation,
+                    'path_convert': path_convert,
+                    'comicid':      comicid}
+        else:
+            ddir = pathlib.PurePath(mylar.CONFIG.DESTINATION_DIR)
+            i = 0
+            bb = []
+            while i < len(ddir.parts):
+                try:
+                    bb.append(ddir.parts[i])
+                    i+=1
+                except IndexError:
+                    break
+
+            bb2 = bb[0]
+            bb.pop(0)
+            bb_tuple = pathlib.PurePath(os.path.sep.join(bb))
+            logger.fdebug('bb_tuple: %s' % bb_tuple)
+            if mylar.OS_DETECT == 'Windows':
+                p_path = pathlib.PureWindowsPath(pathlib.PurePath(bb2).joinpath(bb_tuple))
+            else:
+                p_path = pathlib.PurePosixPath(pathlib.PurePath(bb2).joinpath(bb_tuple))
+
+            logger.fdebug('p_path: %s' % p_path)
+
+            first = helpers.replace_all(chunk_folder_format, values)
+            logger.fdebug('first-1: %s' % first)
+
+            if mylar.CONFIG.REPLACE_SPACES:
+                first = first.replace(' ', mylar.CONFIG.REPLACE_CHAR)
+            logger.fdebug('first-2: %s' % first)
+            comlocation = str(p_path.joinpath(first))
+            logger.fdebug('comlocation: %s' % comlocation)
+
+            #try:
+            #    if folder_format == '':
+            #        #comlocation = pathlib.PurePath(comiclocation).joinpath(comicdir, '(%s)') % comic['SeriesYear']
+            #        comlocation = os.path.join(comic_location, comicdir, " (" + comic['SeriesYear'] + ")")
+            #    else:
+            #except TypeError as e:
+            #    if comic_location is None:
+            #        logger.error('[ERROR] %s' % e)
+            #        logger.error('No Comic Location specified. This NEEDS to be set before anything can be added successfully.')
+            #        return
+            #    else:
+            #        logger.error('[ERROR] %s' % e)
+            #        return
+            #except Exception as e:
+            #    logger.error('[ERROR] %s' % e)
+            #    logger.error('Cannot determine Comic Location path properly. Check your Comic Location and Folder Format for any errors.')
+            #    return
+
+            if comlocation == "":
+                logger.error('There is no Comic Location Path specified - please specify one in Config/Web Interface.')
                 return
-        except Exception as e:
-            logger.error('[ERROR] %s' % e)
-            logger.error('Cannot determine Comic Location path properly. Check your Comic Location and Folder Format for any errors.')
-            return
 
-        if mylar.CONFIG.DESTINATION_DIR == "":
-            logger.error('There is no Comic Location Path specified - please specify one in Config/Web Interface.')
-            return
-
-        #enforce proper slashes here..
-        cnt1 = comlocation.count('\\')
-        cnt2 = comlocation.count('/')
-        if cnt1 > cnt2 and '/' in chunk_folder_format:
-            comlocation = re.sub('/', '\\', comlocation)
-
-        if mylar.CONFIG.REPLACE_SPACES:
-            #mylar.CONFIG.REPLACE_CHAR ...determines what to replace spaces with underscore or dot
-            comlocation = comlocation.replace(' ', mylar.CONFIG.REPLACE_CHAR)
-
-        return comlocation
+            return comlocation
 
     def rename_file(self, ofilename, issue=None, annualize=None, arc=False, file_format=None): #comicname, issue, comicyear=None, issueid=None)
             comicid = self.comicid   # it's coming in unicoded...

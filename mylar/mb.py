@@ -292,19 +292,25 @@ def findComic(name, mode, issue, limityear=None, type=None):
                         cnl = len (result.getElementsByTagName('name'))
                         cl = 0
                         xmlTag = 'None'
-                        xmlimage = "cache/blankcover.jpg"
                         xml_lastissueid = 'None'
                         while (cl < cnl):
                             if result.getElementsByTagName('name')[cl].parentNode.nodeName == 'volume':
                                 xmlTag = result.getElementsByTagName('name')[cl].firstChild.wholeText
                                 #break
 
-                            if result.getElementsByTagName('name')[cl].parentNode.nodeName == 'image':
-                                xmlimage = result.getElementsByTagName('super_url')[0].firstChild.wholeText
+                            #if result.getElementsByTagName('name')[cl].parentNode.nodeName == 'image':
+                            #    xmlimage = result.getElementsByTagName('super_url')[0].firstChild.wholeText
 
                             if result.getElementsByTagName('name')[cl].parentNode.nodeName == 'last_issue':
                                 xml_lastissueid = result.getElementsByTagName('id')[cl].firstChild.wholeText
                             cl+=1
+
+                        if result.getElementsByTagName('super_url')[0].firstChild.wholeText:
+                            xmlimage = result.getElementsByTagName('super_url')[0].firstChild.wholeText
+                        elif result.getElementsByTagName('small_url')[0].firstChild.wholeText:
+                            xmlimage = result.getElementsByTagName('small_url')[0].firstChild.wholeText
+                        else:
+                            xmlimage = "cache/blankcover.jpg"
 
                         if (result.getElementsByTagName('start_year')[0].firstChild) is not None:
                             xmlYr = result.getElementsByTagName('start_year')[0].firstChild.wholeText

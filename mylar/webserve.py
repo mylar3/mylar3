@@ -84,8 +84,17 @@ class WebInterface(object):
         if sSearch == "" or sSearch == None:
             filtered = resultlist[::]
         else:
-            filtered = [row for row in resultlist if any([sSearch.lower() in row['ComicPublisher'].lower(), sSearch.lower() in row['ComicName'].lower(), sSearch.lower() in row['ComicYear'], sSearch.lower() in row['LatestIssue'], sSearch.lower() in row['recentstatus']])]
-        sortcolumn = 'ComicName'
+            for row in resultlist:
+                try:
+                    if any([sSearch.lower() in row['ComicPublisher'].lower(), sSearch.lower() in row['ComicName'].lower(), sSearch.lower() in row['ComicYear'], sSearch.lower() in row['LatestIssue'].lower(), sSearch.lower() in row['recentstatus'].lower()]):
+                        filtered.append(row)
+                    elif row['displaytype'] is not None and sSearch.lower() in row['displaytype'].lower():
+                        filtered.append(row)
+                except Exception as e:
+                    filtered = [row for row in resultlist if any([sSearch.lower() in row['ComicName'].lower(), sSearch.lower() in row['ComicYear'], sSearch.lower() in row['recentstatus']]) or (row['LatestIssue'] is not None and sSearch.lower() in row['LatestIssue'].lower())]
+
+            #filtered = [row for row in resultlist if any([sSearch.lower() in row['ComicPublisher'].lower(), sSearch.lower() in row['ComicName'].lower(), sSearch.lower() in row['ComicYear'], False if row['displaytype'] is None else (True if sSearch.lower() in row['displaytype'] else False), sSearch.lower() in row['LatestIssue'], sSearch.lower() in row['recentstatus']])]
+        sortcolumn = 'ComicPublisher'
         if iSortCol_0 == '0':
             sortcolumn = 'ComicPublisher'
         if iSortCol_0 == '1':
@@ -100,12 +109,13 @@ class WebInterface(object):
             sortcolumn = 'percent'
         elif iSortCol_0 == '6':
             sortcolumn = 'Status'
+
         #below sort is for multi-sort columns, maybe make them user configurable - not sure how to pass mutli-sort thru otherwise
         #filtered.sort(key= itemgetter(sortcolumn2, sortcolumn), reverse=sSortDir_0 == "desc")
 
         filtered.sort(key=lambda x: (x[sortcolumn] is None, x[sortcolumn] == '', x[sortcolumn]), reverse=sSortDir_0 == "desc")
         rows = filtered[iDisplayStart:(iDisplayStart + iDisplayLength)]
-        rows = [[row['ComicPublisher'], row['ComicName'], row['ComicYear'], row['LatestIssue'], row['LatestDate'], row['recentstatus'], row['Status'], row['percent'], row['haveissues'], row['totalissues'], row['ComicID'], row['displaytype']] for row in rows]
+        rows = [[row['ComicPublisher'], row['ComicName'], row['ComicYear'], row['LatestIssue'], row['LatestDate'], row['recentstatus'], row['Status'], row['percent'], row['haveissues'], row['totalissues'], row['ComicID'], row['displaytype'], row['ComicVolume']] for row in rows]
         return json.dumps({
             'iTotalDisplayRecords': len(filtered),
             'iTotalRecords': len(resultlist),
@@ -226,12 +236,22 @@ class WebInterface(object):
             issues_list = None
         #logger.info('issues_list: %s' % issues_list)
 
-        if comic['Corrected_Type'] == 'TPB':
-            force_type = 1
-        elif comic['Corrected_Type'] == 'Print':
-            force_type = 2
+        if comic['Corrected_Type'] == comic['Type']:
+            force_type = None
         else:
-            force_type = 0
+            if comic['Corrected_Type'] == 'TPB':
+                force_type = 'TPB'
+            elif comic['Corrected_Type'] == 'Digital':
+                force_type = 'Digital'
+            elif comic['Corrected_Type'] == 'One-Shot':
+                force_type = 'One-Shot'
+            elif comic['Corrected_Type'] == 'Print' or comic['Corrected_Type'] is None:
+                if comic['Type'] is None:
+                    force_type = 'Print'
+                elif comic['Corrected_Type'] is None:
+                    force_type = None
+                else:
+                    force_type = comic['Corrected_Type']
 
         comicConfig = {
                     "fuzzy_year0":                    helpers.radio(int(usethefuzzy), 0),
@@ -239,7 +259,8 @@ class WebInterface(object):
                     "fuzzy_year2":                    helpers.radio(int(usethefuzzy), 2),
                     "skipped2wanted":                 helpers.checked(skipped2wanted),
                     "force_continuing":               helpers.checked(force_continuing),
-                    "force_type":                     helpers.checked(force_type),
+                    "ignore_type":                    helpers.checked(comic['IgnoreType']),
+                    "force_type":                     force_type,
                     "delete_dir":                     helpers.checked(mylar.CONFIG.DELETE_REMOVE_DIR),
                     "allow_packs":                    helpers.checked(int(allowpacks)),
                     "corrected_seriesyear":           comic['ComicYear'],
@@ -1464,6 +1485,8 @@ class WebInterface(object):
             ComicName = cdname['ComicName']
             TorrentID_32p = cdname['TorrentID_32P']
             BookType = cdname['Type']
+            if cdname['Corrected_Type'] is not None:
+                BookType = cdname['Corrected_Type']
             controlValueDict = {"IssueID": IssueID}
             newStatus = {"Status": "Wanted"}
             if mode == 'want':
@@ -5271,17 +5294,23 @@ class WebInterface(object):
         raise cherrypy.HTTPRedirect("comicDetails?ComicID=%s" % comicid)
     manual_annual_add.exposed = True
 
-    def comic_config(self, com_location, ComicID, alt_search=None, fuzzy_year=None, comic_version=None, force_continuing=None, force_type=None, alt_filename=None, allow_packs=None, corrected_seriesyear=None, torrentid_32p=None):
+    def comic_config(self, com_location, ComicID, alt_search=None, fuzzy_year=None, comic_version=None, force_continuing=None, force_type=None, alt_filename=None, allow_packs=None, corrected_seriesyear=None, torrentid_32p=None, ignore_type=None):
         myDB = db.DBConnection()
-        chk1 = myDB.selectone('SELECT ComicLocation, Corrected_Type FROM comics WHERE ComicID=?', [ComicID]).fetchone()
+        chk1 = myDB.selectone('SELECT ComicLocation, Type, Corrected_Type FROM comics WHERE ComicID=?', [ComicID]).fetchone()
         if chk1[0] is None:
             orig_location = com_location
         else:
             orig_location = chk1[0]
+
         if chk1[1] is None:
             orig_type = None
         else:
             orig_type = chk1[1]
+
+        if chk1[2] is None:
+            orig_corr_type = None
+        else:
+            orig_corr_type = chk1[2]
 
 #--- this is for multiple search terms............
 #--- works, just need to redo search.py to accomodate multiple search terms
@@ -5325,29 +5354,46 @@ class WebInterface(object):
             newValues['ComicYear'] = str(corrected_seriesyear)
 
         if comic_version is None or comic_version == 'None':
-            newValues['ComicVersion'] = "None"
+            newValues['ComicVersion'] = None
         else:
             if comic_version[1:].isdigit() and comic_version[:1].lower() == 'v':
                 newValues['ComicVersion'] = str(comic_version)
             else:
                 logger.info("Invalid Versioning entered - it must be in the format of v#")
-                newValues['ComicVersion'] = "None"
+                newValues['ComicVersion'] = None
 
         if force_continuing is None:
             newValues['ForceContinuing'] = 0
         else:
             newValues['ForceContinuing'] = 1
 
-        if force_type == '1':
+        if force_type == 'TPB':
             newValues['Corrected_Type'] = 'TPB'
-        elif force_type == '2':
+        elif force_type == 'Digital':
+            newValues['Corrected_Type'] = 'Digital'
+        elif force_type == 'One-Shot':
+            newValues['Corrected_Type'] = 'One-Shot'
+        elif force_type == 'Print':
             newValues['Corrected_Type'] = 'Print'
         else:
-            newValues['Corrected_Type'] = None
+            if orig_corr_type is not None:
+                newValues['Corrected_Type'] = orig_corr_type
+            else:
+                newValues['Corrected_Type'] = None
 
-        if orig_type != force_type:
-            if '$Type' in mylar.CONFIG.FOLDER_FORMAT and com_location == orig_location:
-                #rename folder to accomodate new forced TPB format.
+        if any([ignore_type == '0', ignore_type is None, ignore_type == 'None']):
+            newValues['IgnoreType'] = 0
+        else:
+            newValues['IgnoreType'] = 1
+
+        #logger.fdebug('orig_type:%s -- force_type: %s' % (orig_type, force_type))
+        #logger.fdebug('orig_corr_type: %s-- corrected_type: %s' % (orig_corr_type, newValues['Corrected_Type']))
+        #logger.fdebug('config_folder_format:%s' % (mylar.CONFIG.FOLDER_FORMAT))
+        #logger.fdebug('config_format_booktype:%s' % (mylar.CONFIG.FORMAT_BOOKTYPE))
+        #logger.fdebug('com_location:%s -- orig_location: %s' % (com_location, orig_location))
+        if orig_corr_type != newValues['Corrected_Type']:
+            if all(['$Type' in mylar.CONFIG.FOLDER_FORMAT, com_location == orig_location, mylar.CONFIG.FORMAT_BOOKTYPE is True]):
+                #rename folder if the $Type is in folder format to accomodate new forced format.
                 from . import filers
                 x = filers.FileHandlers(ComicID=ComicID)
                 newcom_location = x.folder_create(booktype=newValues['Corrected_Type'])
@@ -5679,6 +5725,8 @@ class WebInterface(object):
         try:
             r = nzbserver.status()
         except Exception as e:
+            if all([nzbpassword is not None, nzbpassword in e]):
+                e = re.sub(nzbpassword, 'REDACTED', e)
             logger.warn('Error fetching data: %s' % e)
             return 'Unable to retrieve data from NZBGet'
         logger.info('Successfully verified connection to NZBGet at %s:%s' % (nzbgethost, nzbport))
@@ -5850,12 +5898,10 @@ class WebInterface(object):
             metadata_db = myDB.selectone('SELECT * FROM issues where IssueID=?', [issueid]).fetchone()
             seriestitle = meta_data['series']
             if any([seriestitle == 'None', seriestitle is None]):
-                seriestitle = urllib.parse.unquote_plus(comicname)
                 seriestitle = metadata_db['ComicName']
 
             issuenumber = meta_data['issue_number']
             if any([issuenumber == 'None', issuenumber is None]):
-                issuenumber = urllib.parse.unquote_plus(issue)
                 issuenumber = metadata_db['Issue_Number']
 
             issuetitle = meta_data['title']
@@ -6039,10 +6085,10 @@ class WebInterface(object):
     CreateFolders.exposed = True
 
     def getPushbulletDevices(self, api=None):
-        notifythis = notifiers.pushbullet
-        result = notifythis.get_devices(api)
+        notifythis = notifiers.PUSHBULLET(test_apikey=api)
+        result = notifythis.get_devices()
         if result:
-            return result
+            return json.dumps(result)
         else:
             return 'Error sending Pushbullet notifications.'
     getPushbulletDevices.exposed = True
@@ -6088,14 +6134,14 @@ class WebInterface(object):
             return "Error sending test message to Pushover"
     testpushover.exposed = True
 
-    def testpushbullet(self, apikey):
-        pushbullet = notifiers.PUSHBULLET(test_apikey=apikey)
+    def testpushbullet(self, apikey, channel):
+        pushbullet = notifiers.PUSHBULLET(test_apikey=apikey, channel=channel)
         result = pushbullet.test_notify()
         if result['status'] == True:
-            return result['message']
+            return "Successfully sent Pushbullet test -  check to make sure it worked"
         else:
-            logger.warn('APIKEY used for test was : %s' % apikey)
-            return result['message']
+            logger.warn('Last six characters of the test variables used [APIKEY: %s][CHANNEL: %s]' % (apikey[-6:], channel[-6:]))
+            return "Error sending test message to Pushbullet"
     testpushbullet.exposed = True
 
     def testtelegram(self, userid, token):

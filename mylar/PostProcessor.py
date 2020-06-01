@@ -649,7 +649,7 @@ class PostProcessor(object):
                                     if watchmatch['series_volume'] is not None:
                                         just_the_digits = re.sub('[^0-9]', '', watchmatch['series_volume']).strip()
                                     else:
-                                        just_the_digits = re.sub('[^0-9]', '', watchmatch['justthedigits']).strip()
+                                        just_the_digits = re.sub('[^0-9.]', '', watchmatch['justthedigits']).strip()
                                 else:
                                     just_the_digits = watchmatch['justthedigits']
                             except Exception as e:

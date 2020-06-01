@@ -1,0 +1,651 @@
+.dataTables_wrapper {
+	width: 100%;
+	min-height: 125px;
+	clear: both;
+	_height: 302px;
+	zoom: 1; /* Feeling sorry for IE */
+}
+#wanted_table_wrapper {
+	margin-top: 0;
+}
+.dataTables_processing {
+	position: absolute;
+	top: 50%;
+	left: 50%;
+	width: 20px;
+	height: 30px;
+	margin-left: -125px;
+	margin-top: -15px;
+	padding: 14px 0 2px 0;
+	border: 1px solid #ddd;
+	text-align: center;
+	color: #999;
+	font-size: 14px;
+	background-color: white;
+}
+
+.dataTables_length {
+	width: 40%;
+	float: left;
+}
+
+.dataTables_filter {
+	width: 50%;
+	float: right;
+	text-align: right;
+	margin-bottom: 15px;
+}
+.dataTables_filter input {
+	background: none repeat scroll 0 0 #FFFFFF;
+	    border: 1px solid #CCC;
+	    font-size: 15px;
+	    padding: 2px 4px;
+}
+.dataTables_info {
+	width: 50%;
+	float: left;
+	font-weight: bold;
+}
+
+.dataTables_paginate {
+	width: 44px;
+	* width: 50px;
+	float: right;
+	text-align: right;
+}
+
+/* Pagination nested */
+.paginate_disabled_previous, .paginate_enabled_previous, .paginate_disabled_next, .paginate_enabled_next {
+	height: 19px;
+	width: 19px;
+	margin-left: 3px;
+	float: left;
+}
+
+.paginate_disabled_previous {
+	background-image: url('../images/back_disabled.jpg');
+}
+
+.paginate_enabled_previous {
+	background-image: url('../images/back_enabled.jpg');
+}
+
+.paginate_disabled_next {
+	background-image: url('../images/forward_disabled.jpg');
+}
+
+.paginate_enabled_next {
+	background-image: url('../images/forward_enabled.jpg');
+}
+
+
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ * DataTables display
+ */
+table.display {
+	margin: 20px auto; 
+	clear: both;
+	border:1px solid #1c1e22;
+	width: 100%;
+	
+	/* Note Firefox 3.5 and before have a bug with border-collapse
+	 * ( https://bugzilla.mozilla.org/show%5Fbug.cgi?id=155955 ) 
+	 * border-spacing: 0; is one possible option. Conditional-css.com is
+	 * useful for this kind of thing
+	 *
+	 * Further note IE 6/7 has problems when calculating widths with border width.
+	 * It subtracts one px relative to the other browsers from the first column, and
+	 * adds one to the end...
+	 *
+	 * If you want that effect I'd suggest setting a border-top/left on th/td's and 
+	 * then filling in the gaps with other borders.
+	 */
+}
+
+table.display thead th {
+	padding: 3px 16px 8px 15px;
+	background-color: white;
+	-font-weight: bold;
+	font-size: 13px;
+	border-bottom: 1px solid #1c1e22;
+	boroder-bottom-width: 3px;
+}
+
+table.display tfoot th {
+	padding: 3px 18px 3px 10px;
+	border-top: 1px solid black;
+	font-weight: bold;
+}
+
+table.display tr.heading2 td {
+	border-bottom: 1px solid #aaa;
+}
+
+table.display td {
+	padding: 8px 10px;
+	font-size: 12px;
+	border-bottom: 1px solid #1c1e22;
+ 	border-right: 1px solid #1c1e22;
+}
+table
+table.display td.center {
+	text-align: center;
+}
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ * Little hack to handle the two tables on the upcoming page
+ */
+table.display_no_select {
+	margin: 20px auto; 
+	clear: both;
+	border:1px solid #1c1e22;
+	width: 100%;
+	
+	/* Note Firefox 3.5 and before have a bug with border-collapse
+	 * ( https://bugzilla.mozilla.org/show%5Fbug.cgi?id=155955 ) 
+	 * border-spacing: 0; is one possible option. Conditional-css.com is
+	 * useful for this kind of thing
+	 *
+	 * Further note IE 6/7 has problems when calculating widths with border width.
+	 * It subtracts one px relative to the other browsers from the first column, and
+	 * adds one to the end...
+	 *
+	 * If you want that effect I'd suggest setting a border-top/left on th/td's and 
+	 * then filling in the gaps with other borders.
+	 */
+}
+
+table.display_no_select thead th {
+	padding: 3px 18px 3px 10px;
+	background-color: white;
+	font-weight: bold;
+	font-size: 16px;
+}
+
+table.display_no_select tfoot th {
+	padding: 3px 18px 3px 10px;
+	border-top: 1px solid black;
+	font-weight: bold;
+}
+
+table.display_no_select tr.heading2 td {
+	border-bottom: 1px solid #aaa;
+}
+
+table.display_no_select td {
+	padding: 8px 10px;
+	font-size: 14px;
+}
+table
+table.display_no_select td.center {
+	text-align: center;
+}
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ * DataTables display for log screen
+ */
+table.display_log {
+        margin: 20px auto;
+        clear: both;
+        border:1px solid #1c1e22;
+        width: 100%;
+
+        /* Note Firefox 3.5 and before have a bug with border-collapse
+         * ( https://bugzilla.mozilla.org/show%5Fbug.cgi?id=155955 )
+         * border-spacing: 0; is one possible option. Conditional-css.com is
+         * useful for this kind of thing
+         *
+         * Further note IE 6/7 has problems when calculating widths with border width.
+         * It subtracts one px relative to the other browsers from the first column, and
+         * adds one to the end...
+         *
+         * If you want that effect I'd suggest setting a border-top/left on th/td's and
+         * then filling in the gaps with other borders.
+         */
+}
+
+table.display_log thead th {
+        padding: 3px 18px 3px 10px;
+        background-color: white;
+        font-weight: bold;
+	border-bottom: 3px solid #1c1e22;
+}
+
+table.display_log tfoot th {
+        padding: 3px 18px 3px 10px;
+        border-top: 1px solid black;
+        font-weight: bold;
+}
+
+table.display_log tr.heading2 td {
+        border-bottom: 1px solid #aaa;
+}
+
+table.display_log td {
+        padding: 4px 10px;
+        font-size: 12px;
+	background-color: #272b30;
+	border-left: 1px solid #1c1e22;
+	border-bottom: 1px solid #1c1e22;
+}
+table
+table.display_log td.center {
+        text-align: center;
+}
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ * DataTables sorting
+ */
+
+.sorting_asc {
+	background: url('../images/sort_asc.png') no-repeat center right;
+	cursor: pointer;
+	* cursor: hand;
+}
+
+.sorting_desc {
+	background: url('../images/sort_desc.png') no-repeat center right;
+	cursor: pointer;
+	* cursor: hand;
+}
+
+.sorting {
+	background: url('../images/sort_both.png') no-repeat center right;
+	cursor: pointer;
+	* cursor: hand;
+}
+
+.sorting_asc_disabled {
+	background: url('../images/sort_asc_disabled.png') no-repeat center right;
+}
+
+.sorting_desc_disabled {
+	background: url('../images/sort_desc_disabled.png') no-repeat center right;
+}
+
+
+
+
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ * DataTables row classes
+ */
+table.display tr.odd.gradeA {
+	-background-color: #353a41;
+}
+
+table.display tr.even.gradeA {
+	-background-color: #2e3338;
+}
+
+table.display tr.odd.gradeC {
+	background-color: #1a4977;
+}
+
+table.display tr.even.gradeC {
+	background-color: #1a4977;
+}
+
+table.display tr.even.gradeE {
+	background-color: #F96178;
+}
+
+table.display tr.odd.gradeE {
+	background-color: #F96178;
+}
+
+table.display tr.even.gradeH {
+        background-color: #ae3431;
+}
+
+table.display tr.odd.gradeH {
+        background-color: #957e1f;
+}
+
+table.display tr.even.gradeL {
+	background-color: #1c5188;
+}
+table.display tr.odd.gradeL {
+	background-color: #ebf5ff;
+}
+
+table.display tr.odd.gradeX {
+	-background-color: #ae3431;
+}
+
+table.display tr.even.gradeX {
+	-background-color: #ae3431;
+}
+
+table.display tr.odd.gradeU {
+	background-color: #382f64;
+}
+
+table.display tr.even.gradeU {
+	background-color: #382f64;
+}
+
+table.display tr.odd.gradeP {
+        background-color: #68FC68;
+}
+
+table.display tr.even.gradeP {
+        background-color: #68FC68;
+}
+
+table.display tr.odd.gradeD {
+        background-color: #C7EFC7;
+}
+
+table.display tr.even.gradeD {
+        background-color: #C7EFC7;
+}
+
+table.display tr.odd.gradeZ {
+	background-color: #353a41;
+}
+
+table.display tr.even.gradeZ {
+	-background-color: #2e3338;
+}
+table.display tr.odd.gradeT {
+        background-color: #F9CBE6;
+}
+
+table.display tr.even.gradeT {
+        background-color: #F9CBE6;
+}
+
+table.display tr.odd.gradeF {
+        background-color: #FF5858;
+}
+
+table.display tr.even.gradeF {
+        background-color: #FF5858;
+}
+
+table.display tr.odd.gradeT1 {
+        background-color: #FFDDDD;
+}
+table.display tr.even.gradeT1 {
+        background-color: #FFDDDD;
+}
+
+table.display tr.odd.gradeT2 {
+        background-color: #FFDDAA;
+}
+table.display tr.even.gradeT2 {
+        background-color: #FFDDAA;
+}
+table.display tr.gradeL #status {
+	background: url("../images/loader_black.gif") no-repeat scroll 15px center transparent;
+	font-size: 11px;
+	text-indent: -3000px;
+}
+table.display tr.gradeA td,
+table.display tr.gradeC td,
+table.display tr.gradeE td,
+table.display tr.gradeH td,
+table.display tr.gradeL td,
+table.display tr.gradeX td,
+table.display tr.gradeU td,
+table.display tr.gradeP td,
+table.display tr.gradeD td,
+table.display tr.gradeT td,
+table.display tr.gradeF td,
+table.display tr.gradeT1 td,
+table.display tr.gradeT2 td,
+table.display tr.gradeZ td {border-bottom: 1px solid #1c1e22;border-right: 1px solid #1c1e22;-text-align:center;-padding:3px 16px 8px 15px;}
+table.display tr:last-child td {
+	-border-bottom: 1px solid #eee;
+}
+table.display tr td#add .ui-icon { display: inline-block; }
+
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ * DataTables row classes
+ */
+table.display_no_select tr.odd.gradeA {
+        background-color: #ddffdd;
+}
+
+table.display_no_select tr.even.gradeA {
+        background-color: #ddffdd;
+}
+
+table.display_no_select tr.odd.gradeC {
+        background-color: #ebf5ff;
+}
+
+table.display_no_select tr.even.gradeC {
+        background-color: #ebf5ff;
+}
+
+table.display_no_select tr.even.gradeE {
+        background-color: #F96178;
+}
+
+table.display_no_select tr.odd.gradeE {
+        background-color: #F96178;
+}
+
+table.display_no_select tr.even.gradeH{
+        background-color: #FFF5CC;
+}
+
+table.display_no_select tr.odd.gradeH {
+        background-color: #FFF5CC;
+}
+
+table.display_no_select tr.even.gradeL {
+        background-color: #ebf5ff;
+}
+
+table.display_no_select tr.odd.gradeL {
+        background-color: #ebf5ff;
+}
+
+table.display_no_select tr.odd.gradeX {
+        background-color: #ffdddd;
+}
+
+table.display_no_select tr.even.gradeX {
+        background-color: #ffdddd;
+}
+
+table.display_no_select tr.odd.gradeU {
+        background-color: #ddd;
+}
+
+table.display_no_select tr.even.gradeU {
+        background-color: #eee;
+}
+
+table.display_no_select tr.odd.gradeP {
+        background-color: #68FC68;
+}
+
+table.display_no_select tr.even.gradeP {
+        background-color: #68FC68;
+}
+
+table.display_no_select tr.odd.gradeD {
+        background-color: #C7EFC7;
+}
+
+table.display_no_select tr.even.gradeD {
+        background-color: #C7EFC7;
+}
+
+table.display_no_select tr.odd.gradeT {
+        background-color: #F9CBE6;
+}
+
+table.display_no_select tr.even.gradeT {
+        background-color: #F9CBE6;
+}
+
+table.display_no_select tr.odd.gradeF {
+        background-color: #FF5858;
+}
+
+table.display_no_select tr.even.gradeF {
+        background-color: #FF5858;
+}
+
+table.display_no_select tr.odd.gradeZ {
+        background-color: #FAFAFA;
+}
+
+table.display_no_select tr.even.gradeZ {
+        background-color: white;
+}
+
+table.display_no_select tr.odd.gradeT1 {
+        background-color: #FFDDDD;
+}
+
+table.display_no_select tr.even.gradeT1 {
+        background-color: white;
+}
+
+table.display_no_select tr.odd.gradeT2 {
+        background-color: #FFDDAA;
+}
+
+table.display_no_select tr.even.gradeT2 {
+        background-color: white;
+}
+
+table.display_no_select tr.gradeL #status {
+        background: url("../images/loader_black.gif") no-repeat scroll 15px center transparent;
+        font-size: 11px;
+        text-indent: -3000px;
+}
+table.display_no_select tr.gradeA td,
+table.display_no_select tr.gradeC td,
+table.display_no_select tr.gradeE td,
+table.display_no_select tr.gradeH td,
+table.display_no_select tr.gradeL td,
+table.display_no_select tr.gradeX td,
+table.display_no_select tr.gradeU td,
+table.display_no_select tr.gradeP td,
+table.display_no_select tr.gradeD td,
+table.display_no_select tr.gradeT td,
+table.display_no_select tr.gradeF td,
+table.display_no_select tr.gradeT1 td,
+table.display_no_select tr.gradeT2 td,
+table.display_no_select tr.gradeZ td {border-bottom: 1px solid #1c1e22; border-right: 1px solid #1c1e22;}
+table.display_no_select tr:last-child td {
+        border-bottom: 1px solid #1c1e22;
+}
+table.display_no_select tr td#add .ui-icon { display: inline-block; }
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ * Misc
+ */
+.dataTables_scroll {
+	clear: both;
+}
+
+.dataTables_scrollBody {
+	*margin-top: -1px;
+}
+
+.top, .bottom {
+	padding: 15px;
+	background-color: #F5F5F5;
+	border: 1px solid #CCCCCC;
+}
+
+.top .dataTables_info {
+	float: none;
+}
+
+.clear {
+	clear: both;
+}
+
+.dataTables_empty {
+	font-size: 24px;
+	text-align: center;
+	vertical-align: middle;
+	background-color: #3e4349; 
+	height: 50px;
+	width: 90%;
+}
+
+tfoot input {
+	margin: 0.5em 0;
+	width: 100%;
+	color: #444;
+}
+
+tfoot input.search_init {
+	color: #999;
+}
+
+td.group {
+	background-color: #d1cfd0;
+	border-bottom: 2px solid #A19B9E;
+	border-top: 2px solid #A19B9E;
+}
+
+td.details {
+	background-color: #d1cfd0;
+	border: 2px solid #A19B9E;
+}
+
+.paging_full_numbers, .paging_simple_numbers {
+	width: 400px;
+	height: 22px;
+	line-height: 22px;
+}
+
+.paging_full_numbers .paginate_button,
+ 	.paging_full_numbers .paginate_active, 
+        .paging_simple_numbers .paginate_button,
+        .paging_simple_numbers .paginate_active {
+	background: none repeat scroll 0 0 #666;
+	   border-radius: 5px 5px 5px 5px;
+	   margin: 0 0 0 5px;
+	   font-size: 15px;
+	   padding: 2px 7px;
+	   color: #fff;
+	cursor: pointer;
+	*cursor: hand;
+}
+
+.paging_full_numbers .paginate_button:hover, .paging_simple_numbers .paginate_button:hover {
+	background-color: #e2e2e2;
+}
+
+.paging_full_numbers .paginate_active, .paging_simple_numbers .paginate_active {
+	background-color: #4183C4;
+	color: #FFF;
+}
+
+table.display tr.even.row_selected td {
+	background-color: #B0BED9;
+}
+
+table.display tr.odd.row_selected td {
+	background-color: #9FAFD1;
+}
+
+table.display_no_select tr.even.row_selected td {
+        background-color: #B0BED9;
+}
+
+table.display_no_select tr.odd.row_selected td {
+        background-color: #9FAFD1;
+}
+
+div.box {
+	height: 100px;
+	padding: 10px;
+	overflow: auto;
+	border: 1px solid #8080FF;
+	background-color: #E5E5FF;
+}

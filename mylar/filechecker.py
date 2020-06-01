@@ -384,19 +384,25 @@ class FileChecker(object):
         ret_sf1 = re.sub('\'', 'g11', ret_sf1).strip()
         ret_sf1 = re.sub('\@', 'h11', ret_sf1).strip()
 
-        #split_file = re.findall('(?imu)\([\w\s-]+\)|[-+]?\d*\.\d+|\d+[\s]COVERS+|\d{4}-\d{2}-\d{2}|\d+[(th|nd|rd|st)]+|\d+|[\w-]+|#?\d\.\d+|#[\.-]\w+|#[\d*\.\d+|\w+\d+]+|#(?<![\w\d])XCV(?![\w\d])+|#[\w+]|\)', ret_sf1, re.UNICODE)
-        split_file = re.findall('(?imu)\([\w\s-]+\)|[-+]?\d*\.\d+|\d+[\s]COVERS+|\d{4}-\d{2}-\d{2}|\d+[(th|nd|rd|st)]+|[\(^\)+]|\d+|[\w-]+|#?\d\.\d+|#[\.-]\w+|#[\d*\.\d+|\w+\d+]+|#(?<![\w\d])XCV(?![\w\d])+|#[\w+]|\)', ret_sf1, re.UNICODE)
+        #split_file = re.findall('(?imu)\([\w\s-]+\)|[-+]?\d*\.\d+|\d+[\s]COVERS+|\d{4}-\d{2}-\d{2}|\d+[(th|nd|rd|st)]+|[\(^\)+]|\d+|[\w-]+|#?\d\.\d+|#[\.-]\w+|#[\d*\.\d+|\w+\d+]+|#(?<![\w\d])XCV(?![\w\d])+|#[\w+]|\)', ret_sf1, re.UNICODE)
+
+        #updated to keep words within square brackets together.
+        split_file = re.findall('(?imu)\([\w\s-]+\)|[-+]?\d*\.\d+|\d+[\s]COVERS+|\d{4}-\d{2}-\d{2}|\d+[(th|nd|rd|st)]+|[\(^\)+]|\[.*?\]|\d+|[\w-]+|#?\d\.\d+|#[\.-]\w+|#[\d*\.\d+|\w+\d+]+|#(?<![\w\d])XCV(?![\w\d])+|#[\w+]|\)', ret_sf1, re.UNICODE)
 
         #10-20-2018 ---START -- attempt to detect '01 (of 7.3)'
         #10-20-2018          -- attempt to detect '36p ctc' as one element
+        #4-7-2020 -- remove '####px' as it's useless and will muck up the parser.
         spf = []
         mini = False
         wrdcnt = 0
         for x in split_file:
             if x == 'of':
-                mini = True
-                spf.append(x)
-            elif mini is True:
+                if split_file[wrdcnt-1].isdigit():
+                    mini = True
+                    wrdcnt+=1
+                    spf.append(x)
+                    continue
+            if mini is True:
                 mini = False
                 try:
                     logger.fdebug('checking now: %s' % x)
@@ -413,7 +419,7 @@ class FileChecker(object):
 
             elif x  == ')' or x == '(':
                 pass
-            elif x == 'p' or x == 'ctc':
+            elif x == 'p' or x == 'ctc' or x == 'px':
                 try:
                     if spf[wrdcnt-1].isdigit():
                         logger.debug('THIS SHOULD BE : %s%s' % (spf[wrdcnt-1], x))
@@ -975,6 +981,7 @@ class FileChecker(object):
                     issue_year = None
                 elif len(volume_found) > 0:
                     logger.fdebug('UNKNOWN TPB/GN detected. Volume assumption is number: %s' % (volume_found))
+                    booktype = 'TPB'
                 else:
                     logger.fdebug('No issue number present in filename.')
         else:
@@ -1629,7 +1636,7 @@ class FileChecker(object):
     #    Jan 1990
     #    January1990'''
 
-        fmts = ('%Y','%b %d, %Y','%B %d, %Y','%B %d %Y','%m/%d/%Y','%m/%d/%y','(%m/%d/%Y)','%b %Y','%B%Y','%b %d,%Y','%m-%Y','%B %Y','%Y-%m-%d','%Y-%m','%Y%m')
+        fmts = ('%Y','%b %d, %Y','%B %d, %Y','%B %d %Y','%m/%d/%Y','%m/%d/%y','(%m/%d/%Y)','%b %Y','%B%Y','%b %d,%Y','%m-%Y','%B %Y','%Y-%m-%d','%Y-%m','%Y%m','%Y-%m-00')
         mnths = ('Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec')
         parsed=[]
 

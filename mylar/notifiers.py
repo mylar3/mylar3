@@ -264,7 +264,7 @@ class BOXCAR:
 
 class PUSHBULLET:
 
-    def __init__(self, test_apikey=None):
+    def __init__(self, test_apikey=None, channel=None):
         self.PUSH_URL = "https://api.pushbullet.com/v2/pushes"
         if test_apikey is None:
             self.apikey = mylar.CONFIG.PUSHBULLET_APIKEY
@@ -272,32 +272,23 @@ class PUSHBULLET:
             self.apikey = test_apikey
         self.deviceid = mylar.CONFIG.PUSHBULLET_DEVICEID
         self.channel_tag = mylar.CONFIG.PUSHBULLET_CHANNEL_TAG
-        self._json_header = {'Content-Type': 'application/json',
-                             'Authorization': 'Basic %s' % base64.b64encode(self.apikey + ":")}
+        self._json_header = {"Content-Type": "application/json",
+                             "Accept": "application/json"}
         self._session = requests.Session()
-        self._session.headers.update(self._json_header)
+        self._session.auth = (self.apikey, "")
+        self._session.headers = self._json_header
 
-    def get_devices(self, api):
+    def get_devices(self):
         return self.notify(method="GET")
 
     def notify(self, snline=None, prline=None, prline2=None, snatched=None, sent_to=None, prov=None, module=None, method=None):
         if module is None:
             module = ''
         module += '[NOTIFIER]'
-        
-#        http_handler = HTTPSConnection("api.pushbullet.com")
-
-#        if method == 'GET':
-#            uri = '/v2/devices'
-#        else:
-#            method = 'POST'
-#            uri = '/v2/pushes'
-
-#        authString = base64.b64encode(self.apikey + ":")
 
         if method == 'GET':
-            pass
-#           http_handler.request(method, uri, None, headers={'Authorization': 'Basic %s:' % authString})
+            data = None
+            self.PUSH_URL = 'https://api.pushbullet.com/v2/devices'
         else:
             if snatched:
                 if snatched[-1] == '.': snatched = snatched[:-1]
@@ -306,10 +297,9 @@ class PUSHBULLET:
             else:
                 event = prline + ' complete!'
                 message = prline2
-
-            data = {'type': "note", #'device_iden': self.deviceid,
-                    'title': event.encode('utf-8'), #"mylar",
-                    'body': message.encode('utf-8')}
+            data = {'type': 'note',
+                    'title': event,
+                    'body': message}
 
             if self.channel_tag:
                 data['channel_tag'] = self.channel_tag
