@@ -392,7 +392,9 @@ class OPDS(object):
                     continue
                 metainfo = None
                 if mylar.CONFIG.OPDS_METAINFO:
-                    metainfo = mylar.helpers.IssueDetails(fileloc)
+                    issuedetails = mylar.helpers.IssueDetails(issue['fileloc']).get('metadata', None)
+                    if issuedetails is not None:
+                       metainfo = issuedetails.get('metadata', None)
                 if not metainfo:
                     metainfo = [{'writer': None,'summary': ''}]
                 entries.append(
@@ -468,10 +470,12 @@ class OPDS(object):
                     location = issuebook['Location'].encode('utf-8')
                     fileloc = os.path.join(comic['ComicLocation'],issuebook['Location'])
                     metainfo = None
-                    if mylar.CONFIG.OPDS_METAINFO:
-                        metainfo = mylar.helpers.IssueDetails(fileloc)
-                    if not metainfo:
-                        metainfo = [{'writer': None,'summary': ''}]
+                    if mylar.CONFIG.OPDS_METAINFO: 
+                        issuedetails = mylar.helpers.IssueDetails(issue['fileloc']).get('metadata', None)
+                        if issuedetails is not None:
+                            metainfo = issuedetails.get('metadata', None)
+                    if not metainfo: 
+                        metainfo = {'writer': None,'summary': ''}
                     entries.append(
                         {
                             'title': title,
@@ -710,7 +714,9 @@ class OPDS(object):
                 for issue in subset:
                     metainfo = None
                     if mylar.CONFIG.OPDS_METAINFO:
-                        metainfo = mylar.helpers.IssueDetails(issue['fileloc'])
+                        issuedetails = mylar.helpers.IssueDetails(issue['fileloc']).get('metadata', None)
+                        if issuedetails is not None:
+                            metainfo = issuedetails.get('metadata', None)
                     if not metainfo:
                         metainfo = [{'writer': None,'summary': ''}]
                     entries.append(
@@ -818,7 +824,9 @@ class OPDS(object):
                 for issue in subset:
                     metainfo = None
                     if mylar.CONFIG.OPDS_METAINFO:
-                        metainfo = mylar.helpers.IssueDetails(issue['fileloc'])
+                        issuedetails = mylar.helpers.IssueDetails(issue['fileloc']).get('metadata', None)
+                        if issuedetails is not None:
+                            metainfo = issuedetails.get('metadata', None)
                     if not metainfo:
                         metainfo = [{'writer': None,'summary': ''}]
                     entries.append(
