@@ -99,13 +99,13 @@
 				<td id="status">${comic['recentstatus']}</td>
                                 <td id="active" align="center">
                                 %if comic['Status'] == "Active":
-                                    <img src="interfaces/default/images/checkmark.png" alt="Y" width="16" height="16" />
+                                    <img src="images/checkmark.png" alt="Y" width="16" height="16" />
                                 %elif comic['Status'] == 'Paused':
-                                    <img src="interfaces/default/images/pause-icon.png" alt="Paused" width="16" height="16" />
+                                    <img src="images/pause-icon.png" alt="Paused" width="16" height="16" />
                                 %elif comic['Status'] == 'Loading':
-                                    <img src="interfaces/default/images/hourglass.png" alt="Loading" width="16" height="16" />
+                                    <img src="images/hourglass.png" alt="Loading" width="16" height="16" />
                                 %else:
-                                    <img src="interfaces/default/images/cross.png" alt="N" width="16" height="16" />
+                                    <img src="images/cross.png" alt="N" width="16" height="16" />
                                 %endif
                                 </td>
                                 <td class="hidden" id="activestatus">${comic['Status']}</td>
@@ -117,7 +117,7 @@
 </%def>
 
 <%def name="headIncludes()">
-        <link rel="stylesheet" href="interfaces/default/css/data_table.css">
+        <link rel="stylesheet" href="interfaces/${interface}/css/data_table.css">
         <link rel="stylesheet" href="css/alphabetSearch.css">
 </%def>
 

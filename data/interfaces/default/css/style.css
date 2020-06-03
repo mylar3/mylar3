@@ -304,7 +304,7 @@ input[type=button] {
   -moz-border-radius: 5px;
   -webkit-border-radius: 5px;
   border-radius: 5px;
-  background: #222222 url("../images/button.png") repeat-x;
+  background: #222222 url("../../../images/button.png") repeat-x;
   border: 0;
   border-bottom: 1px solid rgba(0, 0, 0, 0.25);
   color: #fff;
@@ -771,7 +771,7 @@ div#searchbar input[type=text] {
 div#searchbar .mini-icon {
   height: 20px;
   width: 20px;
-  background: url("../images/icon_search.gif") left top no-repeat;
+  background: url("../../../images/icon_search.gif") left top no-repeat;
   position: absolute;
   display: block;
   margin-left: 6px;
@@ -881,7 +881,7 @@ div#artistheader {
   min-height: 200px;
 }
 div#artistheader #artistImg {
-  background: #ffffff url("../images/loader_black.gif") center no-repeat;
+  background: #ffffff url("../../../images/loader_black.gif") center no-repeat;
   border: 5px solid #FFF;
   -moz-box-shadow: 1px 1px 2px 0 #555555;
   -webkit-box-shadow: 1px 1px 2px 0 #555555;
@@ -1510,7 +1510,7 @@ div#artistheader h2 a {
   text-align: left;
 }
 #searchresults_table #artistImg {
-  background: url("../images/loader_black.gif") no-repeat scroll center center #ffffff;
+  background: url("../../../images/loader_black.gif") no-repeat scroll center center #ffffff;
   border: 3px solid #FFFFFF;
   box-shadow: 1px 1px 2px 0 #555555;
   float: left;
@@ -1899,10 +1899,10 @@ DIV.progress-container > DIV
 #actions .ui-icon {
   position: relative;
   top: 4px;
-  background-image: url("../images/ui-icons_70b2e1_256x240.png");
+  background-image: url("../../../images/ui-icons_70b2e1_256x240.png");
 }
 #toTop {
-  background: url("../images/toTop.gif") no-repeat scroll 10px center #f7f7f7;
+  background: url("../../../images/toTop.gif") no-repeat scroll 10px center #f7f7f7;
   border-radius: 5px 0 0 0;
   bottom: 0;
   display: none;

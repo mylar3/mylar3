@@ -18,8 +18,8 @@
 	<meta name="viewport" content="width=device-width, initial-scale=1.0">
 	
 	<link rel="apple-touch-icon" href="images/mylarlogo.png">
-	<link rel="stylesheet" href="interfaces/default/css/style.css">
-	<link rel="stylesheet" href="interfaces/default/css/jquery-ui.css">
+	<link rel="stylesheet" href="interfaces/${interface}/css/style.css">
+	<link rel="stylesheet" href="interfaces/${interface}/css/jquery-ui.css">
         <link rel="icon" href="images/favicon.ico" type="image/x-icon">
         <link rel="shortcut icon" href="images/favicon.ico" type="image/x-icon">
 	${next.headIncludes()}
@@ -59,15 +59,15 @@
                                 </li>
 				<li><a href="pullist">
                                 %if mylar.PULLNEW == 'no':
-                                  <img src="interfaces/default/images/grey-circle.png" height="10" width="10" />
+                                  <img src="images/grey-circle.png" height="10" width="10" />
                                 %else:
-                                  <img src="interfaces/default/images/green-circle.png" height="10" width="10" />
+                                  <img src="images/green-circle.png" height="10" width="10" />
                                 %endif
                                  &nbspThis Week</a></li>
 				<li><a href="manage">Manage</a></li>
 				<li><a href="storyarc_main">StoryArcs</a></li>
 				<li><a href="history">History</a></li>
-				<li><a href="config" class="config"><img src="interfaces/default/images/icon_gear.png" alt="settings"/></a></li>
+				<li><a href="config" class="config"><img src="images/icon_gear.png" alt="settings"/></a></li>
 			</ul>
 			<div id="searchbar">
                 <form action="searchit" method="get">
@@ -98,7 +98,7 @@
 			</div>
                         <div id="donate">
                             %if mylar.DONATEBUTTON:
-                                <a href="config#donate"><img src="interfaces/default/images/donate.png" height="25" width="120"></a>
+                                <a href="config#donate"><img src="images/donate.png" height="25" width="120"></a>
                             %endif
                         </div>
 			<div id="version">
@@ -114,23 +114,23 @@
 			<div id="backendstatus">
 				Status: CV 
                                     %if mylar.BACKENDSTATUS_CV == 'up':
-                                        <img src="interfaces/default/images/success.png", height="8" width="8">
+                                        <img src="images/success.png", height="8" width="8">
                                     %else:
-                                        <img src="interfaces/default/images/fail.png", height="8", width="8">
+                                        <img src="images/fail.png", height="8", width="8">
                                     %endif
                                 , WS 
                                     %if mylar.BACKENDSTATUS_WS == 'up':
-                                        <img src="interfaces/default/images/success.png", height="8" width="8">
+                                        <img src="images/success.png", height="8" width="8">
                                     %else:
-                                        <img src="interfaces/default/images/fail.png", height="8", width="8">
+                                        <img src="images/fail.png", height="8", width="8">
                                     %endif
                                 <br>
 				<%
                     for ko, vo in sorted(mylar.CONFIG.PROVIDER_ORDER.items()):
-                        mylar.PROVIDER_STATUS.update({vo : '<img src="interfaces/default/images/success.png", height="8" width="8">'})
+                        mylar.PROVIDER_STATUS.update({vo : '<img src="images/success.png", height="8" width="8">'})
                         for kb in mylar.PROVIDER_BLOCKLIST:
                             if vo == kb['site']:
-                                mylar.PROVIDER_STATUS.update({vo :'<img src="interfaces/default/images/fail.png", height="8" width="8">'})
+                                mylar.PROVIDER_STATUS.update({vo :'<img src="images/fail.png", height="8" width="8">'})
                                 break
                 %>
                 Providers: ${mylar.PROVIDER_STATUS}    
@@ -145,7 +145,7 @@
 	${next.javascriptIncludes()}
 	
 	<script src="js/plugins.js"></script>
-	<script src="interfaces/default/js/script.js"></script>
+	<script src="js/script.js"></script>
 	<!--[if lt IE 7 ]>
 	<script src="js/libs/dd_belatedpng.js"></script>
 	<script> DD_belatedPNG.fix('img, .png_bg');</script>

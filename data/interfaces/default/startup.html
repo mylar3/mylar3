@@ -1,0 +1,41 @@
+<%inherit file="base.html"/>
+<%!
+        import pathlib
+        import mylar
+%>
+
+<%def name="headIncludes()">
+</%def>
+
+<%def name="body()">
+        <div id="paddingheader">
+                <h1 class="clearfix">Migration Options</h1></br>
+        </div>
+                <div id="homebase" class="configtable">
+                           <form action="" method="GET" id="updateBase">
+                                   <fieldset>
+                                        <legend>Configuration Options</legend>
+                                        <p>Existing Mylar installation:
+                                        %if mylar_running['process'] is True:
+                                            <b>Discovered! on port ${mylar_running['port']}</b>
+                                        %else:
+                                            <input type="text" id="remote_instance" name="remote_instance" value="${remote_instance}"DISABLED/></br>
+                                        %endif
+                                        </p>
+                                        <p>Update config.ini to point to new location</p>
+                                        <p>Copy config.ini, mylar.db & cache folder to new location</p>
+                                        <br/>
+                                    </fieldset>
+                            </form>
+                </div>
+</%def>
+
+<%def name="javascriptIncludes()">
+        <script>
+        function initThisPage(){}
+        $(document).ready(function() {
+            initThisPage();
+        });
+        </script>
+</%def>
+

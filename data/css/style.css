@@ -166,7 +166,7 @@ table#series_table td#year { vertical-align: middle; text-align: left; max-width
 table#series_table td#issue { vertical-align: middle; text-align: left; max-width: 100px; }
 table#series_table td#published { vertical-align: middle; text-align: left; max-width: 40px; }
 table#series_table td#have_percent { vertical-align: middle; text-align: left; max-width: 30px; }
-table#series_table td#have { text-align: center; }
+table#series_table td#have { vertical-align: 10px; text-align: center; }
 table#series_table td#status { vertical-align: middle; text-align: left; max-width: 25px; }
 table#series_table td#active { vertical-align: middle; text-align: left; max-width: 20px; }
 
