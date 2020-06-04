@@ -23,7 +23,7 @@
 </%def>
 
 <%def name="body()">
-         <h1 class="clearfix"><a href="storyarc_main"><img src="images/ReadingList-icon.png" height="26" width="26" align="left" alt="Story Arc Management"/></a></h1>
+         <h1 class="clearfix"><a href="storyarc_main"><img src="${icons['ReadingList-icon']}" height="26" width="26" align="left" alt="Story Arc Management"/></a></h1>
          %if storyarcbanner is not None:
              <img src="${storyarcbanner}" onload="resizeimage('${bannerheight}')" width="960" height="${bannerheight}" id="banner" style="text-decoration: none; position: relative; top: 40px;"/>
          %else:

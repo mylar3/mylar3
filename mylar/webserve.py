@@ -53,18 +53,32 @@ def serve_template(templatename, **kwargs):
         tmper_dir = 'default'
     else:
         tmper_dir = mylar.CONFIG.INTERFACE
+    icons = []
+    if mylar.CONFIG.INTERFACE == 'default':
+        icons = {'icon_gear': 'images/icon_gear.png',
+                 'icon_upcoming': 'images/icon_upcoming.png',
+                 'icon_wanted': 'images/icon_wanted.png',
+                 'prowl_logo': 'images/prowl_logo.png',
+                 'ReadingList-icon': 'images/ReadingList-icon.png'}
+    else:
+        icons = {'icon_gear': '../interfaces/carbon/images/icon_gear.png',
+                 'icon_upcoming': '../interfaces/carbon/images/icon_upcoming.png',
+                 'icon_wanted': '../interfaces/carbon/images/icon_wanted.png',
+                 'prowl_logo': '../interfaces/carbon/images/prowl_logo.png',
+                 'ReadingList-icon': '../interfaces/carbon/images/ReadingList-icon.png'}
+
     template_dir = os.path.join(str(interface_dir), tmper_dir)
     _hplookup = TemplateLookup(directories=[template_dir])
     try:
         template = _hplookup.get_template(templatename)
-        return template.render(http_root=mylar.CONFIG.HTTP_ROOT, interface=mylar.CONFIG.INTERFACE, **kwargs)
+        return template.render(http_root=mylar.CONFIG.HTTP_ROOT, interface=mylar.CONFIG.INTERFACE, icons=icons, **kwargs)
     except Exception as e:
         #default to base in case the html hasn't been changed in new interface.
         template_dir = os.path.join(str(interface_dir), 'default')
         _hplookup = TemplateLookup(directories=[template_dir])
         try:
             template = _hplookup.get_template(templatename)
-            return template.render(http_root=mylar.CONFIG.HTTP_ROOT, interface=mylar.CONFIG.INTERFACE, **kwargs)
+            return template.render(http_root=mylar.CONFIG.HTTP_ROOT, interface=mylar.CONFIG.INTERFACE, icons=icons, **kwargs)
         except:
             return exceptions.html_error_template().render()
 

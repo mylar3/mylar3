@@ -34,7 +34,7 @@
         %>
 
 	<div id="paddingheader">
-		<h1 class="clearfix"><img src="images/icon_gear.png" alt="settings"/>Settings</h1>
+		<h1 class="clearfix"><img src="${icons['icon_gear']}" alt="settings"/>Settings</h1>
 	</div>
         <form action="configUpdate" method="post" id="configUpdate">
 	<div id="tabs">
@@ -1358,7 +1358,7 @@
 					</fieldset>
                                         <h2>Notifications</h2>
                                         <fieldset>
-                                                <h3><img src="images/prowl_logo.png" style="vertical-align: middle; margin: 3px; margin-top: -1px;" height="30" width="30"/>Prowl</h3>
+                                                <h3><img src="${icons['prowl_logo']}" style="vertical-align: middle; margin: 3px; margin-top: -1px;" height="30" width="30"/>Prowl</h3>
                                                 <div class="row checkbox">
                                                     <input type="checkbox" name="prowl_enabled" id="prowl" value="1" ${config['prowl_enabled']} /><label>Enable Prowl Notifications</label>
                                                  </div>
