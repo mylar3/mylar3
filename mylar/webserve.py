@@ -4813,13 +4813,21 @@ class WebInterface(object):
                     if len(search_matches) > 1:
                        # if we matched on more than one series above, just save those results instead of the entire search result set.
                         for sres in search_matches:
+                            try:
+                                if type(sres['haveit']) is dict:
+                                    imp_cid = sres['haveit']['comicid']
+                                else:
+                                    imp_cid = sres['haveit']
+                            except Exception as e:
+                                imp_cid = sres['haveit']
+
                             cVal = {"SRID":        SRID,
                                     "comicid":     sres['comicid']}
                             #should store ogcname in here somewhere to account for naming conversions above.
                             nVal = {"Series":      ComicName,
                                     "results":     len(search_matches),
                                     "publisher":   sres['publisher'],
-                                    "haveit":      sres['haveit'],
+                                    "haveit":      imp_cid,
                                     "name":        sres['name'],
                                     "deck":        sres['deck'],
                                     "url":         sres['url'],
@@ -4840,13 +4848,21 @@ class WebInterface(object):
                         # store the search results for series that returned more than one result for user to select later / when they want.
                         # should probably assign some random numeric for an id to reference back at some point.
                         for sres in sresults:
+                            try:
+                                if type(sres['haveit']) == dict:
+                                    imp_cid = sres['haveit']['comicid']
+                                else:
+                                    imp_cid = sres['haveit']
+                            except Exception as e:
+                                imp_cid = sres['haveit']
+
                             cVal = {"SRID":        SRID,
                                     "comicid":     sres['comicid']}
                             #should store ogcname in here somewhere to account for naming conversions above.
                             nVal = {"Series":      ComicName,
                                     "results":     len(sresults),
                                     "publisher":   sres['publisher'],
-                                    "haveit":      sres['haveit'],
+                                    "haveit":      imp_cid,
                                     "name":        sres['name'],
                                     "deck":        sres['deck'],
                                     "url":         sres['url'],
