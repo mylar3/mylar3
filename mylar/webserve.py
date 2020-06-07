@@ -53,19 +53,20 @@ def serve_template(templatename, **kwargs):
         tmper_dir = 'default'
     else:
         tmper_dir = mylar.CONFIG.INTERFACE
+    
     icons = []
     if mylar.CONFIG.INTERFACE == 'default':
-        icons = {'icon_gear': 'images/icon_gear.png',
-                 'icon_upcoming': 'images/icon_upcoming.png',
-                 'icon_wanted': 'images/icon_wanted.png',
-                 'prowl_logo': 'images/prowl_logo.png',
-                 'ReadingList-icon': 'images/ReadingList-icon.png'}
+        icons = {'icon_gear': os.path.join(mylar.CONFIG.HTTP_ROOT, 'images', 'icon_gear.png'),
+                 'icon_upcoming': os.path.join(mylar.CONFIG.HTTP_ROOT, 'images', 'icon_upcoming.png'),
+                 'icon_wanted': os.path.join(mylar.CONFIG.HTTP_ROOT, 'images', 'icon_wanted.png'),
+                 'prowl_logo': os.path.join(mylar.CONFIG.HTTP_ROOT, 'images', 'prowl_logo.png'),
+                 'ReadingList-icon': os.path.join(mylar.CONFIG.HTTP_ROOT, 'images', 'ReadingList-icon.png')}
     else:
-        icons = {'icon_gear': '../interfaces/carbon/images/icon_gear.png',
-                 'icon_upcoming': '../interfaces/carbon/images/icon_upcoming.png',
-                 'icon_wanted': '../interfaces/carbon/images/icon_wanted.png',
-                 'prowl_logo': '../interfaces/carbon/images/prowl_logo.png',
-                 'ReadingList-icon': '../interfaces/carbon/images/ReadingList-icon.png'}
+        icons = {'icon_gear': os.path.join(mylar.CONFIG.HTTP_ROOT, 'interfaces', 'carbon', 'images', 'icon_gear.png'),
+                 'icon_upcoming': os.path.join(mylar.CONFIG.HTTP_ROOT, 'interfaces', 'carbon', 'images', 'icon_upcoming.png'),
+                 'icon_wanted': os.path.join(mylar.CONFIG.HTTP_ROOT, 'interfaces', 'carbon', 'images', 'icon_wanted.png'),
+                 'prowl_logo': os.path.join(mylar.CONFIG.HTTP_ROOT, 'interfaces', 'carbon', 'images', 'prowl_logo.png'),
+                 'ReadingList-icon': os.path.join(mylar.CONFIG.HTTP_ROOT, 'interfaces', 'carbon', 'images', 'ReadingList-icon.png')}
 
     template_dir = os.path.join(str(interface_dir), tmper_dir)
     _hplookup = TemplateLookup(directories=[template_dir])
@@ -4813,21 +4814,13 @@ class WebInterface(object):
                     if len(search_matches) > 1:
                        # if we matched on more than one series above, just save those results instead of the entire search result set.
                         for sres in search_matches:
-                            try:
-                                if type(sres['haveit']) is dict:
-                                    imp_cid = sres['haveit']['comicid']
-                                else:
-                                    imp_cid = sres['haveit']
-                            except Exception as e:
-                                imp_cid = sres['haveit']
-
                             cVal = {"SRID":        SRID,
                                     "comicid":     sres['comicid']}
                             #should store ogcname in here somewhere to account for naming conversions above.
                             nVal = {"Series":      ComicName,
                                     "results":     len(search_matches),
                                     "publisher":   sres['publisher'],
-                                    "haveit":      imp_cid,
+                                    "haveit":      sres['haveit'],
                                     "name":        sres['name'],
                                     "deck":        sres['deck'],
                                     "url":         sres['url'],
@@ -4848,21 +4841,13 @@ class WebInterface(object):
                         # store the search results for series that returned more than one result for user to select later / when they want.
                         # should probably assign some random numeric for an id to reference back at some point.
                         for sres in sresults:
-                            try:
-                                if type(sres['haveit']) == dict:
-                                    imp_cid = sres['haveit']['comicid']
-                                else:
-                                    imp_cid = sres['haveit']
-                            except Exception as e:
-                                imp_cid = sres['haveit']
-
                             cVal = {"SRID":        SRID,
                                     "comicid":     sres['comicid']}
                             #should store ogcname in here somewhere to account for naming conversions above.
                             nVal = {"Series":      ComicName,
                                     "results":     len(sresults),
                                     "publisher":   sres['publisher'],
-                                    "haveit":      imp_cid,
+                                    "haveit":      sres['haveit'],
                                     "name":        sres['name'],
                                     "deck":        sres['deck'],
                                     "url":         sres['url'],
