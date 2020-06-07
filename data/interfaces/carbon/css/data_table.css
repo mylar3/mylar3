@@ -110,6 +110,7 @@ table.display thead th {
 	font-size: 13px;
 	border-bottom: 1px solid #1c1e22;
 	boroder-bottom-width: 3px;
+	text-align: center;
 }
 
 table.display tfoot th {
@@ -127,6 +128,8 @@ table.display td {
 	font-size: 12px;
 	border-bottom: 1px solid #1c1e22;
  	border-right: 1px solid #1c1e22;
+	text-align: center;
+	vertical-align: middle;
 }
 table
 table.display td.center {
@@ -396,7 +399,7 @@ table.display tr.gradeT td,
 table.display tr.gradeF td,
 table.display tr.gradeT1 td,
 table.display tr.gradeT2 td,
-table.display tr.gradeZ td {border-bottom: 1px solid #1c1e22;border-right: 1px solid #1c1e22;-text-align:center;-padding:3px 16px 8px 15px;}
+table.display tr.gradeZ td {border-bottom: 1px solid #1c1e22;border-right: 1px solid #1c1e22;text-align:center;-padding:3px 16px 8px 15px;}
 table.display tr:last-child td {
 	-border-bottom: 1px solid #eee;
 }
@@ -618,7 +621,8 @@ td.details {
 }
 
 .paging_full_numbers .paginate_button:hover, .paging_simple_numbers .paginate_button:hover {
-	background-color: #e2e2e2;
+	background-color: #171166;
+	font-weight: bold;
 }
 
 .paging_full_numbers .paginate_active, .paging_simple_numbers .paginate_active {
