@@ -63,19 +63,19 @@
 }
 
 .paginate_disabled_previous {
-	background-image: url('../images/back_disabled.jpg');
+	background-image: url('../../default/images/back_disabled.jpg');
 }
 
 .paginate_enabled_previous {
-	background-image: url('../images/back_enabled.jpg');
+	background-image: url('../../default/images/back_enabled.jpg');
 }
 
 .paginate_disabled_next {
-	background-image: url('../images/forward_disabled.jpg');
+	background-image: url('../../default/images/forward_disabled.jpg');
 }
 
 .paginate_enabled_next {
-	background-image: url('../images/forward_enabled.jpg');
+	background-image: url('../../default/images/forward_enabled.jpg');
 }
 
 
@@ -242,29 +242,29 @@ table.display_log td.center {
  */
 
 .sorting_asc {
-	background: url('../images/sort_asc.png') no-repeat center right;
+	background: url('../../default/images/sort_asc.png') no-repeat center right;
 	cursor: pointer;
 	* cursor: hand;
 }
 
 .sorting_desc {
-	background: url('../images/sort_desc.png') no-repeat center right;
+	background: url('../../default/images/sort_desc.png') no-repeat center right;
 	cursor: pointer;
 	* cursor: hand;
 }
 
 .sorting {
-	background: url('../images/sort_both.png') no-repeat center right;
+	background: url('../../default/images/sort_both.png') no-repeat center right;
 	cursor: pointer;
 	* cursor: hand;
 }
 
 .sorting_asc_disabled {
-	background: url('../images/sort_asc_disabled.png') no-repeat center right;
+	background: url('../../default/images/sort_asc_disabled.png') no-repeat center right;
 }
 
 .sorting_desc_disabled {
-	background: url('../images/sort_desc_disabled.png') no-repeat center right;
+	background: url('../../default/images/sort_desc_disabled.png') no-repeat center right;
 }
 
 
