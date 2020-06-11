@@ -143,7 +143,7 @@ class GC(object):
                         if all([re.sub(':', '', size).strip() != 'Size', len(re.sub('[^0-9]', '', size).strip()) > 0]):
                             if 'MB' in size:
                                 size = re.sub('MB', 'M', size).strip()
-                            elif 'GB' in size:
+                            if 'GB' in size:
                                 size = re.sub('GB', 'G', size).strip()
                             if '//' in size:
                                 nwsize = size.find('//')
