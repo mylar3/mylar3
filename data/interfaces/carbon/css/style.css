@@ -745,7 +745,7 @@ div#searchbar {
   -webkit-box-shadow: -1px 0 0 #e0e0e0;
   -o-box-shadow: -1px 0 0 #e0e0e0;
   box-shadow: -1px 0 0 #1c1e22;
-  padding: 17px 0 14px 17px;
+  padding: 17px 0 14px 7px;
   position: absolute;
   left: 90px;
   top: 1px;
