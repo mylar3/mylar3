@@ -800,6 +800,10 @@ div#searchbar .mini-icon {
   background-color: #ffb0b0;
   height: 30px;
 }
+.WantedTier {
+  background-color: #FFDDAA;
+  height: 30px;
+}
 .Snatched {
   background-color: #ebf5ff;
   height: 30px;

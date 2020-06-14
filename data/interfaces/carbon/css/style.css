@@ -785,6 +785,7 @@ div#searchbar .mini-icon {
 .checkbox.inline > input {
   margin-right: 5px;
   margin-left: 0;
+  color: #ffffff;
 }
 .Skipped {
   background-color: #353a41;
@@ -800,6 +801,10 @@ div#searchbar .mini-icon {
 }
 .Wanted {
   background-color: #641716;
+  height: 30px;
+}
+.WantedTier {
+  background-color: #A97D7B;
   height: 30px;
 }
 .Snatched {
