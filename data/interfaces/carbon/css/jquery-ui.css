@@ -66,7 +66,7 @@
 .ui-state-default, .ui-widget-content .ui-state-default, .ui-widget-header .ui-state-default { -border: 1px solid #1c1e22; background: #eeeeee url(../../../images/ui-bg_glass_60_eeeeee_1x400.png) 50% 50% repeat-x; font-weight: bold; color: #fff; }
 .ui-state-default a, .ui-state-default a:link, .ui-state-default a:visited { color: #908a8a; text-decoration: none; }
 .ui-state-hover, .ui-widget-content .ui-state-hover, .ui-widget-header .ui-state-hover, .ui-state-focus, .ui-widget-content .ui-state-focus, .ui-widget-header .ui-state-focus { border: 1px solid #bbbbbb; background: #f8f8f8 url(../../../images/ui-bg_glass_100_f8f8f8_1x400.png) 50% 50% repeat-x; font-weight: bold; color: #599fcf; }
-.ui-state-hover a, .ui-state-hover a:hover { color: #fff; text-decoration: none; }
+.ui-state-hover a, .ui-state-hover a:hover { color: #599fcf; text-decoration: none; }
 .ui-state-active, .ui-widget-content .ui-state-active, .ui-widget-header .ui-state-active { border: 1px solid #999999; background: #ccc; font-weight: bold; color: #ffffff; }
 .ui-state-active a, .ui-state-active a:link, .ui-state-active a:visited { color: #ffffff; text-decoration: none; }
 .ui-widget :active { outline: none; }
@@ -408,7 +408,7 @@ button.ui-button-icons-only { width: 3.7em; }
 .ui-button .ui-button-text { display: block; line-height: 1.4;  }
 .ui-button-text-only .ui-button-text { padding: .4em 1em; }
 .ui-button-icon-only .ui-button-text, .ui-button-icons-only .ui-button-text { padding: .4em; text-indent: -9999999px; }
-.ui-button-text-icon-primary .ui-button-text, .ui-button-text-icons .ui-button-text { padding: 0.2em 0.5em 0.2em 1.8em; background: #2480e1; }
+.ui-button-text-icon-primary .ui-button-text, .ui-button-text-icons .ui-button-text { padding: 0.2em 0.5em 0.2em 1.8em; }
 .ui-button-text-icon-secondary .ui-button-text, .ui-button-text-icons .ui-button-text { padding: 0.2em 1.8em 0.2em 0.5em }
 .ui-button-text-icons .ui-button-text { padding-left: 2.1em; padding-right: 2.1em; }
 /* no icon support for input elements, provide padding by default */

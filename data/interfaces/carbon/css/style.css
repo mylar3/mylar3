@@ -70,7 +70,7 @@ audio,
 video {
   border: 0;
   font: inherit;
-  font-size: 101%;
+  font-size: 100%;
   margin: 0;
   padding: 0;
   -vertical-align: baseline;
@@ -719,12 +719,12 @@ footer {
   z-index: 99;
 }
 #subhead #subhead_container #subhead_menu a {
-  background-image: -moz-linear-gradient(#f4f4f4, #e7e7e7) !important;
-  background-image: linear-gradient(#f4f4f4, #e7e7e7) !important;
-  background-image: -webkit-linear-gradient(#f4f4f4, #e7e7e7) !important;
-  background-image: -o-linear-gradient(#f4f4f4, #e7e7e7) !important;
-  filter: progid:dximagetransform.microsoft.gradient(startColorstr=#fafafa, endColorstr=#eaeaea) !important;
-  -ms-filter: progid:dximagetransform.microsoft.gradient(startColorstr=#fafafa, endColorstr=#eaeaea) !important;
+  background-image: -moz-linear-gradient(#616161, #4e4e4e) !important;
+  background-image: linear-gradient(#616161, #4e4e4e) !important;
+  background-image: -webkit-linear-gradient(#616161, #4e4e4e) !important;
+  background-image: -o-linear-gradient(#616161, #4e4e4e) !important;
+  filter: progid:dximagetransform.microsoft.gradient(startColorstr=#6a6a6a, endColorstr=#4a4a4a) !important;
+  -ms-filter: progid:dximagetransform.microsoft.gradient(startColorstr=#6a6a6a, endColorstr=#4a4a4a) !important;
   font-family: "Helvetica Neue", Helvetica, Arial, Geneva, sans-serif;
   font-size: 12px;
   font-weight: normal;
