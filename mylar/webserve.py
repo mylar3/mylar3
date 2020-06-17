@@ -5561,7 +5561,7 @@ class WebInterface(object):
                     newznab_verify = kwargs['newznab_verify' + newznab_number]
                 except:
                     newznab_verify = 0
-                newznab_api = kwargs['newznab_api' + newznab_number]
+                newznab_apikey = kwargs['newznab_apikey' + newznab_number]
                 newznab_uid = kwargs['newznab_uid' + newznab_number]
                 try:
                     newznab_enabled = str(kwargs['newznab_enabled' + newznab_number])
@@ -5570,7 +5570,7 @@ class WebInterface(object):
 
                 del kwargs[kwarg]
 
-                mylar.CONFIG.EXTRA_NEWZNABS.append((newznab_name, newznab_host, newznab_verify, newznab_api, newznab_uid, newznab_enabled))
+                mylar.CONFIG.EXTRA_NEWZNABS.append((newznab_name, newznab_host, newznab_verify, newznab_apikey, newznab_uid, newznab_enabled))
 
         mylar.CONFIG.EXTRA_TORZNABS = []
 
