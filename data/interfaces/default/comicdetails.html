@@ -49,7 +49,7 @@
                         %if comic['Status'] == 'Loading':
                                 <img src="images/loader_black.gif" alt="loading" style="float:left; margin-right: 5px;"/>
                         %endif
-                        <div class="row">
+                        <div id="seriesheader" class="row">
                               <a href="${comic['DetailURL']}" target="_blank">${comic['ComicName']} (${comic['ComicYear']})</a>
                               %if comic['Status'] == 'Loading':
                                     <h3><i>(Comic information is currently being loaded)</i></h3>
@@ -537,7 +537,7 @@
         </div>
 
 
-              <table class="display_no_select" id="annual_table">
+              <table class="display" id="annual_table">
 
                    <thead>
                         <tr>

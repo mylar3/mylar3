@@ -1348,7 +1348,7 @@ div#artistheader h2 a {
   width: 100%;
 }
 #series_table th#publisher {
-  min-width: 100px;
+  max-width: 120px;
   text-align: center;
 }
 #series_table th#name {
@@ -1357,7 +1357,7 @@ div#artistheader h2 a {
 }
 #series_table th#year {
   max-width: 25px;
-  text-align: left;
+  text-align: center;
 }
 #series_table th#havepercent,
 #series_table th#totalcount {
@@ -1375,8 +1375,8 @@ div#artistheader h2 a {
   text-align: left;
 }
 #series_table th#issue{
-  min-width: 30px;
-  text-align: left;
+  max-width: 20px;
+  text-align: center;
 }
 #series_table th#status {
   max-width: 50px;
@@ -1391,19 +1391,19 @@ div#artistheader h2 a {
   vertical-align: middle;
 }
 #series_table td#publisher {
-  min-width: 100px;
-  text-align: left;
+  max-width: 120px;
+  text-align: center;
   vertical-align: middle;
   font-size: 12px;
 }
 #series_table td#name {
   min-width: 300px;
-  text-align: left;
+  text-align: center;
   vertical-align: middle;
 }
 #series_table td#year {
   max-width: 25px;
-  text-align: left;
+  text-align: center;
   vertical-align: middle;
 }
 #series_table td#havepercent,
@@ -1425,8 +1425,8 @@ div#artistheader h2 a {
   vertical-align: middle;
 }
 #series_table td#issue {
-  max-width: 30px;
-  text-align: left;
+  max-width: 20px;
+  text-align: center;
   vertical-align: middle;
 }
 #series_table td#status {
@@ -2153,8 +2153,8 @@ table tr td#status a {
     float: right;
 }
 img.btn_close {
-    Position the close button
-	float: right;
+    /* Position the close button */
+    float: right;
     margin: -28px -28px 0 0;
 }
 fieldset {

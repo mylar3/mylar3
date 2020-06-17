@@ -48,8 +48,8 @@
                        "targets": [ 0 ],
                        "visible": true,
                        "render":function (data,type,full) {
-                           if (full[0].length > 15){
-                               cb = '<span title="' + full[0] + '"></span>'+full[0].slice(0,15)+"...";
+                           if (full[0].length > 20){
+                               cb = '<span title="' + full[0] + '"></span>'+full[0].slice(0,20)+"...";
                            } else {
                                cb = '<span title="' + full[0] + '"></span>'+full[0];
                            }

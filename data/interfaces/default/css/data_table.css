@@ -104,7 +104,7 @@ table.display {
 }
 
 table.display thead th {
-	padding: 3px 18px 3px 10px;
+	padding: 3px 5px 3px 5px;
 	background-color: white;
 	font-weight: bold;
 	font-size: 16px;
@@ -121,7 +121,7 @@ table.display tr.heading2 td {
 }
 
 table.display td {
-	padding: 8px 10px;
+	padding: 4px 5px;
 	font-size: 12px;
 }
 table

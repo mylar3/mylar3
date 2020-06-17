@@ -73,7 +73,7 @@ video {
   font-size: 100%;
   margin: 0;
   padding: 0;
-  -vertical-align: baseline;
+  vertical-align: baseline;
 }
 article,
 aside,
@@ -883,6 +883,12 @@ div#nopaddingheader {
   font-weight: bold;
   text-align: center;
 }
+div#seriesheader {
+  font-size: 24px;
+  font-weight: bold;
+  text-align: left;
+  margin-bottom: 10px; 
+}
 div#artistheader {
   margin-top: 50px;
   min-height: 200px;
@@ -1351,7 +1357,7 @@ div#artistheader h2 a {
   width: 100%;
 }
 #series_table th#publisher {
-  min-width: 100px;
+  max-width: 120px;
   text-align: center;
 }
 #series_table th#name {
@@ -1378,7 +1384,7 @@ div#artistheader h2 a {
   text-align: center;
 }
 #series_table th#issue{
-  min-width: 30px;
+  max-width: 20px;
   text-align: center;
 }
 #series_table th#status {
@@ -1394,7 +1400,7 @@ div#artistheader h2 a {
   vertical-align: middle;
 }
 #series_table td#publisher {
-  min-width: 100px;
+  max-width: 120px;
   text-align: center;
   vertical-align: middle;
   font-size: 12px;
@@ -1432,7 +1438,7 @@ div#artistheader h2 a {
   background-color: #353a41;
 }
 #series_table td#issue {
-  max-width: 30px;
+  max-width: 20px;
   text-align: center;
   vertical-align: middle;
   background-color: #353a41;
@@ -2147,6 +2153,7 @@ table tr td#status a {
     top: 20%;
     left: 50%;
     z-index: 99999;
+    text-align: left;
     box-shadow: 0px 0px 20px #999;
     /* CSS3 */
         -moz-box-shadow: 0px 0px 20px #999;
@@ -2154,7 +2161,7 @@ table tr td#status a {
         -webkit-box-shadow: 0px 0px 20px #999;
     /* Safari, Chrome */
 	border-radius: 3px 3px 3px 3px;
-    -moz-border-radius: 3px;
+        -moz-border-radius: 3px;
     /* Firefox */
         -webkit-border-radius: 3px;
     /* Safari, Chrome */;
@@ -2166,8 +2173,8 @@ table tr td#status a {
     float: right;
 }
 img.btn_close {
-    Position the close button
-	float: right;
+    /* Position the close button */
+    float: right;
     margin: -28px -28px 0 0;
 }
 fieldset {
@@ -2176,3 +2183,39 @@ fieldset {
 img.highqual {
     -ms-interpolation-mode: bicubuic;
 }
+table#issue_table { width: 100%; padding: 10px; }
+
+table#issue_table th#select { vertical-align: middle; text-align: center; max-width: 5px; }
+table#issue_table th#int_issuenumber { text-align: left; max-width: 50px }
+table#issue_table th#issuenumber { text-align: center; max-width: 20px; }
+table#issue_table th#issuename { text-align: center; min-width: 200px; }
+table#issue_table th#reldate { text-align: center; max-width: 75px; }
+table#issue_table th#status { text-align: center; max-width: 75px; }
+table#issue_table th#options { text-align: center; max-width: 100px; }
+
+table#issue_table td#select { vertical-align: middle; text-align: center; max-width: 5px; }
+table#issue_table td#int_issuenumber { vertical-align: middle; text-align: left; max-width: 50px; }
+table#issue_table td#issuenumber { vertical-align: middle; text-align: center; max-width: 20px; }
+table#issue_table td#issuename { vertical-align: middle; text-align: center; min-width: 200px; }
+table#issue_table td#reldate { vertical-align: middle; text-align: center; max-width: 75px; }
+table#issue_table td#status { vertical-align: middle; text-align: center; max-width: 75px; }
+table#issue_table td#options { vertical-align: middle; text-align: center; max-width: 100px; }
+
+table#annual_table { width: 100%; padding: 10px; }
+
+table#annual_table th#select { vertical-align: middle; text-align: center; max-width: 5px; }
+table#annual_table th#aint_issuenumber { text-align: left; max-width: 1px }
+table#annual_table th#aissuenumber { text-align: center; max-width: 20px; }
+table#annual_table th#aissuename { text-align: center; min-width: 200px; }
+table#annual_table th#areldate { text-align: center; max-width: 75px; }
+table#annual_table th#astatus { text-align: center; max-width: 75px; }
+table#annual_table th#aoptions { text-align: center; max-width: 100px; }
+
+table#annual_table td#select { vertical-align: middle; text-align: center; max-width: 5px; }
+table#annual_table td#aint_issuenumber { vertical-align: middle; text-align: left; max-width: 1 px; }
+table#annual_table td#aissuenumber { vertical-align: middle; text-align: center; max-width: 20px; }
+table#annual_table td#areldate { vertical-align: middle; text-align: center; max-width: 75px; }
+table#annual_table td#astatus { vertical-align: middle; text-align: center; max-width: 75px; }
+table#annual_table td#aoptions { vertical-align: middle; text-align: center; max-width: 100px; }
+table#annual_table td#aissuename { vertical-align: middle; text-align: center; min-width: 200px; }
+
