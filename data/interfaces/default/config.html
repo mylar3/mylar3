@@ -219,7 +219,24 @@
                                     <br/><small>Install new updates with no intervention</small>
                                  </div>
 -->
-            		 </fieldset>
+                                 <legend>Interface</legend>
+                                 <div class="row">
+                                  <label>Interface</label> 
+                                    <select name="interface"><h3>
+                                      %for interface in config['interface_list']:
+                                          <%
+                                              if interface == mylar.CONFIG.INTERFACE:
+                                                  selected = 'selected="selected"'
+                                              elif interface == 'base':
+                                                  continue
+                                              else:
+                                                  selected = ''
+                                          %>
+                                        <option value="${interface}" ${selected}>${interface}</option>
+                                      %endfor
+                                    </select>
+                                 </div>
+                    		 </fieldset>
                          <fieldset>
                              <legend>Annual Handling</legend>
                                 <div>
@@ -1328,24 +1345,7 @@
                                         </div>
 		        	</fieldset>
 					<fieldset>
-						<legend>Interface</legend>
-						<div class="row">
-							<label>Interface</label> 
-							<select name="interface"><h3>
-							%for interface in config['interface_list']:
-								<%
-									if interface == mylar.CONFIG.INTERFACE:
-										selected = 'selected="selected"'
-                                                                        elif interface == 'base':
-                                                                                continue
-									else:
-										selected = ''
-								%>
-								<option value="${interface}" ${selected}>${interface}</option>
-							%endfor
-							</select>
-							
-						</div>
+						<legend>Logs</legend>
 						<div class="row">
 							<label>Log Directory:</label>
 							<input type="text" name="log_dir" value="${config['log_dir']}" size="50">
