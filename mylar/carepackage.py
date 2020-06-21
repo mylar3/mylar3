@@ -89,7 +89,8 @@ class carePackage(object):
         f = open(self.filename, "w+")
 
         f.write("Mylar host information:\n")
-        if platform.system() == 'Windows':
+        match = re.search('Windows', platform.system(), re.IGNORECASE)
+        if match:
             objline = ['systeminfo']
         else:
             objline = ['uname', '-a']
