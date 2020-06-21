@@ -3132,9 +3132,11 @@ def postprocess_main(queue):
 def search_queue(queue):
     while True:
         if mylar.SEARCHLOCK is True:
+            logger.fdebug('[SEARCH-QUEUE] Another item is currently being searched....')
             time.sleep(5)
 
         elif mylar.SEARCHLOCK is False and queue.qsize() >= 1: #len(queue) > 1:
+        
             item = queue.get(True)
             if item == 'exit':
                 logger.info('[SEARCH-QUEUE] Cleaning up workers for shutdown')
@@ -3148,6 +3150,7 @@ def search_queue(queue):
             if mylar.SEARCHLOCK is True:
                 logger.fdebug('[SEARCH-QUEUE] Another item is currently being searched....')
                 time.sleep(15)
+               
         else:
             time.sleep(5)
 

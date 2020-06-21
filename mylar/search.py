@@ -1619,6 +1619,7 @@ def searchforissue(issueid=None, new=False, rsscheck=None, manual=False):
 
     if rsscheck == 'yes':
         while mylar.SEARCHLOCK is True:
+            logger.info('A search is currently in progress....queueing this up again to try in a bit.')
             time.sleep(5)
 
     if mylar.SEARCHLOCK is True:
@@ -1630,291 +1631,291 @@ def searchforissue(issueid=None, new=False, rsscheck=None, manual=False):
     ens = [x for x in mylar.CONFIG.EXTRA_NEWZNABS if x[5] == '1']
     ets = [x for x in mylar.CONFIG.EXTRA_TORZNABS if x[5] == '1']
     if (any([mylar.CONFIG.ENABLE_DDL is True, mylar.CONFIG.NZBSU is True, mylar.CONFIG.DOGNZB is True, mylar.CONFIG.EXPERIMENTAL is True]) or all([mylar.CONFIG.NEWZNAB is True, len(ens) > 0]) and any([mylar.USE_SABNZBD is True, mylar.USE_NZBGET is True, mylar.USE_BLACKHOLE is True])) or (all([mylar.CONFIG.ENABLE_TORRENT_SEARCH is True, mylar.CONFIG.ENABLE_TORRENTS is True]) and (any([mylar.CONFIG.ENABLE_PUBLIC is True, mylar.CONFIG.ENABLE_32P is True]) or all([mylar.CONFIG.ENABLE_TORZNAB is True, len(ets) > 0]))):
-        if not issueid or rsscheck:
+    
+        try:
+    
+            if not issueid or rsscheck:
 
-            if rsscheck:
-                logger.info('Initiating RSS Search Scan at the scheduled interval of %s minutes' % mylar.CONFIG.RSS_CHECKINTERVAL)
-                mylar.SEARCHLOCK = True
-            else:
-                logger.info('Initiating check to add Wanted items to Search Queue....')
+                if rsscheck:
+                    logger.info('Initiating RSS Search Scan at the scheduled interval of %s minutes' % mylar.CONFIG.RSS_CHECKINTERVAL)
+                    mylar.SEARCHLOCK = True
+                else:
+                    logger.info('Initiating check to add Wanted items to Search Queue....')
 
-            myDB = db.DBConnection()
+                myDB = db.DBConnection()
 
-            stloop = 2   # 2 levels - one for issues, one for storyarcs - additional for annuals below if enabled
-            results = []
+                stloop = 2   # 2 levels - one for issues, one for storyarcs - additional for annuals below if enabled
+                results = []
 
-            if mylar.CONFIG.ANNUALS_ON:
-                stloop+=1
-            while (stloop > 0):
-                if stloop == 1:
-                    if mylar.CONFIG.FAILED_DOWNLOAD_HANDLING and mylar.CONFIG.FAILED_AUTO:
-                        issues_1 = myDB.select('SELECT * from issues WHERE Status="Wanted" OR Status="Failed"')
-                    else:
-                        issues_1 = myDB.select('SELECT * from issues WHERE Status="Wanted"')
-                    for iss in issues_1:
-                        results.append({'ComicID':       iss['ComicID'],
-                                        'IssueID':       iss['IssueID'],
-                                        'Issue_Number':  iss['Issue_Number'],
-                                        'IssueDate':     iss['IssueDate'],
-                                        'StoreDate':     iss['ReleaseDate'],
-                                        'DigitalDate':   iss['DigitalDate'],
-                                        'SARC':          None,
-                                        'StoryArcID':    None,
-                                        'IssueArcID':    None,
-                                        'mode':          'want',
-                                        'DateAdded':     iss['DateAdded']
-                                       })
-                elif stloop == 2:
-                    if mylar.CONFIG.SEARCH_STORYARCS is True or rsscheck:
+                if mylar.CONFIG.ANNUALS_ON:
+                    stloop+=1
+                while (stloop > 0):
+                    if stloop == 1:
                         if mylar.CONFIG.FAILED_DOWNLOAD_HANDLING and mylar.CONFIG.FAILED_AUTO:
-                           issues_2 = myDB.select('SELECT * from storyarcs WHERE Status="Wanted" OR Status="Failed"')
+                            issues_1 = myDB.select('SELECT * from issues WHERE Status="Wanted" OR Status="Failed"')
                         else:
-                           issues_2 = myDB.select('SELECT * from storyarcs WHERE Status="Wanted"')
-                        cnt=0
-                        for iss in issues_2:
+                            issues_1 = myDB.select('SELECT * from issues WHERE Status="Wanted"')
+                        for iss in issues_1:
                             results.append({'ComicID':       iss['ComicID'],
                                             'IssueID':       iss['IssueID'],
-                                            'Issue_Number':  iss['IssueNumber'],
+                                            'Issue_Number':  iss['Issue_Number'],
                                             'IssueDate':     iss['IssueDate'],
                                             'StoreDate':     iss['ReleaseDate'],
                                             'DigitalDate':   iss['DigitalDate'],
-                                            'SARC':          iss['StoryArc'],
-                                            'StoryArcID':    iss['StoryArcID'],
-                                            'IssueArcID':    iss['IssueArcID'],
-                                            'mode':          'story_arc',
+                                            'SARC':          None,
+                                            'StoryArcID':    None,
+                                            'IssueArcID':    None,
+                                            'mode':          'want',
                                             'DateAdded':     iss['DateAdded']
                                            })
-                            cnt+=1
-                        logger.info('Storyarcs to be searched for : %s' % cnt)
-                elif stloop == 3:
-                    if mylar.CONFIG.FAILED_DOWNLOAD_HANDLING and mylar.CONFIG.FAILED_AUTO:
-                        issues_3 = myDB.select('SELECT * from annuals WHERE Status="Wanted" OR Status="Failed"')
-                    else:
-                        issues_3 = myDB.select('SELECT * from annuals WHERE Status="Wanted"')
-                    for iss in issues_3:
-                        results.append({'ComicID':       iss['ComicID'],
-                                        'IssueID':       iss['IssueID'],
-                                        'Issue_Number':  iss['Issue_Number'],
-                                        'IssueDate':     iss['IssueDate'],
-                                        'StoreDate':     iss['ReleaseDate'],   #need to replace with Store date
-                                        'DigitalDate':   iss['DigitalDate'],
-                                        'SARC':          None,
-                                        'StoryArcID':    None,
-                                        'IssueArcID':    None,
-                                        'mode':          'want_ann',
-                                        'DateAdded':     iss['DateAdded']
-                                       })
-                stloop-=1
+                    elif stloop == 2:
+                        if mylar.CONFIG.SEARCH_STORYARCS is True or rsscheck:
+                            if mylar.CONFIG.FAILED_DOWNLOAD_HANDLING and mylar.CONFIG.FAILED_AUTO:
+                               issues_2 = myDB.select('SELECT * from storyarcs WHERE Status="Wanted" OR Status="Failed"')
+                            else:
+                               issues_2 = myDB.select('SELECT * from storyarcs WHERE Status="Wanted"')
+                            cnt=0
+                            for iss in issues_2:
+                                results.append({'ComicID':       iss['ComicID'],
+                                                'IssueID':       iss['IssueID'],
+                                                'Issue_Number':  iss['IssueNumber'],
+                                                'IssueDate':     iss['IssueDate'],
+                                                'StoreDate':     iss['ReleaseDate'],
+                                                'DigitalDate':   iss['DigitalDate'],
+                                                'SARC':          iss['StoryArc'],
+                                                'StoryArcID':    iss['StoryArcID'],
+                                                'IssueArcID':    iss['IssueArcID'],
+                                                'mode':          'story_arc',
+                                                'DateAdded':     iss['DateAdded']
+                                               })
+                                cnt+=1
+                            logger.info('Storyarcs to be searched for : %s' % cnt)
+                    elif stloop == 3:
+                        if mylar.CONFIG.FAILED_DOWNLOAD_HANDLING and mylar.CONFIG.FAILED_AUTO:
+                            issues_3 = myDB.select('SELECT * from annuals WHERE Status="Wanted" OR Status="Failed"')
+                        else:
+                            issues_3 = myDB.select('SELECT * from annuals WHERE Status="Wanted"')
+                        for iss in issues_3:
+                            results.append({'ComicID':       iss['ComicID'],
+                                            'IssueID':       iss['IssueID'],
+                                            'Issue_Number':  iss['Issue_Number'],
+                                            'IssueDate':     iss['IssueDate'],
+                                            'StoreDate':     iss['ReleaseDate'],   #need to replace with Store date
+                                            'DigitalDate':   iss['DigitalDate'],
+                                            'SARC':          None,
+                                            'StoryArcID':    None,
+                                            'IssueArcID':    None,
+                                            'mode':          'want_ann',
+                                            'DateAdded':     iss['DateAdded']
+                                           })
+                    stloop-=1
 
-            new = True
-            #to-do: re-order the results list so it's most recent to least recent.
+                new = True
+                #to-do: re-order the results list so it's most recent to least recent.
 
-            for result in sorted(results, key=itemgetter('StoreDate'), reverse=True):
-                #status issue check - check status to see if it's Downloaded / Snatched already due to concurrent searches possible.
-                if result['IssueID'] is not None:
-                    if result['mode'] == 'story_arc':
-                        isscheck = helpers.issue_status(result['IssueArcID'])
-                    else:
-                        isscheck = helpers.issue_status(result['IssueID'])
-                    #isscheck will return True if already Downloaded / Snatched, False if it's still in a Wanted status.
-                    if isscheck is True:
-                        logger.fdebug('Issue is already in a Downloaded / Snatched status.')
-                        continue
+                for result in sorted(results, key=itemgetter('StoreDate'), reverse=True):
+                    #status issue check - check status to see if it's Downloaded / Snatched already due to concurrent searches possible.
+                    if result['IssueID'] is not None:
+                        if result['mode'] == 'story_arc':
+                            isscheck = helpers.issue_status(result['IssueArcID'])
+                        else:
+                            isscheck = helpers.issue_status(result['IssueID'])
+                        #isscheck will return True if already Downloaded / Snatched, False if it's still in a Wanted status.
+                        if isscheck is True:
+                            logger.fdebug('Issue is already in a Downloaded / Snatched status.')
+                            continue
 
-                OneOff = False
-                storyarc_watchlist = False
-                comic = myDB.selectone("SELECT * from comics WHERE ComicID=? AND ComicName != 'None'", [result['ComicID']]).fetchone()
-                if all([comic is None, result['mode'] == 'story_arc']):
-                    comic = myDB.selectone("SELECT * from storyarcs WHERE StoryArcID=? AND IssueArcID=?", [result['StoryArcID'],result['IssueArcID']]).fetchone() 
-                    if comic is None:
+                    OneOff = False
+                    storyarc_watchlist = False
+                    comic = myDB.selectone("SELECT * from comics WHERE ComicID=? AND ComicName != 'None'", [result['ComicID']]).fetchone()
+                    if all([comic is None, result['mode'] == 'story_arc']):
+                        comic = myDB.selectone("SELECT * from storyarcs WHERE StoryArcID=? AND IssueArcID=?", [result['StoryArcID'],result['IssueArcID']]).fetchone() 
+                        if comic is None:
+                            logger.fdebug('%s has no associated comic information in the Arc. Skipping searching for this series.' % result['ComicID'])
+                            continue
+                        else:
+                            OneOff = True
+                    elif comic is None:
                         logger.fdebug('%s has no associated comic information in the Arc. Skipping searching for this series.' % result['ComicID'])
                         continue
                     else:
-                        OneOff = True
-                elif comic is None:
-                    logger.fdebug('%s has no associated comic information in the Arc. Skipping searching for this series.' % result['ComicID'])
-                    continue
-                else:
-                    storyarc_watchlist = True
-                if result['StoreDate'] == '0000-00-00' or result['StoreDate'] is None:
-                    if any([result['IssueDate'] is None, result['IssueDate'] == '0000-00-00']) and result['DigitalDate'] == '0000-00-00':
-                        logger.fdebug('ComicID: %s has invalid Date data. Skipping searching for this series.' % result['ComicID'])
+                        storyarc_watchlist = True
+                    if result['StoreDate'] == '0000-00-00' or result['StoreDate'] is None:
+                        if any([result['IssueDate'] is None, result['IssueDate'] == '0000-00-00']) and result['DigitalDate'] == '0000-00-00':
+                            logger.fdebug('ComicID: %s has invalid Date data. Skipping searching for this series.' % result['ComicID'])
+                            continue
+
+                    foundNZB = "none"
+                    AllowPacks = False
+                    if all([result['mode'] == 'story_arc', storyarc_watchlist is False]):
+                        Comicname_filesafe = helpers.filesafe(comic['ComicName'])
+                        SeriesYear = comic['SeriesYear']
+                        Publisher = comic['Publisher']
+                        AlternateSearch = None
+                        UseFuzzy = None
+                        ComicVersion = comic['Volume']
+                        TorrentID_32p = None
+                        booktype = comic['Type']
+                        ignore_booktype = False
+                    else:
+                        Comicname_filesafe = comic['ComicName_Filesafe']
+                        SeriesYear = comic['ComicYear']
+                        Publisher = comic['ComicPublisher']
+                        AlternateSearch = comic['AlternateSearch']
+                        UseFuzzy = comic['UseFuzzy']
+                        ComicVersion = comic['ComicVersion']
+                        TorrentID_32p = comic['TorrentID_32P']
+                        booktype = comic['Type']
+                        if comic['Corrected_Type'] is not None and comic['Type'] != comic['Corrected_Type']:
+                            booktype = comic['Corrected_Type']
+                        ignore_booktype = bool(comic['IgnoreType'])
+                        if any([comic['AllowPacks'] == 1, comic['AllowPacks'] == '1']):
+                            AllowPacks = True
+
+                    IssueDate = result['IssueDate']
+                    StoreDate = result['StoreDate']
+                    DigitalDate = result['DigitalDate']
+
+                    if result['IssueDate'] is None:
+                        ComicYear = SeriesYear
+                    else:
+                        ComicYear = str(result['IssueDate'])[:4]
+
+                    if result['DateAdded'] is None:
+                        DA = datetime.datetime.today()
+                        DateAdded = DA.strftime('%Y-%m-%d')
+                        if result['mode'] == 'want':
+                            table = 'issues'
+                        elif result['mode'] == 'want_ann':
+                            table = 'annuals'
+                        elif result['mode'] == 'story_arc':
+                            table = 'storyarcs'
+                        logger.fdebug('%s #%s did not have a DateAdded recorded, setting it : %s' % (comic['ComicName'], result['Issue_Number'], DateAdded))
+                        myDB.upsert(table, {'DateAdded': DateAdded}, {'IssueID': result['IssueID']})
+
+                    else:
+                        DateAdded = result['DateAdded']
+
+                    if rsscheck is None and DateAdded >= mylar.SEARCH_TIER_DATE:
+                        logger.info('adding: ComicID:%s  IssueiD: %s' % (result['ComicID'], result['IssueID']))
+                        mylar.SEARCH_QUEUE.put({'comicname': comic['ComicName'], 'seriesyear': SeriesYear, 'issuenumber': result['Issue_Number'], 'issueid': result['IssueID'], 'comicid': result['ComicID'], 'booktype': booktype})
                         continue
 
-                foundNZB = "none"
-                AllowPacks = False
-                if all([result['mode'] == 'story_arc', storyarc_watchlist is False]):
-                    Comicname_filesafe = helpers.filesafe(comic['ComicName'])
-                    SeriesYear = comic['SeriesYear']
-                    Publisher = comic['Publisher']
+                    mode = result['mode']
+                    foundNZB, prov = search_init(comic['ComicName'], result['Issue_Number'], str(ComicYear), SeriesYear, Publisher, IssueDate, StoreDate, result['IssueID'], AlternateSearch, UseFuzzy, ComicVersion, SARC=result['SARC'], IssueArcID=result['IssueArcID'], mode=mode, rsscheck=rsscheck, ComicID=result['ComicID'], filesafe=Comicname_filesafe, allow_packs=AllowPacks, oneoff=OneOff, torrentid_32p=TorrentID_32p, digitaldate=DigitalDate, booktype=booktype, ignore_booktype=ignore_booktype)
+                    if foundNZB['status'] is True:
+                        updater.foundsearch(result['ComicID'], result['IssueID'], mode=mode, provider=prov, SARC=result['SARC'], IssueArcID=result['IssueArcID'], hash=foundNZB['info']['t_hash'])
+
+                if rsscheck:
+                    logger.info('Completed RSS Search scan')
+                else:
+                    logger.info('Completed Queueing API Search scan')
+
+            else:
+                mylar.SEARCHLOCK = True
+                result = myDB.selectone('SELECT * FROM issues where IssueID=?', [issueid]).fetchone()
+                mode = 'want'
+                oneoff = False
+                if result is None:
+                    result = myDB.selectone('SELECT * FROM annuals where IssueID=?', [issueid]).fetchone()
+                    mode = 'want_ann'
+                    if result is None:
+                        result = myDB.selectone('SELECT * FROM storyarcs where IssueArcID=?', [issueid]).fetchone()
+                        mode = 'story_arc'
+                        oneoff = True
+                        if result is None:
+                            result = myDB.selectone('SELECT * FROM weekly where IssueID=?', [issueid]).fetchone()
+                            mode = 'pullwant'
+                            oneoff = True
+                            if result is None:
+                                logger.fdebug("Unable to locate IssueID - you probably should delete/refresh the series.")
+                                return
+
+                allow_packs = False
+                ComicID = result['ComicID']
+                if mode == 'story_arc':
+                    ComicName = result['ComicName']
+                    Comicname_filesafe = helpers.filesafe(ComicName)
+                    SeriesYear = result['SeriesYear']
+                    IssueNumber = result['IssueNumber']
+                    Publisher = result['Publisher']
                     AlternateSearch = None
                     UseFuzzy = None
-                    ComicVersion = comic['Volume']
+                    ComicVersion = result['Volume']
+                    SARC = result['StoryArc']
+                    IssueArcID = issueid
+                    actissueid = None
+                    IssueDate = result['IssueDate']
+                    StoreDate = result['ReleaseDate']
+                    DigitalDate = result['DigitalDate']
                     TorrentID_32p = None
-                    booktype = comic['Type']
+                    booktype = result['Type']
+                    ignore_booktype = False
+                elif mode == 'pullwant':
+                    ComicName = result['COMIC']
+                    Comicname_filesafe = helpers.filesafe(ComicName)
+                    SeriesYear = result['seriesyear']
+                    IssueNumber = result['ISSUE']
+                    Publisher = result['PUBLISHER']
+                    AlternateSearch = None
+                    UseFuzzy = None
+                    ComicVersion = result['volume']
+                    SARC = None
+                    IssueArcID = None
+                    actissueid = issueid
+                    TorrentID_32p = None
+                    IssueDate = result['SHIPDATE']
+                    StoreDate = IssueDate
+                    DigitalDate = '0000-00-00'
+                    booktype = result['format']
                     ignore_booktype = False
                 else:
-                    Comicname_filesafe = comic['ComicName_Filesafe']
+                    comic = myDB.selectone('SELECT * FROM comics where ComicID=?', [ComicID]).fetchone()
+                    if mode == 'want_ann':
+                        ComicName = result['ComicName']
+                        Comicname_filesafe = None
+                        AlternateSearch = None
+                    else:
+                        ComicName = comic['ComicName']
+                        Comicname_filesafe = comic['ComicName_Filesafe']
+                        AlternateSearch = comic['AlternateSearch']
                     SeriesYear = comic['ComicYear']
+                    IssueNumber = result['Issue_Number']
                     Publisher = comic['ComicPublisher']
-                    AlternateSearch = comic['AlternateSearch']
                     UseFuzzy = comic['UseFuzzy']
                     ComicVersion = comic['ComicVersion']
+                    IssueDate = result['IssueDate']
+                    StoreDate = result['ReleaseDate']
+                    DigitalDate = result['DigitalDate']
+                    SARC = None
+                    IssueArcID = None
+                    actissueid = issueid
                     TorrentID_32p = comic['TorrentID_32P']
                     booktype = comic['Type']
                     if comic['Corrected_Type'] is not None and comic['Type'] != comic['Corrected_Type']:
                         booktype = comic['Corrected_Type']
                     ignore_booktype = bool(comic['IgnoreType'])
                     if any([comic['AllowPacks'] == 1, comic['AllowPacks'] == '1']):
-                        AllowPacks = True
+                        allow_packs = True
 
-                IssueDate = result['IssueDate']
-                StoreDate = result['StoreDate']
-                DigitalDate = result['DigitalDate']
-
-                if result['IssueDate'] is None:
-                    ComicYear = SeriesYear
+                if IssueDate is None:
+                    IssueYear = SeriesYear
                 else:
-                    ComicYear = str(result['IssueDate'])[:4]
+                    IssueYear = str(IssueDate)[:4]
 
-                if result['DateAdded'] is None:
-                    DA = datetime.datetime.today()
-                    DateAdded = DA.strftime('%Y-%m-%d')
-                    if result['mode'] == 'want':
-                        table = 'issues'
-                    elif result['mode'] == 'want_ann':
-                        table = 'annuals'
-                    elif result['mode'] == 'story_arc':
-                        table = 'storyarcs'
-                    logger.fdebug('%s #%s did not have a DateAdded recorded, setting it : %s' % (comic['ComicName'], result['Issue_Number'], DateAdded))
-                    myDB.upsert(table, {'DateAdded': DateAdded}, {'IssueID': result['IssueID']})
-
-                else:
-                    DateAdded = result['DateAdded']
-
-                if rsscheck is None and DateAdded >= mylar.SEARCH_TIER_DATE:
-                    logger.info('adding: ComicID:%s  IssueiD: %s' % (result['ComicID'], result['IssueID']))
-                    mylar.SEARCH_QUEUE.put({'comicname': comic['ComicName'], 'seriesyear': SeriesYear, 'issuenumber': result['Issue_Number'], 'issueid': result['IssueID'], 'comicid': result['ComicID'], 'booktype': booktype})
-                    continue
-
-                mode = result['mode']
-                foundNZB, prov = search_init(comic['ComicName'], result['Issue_Number'], str(ComicYear), SeriesYear, Publisher, IssueDate, StoreDate, result['IssueID'], AlternateSearch, UseFuzzy, ComicVersion, SARC=result['SARC'], IssueArcID=result['IssueArcID'], mode=mode, rsscheck=rsscheck, ComicID=result['ComicID'], filesafe=Comicname_filesafe, allow_packs=AllowPacks, oneoff=OneOff, torrentid_32p=TorrentID_32p, digitaldate=DigitalDate, booktype=booktype, ignore_booktype=ignore_booktype)
+                foundNZB, prov = search_init(ComicName, IssueNumber, str(IssueYear), SeriesYear, Publisher, IssueDate, StoreDate, actissueid, AlternateSearch, UseFuzzy, ComicVersion, SARC=SARC, IssueArcID=IssueArcID, mode=mode, rsscheck=rsscheck, ComicID=ComicID, filesafe=Comicname_filesafe, allow_packs=allow_packs, oneoff=oneoff, manual=manual, torrentid_32p=TorrentID_32p, digitaldate=DigitalDate, booktype=booktype, ignore_booktype=ignore_booktype)
+                if manual is True:
+                    return foundNZB
                 if foundNZB['status'] is True:
-                    updater.foundsearch(result['ComicID'], result['IssueID'], mode=mode, provider=prov, SARC=result['SARC'], IssueArcID=result['IssueArcID'], hash=foundNZB['info']['t_hash'])
-
-            if rsscheck:
-                logger.info('Completed RSS Search scan')
-                if mylar.SEARCHLOCK is True:
-                    mylar.SEARCHLOCK = False
-            else:
-                logger.info('Completed Queueing API Search scan')
-                if mylar.SEARCHLOCK is True:
-                    mylar.SEARCHLOCK = False
-
-        else:
-            mylar.SEARCHLOCK = True
-            result = myDB.selectone('SELECT * FROM issues where IssueID=?', [issueid]).fetchone()
-            mode = 'want'
-            oneoff = False
-            if result is None:
-                result = myDB.selectone('SELECT * FROM annuals where IssueID=?', [issueid]).fetchone()
-                mode = 'want_ann'
-                if result is None:
-                    result = myDB.selectone('SELECT * FROM storyarcs where IssueArcID=?', [issueid]).fetchone()
-                    mode = 'story_arc'
-                    oneoff = True
-                    if result is None:
-                        result = myDB.selectone('SELECT * FROM weekly where IssueID=?', [issueid]).fetchone()
-                        mode = 'pullwant'
-                        oneoff = True
-                        if result is None:
-                            logger.fdebug("Unable to locate IssueID - you probably should delete/refresh the series.")
-                            mylar.SEARCHLOCK = False
-                            return
-
-            allow_packs = False
-            ComicID = result['ComicID']
-            if mode == 'story_arc':
-                ComicName = result['ComicName']
-                Comicname_filesafe = helpers.filesafe(ComicName)
-                SeriesYear = result['SeriesYear']
-                IssueNumber = result['IssueNumber']
-                Publisher = result['Publisher']
-                AlternateSearch = None
-                UseFuzzy = None
-                ComicVersion = result['Volume']
-                SARC = result['StoryArc']
-                IssueArcID = issueid
-                actissueid = None
-                IssueDate = result['IssueDate']
-                StoreDate = result['ReleaseDate']
-                DigitalDate = result['DigitalDate']
-                TorrentID_32p = None
-                booktype = result['Type']
-                ignore_booktype = False
-            elif mode == 'pullwant':
-                ComicName = result['COMIC']
-                Comicname_filesafe = helpers.filesafe(ComicName)
-                SeriesYear = result['seriesyear']
-                IssueNumber = result['ISSUE']
-                Publisher = result['PUBLISHER']
-                AlternateSearch = None
-                UseFuzzy = None
-                ComicVersion = result['volume']
-                SARC = None
-                IssueArcID = None
-                actissueid = issueid
-                TorrentID_32p = None
-                IssueDate = result['SHIPDATE']
-                StoreDate = IssueDate
-                DigitalDate = '0000-00-00'
-                booktype = result['format']
-                ignore_booktype = False
-            else:
-                comic = myDB.selectone('SELECT * FROM comics where ComicID=?', [ComicID]).fetchone()
-                if mode == 'want_ann':
-                    ComicName = result['ComicName']
-                    Comicname_filesafe = None
-                    AlternateSearch = None
-                else:
-                    ComicName = comic['ComicName']
-                    Comicname_filesafe = comic['ComicName_Filesafe']
-                    AlternateSearch = comic['AlternateSearch']
-                SeriesYear = comic['ComicYear']
-                IssueNumber = result['Issue_Number']
-                Publisher = comic['ComicPublisher']
-                UseFuzzy = comic['UseFuzzy']
-                ComicVersion = comic['ComicVersion']
-                IssueDate = result['IssueDate']
-                StoreDate = result['ReleaseDate']
-                DigitalDate = result['DigitalDate']
-                SARC = None
-                IssueArcID = None
-                actissueid = issueid
-                TorrentID_32p = comic['TorrentID_32P']
-                booktype = comic['Type']
-                if comic['Corrected_Type'] is not None and comic['Type'] != comic['Corrected_Type']:
-                    booktype = comic['Corrected_Type']
-                ignore_booktype = bool(comic['IgnoreType'])
-                if any([comic['AllowPacks'] == 1, comic['AllowPacks'] == '1']):
-                    allow_packs = True
-
-            if IssueDate is None:
-                IssueYear = SeriesYear
-            else:
-                IssueYear = str(IssueDate)[:4]
-
-            foundNZB, prov = search_init(ComicName, IssueNumber, str(IssueYear), SeriesYear, Publisher, IssueDate, StoreDate, actissueid, AlternateSearch, UseFuzzy, ComicVersion, SARC=SARC, IssueArcID=IssueArcID, mode=mode, rsscheck=rsscheck, ComicID=ComicID, filesafe=Comicname_filesafe, allow_packs=allow_packs, oneoff=oneoff, manual=manual, torrentid_32p=TorrentID_32p, digitaldate=DigitalDate, booktype=booktype, ignore_booktype=ignore_booktype)
-            if manual is True:
-                mylar.SEARCHLOCK = False
+                    logger.fdebug('I found %s #%s' % (ComicName, IssueNumber))
+                    updater.foundsearch(ComicID, actissueid, mode=mode, provider=prov, SARC=SARC, IssueArcID=IssueArcID, hash=foundNZB['info']['t_hash'])
                 return foundNZB
-            if foundNZB['status'] is True:
-                logger.fdebug('I found %s #%s' % (ComicName, IssueNumber))
-                updater.foundsearch(ComicID, actissueid, mode=mode, provider=prov, SARC=SARC, IssueArcID=IssueArcID, hash=foundNZB['info']['t_hash'])
-            if mylar.SEARCHLOCK is True:
-                mylar.SEARCHLOCK = False
-            return foundNZB
-
+        
+        except Exception as err:
+            logger.exception(err)
+        
+        finally:
+             mylar.SEARCHLOCK = False
     else:
         if rsscheck:
             logger.warn('There are no search providers enabled atm - not performing an RSS check for obvious reasons')
