@@ -14,7 +14,7 @@
 
 <%def name="body()">
 	<div id="paddingheader">
-		<h1 class="clearfix"><img src="interfaces/default/images/icon_search.png" alt="Search results"/>Import Search results for : ${searchtext}</h1>
+		<h1 class="clearfix"><img src="images/icon_search.png" alt="Search results"/>Import Search results for : ${searchtext}</h1>
         <div>
         <div class="table_wrapper">
 	<table class="display" id="searchresults_table">
@@ -68,7 +68,7 @@
 </%def>
 
 <%def name="headIncludes()">
-	<link rel="stylesheet" href="interfaces/default/css/data_table.css">
+	<link rel="stylesheet" href="interfaces/${interface}/css/data_table.css">
 </%def>
 
 <%def name="javascriptIncludes()">

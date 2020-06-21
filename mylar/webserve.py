@@ -49,13 +49,39 @@ from operator import itemgetter
 
 def serve_template(templatename, **kwargs):
     interface_dir = os.path.join(str(mylar.PROG_DIR), 'data/interfaces/')
-    template_dir = os.path.join(str(interface_dir), mylar.CONFIG.INTERFACE)
+    if any([mylar.CONFIG.INTERFACE == 'default', mylar.CONFIG.INTERFACE is None]):
+        tmper_dir = 'default'
+    else:
+        tmper_dir = mylar.CONFIG.INTERFACE
+    
+    icons = []
+    if mylar.CONFIG.INTERFACE == 'default':
+        icons = {'icon_gear': os.path.join(mylar.CONFIG.HTTP_ROOT, 'images', 'icon_gear.png'),
+                 'icon_upcoming': os.path.join(mylar.CONFIG.HTTP_ROOT, 'images', 'icon_upcoming.png'),
+                 'icon_wanted': os.path.join(mylar.CONFIG.HTTP_ROOT, 'images', 'icon_wanted.png'),
+                 'prowl_logo': os.path.join(mylar.CONFIG.HTTP_ROOT, 'images', 'prowl_logo.png'),
+                 'ReadingList-icon': os.path.join(mylar.CONFIG.HTTP_ROOT, 'images', 'ReadingList-icon.png')}
+    else:
+        icons = {'icon_gear': os.path.join(mylar.CONFIG.HTTP_ROOT, 'interfaces', 'carbon', 'images', 'icon_gear.png'),
+                 'icon_upcoming': os.path.join(mylar.CONFIG.HTTP_ROOT, 'interfaces', 'carbon', 'images', 'icon_upcoming.png'),
+                 'icon_wanted': os.path.join(mylar.CONFIG.HTTP_ROOT, 'interfaces', 'carbon', 'images', 'icon_wanted.png'),
+                 'prowl_logo': os.path.join(mylar.CONFIG.HTTP_ROOT, 'interfaces', 'carbon', 'images', 'prowl_logo.png'),
+                 'ReadingList-icon': os.path.join(mylar.CONFIG.HTTP_ROOT, 'interfaces', 'carbon', 'images', 'ReadingList-icon.png')}
+
+    template_dir = os.path.join(str(interface_dir), tmper_dir)
     _hplookup = TemplateLookup(directories=[template_dir])
     try:
         template = _hplookup.get_template(templatename)
-        return template.render(http_root=mylar.CONFIG.HTTP_ROOT, **kwargs)
-    except:
-        return exceptions.html_error_template().render()
+        return template.render(http_root=mylar.CONFIG.HTTP_ROOT, interface=mylar.CONFIG.INTERFACE, icons=icons, **kwargs)
+    except Exception as e:
+        #default to base in case the html hasn't been changed in new interface.
+        template_dir = os.path.join(str(interface_dir), 'default')
+        _hplookup = TemplateLookup(directories=[template_dir])
+        try:
+            template = _hplookup.get_template(templatename)
+            return template.render(http_root=mylar.CONFIG.HTTP_ROOT, interface=mylar.CONFIG.INTERFACE, icons=icons, **kwargs)
+        except:
+            return exceptions.html_error_template().render()
 
 class WebInterface(object):
 
@@ -4830,7 +4856,7 @@ class WebInterface(object):
                                     imp_cid = sres['haveit']
                             except Exception as e:
                                 imp_cid = sres['haveit']
-
+                                
                             cVal = {"SRID":        SRID,
                                     "comicid":     sres['comicid']}
                             #should store ogcname in here somewhere to account for naming conversions above.
@@ -5561,7 +5587,7 @@ class WebInterface(object):
                     newznab_verify = kwargs['newznab_verify' + newznab_number]
                 except:
                     newznab_verify = 0
-                newznab_api = kwargs['newznab_api' + newznab_number]
+                newznab_apikey = kwargs['newznab_apikey' + newznab_number]
                 newznab_uid = kwargs['newznab_uid' + newznab_number]
                 try:
                     newznab_enabled = str(kwargs['newznab_enabled' + newznab_number])
@@ -5570,7 +5596,7 @@ class WebInterface(object):
 
                 del kwargs[kwarg]
 
-                mylar.CONFIG.EXTRA_NEWZNABS.append((newznab_name, newznab_host, newznab_verify, newznab_api, newznab_uid, newznab_enabled))
+                mylar.CONFIG.EXTRA_NEWZNABS.append((newznab_name, newznab_host, newznab_verify, newznab_apikey, newznab_uid, newznab_enabled))
 
         mylar.CONFIG.EXTRA_TORZNABS = []
 

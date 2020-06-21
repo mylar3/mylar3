@@ -22,7 +22,7 @@
 
 <%def name="body()">
 	<div class="title">
-		<h1 class="clearfix"><img src="interfaces/default/images/icon_logs.png" alt="Logs"/>Logs</h1>
+		<h1 class="clearfix"><img src="images/icon_logs.png" alt="Logs"/>Logs</h1>
 	</div>
         <div align="center">Refresh rate:
         <select id="refreshrate" onchange="setRefresh()">
@@ -50,7 +50,7 @@
 </%def>
 
 <%def name="headIncludes()">
-	<link rel="stylesheet" href="interfaces/default/css/data_table.css">
+	<link rel="stylesheet" href="interfaces/${interface}/css/data_table.css">
 </%def>
 
 <%def name="javascriptIncludes()">

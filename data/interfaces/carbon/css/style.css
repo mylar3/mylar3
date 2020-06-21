@@ -70,10 +70,10 @@ audio,
 video {
   border: 0;
   font: inherit;
-  font-size: 101%;
+  font-size: 100%;
   margin: 0;
   padding: 0;
-  -vertical-align: baseline;
+  vertical-align: baseline;
 }
 article,
 aside,
@@ -108,7 +108,7 @@ a {
 }
 a:hover {
   color: #fff;
-  text-decoration: underline;
+  -text-decoration: underline;
 }
 a.blue {
   color: blue;
@@ -306,7 +306,7 @@ input[type=button] {
   -moz-border-radius: 5px;
   -webkit-border-radius: 5px;
   border-radius: 5px;
-  background: #666 url("../images/button.png") repeat-x;
+  background: #666 url("../../../images/button.png") repeat-x;
   border: 0;
   border-bottom: 1px solid rgba(0, 0, 0, 0.25);
   color: #fff;
@@ -719,12 +719,12 @@ footer {
   z-index: 99;
 }
 #subhead #subhead_container #subhead_menu a {
-  background-image: -moz-linear-gradient(#f4f4f4, #e7e7e7) !important;
-  background-image: linear-gradient(#f4f4f4, #e7e7e7) !important;
-  background-image: -webkit-linear-gradient(#f4f4f4, #e7e7e7) !important;
-  background-image: -o-linear-gradient(#f4f4f4, #e7e7e7) !important;
-  filter: progid:dximagetransform.microsoft.gradient(startColorstr=#fafafa, endColorstr=#eaeaea) !important;
-  -ms-filter: progid:dximagetransform.microsoft.gradient(startColorstr=#fafafa, endColorstr=#eaeaea) !important;
+  background-image: -moz-linear-gradient(#616161, #4e4e4e) !important;
+  background-image: linear-gradient(#616161, #4e4e4e) !important;
+  background-image: -webkit-linear-gradient(#616161, #4e4e4e) !important;
+  background-image: -o-linear-gradient(#616161, #4e4e4e) !important;
+  filter: progid:dximagetransform.microsoft.gradient(startColorstr=#6a6a6a, endColorstr=#4a4a4a) !important;
+  -ms-filter: progid:dximagetransform.microsoft.gradient(startColorstr=#6a6a6a, endColorstr=#4a4a4a) !important;
   font-family: "Helvetica Neue", Helvetica, Arial, Geneva, sans-serif;
   font-size: 12px;
   font-weight: normal;
@@ -745,7 +745,7 @@ div#searchbar {
   -webkit-box-shadow: -1px 0 0 #e0e0e0;
   -o-box-shadow: -1px 0 0 #e0e0e0;
   box-shadow: -1px 0 0 #1c1e22;
-  padding: 17px 0 14px 17px;
+  padding: 17px 0 14px 7px;
   position: absolute;
   left: 90px;
   top: 1px;
@@ -773,7 +773,7 @@ div#searchbar input[type=text] {
 div#searchbar .mini-icon {
   height: 20px;
   width: 20px;
-  background: url("../images/icon_search.gif") left top no-repeat;
+  background: url("../../../images/icon_search.gif") left top no-repeat;
   position: absolute;
   display: block;
   margin-left: 6px;
@@ -785,6 +785,7 @@ div#searchbar .mini-icon {
 .checkbox.inline > input {
   margin-right: 5px;
   margin-left: 0;
+  color: #ffffff;
 }
 .Skipped {
   background-color: #353a41;
@@ -800,6 +801,10 @@ div#searchbar .mini-icon {
 }
 .Wanted {
   background-color: #641716;
+  height: 30px;
+}
+.WantedTier {
+  background-color: #A97D7B;
   height: 30px;
 }
 .Snatched {
@@ -878,12 +883,18 @@ div#nopaddingheader {
   font-weight: bold;
   text-align: center;
 }
+div#seriesheader {
+  font-size: 24px;
+  font-weight: bold;
+  text-align: left;
+  margin-bottom: 10px; 
+}
 div#artistheader {
   margin-top: 50px;
   min-height: 200px;
 }
 div#artistheader #artistImg {
-  background: #ffffff url("../images/loader_black.gif") center no-repeat;
+  background: #ffffff url("../../../images/loader_black.gif") center no-repeat;
   border: 5px solid #FFF;
   -moz-box-shadow: 1px 1px 2px 0 #555555;
   -webkit-box-shadow: 1px 1px 2px 0 #555555;
@@ -963,14 +974,14 @@ div#artistheader h2 a {
 }
 #read_detail th#options {
   min-width: 150px;
-  text-align: left;
+  text-align: center;
 }
 #read_detail th#comicname {
   min-width: 290px;
-  text-align: left;
+  text-align: center;
 }
 #read_detail th#issue {
-  max-width: 20px;
+  max-width: 27px;
   text-align: center;
 }
 #read_detail th#status {
@@ -983,18 +994,18 @@ div#artistheader h2 a {
 }
 #read_detail th#select {
   max-width: 10px;
-  text-align: left;
+  text-align: center;
   vertical-align: middle;
 }
 #read_detail td#comicname {
   min-width: 290px;
-  text-align: left;
+  text-align: center;
   vertical-align: middle;
   font-size: 12px;
 }
 #read_detail td#issue {
   max-width: 20px;
-  text-align: left;
+  text-align: center;
   vertical-align: middle;
 }
 #read_detail td#status {
@@ -1009,12 +1020,12 @@ div#artistheader h2 a {
 }
 #read_detail td#options {
   min-width: 150px;
-  text-align: left;
+  text-align: center;
   vertical-align: middle;
 }
 #read_detail td#select {
   max-width: 10px;
-  text-align: left;
+  text-align: center;
   vertical-align: middle;
 }
 #storyarcs th#options {
@@ -1149,12 +1160,12 @@ div#artistheader h2 a {
 }
 #pull_table th#publisher {
   min-width: 100px;
-  text-align: left;
+  text-align: center;
   vertical-align: middle;
 }
 #pull_table th#comicname {
   min-width: 300px;
-  text-align: left;
+  text-align: center;
   vertical-align: middle;
 }
 #pull_table th#comicnumber {
@@ -1164,12 +1175,12 @@ div#artistheader h2 a {
 }
 #pull_table th#status {
   min-width: 30px;
-  text-align: left;
+  text-align: center;
   vertical-align: middle;
 }
 #pull_table th#options {
   min-width: 90px;
-  text-align: left;
+  text-align: center;
   vertical-align: middle;
 }
 #pull_table td#publishdate {
@@ -1204,17 +1215,17 @@ div#artistheader h2 a {
 }
 #manage_comic th#name {
   min-width: 275px;
-  text-align: left;
+  text-align: center;
 }
 #manage_comic th#latest {
   min-width: 150px;
-  text-align: left;
+  text-align: center;
 }
 #manage_comic th#status,
 #manage_comic th#albumart,
 #manage_comic th#lastupdated {
   min-width: 50px;
-  text-align: left;
+  text-align: center;
 }
 #manage_comic th#stat_icon{
   max-width: 15px;
@@ -1226,7 +1237,7 @@ div#artistheader h2 a {
 }
 #manage_comic td#name {
   min-width: 275px;
-  text-align: left;
+  text-align: center;
   vertical-align: middle;
   font-size: 12px;
 }
@@ -1234,7 +1245,7 @@ div#artistheader h2 a {
 #manage_comic td#lastupdated,
 #manage_comic td#publisher {
   min-width: 50px;
-  text-align: left;
+  text-align: center;
   vertical-align: middle;
 }
 #manage_comic td#stat_icon{
@@ -1244,7 +1255,7 @@ div#artistheader h2 a {
 }
 #manage_comic td#latest {
   min-width: 150px;
-  text-align: left;
+  text-align: center;
   vertical-align: middle;
 }
 #manage_comic td#have {
@@ -1254,15 +1265,15 @@ div#artistheader h2 a {
 }
 #manage_issues th#name {
   min-width: 275px;
-  text-align: left;
+  text-align: center;
 }
 #manage_issues th#options {
   min-width: 150px;
-  text-align: left;
+  text-align: center;
 }
 #manage_issues th#select {
   min-width: 10px;
-  text-align: left;
+  text-align: center;
   vertical-align: middle;
 }
 #manage_issues th#status,
@@ -1271,17 +1282,17 @@ div#artistheader h2 a {
 #manage_issues th#releasedate,
 #manage_issues th#int_issue {
   min-width: 50px;
-  text-align: left;
+  text-align: center;
 }
 #manage_issues td#name {
   min-width: 275px;
-  text-align: left;
+  text-align: center;
   vertical-align: middle;
   font-size: 12px;
 }
 #manage_issues td#select {
   min-width: 10px;
-  text-align: left;
+  text-align: center;
   vertical-align: middle;
 }
 #manage_issues td#status,
@@ -1290,32 +1301,32 @@ div#artistheader h2 a {
 #manage_issues td#releasedate,
 #manage_issues td#int_issue {
   min-width: 50px;
-  text-align: left;
+  text-align: center;
   vertical-align: middle;
 }
 #manage_issues td#options {
   min-width: 150px;
-  text-align: left;
+  text-align: center;
   vertical-align: middle;
 }
 #manage_failed th#series {
   min-width: 175px;
-  text-align: left;
+  text-align: center;
 }
 #manage_failed th#select {
   min-width: 10px;
-  text-align: left;
+  text-align: center;
   vertical-align: middle;
 }
 #manage_failed th#issue,
 #manage_failed th#site,
 #manage_failed th#datefailed {
   min-width: 50px;
-  text-align: left;
+  text-align: center;
 }
 #manage_failed th#link {
   min-width: 100px;
-  text-align: left;
+  text-align: center;
 }
 #manage_failed td#series {
   min-width: 175px;
@@ -1346,16 +1357,16 @@ div#artistheader h2 a {
   width: 100%;
 }
 #series_table th#publisher {
-  min-width: 100px;
-  text-align: left;
+  max-width: 120px;
+  text-align: center;
 }
 #series_table th#name {
   min-width: 300px;
-  text-align: left;
+  text-align: center;
 }
 #series_table th#year {
   max-width: 25px;
-  text-align: left;
+  text-align: center;
 }
 #series_table th#havepercent,
 #series_table th#totalcount {
@@ -1370,10 +1381,10 @@ div#artistheader h2 a {
 }
 #series_table th#active {
   max-width: 25px;
-  text-align: left;
+  text-align: center;
 }
 #series_table th#issue{
-  min-width: 30px;
+  max-width: 20px;
   text-align: center;
 }
 #series_table th#status {
@@ -1382,22 +1393,22 @@ div#artistheader h2 a {
 }
 #series_table th#published {
   max-width: 50px;
-  text-align: left;
+  text-align: center;
 }
 #series_table th#have {
   text-align: center;
   vertical-align: middle;
 }
 #series_table td#publisher {
-  min-width: 100px;
-  text-align: left;
+  max-width: 120px;
+  text-align: center;
   vertical-align: middle;
   font-size: 12px;
   background-color: #353a41;
 }
 #series_table td#name {
   min-width: 300px;
-  text-align: left;
+  text-align: center;
   vertical-align: middle;
   background-color: #353a41;
 }
@@ -1427,7 +1438,7 @@ div#artistheader h2 a {
   background-color: #353a41;
 }
 #series_table td#issue {
-  max-width: 30px;
+  max-width: 20px;
   text-align: center;
   vertical-align: middle;
   background-color: #353a41;
@@ -1520,7 +1531,7 @@ div#artistheader h2 a {
   text-align: left;
 }
 #searchresults_table #artistImg {
-  background: url("../images/loader_black.gif") no-repeat scroll center center #ffffff;
+  background: url("../../../images/loader_black.gif") no-repeat scroll center center #ffffff;
   border: 3px solid #FFFFFF;
   box-shadow: 1px 1px 2px 0 #555555;
   float: left;
@@ -1794,6 +1805,7 @@ DIV.progress-container
 	-webkit-box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.1);
 	-moz-box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.1);
 	box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.1);
+	color: #000;
 }
 DIV.progress-container > DIV
 {
@@ -1910,10 +1922,10 @@ DIV.progress-container > DIV
 #actions .ui-icon {
   position: relative;
   top: 4px;
-  background-image: url("../images/ui-icons_70b2e1_256x240.png");
+  background-image: url("../../../images/ui-icons_70b2e1_256x240.png");
 }
 #toTop {
-  background: url("../images/toTop.gif") no-repeat scroll 10px center #1c1e22;
+  background: url("../../../images/toTop.gif") no-repeat scroll 10px center #1c1e22;
   border-radius: 5px 0 0 0;
   bottom: 0;
   display: none;
@@ -2141,6 +2153,7 @@ table tr td#status a {
     top: 20%;
     left: 50%;
     z-index: 99999;
+    text-align: left;
     box-shadow: 0px 0px 20px #999;
     /* CSS3 */
         -moz-box-shadow: 0px 0px 20px #999;
@@ -2148,7 +2161,7 @@ table tr td#status a {
         -webkit-box-shadow: 0px 0px 20px #999;
     /* Safari, Chrome */
 	border-radius: 3px 3px 3px 3px;
-    -moz-border-radius: 3px;
+        -moz-border-radius: 3px;
     /* Firefox */
         -webkit-border-radius: 3px;
     /* Safari, Chrome */;
@@ -2160,8 +2173,8 @@ table tr td#status a {
     float: right;
 }
 img.btn_close {
-    Position the close button
-	float: right;
+    /* Position the close button */
+    float: right;
     margin: -28px -28px 0 0;
 }
 fieldset {
@@ -2170,3 +2183,39 @@ fieldset {
 img.highqual {
     -ms-interpolation-mode: bicubuic;
 }
+table#issue_table { width: 100%; padding: 10px; }
+
+table#issue_table th#select { vertical-align: middle; text-align: center; max-width: 5px; }
+table#issue_table th#int_issuenumber { text-align: left; max-width: 50px }
+table#issue_table th#issuenumber { text-align: center; max-width: 20px; }
+table#issue_table th#issuename { text-align: center; min-width: 200px; }
+table#issue_table th#reldate { text-align: center; max-width: 75px; }
+table#issue_table th#status { text-align: center; max-width: 75px; }
+table#issue_table th#options { text-align: center; max-width: 100px; }
+
+table#issue_table td#select { vertical-align: middle; text-align: center; max-width: 5px; }
+table#issue_table td#int_issuenumber { vertical-align: middle; text-align: left; max-width: 50px; }
+table#issue_table td#issuenumber { vertical-align: middle; text-align: center; max-width: 20px; }
+table#issue_table td#issuename { vertical-align: middle; text-align: center; min-width: 200px; }
+table#issue_table td#reldate { vertical-align: middle; text-align: center; max-width: 75px; }
+table#issue_table td#status { vertical-align: middle; text-align: center; max-width: 75px; }
+table#issue_table td#options { vertical-align: middle; text-align: center; max-width: 100px; }
+
+table#annual_table { width: 100%; padding: 10px; }
+
+table#annual_table th#select { vertical-align: middle; text-align: center; max-width: 5px; }
+table#annual_table th#aint_issuenumber { text-align: left; max-width: 1px }
+table#annual_table th#aissuenumber { text-align: center; max-width: 20px; }
+table#annual_table th#aissuename { text-align: center; min-width: 200px; }
+table#annual_table th#areldate { text-align: center; max-width: 75px; }
+table#annual_table th#astatus { text-align: center; max-width: 75px; }
+table#annual_table th#aoptions { text-align: center; max-width: 100px; }
+
+table#annual_table td#select { vertical-align: middle; text-align: center; max-width: 5px; }
+table#annual_table td#aint_issuenumber { vertical-align: middle; text-align: left; max-width: 1 px; }
+table#annual_table td#aissuenumber { vertical-align: middle; text-align: center; max-width: 20px; }
+table#annual_table td#areldate { vertical-align: middle; text-align: center; max-width: 75px; }
+table#annual_table td#astatus { vertical-align: middle; text-align: center; max-width: 75px; }
+table#annual_table td#aoptions { vertical-align: middle; text-align: center; max-width: 100px; }
+table#annual_table td#aissuename { vertical-align: middle; text-align: center; min-width: 200px; }
+

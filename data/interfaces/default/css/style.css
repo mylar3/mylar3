@@ -304,7 +304,7 @@ input[type=button] {
   -moz-border-radius: 5px;
   -webkit-border-radius: 5px;
   border-radius: 5px;
-  background: #222222 url("../images/button.png") repeat-x;
+  background: #222222 url("../../../images/button.png") repeat-x;
   border: 0;
   border-bottom: 1px solid rgba(0, 0, 0, 0.25);
   color: #fff;
@@ -771,7 +771,7 @@ div#searchbar input[type=text] {
 div#searchbar .mini-icon {
   height: 20px;
   width: 20px;
-  background: url("../images/icon_search.gif") left top no-repeat;
+  background: url("../../../images/icon_search.gif") left top no-repeat;
   position: absolute;
   display: block;
   margin-left: 6px;
@@ -798,6 +798,10 @@ div#searchbar .mini-icon {
 }
 .Wanted {
   background-color: #ffb0b0;
+  height: 30px;
+}
+.WantedTier {
+  background-color: #FFDDAA;
   height: 30px;
 }
 .Snatched {
@@ -881,7 +885,7 @@ div#artistheader {
   min-height: 200px;
 }
 div#artistheader #artistImg {
-  background: #ffffff url("../images/loader_black.gif") center no-repeat;
+  background: #ffffff url("../../../images/loader_black.gif") center no-repeat;
   border: 5px solid #FFF;
   -moz-box-shadow: 1px 1px 2px 0 #555555;
   -webkit-box-shadow: 1px 1px 2px 0 #555555;
@@ -1344,7 +1348,7 @@ div#artistheader h2 a {
   width: 100%;
 }
 #series_table th#publisher {
-  min-width: 100px;
+  max-width: 120px;
   text-align: center;
 }
 #series_table th#name {
@@ -1353,7 +1357,7 @@ div#artistheader h2 a {
 }
 #series_table th#year {
   max-width: 25px;
-  text-align: left;
+  text-align: center;
 }
 #series_table th#havepercent,
 #series_table th#totalcount {
@@ -1371,8 +1375,8 @@ div#artistheader h2 a {
   text-align: left;
 }
 #series_table th#issue{
-  min-width: 30px;
-  text-align: left;
+  max-width: 20px;
+  text-align: center;
 }
 #series_table th#status {
   max-width: 50px;
@@ -1387,19 +1391,19 @@ div#artistheader h2 a {
   vertical-align: middle;
 }
 #series_table td#publisher {
-  min-width: 100px;
-  text-align: left;
+  max-width: 120px;
+  text-align: center;
   vertical-align: middle;
   font-size: 12px;
 }
 #series_table td#name {
   min-width: 300px;
-  text-align: left;
+  text-align: center;
   vertical-align: middle;
 }
 #series_table td#year {
   max-width: 25px;
-  text-align: left;
+  text-align: center;
   vertical-align: middle;
 }
 #series_table td#havepercent,
@@ -1421,8 +1425,8 @@ div#artistheader h2 a {
   vertical-align: middle;
 }
 #series_table td#issue {
-  max-width: 30px;
-  text-align: left;
+  max-width: 20px;
+  text-align: center;
   vertical-align: middle;
 }
 #series_table td#status {
@@ -1510,7 +1514,7 @@ div#artistheader h2 a {
   text-align: left;
 }
 #searchresults_table #artistImg {
-  background: url("../images/loader_black.gif") no-repeat scroll center center #ffffff;
+  background: url("../../../images/loader_black.gif") no-repeat scroll center center #ffffff;
   border: 3px solid #FFFFFF;
   box-shadow: 1px 1px 2px 0 #555555;
   float: left;
@@ -1899,10 +1903,10 @@ DIV.progress-container > DIV
 #actions .ui-icon {
   position: relative;
   top: 4px;
-  background-image: url("../images/ui-icons_70b2e1_256x240.png");
+  background-image: url("../../../images/ui-icons_70b2e1_256x240.png");
 }
 #toTop {
-  background: url("../images/toTop.gif") no-repeat scroll 10px center #f7f7f7;
+  background: url("../../../images/toTop.gif") no-repeat scroll 10px center #f7f7f7;
   border-radius: 5px 0 0 0;
   bottom: 0;
   display: none;
@@ -2149,8 +2153,8 @@ table tr td#status a {
     float: right;
 }
 img.btn_close {
-    Position the close button
-	float: right;
+    /* Position the close button */
+    float: right;
     margin: -28px -28px 0 0;
 }
 fieldset {
