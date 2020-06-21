@@ -15,7 +15,7 @@
 <%def name="body()">
 
 	<div class="title">
-		<h1 class="clearfix"><img src="interfaces/default/images/icon_wanted.png" alt="Wanted Issues"/>Wanted Issues (${wantedcount})</h1>
+		<h1 class="clearfix"><img src="${icons['icon_wanted']}" alt="Wanted Issues"/>Wanted Issues (${wantedcount})</h1>
 	</div>
 
         <div id="checkboxControls" style="float: right; vertical-align: middle; margin: 5px 3px 3px 3px;">
@@ -138,7 +138,7 @@
                                 %endif
                                 <td id="options">
 <!--
-                                <a class="menu_link_edit" id="choose_specific_download" title="Choose Specific Download" href="javascript:void(0)" onclick="getAvailableDownloads('${issueid}')"><i class="fa fa-search"></i><img src="interfaces/default/images/magnifier.png" height="25" width="25" class="highqual" /></a>
+                                <a class="menu_link_edit" id="choose_specific_download" title="Choose Specific Download" href="javascript:void(0)" onclick="getAvailableDownloads('${issueid}')"><i class="fa fa-search"></i><img src="images/magnifier.png" height="25" width="25" class="highqual" /></a>
                                 <div id="choose_specific_download_dialog" title="Choose a specific download for ${adjcomicname} #${issuenumber}" style="display:none" class="configtable">
                                 <table class="display" id="downloads_table">
                                         <thead>
@@ -164,7 +164,7 @@
 	</div>
 
 	<div class="title">
-		<h1 class="clearfix"><img src="interfaces/default/images/icon_upcoming.png" alt="Upcoming Issues"/>Upcoming Issues</h1>
+		<h1 class="clearfix"><img src="${icons['icon_upcoming']}" alt="Upcoming Issues"/>Upcoming Issues</h1>
 	</div>
 
         <div id="tabs">
@@ -225,7 +225,7 @@
                     %for f_nodata in future_nodata_upcoming:
                             <tr class="gradeZ">
                                     <td id="delcolumn">
-                                         <a href="upcoming#upcoming_nodata" title="Delete series from auto-Want list" onclick="doAjaxCall('removeautowant?comicname=${f_nodata['ComicName'] |u}&release=${f_nodata['IssueDate']}',$(this),'table')" data-success="${f_nodata['ComicName']} has been removed from the auto-want list"><img src="interfaces/default/images/skipped_icon.png" height="25" width="25" class="highqual" /></a>
+                                         <a href="upcoming#upcoming_nodata" title="Delete series from auto-Want list" onclick="doAjaxCall('removeautowant?comicname=${f_nodata['ComicName'] |u}&release=${f_nodata['IssueDate']}',$(this),'table')" data-success="${f_nodata['ComicName']} has been removed from the auto-want list"><img src="images/skipped_icon.png" height="25" width="25" class="highqual" /></a>
                                     </td>
                                     %if f_nodata['ComicID'] is not None:
                                         <td id="comicname"><a href="comicDetails?ComicID=${f_nodata['ComicID']}">${f_nodata['ComicName']}</a></td>
@@ -279,7 +279,7 @@
 </%def>
 
 <%def name="headIncludes()">
-	<link rel="stylesheet" href="interfaces/default/css/data_table.css">
+	<link rel="stylesheet" href="interfaces/${interface}/css/data_table.css">
 </%def>
 
 <%def name="javascriptIncludes()">

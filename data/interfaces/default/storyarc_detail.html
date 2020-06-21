@@ -23,7 +23,7 @@
 </%def>
 
 <%def name="body()">
-         <h1 class="clearfix"><a href="storyarc_main"><img src="interfaces/default/images/ReadingList-icon.png" height="26" width="26" align="left" alt="Story Arc Management"/></a></h1>
+         <h1 class="clearfix"><a href="storyarc_main"><img src="${icons['ReadingList-icon']}" height="26" width="26" align="left" alt="Story Arc Management"/></a></h1>
          %if storyarcbanner is not None:
              <img src="${storyarcbanner}" onload="resizeimage('${bannerheight}')" width="960" height="${bannerheight}" id="banner" style="text-decoration: none; position: relative; top: 40px;"/>
          %else:
@@ -94,7 +94,7 @@
                          <form action="downloadBanner" method="GET">
                          <label style="display:inline;float:right;">Banner Image Retrieval</label></br>
                                <input style="display:inline;float:right;" type="text" title="enter full url where image resides" placeholder="full URL where image resides" onfocus="if(this.value==this.defaultValue) this.value='';" name="url" size="25">
-                               <input style="display:inline;float:right;" type="image" src="interfaces/default/images/download_icon.png" height="20" width="20" alt="submit"></br>
+                               <input style="display:inline;float:right;" type="image" src="images/download_icon.png" height="20" width="20" alt="submit"></br>
                                <input type="hidden" name="storyarcid" value="${storyarcid}">
                                <input type="hidden" name="storyarcname" value="${storyarcname}">
                           %if storyarcbanner is not None:
@@ -200,7 +200,7 @@
                 <td id="issuedate">${issuedate}</td>
                 <td id="status">${item['Status']}
                     %if item['Status'] == 'Downloaded' or item['Status'] == 'Archived':
-                        <a href="#" title="${item['Location']}"><img src="interfaces/default/images/info32.png" height="16" alt="" class="highqual" /></a>
+                        <a href="#" title="${item['Location']}"><img src="images/info32.png" height="16" alt="" class="highqual" /></a>
                     %endif
                 </td>
                 <td id="options">
@@ -226,14 +226,14 @@
                         <center><label><strong><a href="#" title="Enter the IssueID of the issue you want to add to the arc"/>Issue ID</a></strong></label>
                         <input type="text" name="manual_issueid" size="10">
                         <label><strong><a href="#" title="Enter the Reading Order # for the given issue"/>Reading Order</a></strong></label>
-                        <input type="text" name="manual_readingorder" size="2"><input type="image" src="interfaces/default/images/submit.png" height="25" width="25" class="highqual" /></center>
+                        <input type="text" name="manual_readingorder" size="2"><input type="image" src="images/submit.png" height="25" width="25" class="highqual" /></center>
                     </div>
             </form>
         </div>
 </%def>
 
 <%def name="headIncludes()">
-	<link rel="stylesheet" href="interfaces/default/css/data_table.css">
+	<link rel="stylesheet" href="interfaces/${interface}/css/data_table.css">
 </%def>
 
 <%def name="javascriptIncludes()">
