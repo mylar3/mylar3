@@ -1,5 +1,6 @@
 import sys
 import os
+import re
 import platform
 import subprocess
 import mylar
