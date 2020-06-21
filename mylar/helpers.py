@@ -3132,7 +3132,6 @@ def postprocess_main(queue):
 def search_queue(queue):
     while True:
         if mylar.SEARCHLOCK is True:
-            logger.fdebug('[SEARCH-QUEUE] Another item is currently being searched....')
             time.sleep(5)
 
         elif mylar.SEARCHLOCK is False and queue.qsize() >= 1: #len(queue) > 1:
