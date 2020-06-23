@@ -86,7 +86,7 @@ class OPDS(object):
             if self.file and self.filename:
                 if self.issue_id:
                     try:
-                        readinglist.Readinglist(IssueID=self.issue_id).markasRead()
+                        readlist.Readinglist(IssueID=self.issue_id).markasRead()
                     except:
                         logger.fdebug('No reading list found to update.')
                 return serve_download(path=self.file, name=self.filename)
