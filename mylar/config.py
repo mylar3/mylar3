@@ -12,7 +12,6 @@ import re
 import configparser
 import mylar
 from mylar import logger, helpers, encrypted
-import errno
 
 config = configparser.ConfigParser()
 
@@ -1029,6 +1028,7 @@ class Config(object):
                 #windows won't be able to create in ~, so force it to DATA_DIR
                 if mylar.OS_DETECT == 'Windows':
                     ct_path = mylar.DATA_DIR
+                    chkpass = True
                 else:
                     ct_path = str(pathlib.Path(os.path.expanduser("~")))
                     try:
