@@ -2548,7 +2548,7 @@ def searcher(nzbprov, nzbname, comicinfo, link, IssueID, ComicID, tmpprov, direc
                 elif send_to_nzbget['status'] == 'double-pp':
                     return send_to_nzbget['status']
                 else:
-                    logger.warn('Unable to send nzb file to NZBGet. There was a parameter error as there are no values present: %s' % nzbget_params)
+                    logger.warn('Unable to send nzb file to NZBGet. There was an unknown parameter error.")
                     return "nzbget-fail"
 
             if send_to_nzbget['status'] is True:
