@@ -86,6 +86,7 @@ class OPDS(object):
             if self.file and self.filename:
                 if self.issue_id:
                     try:
+                        logger.fdebug('OPDS is attempting to markasRead filename %s aka issue_id %s' % (self.filename, self.issue_id))
                         readinglist.Readinglist(IssueID=self.issue_id).markasRead()
                     except:
                         logger.fdebug('No reading list found to update.')
