@@ -43,7 +43,11 @@
                 A <a href="https://github.com/mylar3/mylar3/compare/${mylar.CURRENT_VERSION}...${mylar.LATEST_VERSION}" target="_blank"> newer version</a> is available. You're ${mylar.COMMITS_BEHIND} commits behind. <a href="update">Update</a> or <a href="#" onclick="$('#updatebar').slideUp('slow');">Close</a>
             </div>
 			% endif
-	
+            % if not mylar.CONFIG.COMICVINE_API:
+                    <div id="updatebar">
+                        You NEED to set a ComicVine API key prior to adding anything. It is free - Go get one! Mylar will not work correctly without it.
+                    </div>
+            % endif	
 		<header>			
 			<div class="wrapper">
 			<div id="logo">
