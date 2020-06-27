@@ -49,7 +49,7 @@
 
 .dataTables_paginate {
 	width: 44px;
-	* width: 50px;
+       * width: 50px;
 	float: right;
 	text-align: right;
 }
@@ -596,15 +596,15 @@ td.details {
 }
 
 .paging_full_numbers .paginate_button,
- 	.paging_full_numbers .paginate_active, 
-        .paging_simple_numbers .paginate_button,
-        .paging_simple_numbers .paginate_active {
+.paging_full_numbers .paginate_active,
+.paging_simple_numbers .paginate_button,
+.paging_simple_numbers .paginate_active {
 	background: none repeat scroll 0 0 #F3F3F3;
-	   border-radius: 5px 5px 5px 5px;
-	   margin: 0 0 0 5px;
-	   font-size: 15px;
-	   padding: 2px 7px;
-	   color: #4183C4;
+        border-radius: 5px 5px 5px 5px;
+        margin: 0 0 0 5px;
+        font-size: 15px;
+        padding: 2px 7px;
+        color: #4183C4;
 	cursor: pointer;
 	*cursor: hand;
 }
