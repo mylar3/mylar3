@@ -607,10 +607,10 @@ td.details {
 .paging_simple_numbers .paginate_button,
 .paging_simple_numbers .paginate_active {
 	background: none repeat scroll 0 0 #666;
-        border-radius: 5px 5px 5px 5px;
-        margin: 0 0 0 5px;
+        border-radius: 4px 4px 4px 4px;
+        margin: 0 0 0 4px;
         font-size: 15px;
-        padding: 2px 7px;
+        padding: 2px 5px;
         color: #fff;
 	cursor: pointer;
 	*cursor: hand;
