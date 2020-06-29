@@ -4179,7 +4179,7 @@ class WebInterface(object):
         unfiltered = []
         for each_section in mylar.config.config.sections():
             for k,v in mylar.config.config.items(each_section):
-                unfiltered.insert( 0, (k, v.decode('utf-8')) )
+                unfiltered.insert( 0, (k, v) )
 
         if sSearch == "" or sSearch == None:
             logger.info('getConfig: No search terms.')
