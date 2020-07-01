@@ -27,7 +27,7 @@
                    <table>
                     <tr>
                        <span style="position:right">
-                           <img src="interfaces/default/images/ultron.png" style="float:right" height="125" width="125" />                     
+                           <img src="images/ultron.png" style="float:right" height="125" width="125" />                     
                            <fieldset>
                               <div class="row checkbox">
                                    <input type="checkbox" disabled name="autoadd" style="vertical-align: middle; margin: 3px; margin-top: -1px;" id="autoadd" value="1" ${checked(mylar.CONFIG.ADD_COMICS)}><label>Auto-add new series</label>
@@ -112,9 +112,9 @@
                                             <td id="select"><input type="checkbox" style="vertical-align: middle; margin: 3px; margin-top: -1px;" name="${result['ComicName']}[${result['Volume']}]|${result['ComicID']}" value="${result['DynamicName']}" class="checkbox" />
                                             <td id="comicname">${displayline}
                                                 %if result['Status'] != 'Imported':
-                                                   <a href="#issue-box" onclick="return runMetaIssue('${result['ComicName'] |u}','${result['DynamicName']}','${result['Volume']}');" class="issue-window"><img src="interfaces/default/images/files.png" height="15 width="15" title="View files in this group" class="highqual" /></a>
+                                                   <a href="#issue-box" onclick="return runMetaIssue('${result['ComicName'] |u}','${result['DynamicName']}','${result['Volume']}');" class="issue-window"><img src="images/files.png" height="15 width="15" title="View files in this group" class="highqual" /></a>
                                                     <div id="issue-box" class="issue-popup">
-                                                     <a href="#" class="close"><img src="interfaces/default/images/close_pop.png" class="btn_close" title="Close Window" alt="Close" class="highqual" /></a>
+                                                     <a href="#" class="close"><img src="images/close_pop.png" class="btn_close" title="Close Window" alt="Close" class="highqual" /></a>
                                                         <div id="responsethis">
                                                           <label><strong>[ NODATA ]</strong></label></br>
                                                         </div>
@@ -133,7 +133,7 @@
                                                 ${result['Status']}
                                             %endif
                                             %if result['WatchMatch'] is not None:
-                                                <img src="interfaces/default/images/green-circle.png" height="10" width="10"/>
+                                                <img src="images/green-circle.png" height="10" width="10"/>
                                             %endif
                                             </td>
                                             <td id="importdate">${result['ImportDate']}</td>
@@ -161,7 +161,7 @@
       </div>
 </%def>
 <%def name="headIncludes()">
-        <link rel="stylesheet" href="interfaces/default/css/data_table.css">
+        <link rel="stylesheet" href="interfaces/${interface}/css/data_table.css">
 </%def>
 
 <%def name="javascriptIncludes()">

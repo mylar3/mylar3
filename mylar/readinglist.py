@@ -123,7 +123,9 @@ class Readinglist(object):
             CtrlVal = {"IssueArcID":  IssueArcID}
             myDB.upsert("readinglist", NewVal, CtrlVal)
             logger.info(self.module + ' Marked ' +  issue['ComicName'] + ' #' + str(issue['IssueNumber']) + ' as Read.')
-
+        else:
+            logger.info(self.module + 'Could not mark anything as read, no IssueID or IssueArcID passed')
+            
         return
 
     def syncreading(self):

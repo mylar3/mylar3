@@ -34,9 +34,9 @@
         %>
 
 	<div id="paddingheader">
-		<h1 class="clearfix"><img src="interfaces/default/images/icon_gear.png" alt="settings"/>Settings</h1>
+		<h1 class="clearfix"><img src="${icons['icon_gear']}" alt="settings"/>Settings</h1>
 	</div>
-	<form action="configUpdate" method="post" id="configUpdate">
+        <form action="configUpdate" method="post" id="configUpdate">
 	<div id="tabs">
 		<ul>
                         <li><a href="#tabs-1">Information</a></li>
@@ -81,7 +81,7 @@
                          </div>
                          <div style="width: 60%; margin: 0px auto;" align="center">
                             <a id="navDonate" href="https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&amp;hosted_button_id=EWQADB5AMVRFU" rel="noreferrer" onclick="window.open('http://dereferer.org/?' + this.href); return false;"><img src="https://www.paypalobjects.com/en_US/i/btn/btn_donate_SM.gif" alt="[donate]" /></a>
-                            <a href="#" onclick="javascript:window.prompt('Please copy/paste my Bitcoin address into your Bitcoin client.', '18eCE9wZxnNiZgE4Cc5pwJMnMjEfhdmH4U');"><img src="interfaces/default/images/bitcoin.png" alt="Bitcoin" height="20" align="center"></a></div>
+                            <a href="#" onclick="javascript:window.prompt('Please copy/paste my Bitcoin address into your Bitcoin client.', '18eCE9wZxnNiZgE4Cc5pwJMnMjEfhdmH4U');"><img src="images/bitcoin.png" alt="Bitcoin" height="20" align="center"></a></div>
                          </div>
                    </fieldset>
                   </td>
@@ -219,7 +219,24 @@
                                     <br/><small>Install new updates with no intervention</small>
                                  </div>
 -->
-            		 </fieldset>
+                                 <legend>Interface</legend>
+                                 <div class="row">
+                                  <label>Interface</label> 
+                                    <select name="interface"><h3>
+                                      %for interface in config['interface_list']:
+                                          <%
+                                              if interface == mylar.CONFIG.INTERFACE:
+                                                  selected = 'selected="selected"'
+                                              elif interface == 'base':
+                                                  continue
+                                              else:
+                                                  selected = ''
+                                          %>
+                                        <option value="${interface}" ${selected}>${interface}</option>
+                                      %endfor
+                                    </select>
+                                 </div>
+                    		 </fieldset>
                          <fieldset>
                              <legend>Annual Handling</legend>
                                 <div>
@@ -238,7 +255,7 @@
                                 <legend>API</legend>
                                 <div class="row">
                                    <label>ComicVine API Key</label>
-                                   <input type="text" name="comicvine_api" value="${config['comicvine_api']}" title="get one for free @ http://api.comicvine.com" size="40">
+                                   <input type="text" name="comicvine_api" id="comicvine_api" value="${config['comicvine_api']}" title="get one for free @ http://api.comicvine.com" size="40">
                                    <small>specify your own CV API key here </small>
                                 </div>
 
@@ -273,7 +290,7 @@
                                             <%
                                                  opds_notes = "Require authentication for OPDS.  If checked\nyou will need to provide a username/password.\nThe service user name will work (if set).  Additionally,\nyou can provide a user with only OPDS access below.\nNOTE: If this is not checked, OPDS will be available\nwithout a password."
                                             %>
-                                            <a href="#" title="${opds_notes}"><img src="interfaces/default/images/info32.png" height="16" alt="" /></a>
+                                            <a href="#" title="${opds_notes}"><img src="images/info32.png" height="16" alt="" /></a>
                                             <div id="opdscredentials">
                                                  <div class="row">
                                                      <label>OPDS Username</label>
@@ -315,7 +332,7 @@
                                 </div>
                                 <div class="row">
                                         <label>Comic Location Path</label>
-                                        <input type="text" name="destination_dir" value="${config['destination_dir']}" size="50">
+                                        <input type="text" name="destination_dir" id="destination_dir" value="${config['destination_dir']}" size="50">
                                         <small>Where do you store your comics?<br/> (or where do you want me to store them)</small>
                                         <small>e.g. /Users/name/Comics or /Volumes/share/comics</small>
                                 </div>
@@ -437,7 +454,7 @@
                                     </div>
                                 </div>
                                 <div align="center" class="row">
-                                     <img name="sabnzbd_statusicon" id="sabnzbd_statusicon" src="interfaces/default/images/success.png" style="float:right;visibility:hidden;" height="20" width="20" />
+                                     <img name="sabnzbd_statusicon" id="sabnzbd_statusicon" src="images/success.png" style="float:right;visibility:hidden;" height="20" width="20" />
                                      <input type="button" value="Test SABnzbd" id="test_sab" style="float:center" /></br>
                                      <input type="text" name="sabstatus" style="text-align:center; font-size:11px;" id="sabstatus" size="50" DISABLED />
                                      <div name="sabversion" id="sabversion" style="font-size:11px;" align="center">
@@ -505,7 +522,7 @@
                             </div>
 
                             <div align="center" class="row">
-                                 <img name="nzbget_statusicon" id="nzbget_statusicon" src="interfaces/default/images/success.png" style="float:right;visibility:hidden;" height="20" width="20" />
+                                 <img name="nzbget_statusicon" id="nzbget_statusicon" src="images/success.png" style="float:right;visibility:hidden;" height="20" width="20" />
                                  <input type="button" value="Test NZBGet" id="test_nzbget" style="float:center" /></br>
                                  <input type="text" name="nzbgetstatus" style="text-align:center; font-size:11px;" id="nzbgetstatus" size="50" DISABLED />
                             </div>
@@ -656,7 +673,7 @@
                                         <small>Automatically start torrent on successful loading within rtorrent client</small>
                                 </div>
                                 <div class="row">
-                                        <img name="rtorrent_statusicon" id="rtorrent_statusicon" src="interfaces/default/images/success.png" style="float:right;visibility:hidden;" height="20" width="20" />
+                                        <img name="rtorrent_statusicon" id="rtorrent_statusicon" src="images/success.png" style="float:right;visibility:hidden;" height="20" width="20" />
                                         <input type="button" value="Test Connection" id="rtorrent_test" />
                                 </div>
                         </fieldset>
@@ -715,7 +732,7 @@
 					</div>
 				</div>
 				<div class="row">
-					<img name="deluge_status_icon" id="deluge_status_icon" src="interfaces/default/images/success.png" style="float:right;visibility:hidden;" height="20" width="20" />
+					<img name="deluge_status_icon" id="deluge_status_icon" src="images/success.png" style="float:right;visibility:hidden;" height="20" width="20" />
 					<input type="button" value="Test Connection" id="deluge_test" /><br/>
 				</div>
 			</fieldset>
@@ -757,7 +774,7 @@
                                    </select>
                               </div>
                               <div class="row">
-                                    <img name="qbittorrent_statusicon" id="qbittorrent_statusicon" src="interfaces/default/images/success.png" style="float:right;visibility:hidden;" height="20" width="20" />
+                                    <img name="qbittorrent_statusicon" id="qbittorrent_statusicon" src="images/success.png" style="float:right;visibility:hidden;" height="20" width="20" />
                                     <input type="button" value="Test Connection" id="qbittorrent_test" />
                               </div>
                             </fieldset>
@@ -800,7 +817,7 @@
                                                 <input type="text" name="nzbsu_apikey" id="nzbsu_apikey" value="${config['nzbsu_api']}" size="36">
                   		        </div>
                                         <div>
-                                                <img name="nzbsu_statusicon" id="nzbsu_statusicon" src="interfaces/default/images/success.png" style="float:right;visibility:hidden;" height="20" width="20" />
+                                                <img name="nzbsu_statusicon" id="nzbsu_statusicon" src="images/success.png" style="float:right;visibility:hidden;" height="20" width="20" />
                                                 <input type="button" class="newznabtest" value="Test Connection" id="test_nzbsu" name="test_nzbsu" style="float:right;margin-right:10px;" />
                                         </div>
                 		</div>
@@ -819,7 +836,7 @@
                                                 <input type="text" name="dognzb_apikey" id="dognzb_apikey" value="${config['dognzb_api']}" size="36">
                                         </div>
                                         <div>
-                                                 <img name="dognzb_statusicon" id="dognzb_statusicon" src="interfaces/default/images/success.png" style="float:right;visibility:hidden;" height="20" width="20" />
+                                                 <img name="dognzb_statusicon" id="dognzb_statusicon" src="images/success.png" style="float:right;visibility:hidden;" height="20" width="20" />
                                                  <input type="button" class="newznabtest" value="Test Connection" id="test_dognzb" name="test_dognzb" style="float:right;margin-right:10px;" />
                                         </div>
                                 </div>
@@ -886,7 +903,7 @@
                                                     <small>( monitor the NEW releases feed & your personal notifications )</small>
                                                 </div>
                                                 <div align="center" class="row">
-                                                    <img name="test32p_statusicon" id="test32p_statusicon" src="interfaces/default/images/success.png" style="float:right;visibility:hidden;" height="20" width="20" />
+                                                    <img name="test32p_statusicon" id="test32p_statusicon" src="images/success.png" style="float:right;visibility:hidden;" height="20" width="20" />
                                                     <input type="button" value="Test Connection" id="test32p" style="float:center" /></br>
                                                     <input type="text" name="status32p" style="text-align:center; font-size:11px;" id="status32p" size="50" DISABLED />
                                                 </div>
@@ -946,7 +963,7 @@
                                                     </div>
                                                     <div class="row checkbox">
                                                         <input id="torznab_enabled${torznab_number}" type="checkbox" name="torznab_enabled${torznab_number}" value="1" ${torznab_enabled} /><label>Enabled</label>
-                                                        <img name="torznabstatus${torznab_number}" id="torznabstatus${torznab_number}" src="interfaces/default/images/success.png" style="float:right;visibility:hidden;" height="20" width="20" />
+                                                        <img name="torznabstatus${torznab_number}" id="torznabstatus${torznab_number}" src="images/success.png" style="float:right;visibility:hidden;" height="20" width="20" />
                                                        <input type="button" class="torznabtest" value="Test ${torznab[0]}" id="torznab_test${torznab_number}" name="torznab_test${torznab_number}" style="float:right;margin-right:10px;" />
                                                     </div>
                                                     <div class="row">
@@ -1002,7 +1019,7 @@
                                             </div>
                                             <div class="row">
                                                 <label>Newznab API</label>
-                                                <input type="text" name="newznab_api${newznab_number}" id="newznab_api${newznab_number}" value="${newznab[3]}" size="36">
+                                                <input type="text" name="newznab_apikey${newznab_number}" id="newznab_apikey${newznab_number}" value="${newznab[3]}" size="36">
                                             </div>
                                             <div class="row">
                                                 <label>Newznab UID</label>
@@ -1011,7 +1028,7 @@
                                             </div>
                                             <div class="row checkbox">
                                                 <input id="newznab_enabled${newznab_number}" type="checkbox" name="newznab_enabled${newznab_number}" value="1" ${newznab_enabled} /><label>Enabled</label>
-                                                <img name="newznabstatus${newznab_number}" id="newznabstatus${newznab_number}" src="interfaces/default/images/success.png" style="float:right;visibility:hidden;" height="20" width="20" />
+                                                <img name="newznabstatus${newznab_number}" id="newznabstatus${newznab_number}" src="images/success.png" style="float:right;visibility:hidden;" height="20" width="20" />
                                                 <input type="button" class="newznabtest" value="Test ${newznab[0]}" id="newznab_test${newznab_number}" name="newznab_test${newznab_number}" style="float:right;margin-right:10px;" />
                                             </div>
                                             <div class="row">
@@ -1245,7 +1262,7 @@
                                      <%
                                           folder_options = "$Series = SeriesName\n$Year = SeriesYear\n$Annual = Annual (word)\n$VolumeY = V{SeriesYear}\n$VolumeN = V{Volume#}\n$Type = BookType (TPB/GN)"
                                      %>
-                                     <a href="#" title="${folder_options}"><img src="interfaces/default/images/info32.png" height="16" alt="" /></a>
+                                     <a href="#" title="${folder_options}"><img src="images/info32.png" height="16" alt="" /></a>
                                      <small>Use: $Publisher, $Series, $Year<br />
                                          %if 'windows' in mylar.OS_DETECT.lower():
                                                E.g.: $Publisher\$Series ($Year) = DC Comics\Action Comics (2011)</small>
@@ -1259,7 +1276,7 @@
                                     <%
                                          file_options = "$Series = SeriesName\n$Year = IssueYear\n$Annual = Annual (word)\n$Issue = IssueNumber\n$VolumeY = V{SeriesYear}\n$VolumeN = V{Volume#}\n$month = publication month number\n$monthname = publication month name\n$Type = BookType (TPB)"
                                     %>
-                                    <a href="#" title="${file_options}"><img src="interfaces/default/images/info32.png" height="16" alt="" /></a>
+                                    <a href="#" title="${file_options}"><img src="images/info32.png" height="16" alt="" /></a>
                                     <small>Use:  $Series, $Year, $Issue<br />
                                                                 E.g.: $Series $Issue ($Year) = Animal Man 0 (2012) </small>
                                     <small>if tag isn't available, won't create it</small>
@@ -1328,22 +1345,7 @@
                                         </div>
 		        	</fieldset>
 					<fieldset>
-						<legend>Interface</legend>
-						<div class="row">
-							<label>Interface</label> 
-							<select name="interface"><h3>
-							%for interface in config['interface_list']:
-								<%
-									if interface == mylar.CONFIG.INTERFACE:
-										selected = 'selected="selected"'
-									else:
-										selected = ''
-								%>
-								<option value="${interface}" ${selected}>${interface}</option>
-							%endfor
-							</select>
-							
-						</div>
+						<legend>Logs</legend>
 						<div class="row">
 							<label>Log Directory:</label>
 							<input type="text" name="log_dir" value="${config['log_dir']}" size="50">
@@ -1356,7 +1358,7 @@
 					</fieldset>
                                         <h2>Notifications</h2>
                                         <fieldset>
-                                                <h3><img src="interfaces/default/images/prowl_logo.png" style="vertical-align: middle; margin: 3px; margin-top: -1px;" height="30" width="30"/>Prowl</h3>
+                                                <h3><img src="${icons['prowl_logo']}" style="vertical-align: middle; margin: 3px; margin-top: -1px;" height="30" width="30"/>Prowl</h3>
                                                 <div class="row checkbox">
                                                     <input type="checkbox" name="prowl_enabled" id="prowl" value="1" ${config['prowl_enabled']} /><label>Enable Prowl Notifications</label>
                                                  </div>
@@ -1372,13 +1374,13 @@
                                                          <input type="text" name="prowl_priority" value="${config['prowl_priority']}" size="2">
                                                      </div>
                                                      <div class="row">
-                                                         <img name="prowl_statusicon" id="prowl_statusicon" src="interfaces/default/images/success.png" style="float:right;visibility:hidden;" height="20" width="20" />
+                                                         <img name="prowl_statusicon" id="prowl_statusicon" src="images/success.png" style="float:right;visibility:hidden;" height="20" width="20" />
                                                          <input type="button" value="Test PROWL" id="prowl_test" />
                                                      </div>
                                                  </div>
                                         </fieldset>
                      <fieldset>
-                        <h3><img src="interfaces/default/images/pushover_logo.png" style="vertical-align: middle; margin: 3px; margin-top: -1px;" height="30" width="30"/>Pushover</h3>
+                        <h3><img src="images/pushover_logo.png" style="vertical-align: middle; margin: 3px; margin-top: -1px;" height="30" width="30"/>Pushover</h3>
                         <div class="row checkbox">
                              <input type="checkbox" name="pushover_enabled" id="pushover" value="1" ${config['pushover_enabled']} /><label>Enable Pushover Notifications</label>
                         </div>
@@ -1403,7 +1405,7 @@
                                  <input type="text" name="pushover_priority" value="${config['pushover_priority']}" size="2">
                              </div>
                             <div align="center" class="row">
-                                 <img name="pushover_statusicon" id="pushover_statusicon" src="interfaces/default/images/success.png" style="float:right;visibility:hidden;" height="20" width="20" />
+                                 <img name="pushover_statusicon" id="pushover_statusicon" src="images/success.png" style="float:right;visibility:hidden;" height="20" width="20" />
                                  <input type="button" value="Test Pushover" id="pushover_test" style="float:center" /></br>
                                  <input type="text" name="pushoverstatus" style="text-align:center; font-size:11px;" id="pushoverstatus" size="55" DISABLED />
                             </div>
@@ -1411,7 +1413,7 @@
                      </fieldset>            
 
                      <fieldset>
-                        <h3><img src="interfaces/default/images/boxcar_logo.png" style="vertical-align: middle; margin: 3px; margin-top: -1px;" height="30" width="30"/>Boxcar.IO</h3>
+                        <h3><img src="images/boxcar_logo.png" style="vertical-align: middle; margin: 3px; margin-top: -1px;" height="30" width="30"/>Boxcar.IO</h3>
                         <div class="checkbox row">
                            <input type="checkbox" name="boxcar_enabled" id="boxcar" value="1" ${config['boxcar_enabled']} /><label>Enable Boxcar.IO Notifications</label>
                         </div>
@@ -1423,14 +1425,14 @@
                                     <label>Boxcar Token</label>
                                     <input type="text" name="boxcar_token" value="${config['boxcar_token']}" size="30">
                                     <div class="row">
-                                        <img name="boxcar_statusicon" id="boxcar_statusicon" src="interfaces/default/images/success.png" style="float:right;visibility:hidden;" height="20" width="20" />
+                                        <img name="boxcar_statusicon" id="boxcar_statusicon" src="images/success.png" style="float:right;visibility:hidden;" height="20" width="20" />
                                         <input type="button" value="Test Boxcar" id="boxcar_test" />
                                    </div>
                             </div>
                         </div>
                      </fieldset>
                             <fieldset>
-                                <h3><img src="interfaces/default/images/pushbullet_logo.png" style="vertical-align: middle; margin: 3px; margin-top: -1px;" height="30" width="30"/>Pushbullet</h3>
+                                <h3><img src="images/pushbullet_logo.png" style="vertical-align: middle; margin: 3px; margin-top: -1px;" height="30" width="30"/>Pushbullet</h3>
                                 <div class="row checkbox">
                                     <input type="checkbox" name="pushbullet_enabled" id="pushbullet" value="1" ${config['pushbullet_enabled']} /><label>Enable PushBullet Notifications</label>
                                 </div>
@@ -1455,7 +1457,7 @@
                                         <small>Send to all subscribers of the channel with this tag (Optional)</small>
                                     </div>
                                     <div align="center" class="row">
-                                        <img name="pushbullet_statusicon" id="pushbullet_statusicon" src="interfaces/default/images/success.png" style="float:right;visibility:hidden;" height="20" width="20" />
+                                        <img name="pushbullet_statusicon" id="pushbullet_statusicon" src="images/success.png" style="float:right;visibility:hidden;" height="20" width="20" />
                                         <input type="button" value="Test Pushbullet" id="pushbullet_test" style="float:center" /></br>
                                         <input type="text" name="pbstatus" style="text-align:center; font-size:11px;" id="pbstatus" size="55" DISABLED />
                                    </div>
@@ -1463,7 +1465,7 @@
                             </fieldset>
 
                      <fieldset>
-                        <h3><img src="interfaces/default/images/telegram.png" style="vertical-align: middle; margin: 3px; margin-top: -1px;" height="30" width="30"/>Telegram</h3>
+                        <h3><img src="images/telegram.png" style="vertical-align: middle; margin: 3px; margin-top: -1px;" height="30" width="30"/>Telegram</h3>
                         <div class="row checkbox">
                              <input type="checkbox" name="telegram_enabled" id="telegram" value="1" ${config['telegram_enabled']} /><label>Enable Telegram Notifications</label>
                         </div>
@@ -1481,7 +1483,7 @@
                                  <input type="checkbox" name="telegram_image" title="Include cover image when sending post-processing notifs" value="1" ${config['telegram_image']} /><label>Post-processing with cover?</label>
                              </div>
                              <div align="center" class="row">
-                                 <img name="telegram_statusicon" id="telegram_statusicon" src="interfaces/default/images/success.png" style="float:right;visibility:hidden;" height="20" width="20" />
+                                 <img name="telegram_statusicon" id="telegram_statusicon" src="images/success.png" style="float:right;visibility:hidden;" height="20" width="20" />
                                  <input type="button" value="Test Telegram" id="telegram_test" style="float:center" /></br>
                                  <input type="text" name="telegramstatus" style="text-align:center; font-size:11px;" id="telegramstatus" size="55" DISABLED />
                              </div>
@@ -1489,7 +1491,7 @@
                      </fieldset>
 
                     <fieldset>
-                        <h3><img src="interfaces/default/images/slack.png" style="vertical-align: middle; margin: 3px; margin-top: -1px;" height="30" width="30"/>slack</h3>
+                        <h3><img src="images/slack.png" style="vertical-align: middle; margin: 3px; margin-top: -1px;" height="30" width="30"/>slack</h3>
                         <div class="row checkbox">
                             <input type="checkbox" name="slack_enabled" id="slack" value="1" ${config['slack_enabled']} /><label>Enable Slack Notifications</label>
                         </div>
@@ -1501,7 +1503,7 @@
                                 <input type="checkbox" name="slack_onsnatch" value="1" ${config['slack_onsnatch']} /><label>Notify on snatch?</label>
                             </div>
                             <div align="center" class="row">
-                                <img name="slack_statusicon" id="slack_statusicon" src="interfaces/default/images/success.png" style="float:right;visibility:hidden;" height="20" width="20" />
+                                <img name="slack_statusicon" id="slack_statusicon" src="images/success.png" style="float:right;visibility:hidden;" height="20" width="20" />
                                 <input type="button" value="Test Slack" id="slack_test" style="float:center" /></br>
                                 <input type="text" name="slackstatus" style="text-align:center; font-size:11px;" id="slackstatus" size="55" DISABLED />
                             </div>
@@ -1509,7 +1511,7 @@
                     </fieldset>
 
                     <fieldset>
-                        <h3><img src="interfaces/default/images/discord.png" style="vertical-align: middle; margin: 3px; margin-top: -1px;" height="30" width="30"/>discord</h3>
+                        <h3><img src="images/discord.png" style="vertical-align: middle; margin: 3px; margin-top: -1px;" height="30" width="30"/>discord</h3>
                         <div class="row checkbox">
                             <input type="checkbox" name="discord_enabled" id="discord" value="1" ${config['discord_enabled']} /><label>Enable Discord Notifications</label>
                         </div>
@@ -1521,7 +1523,7 @@
                                 <input type="checkbox" name="discord_onsnatch" value="1" ${config['discord_onsnatch']} /><label>Notify on snatch?</label>
                             </div>
                             <div align="center" class="row">
-                                <img name="discord_statusicon" id="discord_statusicon" src="interfaces/default/images/success.png" style="float:right;visibility:hidden;" height="20" width="20" />
+                                <img name="discord_statusicon" id="discord_statusicon" src="images/success.png" style="float:right;visibility:hidden;" height="20" width="20" />
                                 <input type="button" value="Test Discord" id="discord_test" style="float:center" /></br>
                                 <input type="text" name="discordstatus" style="text-align:center; font-size:11px;" id="discordstatus" size="55" DISABLED />
                             </div>
@@ -1529,7 +1531,7 @@
                     </fieldset>
 
                     <fieldset>
-                        <h3><img src="interfaces/default/images/email.png" style="vertical-align: middle; margin: 3px; margin-top: -1px;" height="30" width="30"/>Email</h3>
+                        <h3><img src="images/email.png" style="vertical-align: middle; margin: 3px; margin-top: -1px;" height="30" width="30"/>Email</h3>
                         <div class="row checkbox">
                             <input type="checkbox" name="email_enabled" id="email" value="1" ${config['email_enabled']} /><label>Enable Email Notifications</label>
                         </div>
@@ -1573,7 +1575,7 @@
                                 <small>Notify when comics are post processed?</small>
                             </div>
                             <div align="center" class="row">
-                                <img name="email_statusicon" id="email_statusicon" src="interfaces/default/images/success.png" style="float:right;visibility:hidden;" height="20" width="20" />
+                                <img name="email_statusicon" id="email_statusicon" src="images/success.png" style="float:right;visibility:hidden;" height="20" width="20" />
                                 <input type="button" value="Test Email" id="email_test" style="float:center" /></br>
                                 <input type="text" name="emailstatus" style="text-align:center; font-size:11px;" id="emailstatus" size="55" DISABLED />
                             </div>
@@ -2184,11 +2186,11 @@
                             $('#ajaxMsg').html("<div class='msg'><span class='ui-icon ui-icon-check'></span>"+obj['status']+"</div>");
                             if ( data.indexOf("Successfully") > -1){
                                 imagechk.src = "";
-                                imagechk.src = "interfaces/default/images/success.png";
+                                imagechk.src = "images/success.png";
                                 imagechk.style.visibility = "visible";
                             } else {
                                 imagechk.src = "";
-                                imagechk.src = "interfaces/default/images/fail.png";
+                                imagechk.src = "images/fail.png";
                                 imagechk.style.visibility = "visible";
                             }
                     });
@@ -2229,11 +2231,11 @@
                             $('#ajaxMsg').html("<div class='msg'><span class='ui-icon ui-icon-check'></span>"+obj['status']+"</div>");
                             if ( data.indexOf("Successfully") > -1){
                                 imagechk.src = "";
-                                imagechk.src = "interfaces/default/images/success.png";
+                                imagechk.src = "images/success.png";
                                 imagechk.style.visibility = "visible";
                             } else {
                                 imagechk.src = "";
-                                imagechk.src = "interfaces/default/images/fail.png";
+                                imagechk.src = "images/fail.png";
                                 imagechk.style.visibility = "visible";
                             }
                     });
@@ -2257,11 +2259,11 @@
                             $('#ajaxMsg').html("<div class='msg'><span class='ui-icon ui-icon-check'></span>"+data+"</div>");
                             if ( data.indexOf("Successfully") > -1){
                                 imagechk.src = "";
-                                imagechk.src = "interfaces/default/images/success.png";
+                                imagechk.src = "images/success.png";
                                 imagechk.style.visibility = "visible";
                             } else {
                                 imagechk.src = "";
-                                imagechk.src = "interfaces/default/images/fail.png";
+                                imagechk.src = "images/fail.png";
                                 imagechk.style.visibility = "visible";
                             }
                     });
@@ -2321,8 +2323,8 @@
 
                 $("#add_newznab").click(function() {
                     var intId = $("#newznab_providers > div").size() + deletedNewznabs + 1;
-                    var newzformfields = $("<div class=\"config\" id=\"newznab" + intId + "\"><div class=\"row\"><label>Newznab Name</label><input type=\"text\" id=\"newznab_name" + intId + "\" name=\"newznab_name" + intId + "\" size=\"36\"></div><div class=\"row\"><label>Newznab Host</label><input type=\"text\" id=\"newznab_host" + intId + "\" name=\"newznab_host" + intId + "\" + value=\"http://\" + size=\"30\"></div><div class=\"row checkbox\"><input type=\"checkbox\" id=\"newznab_verify" + intId + "\" name=\"newznab_verify" + intId + "\" value=\"0\" checked /><label>Verify SSL</label></div><div class=\"row\"><label>Newznab API</label><input type=\"text\" id=\"newznab_api" + intId + "\" name=\"newznab_api" + intId + "\" size=\"36\"></div><div class=\"row\"><label>Newznab UID</label><input type=\"text\" id=\"newznab_uid" + intId + "\" name=\"newznab_uid" + intId + "\" size=\"15\"></div><div class=\"row checkbox\"><input type=\"checkbox\" name=\"newznab_enabled" + intId + "\" value=\"1\" checked /><label>Enabled</label></div>");
-                    var newztestButton = $("<div class=\"row\"><img name=\"newznabstatus" + intId + "\" id=\"newznabstatus" + intId + "\" src=\"interfaces/default/images/success.png\" style=\"float:right;visibility:hidden;\" height=\"20\" width=\"20\" /><input type=\"button\" class=\"newznabtest\" value=\"Test\" id=\"newznab_test" + intId + "\"  name=\"newznab_test" + intId + "\" style=\"float:right;margin-right:10px;\" /></div>");
+                    var newzformfields = $("<div class=\"config\" id=\"newznab" + intId + "\"><div class=\"row\"><label>Newznab Name</label><input type=\"text\" id=\"newznab_name" + intId + "\" name=\"newznab_name" + intId + "\" size=\"36\"></div><div class=\"row\"><label>Newznab Host</label><input type=\"text\" id=\"newznab_host" + intId + "\" name=\"newznab_host" + intId + "\" + value=\"http://\" + size=\"30\"></div><div class=\"row checkbox\"><input type=\"checkbox\" id=\"newznab_verify" + intId + "\" name=\"newznab_verify" + intId + "\" value=\"0\" checked /><label>Verify SSL</label></div><div class=\"row\"><label>Newznab API</label><input type=\"text\" id=\"newznab_apikey" + intId + "\" name=\"newznab_apikey" + intId + "\" size=\"36\"></div><div class=\"row\"><label>Newznab UID</label><input type=\"text\" id=\"newznab_uid" + intId + "\" name=\"newznab_uid" + intId + "\" size=\"15\"></div><div class=\"row checkbox\"><input type=\"checkbox\" name=\"newznab_enabled" + intId + "\" value=\"1\" checked /><label>Enabled</label></div>");
+                    var newztestButton = $("<div class=\"row\"><img name=\"newznabstatus" + intId + "\" id=\"newznabstatus" + intId + "\" src=\"images/success.png\" style=\"float:right;visibility:hidden;\" height=\"20\" width=\"20\" /><input type=\"button\" class=\"newznabtest\" value=\"Test\" id=\"newznab_test" + intId + "\"  name=\"newznab_test" + intId + "\" style=\"float:right;margin-right:10px;\" /></div>");
                     var newzremoveButton = $("<div class=\"row\"><input type=\"button\" class=\"remove\" value=\"Remove\" /></div>");
                     newzremoveButton.click(function() {
                         $(this).parent().remove();
@@ -2337,7 +2339,7 @@
                 $("#add_torznab").click(function() {
                     var intId = $("#torznab_providers > div").size() + deletedTorznabs + 1;
                     var torformfields = $("<div class=\"config\" id=\"torznab" + intId + "\"><div class=\"row\"><label>Torznab Name</label><input type=\"text\" id=\"torznab_name" + intId + "\" name=\"torznab_name" + intId + "\" size=\"36\"></div><div class=\"row\"><label>Torznab Host</label><input type=\"text\" id=\"torznab_host" + intId + "\" name=\"torznab_host" + intId + "\" + value=\"http://\" + size=\"30\"></div><div class=\"row checkbox\"><input id=\"torznab_verify" + intId + "\" type=\"checkbox\" name=\"torznab_verify" + intId + "\" value=\"1\"/><label>Verify SSL</label></div><div class=\"row\"><label>Torznab API</label><input type=\"text\" id=\"torznab_apikey" + intId + "\" name=\"torznab_apikey" + intId + "\" size=\"36\"></div><div class=\"row\"><label>Torznab Category</label><input type=\"text\" id=\"torznab_category" + intId + "\" name=\"torznab_category" + intId + "\" size=\"36\"></div><div class=\"row checkbox\"><input type=\"checkbox\" name=\"torznab_enabled" + intId + "\" value=\"1\" checked /><label>Enabled</label></div>");
-                    var tortestButton = $("<div class=\"row\"><img name=\"torznabstatus" + intId + "\" id=\"torznabstatus" + intId + "\" src=\"interfaces/default/images/success.png\" style=\"float:right;visibility:hidden;\" height=\"20\" width=\"20\" /><input type=\"button\" class=\"torznabtest\" value=\"Test\" id=\"torznab_test" + intId + "\"  name=\"torznab_test" + intId + "\" style=\"float:right;margin-right:10px;\" /></div>");
+                    var tortestButton = $("<div class=\"row\"><img name=\"torznabstatus" + intId + "\" id=\"torznabstatus" + intId + "\" src=\"images/success.png\" style=\"float:right;visibility:hidden;\" height=\"20\" width=\"20\" /><input type=\"button\" class=\"torznabtest\" value=\"Test\" id=\"torznab_test" + intId + "\"  name=\"torznab_test" + intId + "\" style=\"float:right;margin-right:10px;\" /></div>");
                     var torremoveButton = $("<div class=\"row\"><input type=\"button\" class=\"remove\" value=\"Remove\" /></div>");
                     torremoveButton.click(function() {
                         $(this).parent().remove();
@@ -2364,11 +2366,11 @@
                             $('#ajaxMsg').html("<div class='msg'><span class='ui-icon ui-icon-check'></span>"+data+"</div>");
                             if ( data.indexOf("Successfully") > -1){
                                 imagechk.src = "";
-                                imagechk.src = "interfaces/default/images/success.png";
+                                imagechk.src = "images/success.png";
                                 imagechk.style.visibility = "visible";
                             } else {
                                 imagechk.src = "";
-                                imagechk.src = "interfaces/default/images/fail.png";
+                                imagechk.src = "images/fail.png";
                                 imagechk.style.visibility = "visible";
                             }
                     });
@@ -2398,11 +2400,11 @@
                             $('#ajaxMsg').html("<div class='msg'><span class='ui-icon ui-icon-check'></span>"+data+"</div>");
                             if ( data.indexOf("Successfully") > -1){
                                 imagechk.src = "";
-                                imagechk.src = "interfaces/default/images/success.png";
+                                imagechk.src = "images/success.png";
                                 imagechk.style.visibility = "visible";
                             } else {
                                 imagechk.src = "";
-                                imagechk.src = "interfaces/default/images/fail.png";
+                                imagechk.src = "images/fail.png";
                                 imagechk.style.visibility = "visible";
                             }
                     });
@@ -2424,11 +2426,11 @@
                             $('#ajaxMsg').html("<div class='msg'><span class='ui-icon ui-icon-check'></span>"+data+"</div>");
                             if ( data.indexOf("Successfully") > -1){
                                 imagechk.src = "";
-                                imagechk.src = "interfaces/default/images/success.png";
+                                imagechk.src = "images/success.png";
                                 imagechk.style.visibility = "visible";
                             } else {
                                 imagechk.src = "";
-                                imagechk.src = "interfaces/default/images/fail.png";
+                                imagechk.src = "images/fail.png";
                                 imagechk.style.visibility = "visible";
                             }
                     });
@@ -2466,11 +2468,11 @@
                             $('#ajaxMsg').html("<div class='msg'><span class='ui-icon ui-icon-check'></span>"+data+"</div>");
                             if ( data.indexOf("Successfully") > -1){
                                 imagechk.src = "";
-                                imagechk.src = "interfaces/default/images/success.png";
+                                imagechk.src = "images/success.png";
                                 imagechk.style.visibility = "visible";
                             } else {
                                 imagechk.src = "";
-                                imagechk.src = "interfaces/default/images/fail.png";
+                                imagechk.src = "images/fail.png";
                                 imagechk.style.visibility = "visible";
                             }
                     });
@@ -2494,11 +2496,11 @@
                             $('#ajaxMsg').html("<div class='msg'><span class='ui-icon ui-icon-check'></span>"+data+"</div>");
                             if ( data.indexOf("Successfully") > -1){
                                 imagechk.src = "";
-                                imagechk.src = "interfaces/default/images/success.png";
+                                imagechk.src = "images/success.png";
                                 imagechk.style.visibility = "visible";
                             } else {
                                 imagechk.src = "";
-                                imagechk.src = "interfaces/default/images/fail.png";
+                                imagechk.src = "images/fail.png";
                                 imagechk.style.visibility = "visible";
                             }
                     });
@@ -2518,11 +2520,11 @@
                             $('#ajaxMsg').html("<div class='msg'><span class='ui-icon ui-icon-check'></span>"+data+"</div>");
                             if ( data.indexOf("Successfully") > -1){
                                 imagechk.src = "";
-                                imagechk.src = "interfaces/default/images/success.png";
+                                imagechk.src = "images/success.png";
                                 imagechk.style.visibility = "visible";
                             } else {
                                 imagechk.src = "";
-                                imagechk.src = "interfaces/default/images/fail.png";
+                                imagechk.src = "images/fail.png";
                                 imagechk.style.visibility = "visible";
                             }
                     });
@@ -2545,11 +2547,11 @@
                             $('#ajaxMsg').html("<div class='msg'><span class='ui-icon ui-icon-check'></span>"+data+"</div>");
                             if ( data.indexOf("Successfully") > -1){
                                imagechk.src = "";
-                                imagechk.src = "interfaces/default/images/success.png";
+                                imagechk.src = "images/success.png";
                                 imagechk.style.visibility = "visible";
                             } else {
                                 imagechk.src = "";
-                                imagechk.src = "interfaces/default/images/fail.png";
+                                imagechk.src = "images/fail.png";
                                 imagechk.style.visibility = "visible";
                             }
                     });
@@ -2570,11 +2572,11 @@
                             $('#ajaxMsg').html("<div class='msg'><span class='ui-icon ui-icon-check'></span>"+data+"</div>");
                             if ( data.indexOf("Successfully") > -1){
                                imagechk.src = "";
-                                imagechk.src = "interfaces/default/images/success.png";
+                                imagechk.src = "images/success.png";
                                 imagechk.style.visibility = "visible";
                             } else {
                                 imagechk.src = "";
-                                imagechk.src = "interfaces/default/images/fail.png";
+                                imagechk.src = "images/fail.png";
                                 imagechk.style.visibility = "visible";
                             }
                     });
@@ -2596,11 +2598,11 @@
                             $('#ajaxMsg').html("<div class='msg'><span class='ui-icon ui-icon-check'></span>"+data+"</div>");
                             if ( data.indexOf("Successfully") > -1){
                                imagechk.src = "";
-                                imagechk.src = "interfaces/default/images/success.png";
+                                imagechk.src = "images/success.png";
                                 imagechk.style.visibility = "visible";
                             } else {
                                 imagechk.src = "";
-                                imagechk.src = "interfaces/default/images/fail.png";
+                                imagechk.src = "images/fail.png";
                                 imagechk.style.visibility = "visible";
                             }
                     });
@@ -2622,11 +2624,11 @@
                             $('#ajaxMsg').html("<div class='msg'><span class='ui-icon ui-icon-check'></span>"+data+"</div>");
                             if ( data.indexOf("Successfully") > -1){
                                imagechk.src = "";
-                                imagechk.src = "interfaces/default/images/success.png";
+                                imagechk.src = "images/success.png";
                                 imagechk.style.visibility = "visible";
                             } else {
                                 imagechk.src = "";
-                                imagechk.src = "interfaces/default/images/fail.png";
+                                imagechk.src = "images/fail.png";
                                 imagechk.style.visibility = "visible";
                             }
                     });
@@ -2647,11 +2649,36 @@
                             $('#ajaxMsg').html("<div class='msg'><span class='ui-icon ui-icon-check'></span>"+data+"</div>");
                             if ( data.indexOf("Successfully") > -1){
                                imagechk.src = "";
-                                imagechk.src = "interfaces/default/images/success.png";
+                                imagechk.src = "images/success.png";
                                 imagechk.style.visibility = "visible";
                             } else {
                                 imagechk.src = "";
-                                imagechk.src = "interfaces/default/images/fail.png";
+                                imagechk.src = "images/fail.png";
+                                imagechk.style.visibility = "visible";
+                            }
+                    });
+                    $('#ajaxMsg').addClass('success').fadeIn().delay(3000).fadeOut();
+                });
+
+                $('#discord_test').click(function () {
+                    var imagechk = document.getElementById("discord_statusicon");
+                    var webhook_url = document.getElementById("discord_webhook_url").value;
+                    $.get("testdiscord",
+                        { webhook_url: webhook_url },
+                        function(data){
+                            if (data.error != undefined) {
+                                alert(data.error);
+                                return;
+                            }
+                            $('#discordstatus').val(data);
+                            $('#ajaxMsg').html("<div class='msg'><span class='ui-icon ui-icon-check'></span>"+data+"</div>");
+                            if ( data.indexOf("Successfully") > -1){
+                               imagechk.src = "";
+                                imagechk.src = "images/success.png";
+                                imagechk.style.visibility = "visible";
+                            } else {
+                                imagechk.src = "";
+                                imagechk.src = "images/fail.png";
                                 imagechk.style.visibility = "visible";
                             }
                     });
@@ -2703,11 +2730,11 @@
                             $('#ajaxMsg').html("<div class='msg'><span class='ui-icon ui-icon-check'></span>"+data+"</div>");
                             if ( data.indexOf("Successfully") > -1){
                                imagechk.src = "";
-                                imagechk.src = "interfaces/default/images/success.png";
+                                imagechk.src = "images/success.png";
                                 imagechk.style.visibility = "visible";
                             } else {
                                 imagechk.src = "";
-                                imagechk.src = "interfaces/default/images/fail.png";
+                                imagechk.src = "images/fail.png";
                                 imagechk.style.visibility = "visible";
                             }
                     });

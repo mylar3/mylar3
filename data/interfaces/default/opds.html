@@ -2,6 +2,7 @@
       xmlns:xhtml="http://www.w3.org/1999/xhtml"
       xmlns:opds="http://opds-spec.org/2010/catalog"
       xmlns:opensearch="http://a9.com/-/spec/opensearch/1.1/"
+      xmlns:pse="http://vaemendis.net/opds-pse/ns"
       xmlns:dcterms="http://purl.org/dc/terms/">
     <title>${opds['title']}</title>
     <id>${opds['id']}</id>
@@ -33,6 +34,9 @@
         <link href="${entry['href']}" rel="http://opds-spec.org/acquisition" type="application/octet-stream"/>
         %else:
         <link href="${entry['href']}" rel= "${entry['rel']}" type="application/atom+xml; profile=opds-catalog; kind=${entry['kind']}"/>
+        %endif
+        %if 'stream' in entry and 'pse_count' in entry:
+        <link href="${entry['stream']}&amp;page={pageNumber}&amp;width={maxWidth}" rel="http://vaemendis.net/opds-pse/stream" type="image/jpeg" pse:count="${entry['pse_count']}"/>
         %endif
         %if 'thumbnail' in entry and entry['thumbnail']:
         <link href="${entry['thumbnail']}" type="image/jpeg" rel="http://opds-spec.org/image/thumbnail"/>

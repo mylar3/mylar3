@@ -27,7 +27,7 @@
 </%def>
 
 <%def name="headIncludes()">
-        <link rel="stylesheet" href="interfaces/default/css/data_table.css">
+        <link rel="stylesheet" href="interfaces/${interface}/css/data_table.css">
 </%def>
 
 <%def name="javascriptIncludes()">
@@ -48,8 +48,8 @@
                        "targets": [ 0 ],
                        "visible": true,
                        "render":function (data,type,full) {
-                           if (full[0].length > 15){
-                               cb = '<span title="' + full[0] + '"></span>'+full[0].slice(0,15)+"...";
+                           if (full[0].length > 20){
+                               cb = '<span title="' + full[0] + '"></span>'+full[0].slice(0,20)+"...";
                            } else {
                                cb = '<span title="' + full[0] + '"></span>'+full[0];
                            }
@@ -120,13 +120,13 @@
                        "render":function (data,type,full) {
                                 stats = full[6]
                                 if (stats == 'Active'){
-                                    response = '<img src="interfaces/default/images/checkmark.png" alt="Active" width="16" height="16" />';
+                                    response = '<img src="images/checkmark.png" alt="Active" width="16" height="16" />';
                                 } else if (stats == 'Paused') {
-                                    response = '<img src="interfaces/default/images/pause-icon.png" alt="Paused" width="16" height="16" />';
+                                    response = '<img src="images/pause-icon.png" alt="Paused" width="16" height="16" />';
                                 } else if (stats == 'Loading') {
-                                    response = '<img src="interfaces/default/images/hourglass.png" alt="Loading" width="16" height="16" />';
+                                    response = '<img src="images/hourglass.png" alt="Loading" width="16" height="16" />';
                                 } else {
-                                    response = '<img src="interfaces/default/images/cross.png" alt="Error" width="16" height="16" />';
+                                    response = '<img src="images/cross.png" alt="Error" width="16" height="16" />';
                                 }
                                 return response;
                         }
@@ -160,6 +160,7 @@
                      nRow.children[2].id = 'year';
                      nRow.children[3].id = 'issue';
                      nRow.children[4].id = 'published';
+                     nRow.children[5].id = 'have';
                      nRow.children[6].id = 'status';
                      nRow.children[7].id = 'active';
                      return nRow;

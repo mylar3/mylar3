@@ -104,12 +104,13 @@ table.display {
 }
 
 table.display thead th {
-	padding: 3px 16px 8px 15px;
+	padding: 3px 5px 3px 5px;
 	background-color: white;
-	-font-weight: bold;
-	font-size: 13px;
+	font-weight: bold;
+	font-size: 16px;
 	border-bottom: 1px solid #1c1e22;
-	boroder-bottom-width: 3px;
+	border-bottom-width: 3px;
+	text-align: center;
 }
 
 table.display tfoot th {
@@ -119,16 +120,17 @@ table.display tfoot th {
 }
 
 table.display tr.heading2 td {
-	border-bottom: 1px solid #aaa;
+       border-bottom: 1px solid #aaa;
+       text-align: center;
+       vertical-align: middle;
 }
-
 table.display td {
-	padding: 8px 10px;
-	font-size: 12px;
-	border-bottom: 1px solid #1c1e22;
- 	border-right: 1px solid #1c1e22;
+       border-bottom: 1px solid #1c1e22;
+       border-right: 1px solid #1c1e22;
+       vertical-align: middle;
+       padding: 4px 5px;
+       font-size: 12px;
 }
-table
 table.display td.center {
 	text-align: center;
 }
@@ -177,7 +179,6 @@ table.display_no_select td {
 	padding: 8px 10px;
 	font-size: 14px;
 }
-table
 table.display_no_select td.center {
 	text-align: center;
 }
@@ -229,7 +230,6 @@ table.display_log td {
 	border-left: 1px solid #1c1e22;
 	border-bottom: 1px solid #1c1e22;
 }
-table
 table.display_log td.center {
         text-align: center;
 }
@@ -272,11 +272,11 @@ table.display_log td.center {
  * DataTables row classes
  */
 table.display tr.odd.gradeA {
-	-background-color: #353a41;
+	background-color: #0d4a0b;
 }
 
 table.display tr.even.gradeA {
-	-background-color: #2e3338;
+	background-color: #0d4a0b;
 }
 
 table.display tr.odd.gradeC {
@@ -311,11 +311,11 @@ table.display tr.odd.gradeL {
 }
 
 table.display tr.odd.gradeX {
-	-background-color: #ae3431;
+	background-color: #641716;
 }
 
 table.display tr.even.gradeX {
-	-background-color: #ae3431;
+	background-color: #641716;
 }
 
 table.display tr.odd.gradeU {
@@ -371,12 +371,11 @@ table.display tr.odd.gradeT1 {
 table.display tr.even.gradeT1 {
         background-color: #FFDDDD;
 }
-
 table.display tr.odd.gradeT2 {
-        background-color: #FFDDAA;
+        background-color: #A97D7B;
 }
 table.display tr.even.gradeT2 {
-        background-color: #FFDDAA;
+        background-color: #A97D7B;
 }
 table.display tr.gradeL #status {
 	background: url("../images/loader_black.gif") no-repeat scroll 15px center transparent;
@@ -396,7 +395,7 @@ table.display tr.gradeT td,
 table.display tr.gradeF td,
 table.display tr.gradeT1 td,
 table.display tr.gradeT2 td,
-table.display tr.gradeZ td {border-bottom: 1px solid #1c1e22;border-right: 1px solid #1c1e22;-text-align:center;-padding:3px 16px 8px 15px;}
+table.display tr.gradeZ td {border-bottom: 1px solid #1c1e22;border-right: 1px solid #1c1e22; }
 table.display tr:last-child td {
 	-border-bottom: 1px solid #eee;
 }
@@ -538,7 +537,7 @@ table.display_no_select tr.gradeT1 td,
 table.display_no_select tr.gradeT2 td,
 table.display_no_select tr.gradeZ td {border-bottom: 1px solid #1c1e22; border-right: 1px solid #1c1e22;}
 table.display_no_select tr:last-child td {
-        border-bottom: 1px solid #1c1e22;
+        -border-bottom: 1px solid #1c1e22;
 }
 table.display_no_select tr td#add .ui-icon { display: inline-block; }
 
@@ -604,21 +603,21 @@ td.details {
 }
 
 .paging_full_numbers .paginate_button,
- 	.paging_full_numbers .paginate_active, 
-        .paging_simple_numbers .paginate_button,
-        .paging_simple_numbers .paginate_active {
+.paging_full_numbers .paginate_active,
+.paging_simple_numbers .paginate_button,
+.paging_simple_numbers .paginate_active {
 	background: none repeat scroll 0 0 #666;
-	   border-radius: 5px 5px 5px 5px;
-	   margin: 0 0 0 5px;
-	   font-size: 15px;
-	   padding: 2px 7px;
-	   color: #fff;
+        border-radius: 4px 4px 4px 4px;
+        margin: 0 0 0 4px;
+        font-size: 15px;
+        padding: 2px 5px;
+        color: #fff;
 	cursor: pointer;
 	*cursor: hand;
 }
 
 .paging_full_numbers .paginate_button:hover, .paging_simple_numbers .paginate_button:hover {
-	background-color: #e2e2e2;
+	background-color: #171166;
 }
 
 .paging_full_numbers .paginate_active, .paging_simple_numbers .paginate_active {

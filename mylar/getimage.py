@@ -37,6 +37,42 @@ from operator import itemgetter
 import mylar
 from mylar import logger, helpers
 
+def open_archive(location):
+    if location.endswith(".cbz"):
+        return zipfile.ZipFile(location), 'is_dir'
+    else:
+        try:
+            return rarfile.RarFile(location), 'isdir'
+        except rarfile.BadRarFile as e:
+            logger.warn('[WARNING] %s: %s' % (location,e))
+            try:
+                logger.info('Trying to see if this is a zip renamed as a rar: %s' % (location))
+                return zipfile.ZipFile(location), 'is_dir'
+            except Exception as e:
+                logger.warn('[EXCEPTION] %s' % e)
+        except Exception as e:
+            logger.warn('[EXCEPTION]: %s' % e)
+
+def isimage(filename):
+    return os.path.splitext(filename)[1][1:].lower() in ['jpg', 'jpeg', 'png', 'webp']
+
+def comic_pages(archive):
+      return sorted([name for name in archive.namelist() if isimage(name)])
+
+def page_count(archive):
+      return len(comic_pages(archive))
+
+def scale_image(img, iformat, new_width, algorithm=Image.LANCZOS):
+    # img = PIL image object
+    # iformat = 'jpeg', 'png', or 'webp'
+    # new_width = width in pixels
+    # algorithm = scaling algorithm used
+    scale = (new_width / float(img.size[0]))
+    new_height = int(scale * img.size[1])
+    img = img.resize((new_width, new_height), algorithm)
+    with BytesIO() as output:
+        img.save(output, format=iformat)
+        return output.getvalue()
 
 def extract_image(location, single=False, imquality=None, comicname=None):
     #location = full path to the cbr/cbz (filename included in path)
@@ -56,28 +92,7 @@ def extract_image(location, single=False, imquality=None, comicname=None):
     cb_filenames=[]
     metadata = None
     if single is True:
-        if location.endswith(".cbz"):
-            location_in = zipfile.ZipFile(location)
-            dir_opt = 'is_dir'
-            actual_ext = '.cbz'
-        else:
-            try:
-                location_in = rarfile.RarFile(location)
-                dir_opt = 'isdir'
-                actual_ext = '.cbr'
-            except rarfile.BadRarFile as e:
-                logger.warn('[WARNING] %s: %s' % (location,e))
-                try:
-                    logger.info('Trying to see if this is a zip renamed as a rar: %s' % (location))
-                    location_in = zipfile.ZipFile(location)
-                    dir_opt = 'is_dir'
-                    actual_ext = '.cbz'
-                except Exception as e:
-                    logger.warn('[EXCEPTION] %s' % e)
-                    return
-            except Exception as e:
-                logger.warn('[EXCEPTION]: %s' % e)
-                return
+        location_in, dir_opt = open_archive(location)
         try:
             cntr = 0
             newlencnt = 0
@@ -153,18 +168,13 @@ def extract_image(location, single=False, imquality=None, comicname=None):
             try:
                 insidefile = location_in.getinfo(cb_filename)
                 img = Image.open( BytesIO( location_in.read(insidefile) ))
-                wpercent = (600/float(img.size[0]))
-                hsize = int((float(img.size[1])*float(wpercent)))
-                img = img.resize((600, hsize), Image.ANTIALIAS)
-                output = BytesIO()
-                img.save(output, format="JPEG")
+                imdata = scale_image(img, "JPEG", 600)
                 try:
-                    ComicImage = str(base64.b64encode(output.getvalue()), 'utf-8')
-                    RawImage = output.getvalue()
+                    ComicImage = str(base64.b64encode(imdata), 'utf-8')
+                    RawImage = imdata
                 except Exception as e:
-                    ComicImage = str(base64.b64encode(output.getvalue() + "==="), 'utf-8')
-                    RawImage = output.getvalue() + "==="
-                output.close()
+                    ComicImage = str(base64.b64encode(imdata + "==="), 'utf-8')
+                    RawImage = imdata + "==="
 
             except Exception as e:
                 logger.warn('[WARNING] Unable to resize existing image: %s' % e)
@@ -188,13 +198,8 @@ def retrieve_image(url):
         else:
             data = r.content
             img = Image.open(BytesIO(data))
-            wpercent = (600/float(img.size[0]))
-            hsize = int((float(img.size[1])*float(wpercent)))
-            img = img.resize((600, hsize), Image.ANTIALIAS)
-            output = BytesIO()
-            img.save(output, format="JPEG")
-            ComicImage = str(base64.b64encode(output.getvalue()), 'utf-8')
-            output.close()
+            imdata = scale_image(img, "JPEG", 600)
+            ComicImage = str(base64.b64encode(imdata), 'utf-8')
 
     return ComicImage
 

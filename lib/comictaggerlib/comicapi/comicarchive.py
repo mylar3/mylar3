@@ -30,7 +30,13 @@ try:
 except ImportError:
     nsort = False
 
-from unrar.cffi import rarfile
+try:
+    from unrar.cffi import rarfile
+    unrar_cffi = True
+except ImportError:
+    from lib.rarfile import rarfile
+    unrar_cffi = False
+
 try:
     import Image
     pil_available = True
@@ -246,6 +252,8 @@ class RarArchiver:
     def __init__(self, path, rar_exe_path):
         self.path = path
         self.rar_exe_path = rar_exe_path
+        if unrar_cffi is False:
+            rarfile.UNRAR_TOOL = rar_exe_path
 
         if RarArchiver.devnull is None:
             RarArchiver.devnull = open(os.devnull, "w")
@@ -600,7 +608,15 @@ class ComicArchive:
         return zipfile.is_zipfile(self.path)
 
     def rarTest(self):
-        return rarfile.is_rarfile(self.path)        
+        if unrar_cffi is True:
+            return rarfile.is_rarfile(self.path)
+        else:
+            try:
+                rarc = rarfile.RarFile(self.path)
+            except:
+                return False
+            else:
+                return True
 
     def isZip(self):
         return self.archive_type == self.ArchiveType.Zip
