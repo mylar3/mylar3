@@ -796,7 +796,7 @@ class OPDS(object):
                             metainfo = issuedetails.get('metadata', None)
                     if not metainfo:
                         metainfo = [{'writer': None,'summary': ''}]
-                    fileloc = os.path.join(comic['ComicLocation'],issue['Location'])
+                    fileloc = issue['fileloc']
                     if not os.path.isfile(fileloc):
                         logger.debug("Missing File: %s" % (fileloc))
                         continue
