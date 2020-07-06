@@ -514,7 +514,7 @@ def nzbs(provider=None, forcerss=False):
         if mylar.CONFIG.NZBSU == 1:
             num_items = "&num=100" if forcerss else ""  # default is 25
             params = {'t':        '7030',
-                      'dl':        '1', 
+                      'dl':        '1',
                       'i':         mylar.CONFIG.NZBSU_UID,
                       'r':         mylar.CONFIG.NZBSU_APIKEY,
                       'num_items': num_items}
@@ -523,12 +523,14 @@ def nzbs(provider=None, forcerss=False):
                 helpers.disable_provider(site)
 
         if mylar.CONFIG.DOGNZB == 1:
-            num_items = "&num=100" if forcerss else ""  # default is 25
-            params = {'t':        '7030',
-                      'r':         mylar.CONFIG.DOGNZB_APIKEY,
-                      'num_items': num_items}
+            #default is 100
+            params = {'cat':        '7030',
+                      'o':          'xml',
+                      'apikey':     mylar.CONFIG.DOGNZB_APIKEY,
+                      't':          'search',
+                      'dl':         '1'}
 
-            check = _parse_feed('dognzb', 'https://dognzb.cr/rss.cfm', mylar.CONFIG.DOGNZB_VERIFY, params)
+            check = _parse_feed('dognzb', 'https://api.dognzb.cr/api', mylar.CONFIG.DOGNZB_VERIFY, params)
             if check == 'disable':
                 helpers.disable_provider(site)
 

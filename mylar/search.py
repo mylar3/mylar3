@@ -328,8 +328,8 @@ def search_init(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueD
                     torznab_host = None
                     searchprov = prov_order[prov_count].lower()
 
-                if all([searchprov == 'dognzb', mylar.CONFIG.DOGNZB == 0]) or all([searchprov == 'dognzb', not provider_blocked]):
-                    #since dognzb could hit the 50 daily api limit during the middle of a search run, check here on each pass to make
+                if all([searchprov == 'dognzb', mylar.CONFIG.DOGNZB == 0]) or all([searchprov == 'dognzb', provider_blocked]):
+                    #since dognzb could hit the 100 daily api limit during the middle of a search run, check here on each pass to make
                     #sure it's not disabled (it gets auto-disabled on maxing out the API hits)
                     prov_count+=1
                     continue
@@ -797,7 +797,8 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueDa
                             data = False
                         else:
                             data = r.content
-                    except:
+                    except Exception as e:
+                        logger.warn('[ERROR] %s' % e)
                         data = False
 
                     if data:
@@ -1951,6 +1952,8 @@ def searchIssueIDList(issuelist):
             ComicVersion = comic['ComicVersion']
             TorrentID_32p = comic['TorrentID_32P']
             booktype = comic['Type']
+            if comic['Corrected_Type'] is not None and comic['Type'] != comic['Corrected_Type']:
+                booktype = comic['Corrected_Type']
             if issue['IssueDate'] == None:
                 IssueYear = comic['ComicYear']
             else:
@@ -1962,7 +1965,7 @@ def searchIssueIDList(issuelist):
 
             mylar.SEARCH_QUEUE.put({'comicname': comic['ComicName'], 'seriesyear': SeriesYear, 'issuenumber':issue['Issue_Number'], 'issueid': issue['IssueID'], 'comicid': issue['ComicID'], 'booktype': booktype})
 
-        logger.info('Completed search request.')
+        logger.info('Completed queuing of search request.')
     else:
         logger.warn('There are no search providers enabled atm - not performing the requested search for obvious reasons')
 
