@@ -107,7 +107,7 @@ a {
   outline: none;
 }
 a:hover {
-  color: #fff;
+  color: darkgreen;
   -text-decoration: underline;
 }
 a.blue {
