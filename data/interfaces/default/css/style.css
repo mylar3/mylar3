@@ -2163,3 +2163,38 @@ fieldset {
 img.highqual {
     -ms-interpolation-mode: bicubuic;
 }
+
+#btn_container {
+  float: right;
+  height: 30px;
+  list-style-type: none;
+  width: 100%;
+  z-index: 998;
+}
+#btn_container #btn_menu {
+  float: right;
+  margin-top: 5px;
+  position: relative;
+  z-index: 99;
+}
+#btn_container #btn_menu a {
+  background-image: -moz-linear-gradient(#f4f4f4, #e7e7e7) !important;
+  background-image: linear-gradient(#f4f4f4, #e7e7e7) !important;
+  background-image: -webkit-linear-gradient(#f4f4f4, #e7e7e7) !important;
+  background-image: -o-linear-gradient(#f4f4f4, #e7e7e7) !important;
+  filter: progid:dximagetransform.microsoft.gradient(startColorstr=#fafafa, endColorstr=#eaeaea) !important;
+  -ms-filter: progid:dximagetransform.microsoft.gradient(startColorstr=#fafafa, endColorstr=#eaeaea) !important;
+  font-family: "Helvetica Neue", Helvetica, Arial, Geneva, sans-serif;
+  font-size: 12px;
+  font-weight: normal;
+}
+#btn_container #btn_menu a:hover {
+  background-image: -moz-linear-gradient(#599bdc, #3072b3) !important;
+  background-image: linear-gradient(#599bdc, #3072b3) !important;
+  background-image: -webkit-linear-gradient(#599bdc, #3072b3) !important;
+  background-image: -o-linear-gradient(#599bdc, #3072b3) !important;
+  filter: progid:dximagetransform.microsoft.gradient(startColorstr=#fafafa, endColorstr=#eaeaea) !important;
+  -ms-filter: progid:dximagetransform.microsoft.gradient(startColorstr=#fafafa, endColorstr=#eaeaea) !important;
+  color: #FFF;
+  border-color: #518CC6 #518CC6 #2A65A0;
+}

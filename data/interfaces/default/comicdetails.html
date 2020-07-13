@@ -58,10 +58,10 @@
                 </h1>
                              <div style="z-index:10; position: absolute; right: 0; top: 10;">
                              % if 'Previous' in series:
-                             <a href="comicDetails?ComicID=${series['Previous']}"><img src="images/prev.gif" width="16" height="18" /></a>
+                             <a href="comicDetails?ComicID=${series['Previous']}"><img src="${icons['prev']}" width="16" height="18" /></a>
                              % endif
                              % if 'Next' in series:
-                             <a href="comicDetails?ComicID=${series['Next']}"><img src="images/next.gif" width="16" height="18" /></a>
+                             <a href="comicDetails?ComicID=${series['Next']}"><img src="${icons['next']}" width="16" height="18" /></a>
                              % endif
                              </div>
 
@@ -325,10 +325,12 @@
             <label for="Failed" class="checkbox inline Failed"><input type="checkbox" id="Failed" checked="checked" /> Failed: <b>${isCounts['Failed']}</b></label>
         %endif
     </div>
-    <div class="pull-right" style="padding-bottom: 5px;">
-        <button class="btn btn-mini seriesCheck"><a href="#" onclick="return false;">Select Filtered Issues</a></button>
-        <button class="btn btn-mini clearAll"><a href="#" onclick="return false;">Clear All</a></button>
-    </div>
+   </div>
+    <div id="btn_container">
+        <div id="btn_menu" style="padding-bottom: 5px;">
+            <a id="menu_link_refresh" onclick="seriesCheck();return false;" href="#">Select Filtered Issues</a>
+            <a id="menu_link_edit" onclick="clearAll();return false;" href="#">Clear All</a>
+        </div>
    </div>
 
      <div class="table_wrapper">
@@ -348,7 +350,7 @@
                 </select>
                 selected issues
                 <input type="hidden" value="Go">
-            <input type="checkbox" name="skipped2wanted" onclick="doAjaxCall('skipped2wanted?comicid=${comic['ComicID']}',$(this),'table')" value="1" data-success="Skipped Issues Changed to Wanted" style="float: right; vertical-align: middle; margin: 3px; margin-top: -1px;" /><label style="float: right; vertical-align: middle; margin: 3px; margin-top: -1px;">Change All Skipped to Wanted </label>
+            <input type="checkbox" name="skipped2wanted" onclick="doAjaxCall('skipped2wanted?comicid=${comic['ComicID']}',$(this),'table')" value="1" data-success="Skipped Issues Changed to Wanted" style="float: right; vertical-align: bottom; margin: 3px; margin-top: 3px;" /><label style="float: right; vertical-align: middle; margin: 3px; margin-top: -2px;"">Change All Skipped to Wanted </label>
         </div>
 
 
@@ -842,18 +844,18 @@
         });
 
         // selects all visible episode checkboxes.
-        $('.seriesCheck').click(function() {
+        function seriesCheck() {
             $('.issCheck:visible').each(function() {
                     this.checked = true;
             });
-        });
+        }
 
         // clears all visible episode checkboxes and the season selectors
-        $('.clearAll').click(function() {
+        function clearAll() {
             $('.issCheck:visible').each(function() {
                     this.checked = false;
             });
-        });
+        }
 
         // show/hide different types of rows when the checkboxes are changed
         $("#checkboxControls input").change(function(e){

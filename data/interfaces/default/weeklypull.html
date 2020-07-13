@@ -30,7 +30,7 @@
               <tr>
               <td style="vertical-align: middle; text-align: right">
                   <a href="pullist?week=${weekinfo['prev_weeknumber']}&year=${weekinfo['prev_year']}&current=${weekinfo['weeknumber']}-${weekinfo['year']}" title="Previous Week (${weekinfo['prev_weeknumber']})" onclick="$('#pull_table').page('first').draw('page');">
-                      <img src="images/prev.gif" width="16" height="18" Alt="Previous"/>
+                      <img src="${icons['prev']}" width="16" height="18" Alt="Previous"/>
                   </a>
               </td>
               <td style="vertical-align: middle; text-align: center">
@@ -42,7 +42,7 @@
               </td>
               <td style="vertical-align: middle; text-align: left">
                     <a href="pullist?week=${weekinfo['next_weeknumber']}&year=${weekinfo['next_year']}&current=${weekinfo['weeknumber']}-${weekinfo['year']}" title="Next Week (${weekinfo['next_weeknumber']})" onclick="$('#pull_table').page('first').draw('page');">
-                      <img src="images/next.gif" width="16" height="18" Alt="Next"/>
+                      <img src="${icons['next']}" width="16" height="18" Alt="Next"/>
                   </a>
               </td>
               </tr>
