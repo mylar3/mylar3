@@ -107,7 +107,7 @@ a {
   outline: none;
 }
 a:hover {
-  color: darkgreen;
+  color: #fff;
   -text-decoration: underline;
 }
 a.blue {
@@ -2219,3 +2219,35 @@ table#annual_table td#astatus { vertical-align: middle; text-align: center; max-
 table#annual_table td#aoptions { vertical-align: middle; text-align: center; max-width: 100px; }
 table#annual_table td#aissuename { vertical-align: middle; text-align: center; min-width: 200px; }
 
+#btn_container {
+  float: right;
+  height: 30px;
+  list-style-type: none;
+  width: 100%;
+  z-index: 998;
+}
+#btn_container #btn_menu {
+  float: right;
+  margin-top: 5px;
+  position: relative;
+  z-index: 99;
+}
+#btn_container #btn_menu a {
+  background-image: -moz-linear-gradient(#616161, #4e4e4e) !important;
+  background-image: linear-gradient(#616161, #4e4e4e) !important;
+  background-image: -webkit-linear-gradient(#616161, #4e4e4e) !important;
+  background-image: -o-linear-gradient(#616161, #4e4e4e) !important;
+  filter: progid:dximagetransform.microsoft.gradient(startColorstr=#6a6a6a, endColorstr=#4a4a4a) !important;
+  font-family: "Helvetica Neue", Helvetica, Arial, Geneva, sans-serif;
+  font-size: 12px;
+  font-weight: normal;
+}
+#btn_container #btn_menu a:hover {
+  background-image: -moz-linear-gradient(#599bdc, #3072b3) !important;
+  background-image: linear-gradient(#599bdc, #3072b3) !important;
+  background-image: -webkit-linear-gradient(#599bdc, #3072b3) !important;
+  background-image: -o-linear-gradient(#599bdc, #3072b3) !important;
+  filter: progid:dximagetransform.microsoft.gradient(startColorstr=#fafafa, endColorstr=#eaeaea) !important;
+  color: #FFF;
+  border-color: #272b30 #272b30 #272b30;
+}
