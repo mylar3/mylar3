@@ -1344,7 +1344,7 @@ def weekly_singlecopy(comicid, issuenum, file, path, weekinfo):
         logger.error(module + ' Could not copy ' + str(srcfile) + ' to ' + str(desfile))
         return
 
-    logger.info(module + ' Sucessfully copied to ' + desfile.encode('utf-8').strip())
+    logger.info(module + ' Successfully copied to ' + desfile.strip())
     return
 
 def send2read(comicid, issueid, issuenum):
