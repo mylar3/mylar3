@@ -188,7 +188,7 @@ class PostProcessor(object):
         logger.fdebug("Executing command " +str(script_cmd))
         logger.fdebug("Absolute path to script: " +script_cmd[0])
         try:
-            p = subprocess.Popen(script_cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, cwd=mylar.PROG_DIR)
+            p = subprocess.Popen(script_cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, cwd=mylar.PROG_DIR, text=True)
             out, err = p.communicate() #@UnusedVariable
             logger.fdebug("Script result: " + out)
             self._log("Script result: " + out)
