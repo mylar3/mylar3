@@ -3767,15 +3767,27 @@ def getImage(comicid, url, issueid=None):
             #    buf = StringIO(r.content)
             #    f = gzip.GzipFile(fileobj=buf)
 
+            #remote_filesize = int(r.headers['Content-length'])
+            #logger.info('remote_filesize: %s' % remote_filesize)
+            #if os.path.isfile(coverfile):
+            #    #get the filesize of the existing cover
+            #    statinfo = os.stat(coverfile)
+            #    coversize = statinfo.st_size
+            #else:
+            #    coversize = 0
+
+            #if coversize != remote_filesize or coversize == 0:
             with open(coverfile, 'wb') as f:
                 for chunk in r.iter_content(chunk_size=1024):
                     if chunk: # filter out keep-alive new chunks
                         f.write(chunk)
                         f.flush()
 
-
             statinfo = os.stat(coverfile)
             coversize = statinfo.st_size
+
+        return {'coversize': coversize,
+                'status':    'success'}
 
     if any([int(coversize) < 10000, statuscode != '200']):
         try:
@@ -3791,7 +3803,8 @@ def getImage(comicid, url, issueid=None):
         if os.path.exists(coverfile):
             os.remove(coverfile)
 
-        return 'retry'
+        return {'coversize': coversize,
+                'status':    'retry'}
 
 def publisherImages(publisher):
     comicpublisher = None
