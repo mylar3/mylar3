@@ -572,10 +572,10 @@ class PostProcessor(object):
                         wv_comicpublisher = wv['ComicPublisher']
                         wv_alternatesearch = wv['AlternateSearch']
                         wv_comicid = wv['ComicID']
-                        if (all([wv['Type'] != 'Print', wv['Type'] != 'Digital']) and wv['Corrected_Type'] != 'Print') or wv['Corrected_Type'] == 'TPB':
-                            wv_type = 'TPB'
+                        if wv['Corrected_Type'] is None:
+                            wv_type = wv['Type']
                         else:
-                            wv_type = None
+                            wv_type = wv['Corrected_Type']
                         wv_seriesyear = wv['ComicYear']
                         wv_comicversion = wv['ComicVersion']
                         wv_publisher = wv['ComicPublisher']
@@ -645,7 +645,7 @@ class PostProcessor(object):
                             continue
                         else:
                             try:
-                                if cs['WatchValues']['Type'] == 'TPB' and cs['WatchValues']['Total'] > 1:
+                                if all([cs['WatchValues']['Type'] == 'TPB', cs['WatchValues']['Total'] > 1]) or all([cs['WatchValues']['Type'] == 'One-Shot', cs['WatchValues']['Total'] == 1]):
                                     if watchmatch['series_volume'] is not None:
                                         just_the_digits = re.sub('[^0-9]', '', watchmatch['series_volume']).strip()
                                     else:
@@ -662,7 +662,10 @@ class PostProcessor(object):
                                 temploc = re.sub('[\#\']', '', temploc)
                                 #logger.fdebug('temploc: %s' % temploc)
                             else:
-                                temploc = None
+                                if any([cs['WatchValues']['Type'] == 'TPB', cs['WatchValues']['Type'] == 'One-Shot']):
+                                   temploc = '1'
+                                else:
+                                   temploc = None
                             datematch = "False"
 
                             if temploc is None and all([cs['WatchValues']['Type'] != 'TPB', cs['WatchValues']['Type'] != 'One-Shot']):
@@ -719,6 +722,10 @@ class PostProcessor(object):
                                     continue
 
                             for isc in issuechk:
+                                if any([temploc is not None, temploc != 999999999999999]) and helpers.issuedigits(temploc) != helpers.issuedigits(isc['Issue_Number']):
+                                    logger.fdebug('issues dont match. Skipping')
+                                    continue
+
                                 datematch = "True"
                                 datechkit = False
                                 if isc['ReleaseDate'] is not None and isc['ReleaseDate'] != '0000-00-00':
@@ -815,13 +822,16 @@ class PostProcessor(object):
                                             else:
                                                 logger.fdebug('%s[ISSUE-VERIFY][SeriesYear-Volume FAILURE] Series Year of %s DID NOT match to volume/year label of %s' % (module, watch_values['SeriesYear'], tmp_watchmatch_vol))
                                                 datematch = "False"
-                                        elif len(watchvals) > 1 and int(tmp_watchmatch_vol) >= 1:
+                                        elif (len(watchvals) > 1 and int(tmp_watchmatch_vol) >= 1):
                                             if int(tmp_watchmatch_vol) == int(tmp_watchlist_vol):
                                                 logger.fdebug('%s[ISSUE-VERIFY][SeriesYear-Volume MATCH] Volume label of series Year of %s matched to volume label of %s' % (module, watch_values['ComicVersion'], watchmatch['series_volume']))
                                                 lonevol = True
                                             else:
                                                 logger.fdebug('%s[ISSUE-VERIFY][SeriesYear-Volume FAILURE] Volume label of Series Year of %s DID NOT match to volume label of %s' % (module, watch_values['ComicVersion'], watchmatch['series_volume']))
                                                 datematch = "False"
+                                        elif (len(watchvals) == 1 and int(tmp_watchmatch_vol) == int(tmp_watchlist_vol)):
+                                            logger.fdebug('%s[ISSUE-VERIFY][SeriesYear-Volume MATCH] Volume label of series Year of %s matched to volume label of %s' % (module, watch_values['ComicVersion'], watchmatch['series_volume']))
+                                            lonevol = True
                                     else:
                                         if any([tmp_watchlist_vol is None, tmp_watchlist_vol == 'None', tmp_watchlist_vol == '']):
                                             logger.fdebug('%s[ISSUE-VERIFY][NO VOLUME PRESENT] No Volume label present for series. Dropping down to Issue Year matching.' % module)
@@ -989,7 +999,7 @@ class PostProcessor(object):
                                     res[acv['ComicName']].append({"ArcValues":     acv['ArcValues'],
                                                                   "WatchValues":   acv['WatchValues']})
                     if len(res) > 0:
-                        logger.fdebug('%s Now Checking if %s issue(s) may also reside in one of the storyarc\'s that I am watching.' % (module, len(res)))
+                        logger.fdebug('%s Now Checking if this issue(s) may also reside in one of %s storyarc\'s that I am watching.' % (module, len(res)))
                     for k,v in list(res.items()):
                         i = 0
                         #k is ComicName
@@ -1000,7 +1010,7 @@ class PostProcessor(object):
                             else:
                                 arcm = filechecker.FileChecker(watchcomic=k, Publisher=v[i]['ArcValues']['ComicPublisher'], manual=v[i]['WatchValues'])
                                 arcmatch = arcm.matchIT(fl)
-                                #logger.fdebug('arcmatch: ' + str(arcmatch))
+                                #logger.fdebug('arcmatch: %s' % arcmatch)
                                 if arcmatch['process_status'] == 'fail':
                                     nm+=1
                                 else:
@@ -1009,7 +1019,7 @@ class PostProcessor(object):
                                             if watchmatch['series_volume'] is not None:
                                                 just_the_digits = re.sub('[^0-9]', '', arcmatch['series_volume']).strip()
                                             else:
-                                                just_the_digits = re.sub('[^0-9]', '', arcmatch['justthedigits']).strip()
+                                                just_the_digits = re.sub('[^0-9.]', '', arcmatch['justthedigits']).strip()
                                         else:
                                             just_the_digits = arcmatch['justthedigits']
                                     except Exception as e:
@@ -1027,7 +1037,7 @@ class PostProcessor(object):
                                         else:
                                             temploc = None
 
-                                    if temploc is not None and helpers.issuedigits(temploc) != helpers.issuedigits(v[i]['ArcValues']['IssueNumber']):
+                                    if any([temploc is not None ,temploc != 999999999999999]) and helpers.issuedigits(temploc) != helpers.issuedigits(v[i]['ArcValues']['IssueNumber']):
                                         #logger.fdebug('issues dont match. Skipping')
                                         i+=1
                                         continue
@@ -1150,9 +1160,10 @@ class PostProcessor(object):
                                             logger.fdebug('datematch: %s' % datematch)
                                             logger.fdebug('temploc: %s' % helpers.issuedigits(temploc))
                                             logger.fdebug('arcissue: %s' % helpers.issuedigits(v[i]['ArcValues']['IssueNumber']))
-                                            if datematch == "True" and helpers.issuedigits(temploc) == helpers.issuedigits(v[i]['ArcValues']['IssueNumber']):
+                                            if datematch == "True": # and helpers.issuedigits(temploc) == helpers.issuedigits(v[i]['ArcValues']['IssueNumber']):
                                                 #reset datematch here so it doesn't carry the value down and avoid year checks
                                                 datematch = "False"
+                                                lonevol = False
                                                 arc_values = v[i]['WatchValues']
                                                 if any([arc_values['ComicVersion'] is None, arc_values['ComicVersion'] == 'None']):
                                                     tmp_arclist_vol = '1'
@@ -1166,18 +1177,23 @@ class PostProcessor(object):
                                                         else:
                                                             logger.fdebug('%s[ARC ISSUE-VERIFY][SeriesYear-Volume FAILURE] Series Year of %s DID NOT match to volume/year label of %s' % (module, arc_values['SeriesYear'], tmp_arcmatch_vol))
                                                             datematch = "False"
-                                                    if len(arcvals) > 1 and int(tmp_arcmatch_vol) >= 1:
+                                                    elif len(arcvals) > 1 and int(tmp_arcmatch_vol) >= 1:
                                                         if int(tmp_arcmatch_vol) == int(tmp_arclist_vol):
                                                             logger.fdebug('%s[ARC ISSUE-VERIFY][SeriesYear-Volume MATCH] Volume label of series Year of %s matched to volume label of %s' % (module, arc_values['ComicVersion'], arcmatch['series_volume']))
+                                                            lonevol = True
                                                         else:
                                                             logger.fdebug('%s[ARC ISSUE-VERIFY][SeriesYear-Volume FAILURE] Volume label of Series Year of %s DID NOT match to volume label of %s' % (module, arc_values['ComicVersion'], arcmatch['series_volume']))
                                                             datematch = "False"
+                                                    elif (len(arcvals) == 1 and int(tmp_arcmatch_vol) == int(tmp_arclist_vol)):
+                                                        logger.fdebug('%s[ARC ISSUE-VERIFY][SeriesYear-Volume MATCH] Volume label of series Year of %s matched to volume label of %s' % (module, arc_values['ComicVersion'], arcmatch['series_volume']))
+                                                        lonevol = True
                                                 else:
                                                     if any([tmp_arclist_vol is None, tmp_arclist_vol == 'None', tmp_arclist_vol == '']):
                                                         logger.fdebug('%s[ARC ISSUE-VERIFY][NO VOLUME PRESENT] No Volume label present for series. Dropping down to Issue Year matching.' % module)
                                                         datematch = "False"
                                                     elif len(arcvals) == 1 and int(tmp_arclist_vol) == 1:
                                                         logger.fdebug('%s[ARC ISSUE-VERIFY][Lone Volume MATCH] Volume label of %s indicates only volume for this series on your watchlist.' % (module, arc_values['ComicVersion']))
+                                                        lonevol = True
                                                     elif int(tmp_arclist_vol) > 1:
                                                         logger.fdebug('%s[ARC ISSUE-VERIFY][Lone Volume FAILURE] Volume label of %s indicates that there is more than one volume for this series, but the one on your watchlist has no volume label set.' % (module, arc_values['ComicVersion']))
                                                         datematch = "False"
@@ -1196,6 +1212,10 @@ class PostProcessor(object):
                                                             else:
                                                                 logger.fdebug('%s[ARC ISSUE-VERIFY][Issue Year MATCH] Modified Issue Year of %s is a match to the year found in the filename of : %s' % (module, issyr, arcmatch['issue_year']))
                                                                 datematch = 'True'
+
+                                                elif datematch == 'False' and arcmatch['issue_year'] is None and lonevol is True:
+                                                    logger.fdebug('%s[LONE-VOLUME/NO YEAR][MATCH] Only Volume on arc watchlist matches, no year present in filename. Assuming match based on volume and title.' % module)
+                                                    datematch = 'True'
 
                                                 if datematch == 'True':
                                                     passit = False
