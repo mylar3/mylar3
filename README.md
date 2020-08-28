@@ -26,6 +26,7 @@ The Mylar Forums are also online @ https://forum.mylarcomics.com
 ## Requirements
 - At least Python version 3.7.2 - most heavily tested with 3.8.1 (2.x is not supported)
 - Python version 3.8+ of Mylar will not work on Windows due to some dependency issues
+- Unrar is required to be on the system for ComicTagger integration to work (or RaR will work as well on Windows systems). If Unrar/RaR is not in the system path, the full path to the binary must be specified in the rar_exe_path field in .ComicTagger/settings located in either the root of Mylar or the user's home directory.
 - ComicVine API key (found [here](https://comicvine.gamespot.com/api/) - program will have limited to no functionality without it
 
 ## Installation
