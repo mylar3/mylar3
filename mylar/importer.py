@@ -224,9 +224,8 @@ def addComictoDB(comicid, mismatch=None, pullupd=None, imported=None, ogcname=No
         comlocation = comvalues['comlocation']
         comsubpath = comvalues['subpath']
     else:
-        comsubpath = re.sub(mylar.CONFIG.DESTINATION_DIR, '', comlocation).strip()
+        comsubpath = comlocation.replace(mylar.CONFIG.DESTINATION_DIR, '').strip()
 
-    logger.info('subpath: %s' % comsubpath)
     #moved this out of the above loop so it will chk for existance of comlocation in case moved
     #if it doesn't exist - create it (otherwise will bugger up later on)
     if comlocation is not None:
