@@ -1341,14 +1341,18 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueDa
                     #find the pack range.
                     pack_issuelist = None
                     issueid_info = None
-                    if not entry['title'].startswith('0-Day Comics Pack'):
-                        pack_issuelist = entry['issues']
-                        issueid_info = helpers.issue_find_ids(ComicName, ComicID, pack_issuelist, IssueNumber)
-                        if issueid_info['valid'] == True:
-                            logger.info('Issue Number %s exists within pack. Continuing.' % IssueNumber)
-                        else:
-                            logger.fdebug('Issue Number %s does NOT exist within this pack. Skipping' % IssueNumber)
-                            continue
+                    try:
+                        if not entry['title'].startswith('0-Day Comics Pack'):
+                            pack_issuelist = entry['issues']
+                            issueid_info = helpers.issue_find_ids(ComicName, ComicID, pack_issuelist, IssueNumber)
+                            if issueid_info['valid'] == True:
+                                logger.info('Issue Number %s exists within pack. Continuing.' % IssueNumber)
+                            else:
+                                logger.fdebug('Issue Number %s does NOT exist within this pack. Skipping' % IssueNumber)
+                                continue
+                    except:
+                        logger.error('Unable to identify pack range for %s' % entry['title'])
+                        continue
                     #pack support.
                     nowrite = False
                     if all([nzbprov == 'ddl', 'getcomics' in entry['link']]):
