@@ -1,20 +1,14 @@
-# Mylar.service to run as $USER with config in $DATA_DIR
-
 [Unit]
-SourcePath=/etc/init.d/mylar
-Description=starts instance of Mylar
-After=all.target
+Description=Systemd script to run Mylar3 as a service
+After=network-online.target
 
 [Service]
-Type=forking
-Restart=no
-TimeoutSec=5min
-IgnoreSIGPIPE=no
-KillMode=process
+User=Username
+Group=Groupname
+ExecStart=<full path to python executable> <full path to Mylar.py> -v --daemon  --nolaunch --quiet
 GuessMainPID=no
-RemainAfterExit=yes
-ExecStart=/etc/init.d/mylar start
-ExecStop=/etc/init.d/mylar stop
+Type=forking
+Restart=on-failure
 
 [Install]
 WantedBy=multi-user.target
