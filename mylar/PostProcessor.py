@@ -964,6 +964,7 @@ class PostProcessor(object):
                         logger.error('%s No Story Arcs in Watchlist that contain that particular series - aborting Manual Post Processing. Maybe you should be running Import?' % module)
                         return
                     else:
+                        tmp_arclist = []
                         arcvals = []
                         for av in arc_series:
                             arcvals.append({"ComicName":       av['ComicName'],
@@ -1163,9 +1164,9 @@ class PostProcessor(object):
                                                 else:
                                                     logger.info('%s Found matching issue # %s for ComicID: %s / IssueID: %s' % (module, fcdigit, v[i]['WatchValues']['ComicID'], isc['IssueID']))
 
-                                            logger.fdebug('datematch: %s' % datematch)
-                                            logger.fdebug('temploc: %s' % helpers.issuedigits(temploc))
-                                            logger.fdebug('arcissue: %s' % helpers.issuedigits(v[i]['ArcValues']['IssueNumber']))
+                                            #logger.fdebug('datematch: %s' % datematch)
+                                            #logger.fdebug('temploc: %s' % helpers.issuedigits(temploc))
+                                            #logger.fdebug('arcissue: %s' % helpers.issuedigits(v[i]['ArcValues']['IssueNumber']))
                                             if datematch == "True": # and helpers.issuedigits(temploc) == helpers.issuedigits(v[i]['ArcValues']['IssueNumber']):
                                                 #reset datematch here so it doesn't carry the value down and avoid year checks
                                                 datematch = "False"
@@ -1258,6 +1259,10 @@ class PostProcessor(object):
                                                                                "Publisher":       arcpublisher,
                                                                                "ReadingOrder":    v[i]['ArcValues']['ReadingOrder'],
                                                                                "ComicName":       k})
+                                                        tmp_arclist.append({"ComicName": k,
+                                                                            "ComicID":   v[i]['WatchValues']['ComicID'],
+                                                                            "IssueID":   v[i]['ArcValues']['IssueID']})
+
                                                         logger.info('%s[SUCCESSFUL MATCH: %s-%s] Match verified for %s' % (module, k, v[i]['WatchValues']['ComicID'], arcmatch['comicfilename']))
                                                         self.matched = True
                                                         break
@@ -1265,6 +1270,33 @@ class PostProcessor(object):
                                                     logger.fdebug('%s[NON-MATCH: %s-%s] Incorrect series - not populating..continuing post-processing' % (module, k, v[i]['WatchValues']['ComicID']))
 
                             i+=1
+                        if len(tmp_arclist) > 1:
+                            logger.info('[STORY-ARC VERIFICATION] %s matches to storyarcs - probably due to invalid name matching above. Let\'s try to correct this.' % len(tmp_arclist))
+                            keep_match = []
+                            drop_match = []
+                            for x in tmp_arclist:
+                                xmld = filechecker.FileChecker()
+                                xmld1 = xmld.dynamic_replace(x['ComicName']) #helpers.conversion(cs['ComicName']))
+                                xseries = xmld1['mod_seriesname'].lower()
+                                xmld2 = xmld.dynamic_replace(arcmatch['series_name']) #helpers.conversion(watchmatch['series_name']))
+                                xfile = xmld2['mod_seriesname'].lower()
+                                if re.sub('\|', '', xseries) == re.sub('\|', '', xfile):
+                                    logger.fdebug('%s[DEFINITIVE-NAME MATCH] Definitive name match exactly to : %s [%s]' % (module, arcmatch['series_name'], x['ComicID']))
+                                    keep_match.append(x['IssueID'])
+                                    self.matched = True
+                                else:
+                                    logger.fdebug('INVALID MATCH DETECTED: %s' % x['ComicName'])
+                                    drop_match.append(x['IssueID'])
+
+                            tmp_list = []
+                            for xy in manual_arclist:
+                                if [True for dm in drop_match if xy['IssueID'] == dm]:
+                                    continue
+                                else:
+                                    tmp_list.append(xy)
+                            manual_arclist = tmp_list
+                            #logger.fdebug('new_manualarclist: %s' % (manual_arclist,))
+
                     if self.matched is False:
                         #one-off manual pp'd of torrents
                         if all(['0-Day Week' in self.nzb_name, mylar.CONFIG.PACK_0DAY_WATCHLIST_ONLY is True]):
