@@ -904,7 +904,7 @@ class PostProcessor(object):
                                                             "IssueNumber":     isc['Issue_Number'],
                                                             "AnnualType":      annualtype,
                                                             "ComicName":       cs['ComicName'],
-                                                            "AgeRating":       cs['AgeRating'],
+                                                            "AgeRating":       cs['WatchValues']['AgeRating'],
                                                             "Series":          watchmatch['series_name'],
                                                             "AltSeries":       watchmatch['alt_series'],
                                                             "One-Off":         False,
