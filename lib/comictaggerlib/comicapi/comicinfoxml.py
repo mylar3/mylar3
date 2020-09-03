@@ -96,6 +96,7 @@ class ComicInfoXml:
         assign('AlternateSeries', md.alternateSeries)
         assign('AlternateNumber', md.alternateNumber)
         assign('StoryArc', md.storyArc)
+        assign('StoryArcNumber', md.storyArcNumber)
         assign('SeriesGroup', md.seriesGroup)
         assign('AlternateCount', md.alternateCount)
         assign('Summary', md.comments)
@@ -175,7 +176,7 @@ class ComicInfoXml:
         assign('PageCount', md.pageCount)
         assign('LanguageISO', md.language)
         assign('Format', md.format)
-        assign('AgeRating', md.maturityRating)
+        assign('AgeRating', md.ageRating)
         if md.blackAndWhite is not None and md.blackAndWhite:
             ET.SubElement(root, 'BlackAndWhite').text = "Yes"
         assign('Manga', md.manga)
@@ -243,8 +244,9 @@ class ComicInfoXml:
         md.pageCount = xlate('PageCount')
         md.scanInfo = xlate('ScanInformation')
         md.storyArc = xlate('StoryArc')
+        md.storyArcNumber = xlate('StoryArcNumber')
         md.seriesGroup = xlate('SeriesGroup')
-        md.maturityRating = xlate('AgeRating')
+        md.ageRating = xlate('AgeRating')
 
         tmp = xlate('BlackAndWhite')
         md.blackAndWhite = False

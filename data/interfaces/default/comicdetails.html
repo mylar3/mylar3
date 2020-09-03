@@ -152,6 +152,9 @@
                                     </label>
                                 </div>
                                 <div>
+                                    <label><big>Age Rating: </big><norm>${comic['AgeRating']}</norm></label>
+                                </div>
+                                <div>
                                     <label><big>Last Updated: </big>
                                 %if comic['LastUpdated'] is None:
                                     <norm>Never</norm>
@@ -209,9 +212,37 @@
                      <img src="${comicConfig['publisher_image']}" align="right" alt="${comicConfig['publisher_image_alt']}" height="${comicConfig['publisher_imageH']}" width="${comicConfig['publisher_imageW']}" />
                  %endif
                  <form action="comic_config" method="GET">
-                    <input type="hidden" name="ComicID" value=${comic['ComicID']}>
+                    <input type="hidden" name="ComicID" value=${comic['ComicID']} />
                         <fieldset>
-                                <br/>
+                                <div class="row checkbox right clearfix">
+                                        <label>Age-Rating</label>
+                                        <select name="age_rating">
+                                        <%
+                                            ar_list = ['All Ages', '9+', '12+', '15+', '17+', 'Adult']
+                                        %>
+                                        %for arr in ar_list:
+                                                <%
+                                                        if comicConfig['age_rating'] == arr:
+                                                                outputselect = 'selected'
+                                                        else:
+                                                                outputselect = ''
+                                                %>
+                                                %if comicConfig['age_rating'] is None:
+                                                    %if arr == 'Select':
+                                                        <option value='' selected disabled hidden>Select...</option>
+                                                    %elif comic['AgeRating'] == arr:
+                                                        <option value=${arr} disabled>${arr}</option>
+                                                    %else:
+                                                        <option value=${arr} ${outputselect}>${arr}</option>
+                                                    %endif
+                                                %elif comicConfig['age_rating'] == arr:
+                                                    <option value=${arr} selected disabled>${arr}</option>
+                                                %else:
+                                                    <option value=${arr} ${outputselect}>${arr}</option>
+                                                %endif
+                                        %endfor
+                                        </select>
+                                </div>
                                 <div class="row checkbox right clearfix">
                                    <label>Forcibly Mark as Continuing</label>
                                    <input type="checkbox" style="vertical-align: bottom; margin: 3px; margin-top: -3px;" name="force_continuing" value="1" ${comicConfig['force_continuing']} />
@@ -257,18 +288,18 @@
                                 %if any([comic['ComicYear'] == '2099',comic['ComicYear'] == '0000', comic['ComicYear'] == '', comic['Corrected_SeriesYear']]):
                                     <div class="row">
                                         <label>Series Year</label>
-                                        <input type="text" title="The series year currently is probably incorrect. This option allows it to be manually changed." name="corrected_seriesyear" value="${comic['ComicYear']}" size="10"><br/>
+                                        <input type="text" title="The series year currently is probably incorrect. This option allows it to be manually changed." name="corrected_seriesyear" value="${comic['ComicYear']}" size="10">
                                     </div>
                                 %endif
                                 <div class="row">
                                     <label>Volume Number</label>
-                                    <input type="text" name="comic_version" value="${comic['ComicVersion']}" size="20"><br/>
+                                    <input type="text" name="comic_version" value="${comic['ComicVersion']}" size="20">
 				    <small>Format: vN where N is a number 0-infinity</small>
                                 </div>
 
                                    <div class="row">
                                        <label>Directory Location</label>
-                                       <input type="text" name="com_location" value="${comic['ComicLocation']}" size="90"><br/>
+                                       <input type="text" name="com_location" value="${comic['ComicLocation']}" size="90">
                                        <small>The directory where all the comics are located for this particular comic</small>
                                    </div>
 
@@ -286,14 +317,14 @@
                                        <small>Alternate file-naming to be used when post-processing / renaming files instead of the actual title.</small>
                                    </div>
 
-                                    <div class="row">
+                                   <div class="row">
                                         <%
                                              year_options = "Default - Keep the Year as is\nYear Removal - Remove issue publication year from searches (dangerous)\nFuzzy the Year - Increase & Decrease the issue publication year by one"
                                         %>
                                         <label>Year Options</label>
                                         <input type="radio" style="vertical-align: middle; margin: 3px; margin-top: -3px;" name="fuzzy_year" value="0" ${comicConfig['fuzzy_year0']} /> Default&nbsp;<input type="radio" style="vertical-align: middle; margin: 3px; margin-top: -3px;" name="fuzzy_year" value="1" ${comicConfig['fuzzy_year1']} /> Year Removal&nbsp;<input type="radio" style="vertical-align: middle; margin: 3px; margin-top: -3px;" name="fuzzy_year" value="2" ${comicConfig['fuzzy_year2']} /> Fuzzy the Year&nbsp;&nbsp;
                                         <a href="#" title="${year_options}"><img src="images/info32.png" valign="bottom" height="16" alt="" /></a>
-                                     </div>
+                                   </div>
 
                                    %if all([mylar.CONFIG.ENABLE_32P is True, mylar.CONFIG.ENABLE_TORRENT_SEARCH is True, mylar.CONFIG.MODE_32P == 1]):
                                    <div class="row checkbox right clearfix">
@@ -305,7 +336,7 @@
                                    </div>
                                    %endif
                         </fieldset>
-                     <input type="submit" style="float:right;" value="Update"/>
+                     <input type="submit" style="float:right;bottom:20px;" value="Update"/>
                 </form>
                </td>
              </tr>
@@ -483,7 +514,7 @@
                                                   </fieldset>
                                             </div>
                                             %if mylar.CONFIG.ENABLE_META:
-                                                <a href="#" title="Manually meta-tag issue" onclick="doAjaxCall('manual_metatag?dirName=${comic['ComicLocation'] |u}&issueid=${issue['IssueID']}&filename=${linky |u}&comicid=${issue['ComicID']}&comversion=${comic['ComicVersion']}&seriesyear=${comic['ComicYear']}',$(this));refreshLoadSeries();" data-success="${comic['ComicName']} #${issue['Issue_Number']} successfully tagged."><img src="images/comictagger.png" height="25" width="25" class="highqual" /></a>
+                                                <a href="#" title="Manually meta-tag issue" onclick="doAjaxCall('manual_metatag?dirName=${comic['ComicLocation'] |u}&issueid=${issue['IssueID']}&filename=${linky |u}&comicid=${issue['ComicID']}&comversion=${comic['ComicVersion']}&seriesyear=${comic['ComicYear']}&agerating=${comic['AgeRating']| u}',$(this));refreshLoadSeries();" data-success="${comic['ComicName']} #${issue['Issue_Number']} successfully tagged."><img src="images/comictagger.png" height="25" width="25" class="highqual" /></a>
                                             %endif
                                         %endif
                                         <a href="#" title="Add to Reading List" onclick="doAjaxCall('addtoreadlist?IssueID=${issue['IssueID']}',$(this),'table')" data-success="${comic['ComicName']} #${issue['Issue_Number']} added to Reading List"><img src="images/glasses-icon.png" height="25" width="25" class="highqual" /></a>
