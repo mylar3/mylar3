@@ -17,7 +17,7 @@ import sys
 import os
 import re
 import time
-from mylar import logger, helpers
+from mylar import logger
 import string
 import feedparser
 import mylar
@@ -57,7 +57,7 @@ def pulldetails(comicid, type, issueid=None, offset=1, arclist=None, comicidlist
     elif type == 'storyarc':
         PULLURL = mylar.CVURL + 'story_arcs/?api_key=' + str(comicapi) + '&format=xml&filter=name:' + str(issueid) + '&field_list=cover_date'
     elif type == 'comicyears':
-        PULLURL = mylar.CVURL + 'volumes/?api_key=' + str(comicapi) + '&format=xml&filter=id:' + str(comicidlist) + '&field_list=name,id,start_year,publisher,description,deck,aliases,count_of_issues&offset=' + str(offset)
+        PULLURL = mylar.CVURL + 'volumes/?api_key=' + str(comicapi) + '&format=xml&filter=id:' + str(comicidlist) + '&field_list=name,id,start_year,publisher,description,deck,aliases&offset=' + str(offset)
     elif type == 'import':
         PULLURL = mylar.CVURL + 'issues/?api_key=' + str(comicapi) + '&format=xml&filter=id:' + (comicidlist) + '&field_list=cover_date,id,issue_number,name,date_last_updated,store_date,volume' + '&offset=' + str(offset)
     elif type == 'update_dates':
@@ -701,8 +701,6 @@ def GetSeriesYears(dom):
     tempseries = {}
     serieslist = []
     for dm in series:
-        # we need to know # of issues in a given series to force the type if required based on number of issues published to date.
-        number_issues = dm.getElementsByTagName('count_of_issues')[0].firstChild.wholeText
         try:
             totids = len(dm.getElementsByTagName('id'))
             idc = 0
@@ -775,7 +773,7 @@ def GetSeriesYears(dom):
         tempseries['Type'] = 'None'
         if comic_deck != 'None':
             if any(['print' in comic_deck.lower(), 'digital' in comic_deck.lower(), 'paperback' in comic_deck.lower(), 'one shot' in re.sub('-', '', comic_deck.lower()).strip(), 'hardcover' in comic_deck.lower()]):
-                if all(['print' in comic_deck.lower(), 'reprint' not in comic_deck.lower()]):
+                if 'print' in comic_deck.lower():
                     tempseries['Type'] = 'Print'
                 elif 'digital' in comic_deck.lower():
                     tempseries['Type'] = 'Digital'
@@ -785,11 +783,9 @@ def GetSeriesYears(dom):
                     tempseries['Type'] = 'HC'
                 elif 'oneshot' in re.sub('-', '', comic_deck.lower()).strip():
                     tempseries['Type'] = 'One-Shot'
-                else:
-                    tempseries['Type'] = 'Print'
 
         if comic_desc != 'None' and tempseries['Type'] == 'None':
-            if 'print' in comic_desc[:60].lower() and all(['for the printed edition' not in comic_desc.lower(), 'print edition can be found' not in comic_desc.lower(), 'reprints' not in comic_desc.lower()]):
+            if 'print' in comic_desc[:60].lower() and 'print edition can be found' not in comic_desc.lower():
                 tempseries['Type'] = 'Print'
             elif 'digital' in comic_desc[:60].lower() and 'digital edition can be found' not in comic_desc.lower():
                 tempseries['Type'] = 'Digital'
@@ -963,10 +959,6 @@ def GetSeriesYears(dom):
             else:
                 break
 
-        if all([int(number_issues) == 1, tempseries['SeriesYear'] < helpers.today()[:4], tempseries['Type'] != 'One-Shot', tempseries['Type'] != 'TPB']):
-            booktype = 'One-Shot'
-        else:
-            booktype = tempseries['Type']
 
         serieslist.append({"ComicID":    tempseries['ComicID'],
                            "ComicName":  tempseries['Series'],
@@ -974,7 +966,7 @@ def GetSeriesYears(dom):
                            "Publisher":  tempseries['Publisher'],
                            "Volume":     tempseries['Volume'],
                            "Aliases":    tempseries['Aliases'],
-                           "Type":       booktype})
+                           "Type":       tempseries['Type']})
 
     return serieslist
 
