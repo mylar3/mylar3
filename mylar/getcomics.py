@@ -148,9 +148,6 @@ class GC(object):
                             if '//' in size:
                                 nwsize = size.find('//')
                                 size = re.sub('\[', '', size[:nwsize]).strip()
-                            elif '/' in size:
-                                nwsize = size.find('/')
-                                size = re.sub('\[', '', size[:nwsize]).strip()
                         else:
                             size = '0M'
                     i+=1
