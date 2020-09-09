@@ -88,10 +88,9 @@ class GenericMetadata:
         self.manga = None
         self.blackAndWhite = None
         self.pageCount = None
-        self.ageRating = None
+        self.maturityRating = None
 
         self.storyArc = None
-        self.storyArcNumber = None
         self.seriesGroup = None
         self.scanInfo = None
 
@@ -150,9 +149,8 @@ class GenericMetadata:
         assign("format", new_md.format)
         assign("manga", new_md.manga)
         assign("blackAndWhite", new_md.blackAndWhite)
-        assign("ageRating", new_md.ageRating)
+        assign("maturityRating", new_md.maturityRating)
         assign("storyArc", new_md.storyArc)
-        assign("storyArcNumber", new_md.storyArcNumber)
         assign("seriesGroup", new_md.seriesGroup)
         assign("scanInfo", new_md.scanInfo)
         assign("characters", new_md.characters)
@@ -290,9 +288,8 @@ class GenericMetadata:
 
         if self.blackAndWhite:
             add_attr_string("blackAndWhite")
-        add_attr_string("ageRating")
+        add_attr_string("maturityRating")
         add_attr_string("storyArc")
-        add_attr_string("storyArcNumber")
         add_attr_string("seriesGroup")
         add_attr_string("scanInfo")
         add_attr_string("characters")

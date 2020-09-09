@@ -580,7 +580,6 @@ class PostProcessor(object):
                         wv_comicversion = wv['ComicVersion']
                         wv_publisher = wv['ComicPublisher']
                         wv_total = int(wv['Total'])
-                        wv_agerating = wv['AgeRating']
                         if mylar.CONFIG.FOLDER_SCAN_LOG_VERBOSE:
                             logger.fdebug('Queuing to Check: %s [%s] -- %s' % (wv['ComicName'], wv['ComicYear'], wv['ComicID']))
 
@@ -629,7 +628,6 @@ class PostProcessor(object):
                                           "WatchValues": {"SeriesYear":   wv_seriesyear,
                                                           "LatestDate":   latestdate,
                                                           "ComicVersion": wv_comicversion,
-                                                          "AgeRating":    wv_agerating,
                                                           "Type":         wv_type,
                                                           "Publisher":    wv_publisher,
                                                           "Total":        wv_total,
@@ -904,7 +902,6 @@ class PostProcessor(object):
                                                             "IssueNumber":     isc['Issue_Number'],
                                                             "AnnualType":      annualtype,
                                                             "ComicName":       cs['ComicName'],
-                                                            "AgeRating":       cs['AgeRating'],
                                                             "Series":          watchmatch['series_name'],
                                                             "AltSeries":       watchmatch['alt_series'],
                                                             "One-Off":         False,
@@ -1432,7 +1429,7 @@ class PostProcessor(object):
                                 logger.info('[STORY-ARC POST-PROCESSING] Metatagging enabled - proceeding...')
                                 try:
                                     from . import cmtagmylar
-                                    metaresponse = cmtagmylar.run(self.nzb_folder, issueid=issueid, filename=ofilename, readingorder=ml['ReadingOrder'], agerating=None)
+                                    metaresponse = cmtagmylar.run(self.nzb_folder, issueid=issueid, filename=ofilename)
                                 except ImportError:
                                     logger.warn('%s comictaggerlib not found on system. Ensure the ENTIRE lib directory is located within mylar/lib/comictaggerlib/' % module)
                                     metaresponse = "fail"
@@ -1911,7 +1908,7 @@ class PostProcessor(object):
                         self._log("Metatagging enabled - proceeding...")
                         try:
                             from . import cmtagmylar
-                            metaresponse = cmtagmylar.run(location, issueid=issueid, filename=os.path.join(self.nzb_folder, ofilename), readingorder=arcdata['ReadingOrder'], agerating=None)
+                            metaresponse = cmtagmylar.run(location, issueid=issueid, filename=os.path.join(self.nzb_folder, ofilename))
                         except ImportError:
                             logger.warn('%s comictaggerlib not found on system. Ensure the ENTIRE lib directory is located within mylar/lib/comictaggerlib/' % module)
                             metaresponse = "fail"
@@ -2360,7 +2357,6 @@ class PostProcessor(object):
             publisher = comicnzb['ComicPublisher']
             self._log("Publisher: %s" % publisher)
             logger.fdebug('%s Publisher: %s' % (module, publisher))
-            agerating = comicnzb['AgeRating']
             #we need to un-unicode this to make sure we can write the filenames properly for spec.chars
             series = comicnzb['ComicName'] #.encode('ascii', 'ignore').strip()
             self._log("Series: %s" % series)
@@ -2472,23 +2468,11 @@ class PostProcessor(object):
                     vol_label = comversion
 
                 try:
-                    #check for reading order here.
-                    order_the_read = myDB.select('SELECT count(*) as count, ReadingOrder FROM storyarcs WHERE IssueID=? AND ComicID=?', [issueid, comicid])
-                    readingorder = None
-                    if order_the_read is not None:
-                        for rd in order_the_read:
-                            if int(rd['count']) == 1:
-                                readingorder = rd['ReadingOrder']
-                                logger.fdebug('reading order found: # %s' % readingorder)
-                            else:
-                                logger.fdebug('Multiple storyarcs returned. An issue can only be part of one storyarc atm')
-                                break
-
                     from . import cmtagmylar
                     if ml is None:
-                        pcheck = cmtagmylar.run(self.nzb_folder, issueid=issueid, comversion=vol_label, filename=os.path.join(odir, ofilename), readingorder=readingorder, agerating=agerating)
+                        pcheck = cmtagmylar.run(self.nzb_folder, issueid=issueid, comversion=vol_label, filename=os.path.join(odir, ofilename))
                     else:
-                        pcheck = cmtagmylar.run(self.nzb_folder, issueid=issueid, comversion=vol_label, manual="yes", filename=ml['ComicLocation'], readingorder=readingorder, agerating=agerating)
+                        pcheck = cmtagmylar.run(self.nzb_folder, issueid=issueid, comversion=vol_label, manual="yes", filename=ml['ComicLocation'])
 
                 except ImportError:
                     logger.fdebug('%s comictaggerlib not found on system. Ensure the ENTIRE lib directory is located within mylar/lib/comictaggerlib/' % module)
