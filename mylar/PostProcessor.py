@@ -711,14 +711,8 @@ class PostProcessor(object):
                                     if hours < 1:
                                         logger.fdebug('%s %s [%s] Was refreshed less than 1 hours ago. Skipping Refresh at this time so we don\'t hammer things unnecessarily.' % (module, cs['ComicName'], cs['ComicID']))
                                         continue
-
-                                try:
-                                    updater.dbUpdate([cs['ComicID']])
-                                    logger.fdebug('%s Succssfully refreshed series - now re-querying against new data for issue #%s.' % (module, temploc))
-                                except:
-                                    logger.error('%s %s failed to update comic.' % (module, cs['ComicName']))
-                                    continue
-
+                                updater.dbUpdate([cs['ComicID']])
+                                logger.fdebug('%s Succssfully refreshed series - now re-querying against new data for issue #%s.' % (module, temploc))
                                 if annchk == 'yes':
                                     issuechk = myDB.select("SELECT * from annuals WHERE ComicID=? AND Int_IssueNumber=?", [cs['ComicID'], fcdigit])
                                 else:
