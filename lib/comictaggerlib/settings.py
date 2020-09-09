@@ -162,14 +162,11 @@ class ComicTaggerSettings:
                 # see if it's in the path of unix user
                 if utils.which("rar") is not None:
                     self.rar_exe_path = utils.which("rar")
-                #unrar is used by Mylar for unraring. We don't rar anything up, so this should cover the bases.
-                elif utils.which("unrar") is not None:
-                    self.rar_exe_path = utils.which("unrar")
             if self.rar_exe_path != "":
                 self.save()
         if self.rar_exe_path != "":
-             # make sure rar program is now in the path for the rar class
-            utils.addtopath(os.path.dirname(self.rar_exe_path))
+             # make sure rar program is now in the path for the rar class    
+            utils.addtopath(os.path.dirname(self.rar_exe_path))          
 
     def reset(self):
         os.unlink(self.settings_file)
