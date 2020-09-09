@@ -18,7 +18,7 @@ import mylar
 from mylar import logger
 
 
-def run(dirName, nzbName=None, issueid=None, comversion=None, manual=None, filename=None, module=None, manualmeta=False, readingorder=None, agerating=None):
+def run(dirName, nzbName=None, issueid=None, comversion=None, manual=None, filename=None, module=None, manualmeta=False):
     if module is None:
         module = ''
     module += '[META-TAGGER]'
@@ -57,7 +57,7 @@ def run(dirName, nzbName=None, issueid=None, comversion=None, manual=None, filen
             shutil.copy(filepath, new_filepath)
         else:
             shutil.copy(filepath, new_filepath)
-        filepath = new_filepath
+        filepath = new_filepath  
     except Exception as e:
         logger.warn('%s Unexpected Error: %s [%s]' % (module, sys.exc_info()[0], e))
         logger.warn(module + ' Unable to create temporary directory to perform meta-tagging. Processing without metatagging.')
@@ -98,19 +98,8 @@ def run(dirName, nzbName=None, issueid=None, comversion=None, manual=None, filen
     else:
         cvers = "volume="
 
-    if readingorder is not None:
-        rorder = 'storyArcNumber=%s' % readingorder
-    else:
-        rorder = 'storyArcNumber='
-
-    if agerating is not None:
-        arating = 'ageRating=%s' % (agerating)
-    else:
-        arating = 'ageRating='
-
-    tline = '%s, %s, %s' % (cvers, rorder, arating)
-    tagoptions.extend(["-m", tline])
-
+    tagoptions.extend(["-m", cvers])
+    
     try:
         #from comictaggerlib import ctversion
         ct_check = subprocess.check_output([sys.executable, comictagger_cmd, "--version"], stderr=subprocess.STDOUT)
