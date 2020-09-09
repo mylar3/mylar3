@@ -782,6 +782,7 @@ class WebInterface(object):
     addStoryArc.exposed = True
 
     def wanted_Export(self,mode):
+        import unicodedata
         myDB = db.DBConnection()
         wantlist = myDB.select("select b.ComicName, b.ComicYear, a.Issue_Number, a.IssueDate, a.ComicID, a.IssueID from issues a inner join comics b on a.ComicID=b.ComicID where a.status=? and b.ComicName is not NULL", [mode])
         if wantlist is None:
@@ -800,7 +801,7 @@ class WebInterface(object):
                 wanted_file = wanted_file_new
 
         wcount=0
-        with open(wanted_file, 'w+') as f:
+        with open(wanted_file, 'wb+') as f:
             try:
                 fieldnames = ['SeriesName','SeriesYear','IssueNumber','IssueDate','ComicID','IssueID']
                 writer = csv.DictWriter(f, fieldnames=fieldnames)
@@ -5442,8 +5443,8 @@ class WebInterface(object):
                 from . import filers
                 x = filers.FileHandlers(ComicID=ComicID)
                 newcom_location = x.folder_create(booktype=newValues['Corrected_Type'])
-                if newcom_location['comlocation'] is not None:
-                    com_location = newcom_location['comlocation']
+                if newcom_location is not None:
+                    com_location = newcom_location
 
 
         if allow_packs is None:

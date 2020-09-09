@@ -262,8 +262,7 @@ class FileHandlers(object):
                 logger.error('There is no Comic Location Path specified - please specify one in Config/Web Interface.')
                 return
 
-            return {'comlocation': comlocation,
-                    'subpath':     bb_tuple}
+            return comlocation
 
     def rename_file(self, ofilename, issue=None, annualize=None, arc=False, file_format=None): #comicname, issue, comicyear=None, issueid=None)
             comicid = self.comicid   # it's coming in unicoded...
