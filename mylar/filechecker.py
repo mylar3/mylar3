@@ -1276,7 +1276,6 @@ class FileChecker(object):
         return self.matchIT(series_info)
 
     def matchIT(self, series_info):
-        qmatch_chk = None
         series_name = series_info['series_name']
         alt_series = series_info['alt_series']
         filename = series_info['comicfilename']
@@ -1340,12 +1339,7 @@ class FileChecker(object):
         if nspace_altseriesname is not None:
             if re.sub('\|','', nspace_altseriesname.lower()).strip() == re.sub('\|', '', nspace_watchcomic.lower()).strip():
                 seriesalt = True
-                qmatch_chk = 'alt_match'
-
         if any([seriesalt is True, re.sub('\|','', nspace_seriesname.lower()).strip() == re.sub('\|', '', nspace_watchcomic.lower()).strip(), re.sub('\|','', nspace_seriesname_decoded.lower()).strip() == re.sub('\|', '', nspace_watchname_decoded.lower()).strip()]) or any(re.sub('[\|\s]','', x.lower()).strip() == re.sub('[\|\s]','', nspace_seriesname.lower()).strip() for x in self.AS_Alt):
-            if qmatch_chk is None:
-                qmatch_chk = 'match'
-        if qmatch_chk is not None:
             #logger.fdebug('[MATCH: ' + series_info['series_name'] + '] ' + filename)
             enable_annual = False
             annual_comicid = None
@@ -1422,7 +1416,7 @@ class FileChecker(object):
                    elif 'special' in nspace_watchcomic.lower():
                        justthedigits = 'Special %s' % justthedigits
 
-            return {'process_status':  qmatch_chk,
+            return {'process_status': 'match',
                     'sub':             series_info['sub'],
                     'volume':          series_info['series_volume'],
                     'match_type':      None,  #match_type - will eventually pass if it wasa folder vs. filename match,
