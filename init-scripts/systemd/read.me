@@ -1,9 +1,14 @@
-Instructions on setting up mylar3 as a systemd service that will run on startup/via systemctl commands...
+Instructions on setting up mylar as a systemd service that will run on startup/via systemctl commands...
 
 1 - copy the mylar.service to /lib/systemd/system/mylar.service
-2 - edit the /lib/systemd/system/mylar.service file (change user, group, python path, and mylar location to user-specific requirements)
-3 - create a symbolic link to it:  ln -s /lib/systemd/system/mylar.service /etc/systemd/system/mylar.service
-4 - make systemd aware of new services:  sudo systemctl daemon-reload
-5 - set mylar3 to auto-start on startup: sudo systemctl enable mylar
-6 - start mylar3 up:                     sudo systemctl start mylar
-7 - to check to see if running/status:   sudo systemctl status mylar
+2 - edit the /lib/systemd/system/mylar.service file. (username, group, python path, Mylar.py path)
+
+Make systemd aware of new services:
+sudo systemctl daemon-reload
+sudo systemctl enable mylar
+
+Start mylar
+sudo systemctl start mylar
+
+check to see if running
+sudo systemctl status mylar
