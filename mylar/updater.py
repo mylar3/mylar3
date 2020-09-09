@@ -349,7 +349,7 @@ def dbUpdate(ComicIDList=None, calledfrom=None, sched=False):
 
     helpers.job_management(write=True, job='DB Updater', last_run_completed=helpers.utctimestamp(), status='Waiting')
     mylar.UPDATER_STATUS = 'Waiting'
-    logger.info('Update complete')
+    logger.fdebug('Update complete')
 
 def latest_update(ComicID, LatestIssue, LatestDate):
     # here we add to comics.latest

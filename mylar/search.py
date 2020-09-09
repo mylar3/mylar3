@@ -573,6 +573,7 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueDa
     foundc['status'] = False
     done = False
     seperatealpha = "no"
+    hold_the_matches = []
     #---issue problem
     # if issue is '011' instead of '11' in nzb search results, will not have same
     # results. '011' will return different than '11', as will '009' and '09'.
@@ -838,6 +839,7 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueDa
         pack_warning = False
         if not bb == "no results":
             for entry in bb['entries']:
+                alt_match = False
                 #logger.fdebug('entry: %s' % entry)  #<--- uncomment this to see what the search result(s) are
                 #brief match here against 32p since it returns the direct issue number
                 if nzbprov == '32P' and entry['title'][:17] == '0-Day Comics Pack':
@@ -1151,6 +1153,12 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueDa
                         if filecomic['process_status'] == 'fail':
                             logger.fdebug('%s was not a match to %s (%s)' % (cleantitle, ComicName, SeriesYear))
                             continue
+                        elif filecomic['process_status'] == 'alt_match':
+                            #if it's an alternate series match, we'll retain each value until the search has compeletely run, compiling matches.
+                            #if at any point it's a standard match (ie. non-alternate series) that will be accepted as the one match and ignore the alts
+                            #once all search options have been exhausted and no matches aside from alternate series then we go get the best result from that list
+                            logger.fdebug('%s was a match due to alternate matching.  Continuing to search, but retaining this result just in case.' % ComicTitle)
+                            alt_match = True
                 elif booktype != parsed_comic['booktype'] and ignore_booktype is False:
                     logger.fdebug('Booktypes do not match. Looking for %s, this is a %s. Ignoring this result.' % (booktype, parsed_comic['booktype']))
                     continue
@@ -1341,21 +1349,25 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueDa
                     #find the pack range.
                     pack_issuelist = None
                     issueid_info = None
-                    if not entry['title'].startswith('0-Day Comics Pack'):
-                        pack_issuelist = entry['issues']
-                        issueid_info = helpers.issue_find_ids(ComicName, ComicID, pack_issuelist, IssueNumber)
-                        if issueid_info['valid'] == True:
-                            logger.info('Issue Number %s exists within pack. Continuing.' % IssueNumber)
-                        else:
-                            logger.fdebug('Issue Number %s does NOT exist within this pack. Skipping' % IssueNumber)
-                            continue
+                    try:
+                        if not entry['title'].startswith('0-Day Comics Pack'):
+                            pack_issuelist = entry['issues']
+                            issueid_info = helpers.issue_find_ids(ComicName, ComicID, pack_issuelist, IssueNumber)
+                            if issueid_info['valid'] == True:
+                                logger.info('Issue Number %s exists within pack. Continuing.' % IssueNumber)
+                            else:
+                                logger.fdebug('Issue Number %s does NOT exist within this pack. Skipping' % IssueNumber)
+                                continue
+                    except:
+                        logger.error('Unable to identify pack range for %s' % entry['title'])
+                        continue
                     #pack support.
                     nowrite = False
                     if all([nzbprov == 'ddl', 'getcomics' in entry['link']]):
                         nzbid = entry['id']
                     else:
                         nzbid = generate_id(nzbprov, entry['link'])
-                    if manual is not True:
+                    if all([manual is not True, alt_match is False]):
                         downloadit = True
                     else:
                         for x in mylar.COMICINFO:
@@ -1374,7 +1386,8 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueDa
                             kind = 'torrent'
                             if torznab_host is not None:
                                 tprov = torznab_host[0]
-                        mylar.COMICINFO.append({"ComicName":       ComicName,
+
+                        search_values = {"ComicName":       ComicName,
                                           "ComicID":         ComicID,
                                           "IssueID":         IssueID,
                                           "ComicVolume":     ComicVersion,
@@ -1397,8 +1410,11 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueDa
                                           "SARC":            SARC,
                                           "IssueArcID":      IssueArcID,
                                           "newznab":         newznab_host,
-                                          "torznab":         torznab_host})
+                                          "torznab":         torznab_host}
 
+                        mylar.COMICINFO.append(search_values)
+
+                        hold_the_matches.append(search_values)
 
                 else:
                     if filecomic['process_status'] == 'match':
@@ -1438,7 +1454,7 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueDa
                                 entry['title'] = entry['filename']
                             else:
                                 nzbid = generate_id(nzbprov, entry['link'])
-                            if manual is not True:
+                            if all([manual is not True, alt_match is False]):
                                 downloadit = True
                             else:
                                 for x in mylar.COMICINFO:
@@ -1471,7 +1487,7 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueDa
                                     if torznab_host is not None:
                                         tprov = torznab_host[0]
 
-                                mylar.COMICINFO.append({"ComicName":      ComicName,
+                                search_values = {"ComicName":      ComicName,
                                                   "ComicID":        ComicID,
                                                   "IssueID":        IssueID,
                                                   "ComicVolume":    ComicVersion,
@@ -1494,7 +1510,11 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueDa
                                                   "SARC":           SARC,
                                                   "IssueArcID":     IssueArcID,
                                                   "newznab":        newznab_host,
-                                                  "torznab":        torznab_host})
+                                                  "torznab":        torznab_host}
+
+                                mylar.COMICINFO.append(search_values)
+
+                                hold_the_matches.append(search_values)
                         else:
                             log2file = log2file + "issues don't match.." + "\n"
                             downloadit = False

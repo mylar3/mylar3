@@ -291,6 +291,7 @@ class WebInterface(object):
                     "force_continuing":               helpers.checked(force_continuing),
                     "ignore_type":                    helpers.checked(comic['IgnoreType']),
                     "force_type":                     force_type,
+                    "age_rating":                     comic['AgeRating'],
                     "delete_dir":                     helpers.checked(mylar.CONFIG.DELETE_REMOVE_DIR),
                     "allow_packs":                    helpers.checked(int(allowpacks)),
                     "corrected_seriesyear":           comic['ComicYear'],
@@ -782,7 +783,6 @@ class WebInterface(object):
     addStoryArc.exposed = True
 
     def wanted_Export(self,mode):
-        import unicodedata
         myDB = db.DBConnection()
         wantlist = myDB.select("select b.ComicName, b.ComicYear, a.Issue_Number, a.IssueDate, a.ComicID, a.IssueID from issues a inner join comics b on a.ComicID=b.ComicID where a.status=? and b.ComicName is not NULL", [mode])
         if wantlist is None:
@@ -801,7 +801,7 @@ class WebInterface(object):
                 wanted_file = wanted_file_new
 
         wcount=0
-        with open(wanted_file, 'wb+') as f:
+        with open(wanted_file, 'w+') as f:
             try:
                 fieldnames = ['SeriesName','SeriesYear','IssueNumber','IssueDate','ComicID','IssueID']
                 writer = csv.DictWriter(f, fieldnames=fieldnames)
@@ -5340,7 +5340,7 @@ class WebInterface(object):
         raise cherrypy.HTTPRedirect("comicDetails?ComicID=%s" % comicid)
     manual_annual_add.exposed = True
 
-    def comic_config(self, com_location, ComicID, alt_search=None, fuzzy_year=None, comic_version=None, force_continuing=None, force_type=None, alt_filename=None, allow_packs=None, corrected_seriesyear=None, torrentid_32p=None, ignore_type=None):
+    def comic_config(self, com_location, ComicID, alt_search=None, fuzzy_year=None, comic_version=None, force_continuing=None, force_type=None, alt_filename=None, allow_packs=None, corrected_seriesyear=None, torrentid_32p=None, ignore_type=None, age_rating=None):
         myDB = db.DBConnection()
         chk1 = myDB.selectone('SELECT ComicLocation, Type, Corrected_Type FROM comics WHERE ComicID=?', [ComicID]).fetchone()
         if chk1[0] is None:
@@ -5432,6 +5432,10 @@ class WebInterface(object):
         else:
             newValues['IgnoreType'] = 1
 
+        if age_rating is not None:
+            logger.info('AgeRating: %s' % age_rating)
+            newValues['AgeRating'] = age_rating
+
         #logger.fdebug('orig_type:%s -- force_type: %s' % (orig_type, force_type))
         #logger.fdebug('orig_corr_type: %s-- corrected_type: %s' % (orig_corr_type, newValues['Corrected_Type']))
         #logger.fdebug('config_folder_format:%s' % (mylar.CONFIG.FOLDER_FORMAT))
@@ -5443,8 +5447,8 @@ class WebInterface(object):
                 from . import filers
                 x = filers.FileHandlers(ComicID=ComicID)
                 newcom_location = x.folder_create(booktype=newValues['Corrected_Type'])
-                if newcom_location is not None:
-                    com_location = newcom_location
+                if newcom_location['comlocation'] is not None:
+                    com_location = newcom_location['comlocation']
 
 
         if allow_packs is None:
@@ -6031,7 +6035,7 @@ class WebInterface(object):
 
     IssueInfo.exposed = True
 
-    def manual_metatag(self, dirName, issueid, filename, comicid, comversion, seriesyear=None, group=False):
+    def manual_metatag(self, dirName, issueid, filename, comicid, comversion, seriesyear=None, group=False, agerating=None):
         module = '[MANUAL META-TAGGING]'
         try:
             from . import cmtagmylar
@@ -6044,7 +6048,21 @@ class WebInterface(object):
             else:
                 vol_label = comversion
 
-            metaresponse = cmtagmylar.run(dirName, issueid=issueid, filename=filename, comversion=vol_label, manualmeta=True)
+            if all([issueid is not None, comicid is not None]):
+                from mylar import db
+                myDB = db.DBConnection()
+                roders = myDB.select('SELECT count(*) as count, ComicName, IssueNumber, StoryArcID, ReadingOrder from storyarcs WHERE ComicID=? AND IssueID=?', [comicid, issueid])
+                readingorder = None
+                if roders is not None:
+                    for rd in roders:
+                        if int(rd['count']) == 1:
+                            readingorder = rd['ReadingOrder']
+                            logger.fdebug('reading order found: # %s' % readingorder)
+                        else:
+                            logger.fdebug('Multiple storyarcs returned. An issue can only be part of one storyarc atm')
+                            break
+
+            metaresponse = cmtagmylar.run(dirName, issueid=issueid, filename=filename, comversion=vol_label, manualmeta=True, readingorder=readingorder, agerating=agerating)
         except ImportError:
             logger.warn(module + ' comictaggerlib not found on system. Ensure the ENTIRE lib directory is located within mylar/lib/comictaggerlib/ directory.')
             metaresponse = "fail"
@@ -6107,7 +6125,7 @@ class WebInterface(object):
 
     def group_metatag(self, ComicID, dirName=None):
         myDB = db.DBConnection()
-        cinfo = myDB.selectone('SELECT ComicLocation, ComicVersion, ComicYear, ComicName FROM comics WHERE ComicID=?', [ComicID]).fetchone()
+        cinfo = myDB.selectone('SELECT ComicLocation, ComicVersion, ComicYear, ComicName, AgeRating FROM comics WHERE ComicID=?', [ComicID]).fetchone()
         groupinfo = myDB.select('SELECT * FROM issues WHERE ComicID=? and Location is not NULL', [ComicID])
         if groupinfo is None:
             logger.warn('No issues physically exist within the series directory for me to (re)-tag.')
@@ -6118,7 +6136,7 @@ class WebInterface(object):
             meta_dir = dirName
         for ginfo in groupinfo:
             #if multiple_dest_dirs is in effect, metadir will be pointing to the wrong location and cause a 'Unable to create temporary cache location' error message
-            self.manual_metatag(meta_dir, ginfo['IssueID'], os.path.join(meta_dir, ginfo['Location']), ComicID, comversion=cinfo['ComicVersion'], seriesyear=cinfo['ComicYear'], group=True)
+            self.manual_metatag(meta_dir, ginfo['IssueID'], os.path.join(meta_dir, ginfo['Location']), ComicID, comversion=cinfo['ComicVersion'], seriesyear=cinfo['ComicYear'], group=True, agerating=cinfo['AgeRating'])
         updater.forceRescan(ComicID)
         logger.info('[SERIES-METATAGGER][' + cinfo['ComicName'] + ' (' + cinfo['ComicYear'] + ')] Finished doing a complete series (re)tagging of metadata.')
     group_metatag.exposed = True
