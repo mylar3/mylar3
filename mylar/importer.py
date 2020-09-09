@@ -68,7 +68,6 @@ def addComictoDB(comicid, mismatch=None, pullupd=None, imported=None, ogcname=No
         series_status = 'Loading'
         lastissueid = None
         aliases = None
-        FirstImageSize = 0
     else:
         if chkwant is not None:
             logger.fdebug('ComicID: ' + str(comicid) + ' already exists. Not adding from the future pull list at this time.')
@@ -85,8 +84,6 @@ def addComictoDB(comicid, mismatch=None, pullupd=None, imported=None, ogcname=No
         lastissueid = dbcomic['LatestIssueID']
         aliases = dbcomic['AlternateSearch']
         logger.info('aliases currently: %s' % aliases)
-
-        FirstImageSize = dbcomic['FirstImageSize']
 
         if not latestissueinfo:
             latestissueinfo = []
@@ -220,13 +217,8 @@ def addComictoDB(comicid, mismatch=None, pullupd=None, imported=None, ogcname=No
                         'Corrected_Type':   comic['Corrected_Type']}
 
         dothedew = filers.FileHandlers(comic=comic_values)
-        comvalues = dothedew.folder_create()
-        comlocation = comvalues['comlocation']
-        comsubpath = comvalues['subpath']
-    else:
-        comsubpath = re.sub(mylar.CONFIG.DESTINATION_DIR, '', comlocation).strip()
+        comlocation = dothedew.folder_create()
 
-    logger.info('subpath: %s' % comsubpath)
     #moved this out of the above loop so it will chk for existance of comlocation in case moved
     #if it doesn't exist - create it (otherwise will bugger up later on)
     if comlocation is not None:
@@ -255,34 +247,23 @@ def addComictoDB(comicid, mismatch=None, pullupd=None, imported=None, ogcname=No
         cimage = os.path.join(mylar.CONFIG.CACHE_DIR, str(comicid) + '.jpg')
         PRComicImage = os.path.join('cache', str(comicid) + ".jpg")
         ComicImage = helpers.replacetheslash(PRComicImage)
-        coversize = 0
-        if os.path.isfile(cimage):
-            statinfo = os.stat(cimage)
-            coversize = statinfo.st_size
-
-        if FirstImageSize != 0 and (os.path.isfile(cimage) is True and FirstImageSize == coversize):
+        if os.path.isfile(cimage) is True:
             logger.fdebug('Cover already exists for series. Not redownloading.')
         else:
             covercheck = helpers.getImage(comicid, comic['ComicImage'])
-            FirstImageSize = covercheck['coversize']
-            if covercheck['status'] == 'retry':
+            if covercheck == 'retry':
                 logger.info('Attempting to retrieve alternate comic image for the series.')
                 covercheck = helpers.getImage(comicid, comic['ComicImageALT'])
 
         #if the comic cover local is checked, save a cover.jpg to the series folder.
-        if mylar.CONFIG.COMIC_COVER_LOCAL is True:
-            cloc_it = comlocation
-            if comlocation is not None and all([os.path.isdir(comlocation) is True, os.path.isfile(os.path.join(comlocation, 'cover.jpg')) is False]):
-                cloc_it = comlocation
-            elif mylar.CONFIG.MULTIPLE_DEST_DIRS is not None and all([os.path.isdir(os.path.join(mylar.CONFIG.MULTIPLE_DEST_DIRS, os.path.basename(comlocation))) is True, os.path.isfile(os.path.join(mylar.CONFIG.MULTIPLE_DEST_DIRS, os.path.basename(comlocation), 'cover.jpg')) is False]):
-                cloc_it = os.path.join(mylar.CONFIG.MULTIPLE_DEST_DIRS, os.path.basename(comlocation))
+        if all([mylar.CONFIG.COMIC_COVER_LOCAL is True, os.path.isdir(comlocation) is True, os.path.isfile(os.path.join(comlocation, 'cover.jpg')) is False]):
             try:
-                comiclocal = os.path.join(cloc_it, 'cover.jpg')
+                comiclocal = os.path.join(comlocation, 'cover.jpg')
                 shutil.copyfile(cimage, comiclocal)
                 if mylar.CONFIG.ENFORCE_PERMS:
                     filechecker.setperms(comiclocal)
             except IOError as e:
-                logger.error('[%s] Unable to save cover (%s) into series directory (%s) at this time.' % (e, cimage, comiclocal))
+                logger.error('Unable to save cover (%s) into series directory (%s) at this time.' % (cimage, comiclocal))
     else:
         ComicImage = None
 
@@ -333,7 +314,6 @@ def addComictoDB(comicid, mismatch=None, pullupd=None, imported=None, ogcname=No
                     "DynamicComicName":   dynamic_seriesname,
                     "ComicYear":          SeriesYear,
                     "ComicImage":         ComicImage,
-                    "FirstImageSize":     FirstImageSize,
                     "ComicImageURL":      comic.get("ComicImage", ""),
                     "ComicImageALTURL":   comic.get("ComicImageALT", ""),
                     "Total":              comicIssues,
@@ -384,14 +364,18 @@ def addComictoDB(comicid, mismatch=None, pullupd=None, imported=None, ogcname=No
             manualAnnual(annchk=anndata)
 
     if mylar.CONFIG.ALTERNATE_LATEST_SERIES_COVERS is True: #, lastissueid != importantdates['LatestIssueID']]):
-        cimage = os.path.join(mylar.CONFIG.CACHE_DIR, comicid + '.jpg')
-        coversize = 0
-        if os.path.isfile(cimage):
-            statinfo = os.stat(cimage)
-            coversize = statinfo.st_size
-
-        if FirstImageSize != 0 and (os.path.isfile(cimage) is True and FirstImageSize == coversize):
-            logger.fdebug('Cover already exists for series. Not redownloading.')
+        if os.path.join(mylar.CONFIG.CACHE_DIR, comicid + '.jpg') is True:
+            cover_modtime = datetime.datetime.utcfromtimestamp(os.path.getmtime(os.path.join(mylar.CONFIG.CACHE_DIR, comicid + '.jpg')))
+            cover_mtime = datetime.datetime.strftime(cover_modtime, '%Y-%m-%d')
+            if importantdates['LatestStoreDate'] != '0000-00-00':
+                lsd = re.sub('-', '', importantdates['LatestStoreDate']).strip()
+            else:
+                lsd = re.sub('-', '', importantdates['LatestDate']).strip()
+            if re.sub('-', '', cover_mtime).strip() < lsd:
+                logger.info('Attempting to retrieve new issue cover for display')
+                image_it(comicid, importantdates['LatestIssueID'], comlocation, comic['ComicImage'])
+            else:
+                logger.fdebug('no update required - lastissueid [%s] = latestissueid [%s]' % (lastissueid, importantdates['LatestIssueID']))
         else:
             image_it(comicid, importantdates['LatestIssueID'], comlocation, comic['ComicImage'])
     else:
@@ -711,7 +695,7 @@ def GCDimport(gcomicid, pullupd=None, imported=None, ogcname=None):
             logger.info("Sucessfully retrieved cover for " + ComicName)
             #if the comic cover local is checked, save a cover.jpg to the series folder.
             if mylar.CONFIG.COMIC_COVER_LOCAL and os.path.isdir(comlocation):
-                comiclocal = os.path.join(comlocation, 'cover.jpg')
+                comiclocal = os.path.join(comlocation + "/cover.jpg")
                 shutil.copy(ComicImage, comiclocal)
     except IOError as e:
         logger.error("Unable to save cover locally at this time.")
@@ -1621,7 +1605,7 @@ def image_it(comicid, latestissueid, comlocation, ComicImage):
     cimage = os.path.join(mylar.CONFIG.CACHE_DIR, str(comicid) + '.jpg')
     imageurl = mylar.cv.getComic(comicid, 'image', issueid=latestissueid)
     covercheck = helpers.getImage(comicid, imageurl['image'])
-    if covercheck['status'] == 'retry':
+    if covercheck == 'retry':
         logger.fdebug('Attempting to retrieve a different comic image for this particular issue.')
         if imageurl['image_alt'] is not None:
             covercheck = helpers.getImage(comicid, imageurl['image_alt'])
@@ -1633,14 +1617,9 @@ def image_it(comicid, latestissueid, comlocation, ComicImage):
     ComicImage = helpers.replacetheslash(PRComicImage)
 
     #if the comic cover local is checked, save a cover.jpg to the series folder.
-    if mylar.CONFIG.COMIC_COVER_LOCAL is True:
-        cloc_it = comlocation
-        if (comlocation is not None and all([os.path.isdir(comlocation) is True, os.path.isfile(os.path.join(comlocation, 'cover.jpg')) is False])):
-            cloc_it = comlocation
-        elif (mylar.CONFIG.MULTIPLE_DEST_DIRS is not None and all([os.path.isdir(mylar.CONFIG.MULTIPLE_DEST_DIRS) is True, os.path.isfile(os.path.join(mylar.CONFIG.MULTIPLE_DEST_DIRS, 'cover.jpg')) is False])):
-            cloc_it = mylar.CONFIG.MULTIPLE_DEST_DIRS
+    if all([mylar.CONFIG.COMIC_COVER_LOCAL is True, os.path.isdir(comlocation) is True, os.path.isfile(os.path.join(comlocation, 'cover.jpg'))]):
         try:
-            comiclocal = os.path.join(cloc_it, 'cover.jpg')
+            comiclocal = os.path.join(comlocation, 'cover.jpg')
             shutil.copyfile(cimage, comiclocal)
             if mylar.CONFIG.ENFORCE_PERMS:
                 filechecker.setperms(comiclocal)
