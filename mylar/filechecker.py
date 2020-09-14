@@ -151,7 +151,7 @@ class FileChecker(object):
                         if runresults['process_status']:
                             run_status = runresults['process_status']
 
-                    if any([run_status == 'success', run_status == 'match', run_status == 'alt_match']):
+                    if any([run_status == 'success', run_status == 'match']):
                         if self.justparse:
                             comiclist.append({
                                     'sub':                 runresults['sub'],
