@@ -26,7 +26,6 @@ import time
 import random
 from bs4 import BeautifulSoup
 from io import StringIO
-from pkg_resources import parse_version
 
 import mylar
 from mylar import db, logger, ftpsshup, helpers, auth32p, utorrent, helpers
@@ -50,10 +49,7 @@ def _start_newznab_attr(self, attrsD):
     else:
         context['newznab'][name] = value
 
-if parse_version(feedparser.__version__) < parse_version('6.0.0'):
-    feedparser._FeedParserMixin._start_newznab_attr = _start_newznab_attr
-else:
-    feedparser.mixin._FeedParserMixin._start_newznab_attr = _start_newznab_attr
+feedparser._FeedParserMixin._start_newznab_attr = _start_newznab_attr
 
 def torrents(pickfeed=None, seriesname=None, issue=None, feedinfo=None):
     if pickfeed is None:
