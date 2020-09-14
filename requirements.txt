@@ -17,6 +17,7 @@ Pillow>=4.2.1,~=6.2.2
 portend>=2.6
 pyinstaller>=3.5
 pytz>=2019.3
+rarfile>=4.0
 requests>=2.22.0
 simplejson>=3.17.0
 six>=1.13.0
