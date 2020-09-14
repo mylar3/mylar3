@@ -4,13 +4,121 @@ rarfile history
 
 .. py:currentmodule:: rarfile
 
-Version 3.1 (...)
------------------
+Version 4.0 (2020-07-31)
+------------------------
+
+Main goals are:
+
+* Increased ``zipfile``-compatibility, thus also achieving smaller
+  difference between RAR3 and RAR5 archives.
+* Removing dependency on ``unrar`` for extract, thus making maintenance
+  of alternative backends more manageable.
+
+Breaking changes:
+
+* Directory names will have "/" appended.
+  [`#31 <https://github.com/markokr/rarfile/issues/31>`_]
+* :meth:`RarFile.extract` operates only on single entry,
+  so when used on directory it will create directory
+  but not extract files under it.
+* :meth:`RarFile.extract`/:meth:`RarFile.extractall`/:meth:`RarFile.testrar`
+  will not launch special unrar command line, instead they are
+  implemented on top of :meth:`RarFile.open`.
+* Keyword args in top-level APIs were renamed to match zipfile:
+
+  * RarFile(rarfile) -> RarFile(file)
+  * RarFile.setpassword(password) -> .setpassword(pwd)
+  * RarFile.getinfo(fname) -> .getinfo(name)
+  * RarFile.open(fname, mode, psw) -> .open(name, mode, pwd)
+  * RarFile.read(fname, psw) -> .read(name, pwd)
+
+* :data:`PATH_SEP` cannot be changed from "/".
+
+New features:
+
+* :meth:`RarFile.extract` will return final sanitized filename for
+  target file.
+  [`#42 <https://github.com/markokr/rarfile/issues/42>`_,
+  `#52 <https://github.com/markokr/rarfile/issues/52>`_]
+* :meth:`RarInfo.is_dir` is now preferred spelling of ``isdir()``.
+  Old method kept as alias.
+  [`#44 <https://github.com/markokr/rarfile/issues/44>`_]
+* New :meth:`RarInfo.is_file` and :meth:`RarInfo.is_symlink`
+  methods. Only one of :meth:`~RarInfo.is_file`, :meth:`~RarInfo.is_dir`
+  or :meth:`~RarInfo.is_symlink` can be True.
+* :meth:`RarFile.printdir` has ``file`` argument for output.
+* :meth:`RarFile.__iter__` loops over :class:`RarInfo` entries.
+* RAR3: throw :exc:`NeedFirstVolume` exception with current volume number,
+  like RAR5 does.
+  [`#58 <https://github.com/markokr/rarfile/issues/58>`_]
+* Nanosecond timestamp support.  Visible as :class:`nsdatetime`
+  instance.
+* Minimal CLI when run as script: ``python3 -m rarfile``
+* Skip old file versions in versioned archive.
+
+Cleanups:
+
+* Use PBKDF2 implementation from :mod:`hashlib`.
+* Improve test coverage.
+
+Version 3.3 (2020-07-26)
+------------------------
 
 Fixes:
 
+* Add the .sfx test files to MANIFEST.in for inclusion in pypi tarball.
+  [`#60 <https://github.com/markokr/rarfile/issues/60>`_]
+* Add all files in git to tarball.
+
+Version 3.2 (2020-07-19)
+------------------------
+
+New features:
+
+* Support ``unar`` as decompression backend.  It has much better
+  support for RAR features than ``bsdtar``.
+  [`#36 <https://github.com/markokr/rarfile/issues/36>`_]
+
+* Support SFX archives - archive header is searched in first
+  2MB of the file.
+  [`#48 <https://github.com/markokr/rarfile/issues/48>`_]
+
+* Add :data:`HACK_TMP_DIR` option, to force temp files into
+  specific directory.
+  [`#43 <https://github.com/markokr/rarfile/issues/43>`_]
+
+Fixes:
+
+* Always use "/" for path separator in command-line, gives better
+  results on Windows.
+
+Cleanups:
+
+* Drop module-level options from docs, they create confusion.
+  [`#47 <https://github.com/markokr/rarfile/issues/47>`_]
+
+* Drop support for Python 2 and 3.5 and earlier.  Python 2 is dead
+  and requiring Python 3.6 gives blake2s, stdlib that supports pathlib,
+  and ordered dict without compat hacks.
+
+* Replace PyCrypto with PyCryptodome in tests.
+
+* Use Github Actions for CI.
+
+Version 3.1 (2019-09-15)
+------------------------
+
+**This will be last version with support for Python 2.x**
+
+New feature:
+
+* Accept pathlib objects as filenames.
+  (Aleksey Popov)
+
 * Accept `bytes` filenames in Python 3
   (Nate Bogdanowicz)
+
+Fixes:
 
 * Use bug-compatible SHA1 for longer passwords (> 28 chars)
   in RAR3 encrypted headers.
@@ -21,6 +129,12 @@ Fixes:
 
 * Include all test files in archive
   (Benedikt Morbach)
+
+* Include volume number in NeedFirstVolume exception if available (rar5).
+
+Cleanups:
+
+* Convert tests to pytest.
 
 Version 3.0 (2016-12-27)
 ------------------------
@@ -95,8 +209,8 @@ Version 2.8 (2016-06-07)
 
 * Cleanup: remove compat code for Python 2.4/2.5/2.6.
 
-.. _cryptography: https://pypi.python.org/pypi/cryptography
-.. _PyCrypto: https://pypi.python.org/pypi/pycrypto
+.. _cryptography: https://pypi.org/project/cryptography/
+.. _PyCrypto: https://pypi.org/project/pycrypto/
 
 Version 2.7 (2014-11-23)
 ------------------------
@@ -116,7 +230,7 @@ Version 2.7 (2014-11-23)
   stays with ``unrar`` which will then appear in error messages.
 
 .. _bsdtar: https://github.com/libarchive/libarchive/wiki/ManPageBsdtar1
-.. _libarchive: http://www.libarchive.org/
+.. _libarchive: https://www.libarchive.org/
 
 * Both :class:`RarFile` and :func:`is_rarfile` now accept file-like
   object.  Eg. :class:`io.BytesIO`.  Only requirement is that the object
