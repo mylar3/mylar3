@@ -103,7 +103,7 @@ def run(dirName, nzbName=None, issueid=None, comversion=None, manual=None, filen
     else:
         rorder = 'storyArcNumber='
 
-    if agerating is not None:
+    if all([agerating is not None, agerating != 'None']):
         arating = 'ageRating=%s' % (agerating)
     else:
         arating = 'ageRating='
