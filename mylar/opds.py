@@ -492,7 +492,8 @@ class OPDS(object):
                         if issuedetails is not None:
                             metainfo = issuedetails.get('metadata', None)
                     if not metainfo: 
-                        metainfo = {'writer': None,'summary': ''}
+                        metainfo = {}
+                        metainfo[0] = {'writer': None,'summary': ''}
                     cb, _ = open_archive(fileloc)
                     if cb is None:
                         self.data = self._error_with_message('Can\'t open archive')
