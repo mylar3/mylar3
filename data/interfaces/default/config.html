@@ -2402,28 +2402,28 @@
                     $("#add_torznab").before(torformfields);
                 });
 
-								$('#signal_test').click(function() {
-										var phonefrom = document.getElementById("phone_from").value;
-										var phoneto = document.getElementById("phone_to").value;
-											$.get("testsignal",
-													{ phonefrom, phoneto },
-													function(data){
-															if (data.error != undefined) {
-																	alert(data.error);
-																	return;
-															}
-															$('#ajaxMsg').html("<div class='msg'><span class='ui-icon ui-icon-check'></span>"+data+"</div>");
-															if (data.indexOf("Successfully") > -1){
-																	imagechk.src = "";
-																	imagechk.src = "images/success.png";
-																	imagechk.style.visibility = "visible";
-															} else {
-																	imagechk.src = "";
-																	imagechk.src = "images/fail.png";
-																	imagechk.style.visibility = "visible";
-															}
-											});
-											$('#ajaxMsg').addClass('success').fadeIn().delay(3000).fadeOut();
+		$('#signal_test').click(function() {
+		     var phonefrom = document.getElementById("phone_from").value;
+		      var phoneto = document.getElementById("phone_to").value;
+		          $.get("testsignal",
+			       { phonefrom, phoneto },
+				    function(data){
+				        if (data.error != undefined) {
+						alert(data.error);
+						    return;
+					}
+				        $('#ajaxMsg').html("<div class='msg'><span class='ui-icon ui-icon-check'></span>"+data+"</div>");
+				        if (data.indexOf("Successfully") > -1){
+						imagechk.src = "";
+						imagechk.src = "images/success.png";
+						imagechk.style.visibility = "visible";
+					} else {
+						imagechk.src = "";
+						imagechk.src = "images/fail.png";
+						imagechk.style.visibility = "visible";
+					}
+			  });
+			$('#ajaxMsg').addClass('success').fadeIn().delay(3000).fadeOut();
               });
 
                 $('#qbittorrent_test').click(function () {
