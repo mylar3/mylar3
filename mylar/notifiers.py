@@ -31,6 +31,7 @@ import smtplib
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from email.utils import formatdate, make_msgid
+from signald import Signal
 
 # This was obviously all taken from headphones with great appreciation :)
 
@@ -511,6 +512,32 @@ class DISCORD:
 
         logger.info(module + "Discord notifications sent.")
         return sent_successfuly
+
+    def test_notify(self):
+        return self.notify('Test Message', 'Release the Ninjas!')
+
+class SIGNAL_SMS:
+    def __init__(self, test_phonefrom=None, test_phoneto=None):
+        self.phone_from = mylar.CONFIG.SIGNAL_PHONE_NUMBER_FROM if test_phonefrom is None else test_phonefrom
+        self.phone_to = mylar.CONFIG.SIGNAL_PHONE_NUMBER_TO if test_phoneto is None else test_phoneto
+        self.signal = Signal(self.phone_from)
+
+    def notify(self, text, attachment_text, module=None):
+        if module is None:
+            module = ''
+        module += '[NOTIFIER]'
+        sent_successfully = False
+
+        try:
+            logger.debug(module + ' Sending sms notification from [%s] to [%s] ' % (self.phone_from, self.phone_to))
+            self.signal.send_message(self.phone_to, text)
+            self.signal.send_message(self.phone_to, attachment_text)
+            sent_successfully = True
+        except Exception as e:
+            logger.info(module + ' Signal notify failed: ' + str(e))
+
+        logger.info(module + ' Signal notifications sent.')
+        return sent_successfully
 
     def test_notify(self):
         return self.notify('Test Message', 'Release the Ninjas!')

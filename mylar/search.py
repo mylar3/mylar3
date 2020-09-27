@@ -2831,7 +2831,10 @@ def notify_snatch(sent_to, comicname, comyear, IssueNumber, nzbprov, pack):
         logger.info("Sending email notification")
         email = notifiers.EMAIL()
         email.notify(snline + " - " + snatched_name, "Mylar notification - Snatch", module="[SEARCH]")
-
+    if mylar.CONFIG.SIGNAL_ENABLED and mylar.CONFIG.SIGNAL_ONGRAB:
+        logger.info("Sending Signal notification")
+        signal = notifiers.SIGNAL()
+        signal.notify(snline + " - " + snatched_name, "Mylar notification - Snatch", module="[SEARCH]")
     return
 
 def FailedMark(IssueID, ComicID, id, nzbname, prov, oneoffinfo=None):

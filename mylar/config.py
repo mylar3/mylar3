@@ -187,6 +187,12 @@ _CONFIG_DEFINITIONS = OrderedDict({
     'SLACK_WEBHOOK_URL': (str, 'SLACK', None),
     'SLACK_ONSNATCH': (bool, 'SLACK', False),
 
+    'SIGNAL_ENABLED': (bool, 'SIGNAL', False),
+    'SIGNAL_PHONE_NUMBER_TO': (str, 'SIGNAL', ''),
+    'SIGNAL_PHONE_NUMBER_FROM': (str, 'SIGNAL', ''),
+    'SIGNAL_ONSNATCH': (bool, 'SIGNAL', False),
+    'SIGNAL_ONPOST': (bool, 'SIGNAL', True),
+
     'DISCORD_ENABLED': (bool, 'DISCORD', False),
     'DISCORD_WEBHOOK_URL': (str, 'DISCORD', None),
     'DISCORD_ONSNATCH': (bool, 'DISCORD', False),
