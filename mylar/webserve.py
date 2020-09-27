@@ -5243,6 +5243,11 @@ class WebInterface(object):
                     "discord_enabled": helpers.checked(mylar.CONFIG.DISCORD_ENABLED),
                     "discord_webhook_url": mylar.CONFIG.DISCORD_WEBHOOK_URL,
                     "discord_onsnatch": helpers.checked(mylar.CONFIG.DISCORD_ONSNATCH),
+                    "signal_enabled": helpers.checked(mylar.CONFIG.SIGNAL_ENABLED),
+                    "signal_onsnatch": helpers.checked(mylar.CONFIG.SIGNAL_ONSNATCH),
+                    "signal_onpost": helpers.checked(mylar.CONFIG.SIGNAL_ONPOST),
+                    "signal_phone_number_to": mylar.CONFIG.SIGNAL_PHONE_NUMBER_TO,
+                    "signal_phone_number_from": mylar.CONFIG.SIGNAL_PHONE_NUMBER_FROM,
                     "email_enabled": helpers.checked(mylar.CONFIG.EMAIL_ENABLED),
                     "email_from": mylar.CONFIG.EMAIL_FROM,
                     "email_to": mylar.CONFIG.EMAIL_TO,
@@ -5568,7 +5573,7 @@ class WebInterface(object):
                            'lowercase_filenames', 'autowant_upcoming', 'autowant_all', 'comic_cover_local', 'alternate_latest_series_covers', 'cvinfo', 'snatchedtorrent_notify',
                            'prowl_enabled', 'prowl_onsnatch', 'pushover_enabled', 'pushover_onsnatch', 'pushover_image', 'boxcar_enabled',
                            'boxcar_onsnatch', 'pushbullet_enabled', 'pushbullet_onsnatch', 'telegram_enabled', 'telegram_onsnatch', 'telegram_image', 'discord_enabled', 'discord_onsnatch', 'slack_enabled', 'slack_onsnatch',
-                           'email_enabled', 'email_enc', 'email_ongrab', 'email_onpost', 'opds_enable', 'opds_authentication', 'opds_metainfo', 'opds_pagesize', 'enable_ddl', 'deluge_pause'] #enable_public
+                            'signal_phone_number_from', 'signal_phone_number_to', 'signal_onsnatch', 'signal_onpost', 'email_enabled', 'email_enc', 'email_ongrab', 'email_onpost', 'opds_enable', 'opds_authentication', 'opds_metainfo', 'opds_pagesize', 'enable_ddl', 'deluge_pause'] #enable_public
 
         for checked_config in checked_configs:
             if checked_config not in kwargs:
