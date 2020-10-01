@@ -670,11 +670,10 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueDa
             break
         if any([nzbprov == '32P', nzbprov == 'Public Torrents', nzbprov == 'ddl']):
             # because 32p directly stores the exact issue, no need to worry about iterating over variations of the issue number.
-            findloop == 99
+            break
 
         if done is True and seperatealpha == "no":
             logger.fdebug("we should break out now - sucessful search previous")
-            findloop == 99
             break
 
             # here we account for issue pattern variations
@@ -933,7 +932,7 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueDa
                 logger.info('sending %s to experimental search' % findcomic)
                 bb = findcomicfeed.Startit(findcomic, isssearch, comyear, ComicVersion, IssDateFix, booktype)
                 # since the regexs in findcomicfeed do the 3 loops, lets force the exit after
-                cmloopit == 1
+                cmloopit = 1
 
         done = False
         log2file = ""
@@ -1802,7 +1801,7 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueDa
             else:
                 cyear = comyear
             notify_snatch(sent_to, ComicName, cyear, IssueNumber, nzbprov, False)
-        prov_count == 0
+        prov_count = 0
         mylar.TMP_PROV = nzbprov
 
         # if mylar.SAB_PARAMS is not None:
