@@ -170,8 +170,7 @@ def search_init(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueD
 
     if ddls > 0:
         logger.fdebug('there are %s Direct Download providers that are currently enabled.' % ddls)
-    findit = {}
-    findit['status'] = False
+    findit = {'status': False}
 
     totalproviders = providercount + torproviders + ddls
 
@@ -315,7 +314,6 @@ def search_init(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueD
             while (tmp_prov_count > prov_count):
                 checked_once = False
                 provider_blocked = helpers.block_provider_check(prov_order[prov_count])
-                send_prov_count = tmp_prov_count - prov_count
                 newznab_host = None
                 torznab_host = None
                 if prov_order[prov_count] == 'DDL' and not provider_blocked:
@@ -364,8 +362,7 @@ def search_init(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueD
                     findit = NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueDate, StoreDate,
                                         searchprov, IssDateFix, IssueID, UseFuzzy, newznab_host,
                                         ComicVersion=ComicVersion, SARC=SARC, IssueArcID=IssueArcID, RSS="yes",
-                                        ComicID=ComicID, unaltered_ComicName=unaltered_ComicName,
-                                        oneoff=oneoff, cmloopit=cmloopit, manual=manual, torznab_host=torznab_host,
+                                        ComicID=ComicID, oneoff=oneoff, cmloopit=cmloopit, manual=manual, torznab_host=torznab_host,
                                         digitaldate=digitaldate, booktype=booktype, chktpb=chktpb,
                                         ignore_booktype=ignore_booktype, c_number=c_number, c_alpha=c_alpha)
                     if findit['status'] is False:
@@ -380,7 +377,6 @@ def search_init(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueD
                                                     IssueDate, StoreDate, searchprov, IssDateFix,
                                                     IssueID, UseFuzzy, newznab_host, ComicVersion=ComicVersion,
                                                     SARC=SARC, IssueArcID=IssueArcID, RSS="yes", ComicID=ComicID,
-                                                    unaltered_ComicName=AS_Alternate,
                                                     allow_packs=allow_packs, oneoff=oneoff, cmloopit=cmloopit,
                                                     manual=manual, torznab_host=torznab_host, digitaldate=digitaldate,
                                                     booktype=booktype, chktpb=chktpb, ignore_booktype=ignore_booktype,
@@ -397,8 +393,7 @@ def search_init(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueD
                     findit = NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueDate, StoreDate,
                                         searchprov, IssDateFix, IssueID, UseFuzzy, newznab_host,
                                         ComicVersion=ComicVersion, SARC=SARC, IssueArcID=IssueArcID, RSS="no",
-                                        ComicID=ComicID, unaltered_ComicName=unaltered_ComicName,
-                                        allow_packs=allow_packs, oneoff=oneoff, cmloopit=cmloopit, manual=manual,
+                                        ComicID=ComicID, allow_packs=allow_packs, oneoff=oneoff, cmloopit=cmloopit, manual=manual,
                                         torznab_host=torznab_host, torrentid_32p=torrentid_32p, digitaldate=digitaldate,
                                         booktype=booktype, chktpb=chktpb, ignore_booktype=ignore_booktype)
                     if all([searchprov == '32P', checked_once is False]) or all(
@@ -418,7 +413,6 @@ def search_init(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueD
                                                     IssueDate, StoreDate, searchprov, IssDateFix,
                                                     IssueID, UseFuzzy, newznab_host, ComicVersion=ComicVersion,
                                                     SARC=SARC, IssueArcID=IssueArcID, RSS="no", ComicID=ComicID,
-                                                    unaltered_ComicName=unaltered_ComicName,
                                                     allow_packs=allow_packs, oneoff=oneoff, cmloopit=cmloopit,
                                                     manual=manual, torznab_host=torznab_host,
                                                     torrentid_32p=torrentid_32p, digitaldate=digitaldate,
@@ -496,8 +490,9 @@ def search_init(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueD
     return findit, 'None'
 
 
-def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueDate, StoreDate, nzbprov, IssDateFix, IssueID, UseFuzzy, newznab_host=None, ComicVersion=None, SARC=None, IssueArcID=None,
-               RSS=None, ComicID=None, unaltered_ComicName=None, allow_packs=None, oneoff=False,
+def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueDate, StoreDate, nzbprov, IssDateFix,
+               IssueID, UseFuzzy, newznab_host=None, ComicVersion=None, SARC=None, IssueArcID=None,
+               RSS=None, ComicID=None, allow_packs=None, oneoff=False,
                cmloopit=None, manual=False, torznab_host=None, torrentid_32p=None, digitaldate=None, booktype=None,
                chktpb=0, ignore_booktype=False, c_number=None, c_alpha=None):
     if any([allow_packs is None, allow_packs == 'None', allow_packs == 0, allow_packs == '0']) and all(
@@ -638,8 +633,7 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueDa
 
     findloop = 0
     foundcomic = []
-    foundc = {}
-    foundc['status'] = False
+    foundc = {'status': False}
     done = False
     seperatealpha = "no"
     hold_the_matches = []
@@ -833,7 +827,7 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueDa
                             logger.info('local domain bypass for %s is active.' % name_newznab)
                             localbypass = True
 
-                    if localbypass == False:
+                    if not localbypass:
                         logger.info('Pausing for %s seconds before continuing to avoid hammering' % pause_the_search)
                         # time.sleep(pause_the_search)
 
@@ -1506,7 +1500,7 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueDa
                         if not entry['title'].startswith('0-Day Comics Pack'):
                             pack_issuelist = entry['issues']
                             issueid_info = helpers.issue_find_ids(ComicName, ComicID, pack_issuelist, IssueNumber)
-                            if issueid_info['valid'] == True:
+                            if issueid_info['valid']:
                                 logger.info('Issue Number %s exists within pack. Continuing.' % IssueNumber)
                             else:
                                 logger.fdebug('Issue Number %s does NOT exist within this pack. Skipping' % IssueNumber)
@@ -1628,7 +1622,7 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueDa
                                         break
 
                             # modify the name for annualization to be displayed properly
-                            if annualize == True:
+                            if annualize:
                                 modcomicname = '%s Annual' % ComicName
                             else:
                                 modcomicname = ComicName
@@ -1731,7 +1725,7 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueDa
                     done = True
                     break
 
-                if done == True:
+                if done:
                     # cmloopit == 1 #let's make sure it STOPS searching after a sucessful match.
                     break
         # cmloopit-=1
@@ -2413,7 +2407,7 @@ def searcher(nzbprov, nzbname, comicinfo, link, IssueID, ComicID, tmpprov, direc
     if 'Public Torrents' in tmpprov and any([nzbprov == 'WWT', nzbprov == 'DEM']):
         tmpprov = re.sub('Public Torrents', nzbprov, tmpprov)
 
-    if comicinfo[0]['pack'] == True:
+    if comicinfo[0]['pack']:
         if '0-Day Comics Pack' not in comicinfo[0]['ComicName']:
             logger.info('Found %s (%s) issue: %s using %s within a pack containing issues %s' % (
                 ComicName, comyear, IssueNumber, tmpprov, comicinfo[0]['pack_numbers']))
@@ -2738,8 +2732,7 @@ def searcher(nzbprov, nzbname, comicinfo, link, IssueID, ComicID, tmpprov, direc
                                       "IssueNumber": comicinfo[0]['IssueNumber'],
                                       "comyear": comicinfo[0]['comyear']}
                     comicinfo = comicinfo_temp
-                return FailedMark(ComicID=ComicID, IssueID=IssueID, id=nzbid, nzbname=nzbname, prov=nzbprov,
-                                  oneoffinfo=comicinfo)
+                return FailedMark(prov=nzbprov)
             else:
                 logger.error(
                     'Unable to send torrent - check logs and settings (this would be marked as a BAD torrent if '
@@ -3120,11 +3113,9 @@ def notify_snatch(sent_to, comicname, comyear, IssueNumber, nzbprov, pack):
     return
 
 
-def FailedMark(IssueID, ComicID, id, nzbname, prov, oneoffinfo=None):
+def FailedMark(prov):
     # Used to pass a failed attempt at sending a download to a client, to the failed handler, and then back again to
     # continue searching.
-
-    from mylar import Failed
 
     if prov == '32P' or prov == 'Public Torrents':
         return "torrent-fail"
