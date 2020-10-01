@@ -213,6 +213,10 @@ def search_init(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueD
             searchcnt = 2  # set the searchcnt to 2 (api)
             srchloop = 2  # start the counter at api, so it will exit without running RSS
 
+    c_alpha = None
+    dsp_c_alpha = None
+    c_number = None
+
     if IssueNumber is not None:
         intIss = helpers.issuedigits(IssueNumber)
         iss = IssueNumber
@@ -230,10 +234,7 @@ def search_init(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueD
 
         # determine the amount of loops here
         fcs = 0
-        c_alpha = None
-        dsp_c_alpha = None
-        c_number = None
-        c_num_a4 = None
+
         while fcs < len(findcomiciss):
             # take first occurance of alpha in string and carry it through
             if findcomiciss[fcs].isalpha():
@@ -261,6 +262,9 @@ def search_init(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueD
             decst = c_number.find('.')
             c_number = c_number[:decst].rstrip()
 
+    searchmode = None
+    searchprov = None
+
     while (srchloop <= searchcnt):
         # searchmodes:
         # rss - will run through the built-cached db of entries
@@ -272,6 +276,8 @@ def search_init(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueD
             searchmode = 'rss'  # order of ops - this will be used first.
         elif srchloop == 2:
             searchmode = 'api'
+        else:
+            searchmode = None
 
         if '0-Day' in ComicName:
             cmloopit = 1
@@ -306,7 +312,8 @@ def search_init(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueD
                 IssueNumber = None
 
             searchprov = None
-
+            newznab_host = None
+            torznab_host = None
             while (tmp_prov_count > prov_count):
                 checked_once = False
                 provider_blocked = helpers.block_provider_check(prov_order[prov_count])
@@ -506,6 +513,15 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueDa
         allow_packs = True
 
     newznab_local = False
+    name_newznab = None
+    host_newznab = None
+    category_newznab = None
+    name_torznab = None
+    host_torznab = None
+    category_torznab = None
+    verify = True
+    apikey = None
+    host_newznab_fix = None
 
     if nzbprov == 'nzb.su':
         apikey = mylar.CONFIG.NZBSU_APIKEY
@@ -634,6 +650,14 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueDa
     done = False
     seperatealpha = "no"
     hold_the_matches = []
+
+    nzbid = None
+    nzbname = None
+    alt_nzbname = None
+    pack_issuelist = None
+    issueid_info = None
+    sent_to = None
+    
     # ---issue problem
     # if issue is '011' instead of '11' in nzb search results, will not have same
     # results. '011' will return different than '11', as will '009' and '09'.
@@ -689,6 +713,8 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueDa
         # logger.fdebug('RSS Check: %s' % RSS)
         # logger.fdebug('nzbprov: %s' % nzbprov)
         # logger.fdebug('comicid: %s' % ComicID)
+        bb = None
+
         if nzbprov == 'ddl' and RSS == "no":
             cmname = re.sub("%20", " ", str(comsrc))
             logger.fdebug('Sending request to DDL site for : %s %s' % (findcomic, isssearch))
@@ -976,6 +1002,8 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueDa
 
                 comsize_m = 0
                 if nzbprov != "dognzb":
+
+                    comsize_b = 0
                     # rss for experimental doesn't have the size constraints embedded. So we do it here.
                     if RSS == "yes":
                         if nzbprov == '32P':
@@ -1069,6 +1097,10 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueDa
                 # ---- date constaints.
                 # if the posting date is prior to the publication date, dump it and save the time.
                 # logger.fdebug('entry: %s' % entry)
+                issuedate_int = None
+                digitaldate_int = None
+                stdate = IssueDate
+
                 if nzbprov == 'experimental' or nzbprov == '32P':
                     pubdate = entry['pubdate']
                 else:
@@ -1086,6 +1118,7 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueDa
                     postdate_int = None
                     issuedate_int = None
                 else:
+
                     # use store date instead of publication date for comparisons since publication date is usually +2 months
                     if StoreDate is None or StoreDate == '0000-00-00':
                         if IssueDate is None or IssueDate == '0000-00-00':
@@ -1101,6 +1134,10 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueDa
                     logger.fdebug('date used is : %s' % stdate)
 
                     postdate_int = None
+                    dateconv2 = None
+                    digconv2 = None
+                    issconv2 = None
+
                     if all([nzbprov == '32P', RSS == 'no']) or all([nzbprov == 'ddl', len(pubdate) == 10]):
                         postdate_int = pubdate
                         logger.fdebug('[%s] postdate_int (%s): %s' % (nzbprov, type(postdate_int), postdate_int))
@@ -1377,7 +1414,7 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueDa
                     annualize = "true"
 
                 F_ComicVersion = None
-
+                D_ComicVersion = None
                 if versionfound == "yes":
                     logger.fdebug("volume detection commencing - adjusting length.")
                     logger.fdebug("watch comicversion is %s" % ComicVersion)
@@ -1471,8 +1508,7 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueDa
                         logger.fdebug('[PACK-QUEUE] DDL Pack detected for %s.' % entry['filename'])
 
                     # find the pack range.
-                    pack_issuelist = None
-                    issueid_info = None
+
                     try:
                         if not entry['title'].startswith('0-Day Comics Pack'):
                             pack_issuelist = entry['issues']
@@ -2437,6 +2473,8 @@ def searcher(nzbprov, nzbname, comicinfo, link, IssueID, ComicID, tmpprov, direc
             logger.fdebug(
                 '[FAILED_DOWNLOAD_CHECKER] Failed download checking is not available for one-off downloads atm. Fixed soon!')
 
+    nzbpath = None
+
     if link and all([nzbprov != 'WWT', nzbprov != 'DEM', nzbprov != '32P', nzbprov != 'torznab', nzbprov != 'ddl']):
 
         # generate nzbid here.
@@ -2446,6 +2484,11 @@ def searcher(nzbprov, nzbname, comicinfo, link, IssueID, ComicID, tmpprov, direc
         nzbhydra = False
         payload = None
         headers = {'User-Agent': str(mylar.USER_AGENT)}
+
+        host_newznab_fix = None
+        apikey = None
+        verify = True
+
         # link doesn't have the apikey - add it and use ?t=get for newznab based.
         if nzbprov == 'newznab' or nzbprov == 'nzb.su':
             # need to basename the link so it just has the id/hash.
@@ -2789,6 +2832,8 @@ def searcher(nzbprov, nzbname, comicinfo, link, IssueID, ComicID, tmpprov, direc
         # SABnzbd / NZBGet
 
         # logger.fdebug("link to retrieve via api:" + str(helpers.apiremove(linkapi,'$')))
+        send_to_nzbget = None
+        sendtosab = None
 
         # nzb.get
         if mylar.USE_NZBGET:
@@ -2904,6 +2949,9 @@ def searcher(nzbprov, nzbname, comicinfo, link, IssueID, ComicID, tmpprov, direc
                           'nzbname': nzbname,
                           'output': 'json'}
 
+            # if sab priority isn't selected, default to Normal (0)
+            sabpriority = "0"
+
             # determine SAB priority
             if mylar.CONFIG.SAB_PRIORITY:
                 # setup the priorities.
@@ -2917,9 +2965,6 @@ def searcher(nzbprov, nzbname, comicinfo, link, IssueID, ComicID, tmpprov, direc
                     sabpriority = "1"
                 elif mylar.CONFIG.SAB_PRIORITY == "Paused":
                     sabpriority = "-2"
-            else:
-                # if sab priority isn't selected, default to Normal (0)
-                sabpriority = "0"
 
             sab_params['priority'] = sabpriority
 
@@ -2960,6 +3005,9 @@ def searcher(nzbprov, nzbname, comicinfo, link, IssueID, ComicID, tmpprov, direc
 
             sent_to = "has sent it to your SABnzbd+"
             logger.info("Successfully sent nzb file to SABnzbd")
+
+        client_id = None
+        clientmode = None
 
         if mylar.CONFIG.ENABLE_SNATCH_SCRIPT:
             if mylar.USE_NZBGET:
@@ -3110,6 +3158,8 @@ def IssueTitleCheck(issuetitle, watchcomic_split, splitit, splitst, issue_firstw
 
     issuetitle = re.sub('[\-\:\,\?\.]', ' ', str(issuetitle))
     issuetitle_words = issuetitle.split(None)
+    search_issue_title = ''
+
     # issue title comparison here:
     logger.fdebug('there are %s words in the issue title of : %s' % (len(issuetitle_words), issuetitle))
     # we minus 1 the splitst since the issue # is included in there.
@@ -3122,6 +3172,7 @@ def IssueTitleCheck(issuetitle, watchcomic_split, splitit, splitst, issue_firstw
         extra_words = splitst - len(watchcomic_split)
         logger.fdebug('there are %s left over after we remove the series title.' % extra_words)
         wordcount = 1
+
         # remove the series title here so we just have the 'hopefully' issue title
         for word in splitit:
             # logger.info('word: ' + str(word))
@@ -3232,6 +3283,7 @@ def IssueTitleCheck(issuetitle, watchcomic_split, splitit, splitst, issue_firstw
 
 
 def generate_id(nzbprov, link):
+    nzbid = None
     # logger.fdebug('[%s] generate_id - link: %s' % (nzbprov, link))
     if nzbprov == 'experimental':
         # id is located after the /download/ portion
