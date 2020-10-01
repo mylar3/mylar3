@@ -730,7 +730,7 @@ class PostProcessor(object):
                                     continue
 
                             for isc in issuechk:
-                                if any([temploc is not None, temploc != 999999999999999]) and helpers.issuedigits(temploc) != helpers.issuedigits(isc['Issue_Number']):
+                                if any([temploc is not None, temploc != 999999999999999]) and all([annchk =='no', helpers.issuedigits(temploc) != helpers.issuedigits(isc['Issue_Number'])]) or all([annchk == 'yes', helpers.issuedigits(re.sub('annual', '', temploc.lower()).strip()) != helpers.issuedigits(isc['Issue_Number'])]):
                                     logger.fdebug('issues dont match. Skipping')
                                     continue
 
