@@ -5929,6 +5929,8 @@ class WebInterface(object):
         elif all([seriestitle is None, meta_data is None]): # and 'series' not in meta_data:
             myDB = db.DBConnection()
             meta_data = myDB.selectone('SELECT * FROM issues where IssueID=?', [issueid]).fetchone()
+            if meta_data is None:
+                meta_data = myDB.selectone('SELECT * FROM annuals where IssueID=?', [issueid]).fetchone()
             seriestitle = meta_data['ComicName']
             issuenumber = meta_data['Issue_Number']
             try:
@@ -5946,6 +5948,8 @@ class WebInterface(object):
         else:
             myDB = db.DBConnection()
             metadata_db = myDB.selectone('SELECT * FROM issues where IssueID=?', [issueid]).fetchone()
+            if metadata_db is None:
+                metadata_db = myDB.selectone('SELECT * FROM annuals where IssueID=?', [issueid]).fetchone()
             seriestitle = meta_data['series']
             if any([seriestitle == 'None', seriestitle is None]):
                 seriestitle = metadata_db['ComicName']
