@@ -730,7 +730,7 @@ class PostProcessor(object):
                                     continue
 
                             for isc in issuechk:
-                                if any([temploc is not None, temploc != 999999999999999]) and helpers.issuedigits(temploc) != helpers.issuedigits(isc['Issue_Number']):
+                                if any([temploc is not None, temploc != 999999999999999]) and all([annchk =='no', helpers.issuedigits(temploc) != helpers.issuedigits(isc['Issue_Number'])]) or all([annchk == 'yes', helpers.issuedigits(re.sub('annual', '', temploc.lower()).strip()) != helpers.issuedigits(isc['Issue_Number'])]):
                                     logger.fdebug('issues dont match. Skipping')
                                     continue
 
@@ -1875,6 +1875,7 @@ class PostProcessor(object):
                                                "mode": 'stop'})
                         return self.queue.put(self.valreturn)
 
+                    rdorder = None
                     if sandwich is not None and 'S' in sandwich:
                         issuearcid = re.sub('S', '', issueid)
                         logger.fdebug('%s issuearcid:%s' % (module, issuearcid))
@@ -1900,6 +1901,7 @@ class PostProcessor(object):
                         if issuenumber is None:
                             issuenumber = arcdata['IssueNumber']
                         issueid = arcdata['IssueID']
+                        rdorder = arcdata['ReadingOrder']
 
                     #tag the meta.
                     metaresponse = None
@@ -1911,7 +1913,7 @@ class PostProcessor(object):
                         self._log("Metatagging enabled - proceeding...")
                         try:
                             from . import cmtagmylar
-                            metaresponse = cmtagmylar.run(location, issueid=issueid, filename=os.path.join(self.nzb_folder, ofilename), readingorder=arcdata['ReadingOrder'], agerating=None)
+                            metaresponse = cmtagmylar.run(location, issueid=issueid, filename=os.path.join(self.nzb_folder, ofilename), readingorder=rdorder, agerating=None)
                         except ImportError:
                             logger.warn('%s comictaggerlib not found on system. Ensure the ENTIRE lib directory is located within mylar/lib/comictaggerlib/' % module)
                             metaresponse = "fail"

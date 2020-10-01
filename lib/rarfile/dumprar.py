@@ -1,23 +1,20 @@
-#! /usr/bin/env python
+#! /usr/bin/env python3
 
 """Dump archive contents, test extraction."""
 
-from __future__ import division, absolute_import, print_function
-
+import binascii
+import getopt
 import io
 import sys
-import getopt
-
 from datetime import datetime
 
 import rarfile as rf
-
 
 usage = """
 dumprar [switches] [ARC1 ARC2 ...] [@ARCLIST]
 switches:
   @file      read archive names from file
-  -pPSW      set password
+  -pPWD      set password
   -Ccharset  set fallback charset
   -v         increase verbosity
   -t         attempt to read all files
@@ -27,17 +24,17 @@ switches:
   --         stop switch parsing
 """.strip()
 
-os_list = ['DOS', 'OS2', 'WIN', 'UNIX', 'MACOS', 'BEOS']
+os_list = ["DOS", "OS2", "WIN", "UNIX", "MACOS", "BEOS"]
 
-block_strs = ['MARK', 'MAIN', 'FILE', 'OLD_COMMENT', 'OLD_EXTRA',
-              'OLD_SUB', 'OLD_RECOVERY', 'OLD_AUTH', 'SUB', 'ENDARC']
+block_strs = ["MARK", "MAIN", "FILE", "OLD_COMMENT", "OLD_EXTRA",
+              "OLD_SUB", "OLD_RECOVERY", "OLD_AUTH", "SUB", "ENDARC"]
 
 r5_block_types = {
-    rf.RAR5_BLOCK_MAIN: 'R5_MAIN',
-    rf.RAR5_BLOCK_FILE: 'R5_FILE',
-    rf.RAR5_BLOCK_SERVICE: 'R5_SVC',
-    rf.RAR5_BLOCK_ENCRYPTION: 'R5_ENC',
-    rf.RAR5_BLOCK_ENDARC: 'R5_ENDARC',
+    rf.RAR5_BLOCK_MAIN: "R5_MAIN",
+    rf.RAR5_BLOCK_FILE: "R5_FILE",
+    rf.RAR5_BLOCK_SERVICE: "R5_SVC",
+    rf.RAR5_BLOCK_ENCRYPTION: "R5_ENC",
+    rf.RAR5_BLOCK_ENDARC: "R5_ENDARC",
 }
 
 
@@ -50,7 +47,7 @@ def rar3_type(btype):
 
 def rar5_type(btype):
     """RAR5 type code as string."""
-    return r5_block_types.get(btype, '*UNKNOWN*')
+    return r5_block_types.get(btype, "*UNKNOWN*")
 
 
 main_bits = (
@@ -101,69 +98,94 @@ file_parms = ("D64", "D128", "D256", "D512",
               "D1024", "D2048", "D4096", "DIR")
 
 r5_block_flags = (
-    (rf.RAR5_BLOCK_FLAG_EXTRA_DATA, 'EXTRA'),
-    (rf.RAR5_BLOCK_FLAG_DATA_AREA, 'DATA'),
-    (rf.RAR5_BLOCK_FLAG_SKIP_IF_UNKNOWN, 'SKIP'),
-    (rf.RAR5_BLOCK_FLAG_SPLIT_BEFORE, 'SPLIT_BEFORE'),
-    (rf.RAR5_BLOCK_FLAG_SPLIT_AFTER, 'SPLIT_AFTER'),
-    (rf.RAR5_BLOCK_FLAG_DEPENDS_PREV, 'DEPENDS'),
-    (rf.RAR5_BLOCK_FLAG_KEEP_WITH_PARENT, 'KEEP'),
+    (rf.RAR5_BLOCK_FLAG_EXTRA_DATA, "EXTRA"),
+    (rf.RAR5_BLOCK_FLAG_DATA_AREA, "DATA"),
+    (rf.RAR5_BLOCK_FLAG_SKIP_IF_UNKNOWN, "SKIP"),
+    (rf.RAR5_BLOCK_FLAG_SPLIT_BEFORE, "SPLIT_BEFORE"),
+    (rf.RAR5_BLOCK_FLAG_SPLIT_AFTER, "SPLIT_AFTER"),
+    (rf.RAR5_BLOCK_FLAG_DEPENDS_PREV, "DEPENDS"),
+    (rf.RAR5_BLOCK_FLAG_KEEP_WITH_PARENT, "KEEP"),
 )
 
 r5_main_flags = (
-    (rf.RAR5_MAIN_FLAG_ISVOL, 'ISVOL'),
-    (rf.RAR5_MAIN_FLAG_HAS_VOLNR, 'VOLNR'),
-    (rf.RAR5_MAIN_FLAG_SOLID, 'SOLID'),
-    (rf.RAR5_MAIN_FLAG_RECOVERY, 'RECOVERY'),
-    (rf.RAR5_MAIN_FLAG_LOCKED, 'LOCKED'),
+    (rf.RAR5_MAIN_FLAG_ISVOL, "ISVOL"),
+    (rf.RAR5_MAIN_FLAG_HAS_VOLNR, "VOLNR"),
+    (rf.RAR5_MAIN_FLAG_SOLID, "SOLID"),
+    (rf.RAR5_MAIN_FLAG_RECOVERY, "RECOVERY"),
+    (rf.RAR5_MAIN_FLAG_LOCKED, "LOCKED"),
 )
 
 r5_file_flags = (
-    (rf.RAR5_FILE_FLAG_ISDIR, 'DIR'),
-    (rf.RAR5_FILE_FLAG_HAS_MTIME, 'MTIME'),
-    (rf.RAR5_FILE_FLAG_HAS_CRC32, 'CRC32'),
-    (rf.RAR5_FILE_FLAG_UNKNOWN_SIZE, 'NOSIZE'),
+    (rf.RAR5_FILE_FLAG_ISDIR, "DIR"),
+    (rf.RAR5_FILE_FLAG_HAS_MTIME, "MTIME"),
+    (rf.RAR5_FILE_FLAG_HAS_CRC32, "CRC32"),
+    (rf.RAR5_FILE_FLAG_UNKNOWN_SIZE, "NOSIZE"),
 )
 
 r5_enc_flags = (
-    (rf.RAR5_ENC_FLAG_HAS_CHECKVAL, 'CHECKVAL'),
+    (rf.RAR5_ENC_FLAG_HAS_CHECKVAL, "CHECKVAL"),
 )
 
 r5_endarc_flags = (
-    (rf.RAR5_ENDARC_FLAG_NEXT_VOL, 'NEXTVOL'),
+    (rf.RAR5_ENDARC_FLAG_NEXT_VOL, "NEXTVOL"),
 )
 
 r5_file_enc_flags = (
-    (rf.RAR5_XENC_CHECKVAL, 'CHECKVAL'),
-    (rf.RAR5_XENC_TWEAKED, 'TWEAKED'),
+    (rf.RAR5_XENC_CHECKVAL, "CHECKVAL"),
+    (rf.RAR5_XENC_TWEAKED, "TWEAKED"),
 )
 
 r5_file_redir_types = {
-    rf.RAR5_XREDIR_UNIX_SYMLINK: 'UNIX_SYMLINK',
-    rf.RAR5_XREDIR_WINDOWS_SYMLINK: 'WINDOWS_SYMLINK',
-    rf.RAR5_XREDIR_WINDOWS_JUNCTION: 'WINDOWS_JUNCTION',
-    rf.RAR5_XREDIR_HARD_LINK: 'HARD_LINK',
-    rf.RAR5_XREDIR_FILE_COPY: 'FILE_COPY',
+    rf.RAR5_XREDIR_UNIX_SYMLINK: "UNIX_SYMLINK",
+    rf.RAR5_XREDIR_WINDOWS_SYMLINK: "WINDOWS_SYMLINK",
+    rf.RAR5_XREDIR_WINDOWS_JUNCTION: "WINDOWS_JUNCTION",
+    rf.RAR5_XREDIR_HARD_LINK: "HARD_LINK",
+    rf.RAR5_XREDIR_FILE_COPY: "FILE_COPY",
 }
 
 r5_file_redir_flags = (
-    (rf.RAR5_XREDIR_ISDIR, 'DIR'),
+    (rf.RAR5_XREDIR_ISDIR, "DIR"),
+)
+
+
+dos_mode_bits = (
+    (0x01, "READONLY"),
+    (0x02, "HIDDEN"),
+    (0x04, "SYSTEM"),
+    (0x08, "VOLUME_ID"),
+    (0x10, "DIRECTORY"),
+    (0x20, "ARCHIVE"),
+    (0x40, "DEVICE"),
+    (0x80, "NORMAL"),
+    (0x0100, "TEMPORARY"),
+    (0x0200, "SPARSE_FILE"),
+    (0x0400, "REPARSE_POINT"),
+    (0x0800, "COMPRESSED"),
+    (0x1000, "OFFLINE"),
+    (0x2000, "NOT_CONTENT_INDEXED"),
+    (0x4000, "ENCRYPTED"),
+    (0x8000, "INTEGRITY_STREAM"),
+    (0x00010000, "VIRTUAL"),
+    (0x00020000, "NO_SCRUB_DATA"),
+    (0x00040000, "RECALL_ON_OPEN"),
+    (0x00080000, "PINNED"),
+    (0x00100000, "UNPINNED"),
+    (0x00400000, "RECALL_ON_DATA_ACCESS"),
+    (0x20000000, "STRICTLY_SEQUENTIAL"),
 )
 
 
 def xprint(m, *args):
     """Print string to stdout.
-
-    Format unicode safely.
     """
-    if sys.hexversion < 0x3000000:
-        m = m.decode('utf8')
     if args:
         m = m % args
-    if sys.hexversion < 0x3000000:
-        m = m.encode('utf8')
-    sys.stdout.write(m)
-    sys.stdout.write('\n')
+    print(m)
+
+
+def tohex(data):
+    """Return hex string."""
+    return binascii.hexlify(data).decode("ascii")
 
 
 def render_flags(flags, bit_list):
@@ -184,7 +206,7 @@ def render_flags(flags, bit_list):
         n += 1
 
     if not res:
-        return '-'
+        return "-"
 
     return ",".join(res)
 
@@ -203,9 +225,9 @@ def fmt_time(t):
     """Format time.
     """
     if t is None:
-        return '(-)'
+        return "(-)"
     if isinstance(t, datetime):
-        return t.isoformat('T')
+        return t.isoformat("T")
     return "%04d-%02d-%02d %02d:%02d:%02d" % t
 
 
@@ -217,28 +239,76 @@ def show_item(h):
     elif isinstance(h, rf.Rar5Info):
         show_item_v5(h)
     else:
-        xprint('Unknown info record')
+        xprint("Unknown info record")
+
+
+def show_rftype(h):
+    return "".join([
+        h.is_file() and "F" or "-",
+        h.is_dir() and "D" or "-",
+        h.is_symlink() and "L" or "-",
+    ])
+
+
+def modex3(v):
+    return [v & 4 and "r" or "-", v & 2 and "w" or "-", v & 1 and "x" or "-"]
+
+
+def unix_mode(mode):
+    perms = modex3(mode >> 6) + modex3(mode >> 3) + modex3(mode)
+    if mode & 0x0800:
+        perms[2] = perms[2] == "x" and "s" or "S"
+    if mode & 0x0400:
+        perms[5] = perms[5] == "x" and "s" or "S"
+    if mode & 0x0200:
+        perms[8] = perms[8] == "x" and "t" or "-"
+    rest = mode & 0xF000
+    if rest == 0x4000:
+        perms.insert(0, "d")
+    elif rest == 0xA000:
+        perms.insert(0, "l")
+    elif rest == 0x8000:
+        # common
+        perms.insert(0, "-")
+    elif rest == 0:
+        perms.insert(0, "-")
+    else:
+        perms.insert(0, "?")
+        perms.append("(0x%04x)" % rest)
+    return "".join(perms)
+
+
+def show_mode(h):
+    if h.host_os in (rf.RAR_OS_UNIX, rf.RAR_OS_BEOS):
+        s_mode = unix_mode(h.mode)
+    elif h.host_os in (rf.RAR_OS_MSDOS, rf.RAR_OS_WIN32, rf.RAR_OS_OS2):
+        s_mode = render_flags(h.mode, dos_mode_bits)
+    else:
+        s_mode = "0x%x" % h.mode
+    return s_mode
 
 
 def show_item_v3(h):
     """Show any RAR3 record.
     """
     st = rar3_type(h.type)
-    xprint("%s: hdrlen=%d datlen=%d", st, h.header_size, h.add_size)
+    xprint("%s: hdrlen=%d datlen=%d is=%s",
+           st, h.header_size, h.add_size, show_rftype(h))
     if h.type in (rf.RAR_BLOCK_FILE, rf.RAR_BLOCK_SUB):
-        if h.host_os == rf.RAR_OS_UNIX:
-            s_mode = "0%o" % h.mode
-        else:
-            s_mode = "0x%x" % h.mode
+        s_mode = show_mode(h)
         xprint("  flags=0x%04x:%s", h.flags, get_file_flags(h.flags))
         if h.host_os >= 0 and h.host_os < len(os_list):
             s_os = os_list[h.host_os]
         else:
             s_os = "?"
-        xprint("  os=%d:%s ver=%d mode=%s meth=%c cmp=%d dec=%d vol=%d",
+        if h.flags & rf.RAR_FILE_UNICODE:
+            s_namecmp = " namecmp=%d/%d" % (len(h.orig_filename), h._name_size)
+        else:
+            s_namecmp = ""
+        xprint("  os=%d:%s ver=%d mode=%s meth=%c cmp=%d dec=%d vol=%d%s",
                h.host_os, s_os,
                h.extract_version, s_mode, h.compress_type,
-               h.compress_size, h.file_size, h.volume)
+               h.compress_size, h.file_size, h.volume, s_namecmp)
         ucrc = (h.CRC + (1 << 32)) & ((1 << 32) - 1)
         xprint("  crc=0x%08x (%d) date_time=%s", ucrc, h.CRC, fmt_time(h.date_time))
         xprint("  name=%s", h.filename)
@@ -254,6 +324,10 @@ def show_item_v3(h):
         xprint("  flags=0x%04x:%s", h.flags, render_flags(h.flags, main_bits))
     elif h.type == rf.RAR_BLOCK_ENDARC:
         xprint("  flags=0x%04x:%s", h.flags, render_flags(h.flags, endarc_bits))
+        if h.flags & rf.RAR_ENDARC_DATACRC:
+            xprint("  datacrc=0x%08x", h.endarc_datacrc)
+        if h.flags & rf.RAR_ENDARC_DATACRC:
+            xprint("  volnr=%d", h.endarc_volnr)
     elif h.type == rf.RAR_BLOCK_MARK:
         xprint("  flags=0x%04x:", h.flags)
     else:
@@ -261,7 +335,7 @@ def show_item_v3(h):
 
     if h.comment is not None:
         cm = repr(h.comment)
-        if cm[0] == 'u':
+        if cm[0] == "u":
             cm = cm[1:]
         xprint("  comment=%s", cm)
 
@@ -270,17 +344,16 @@ def show_item_v5(h):
     """Show any RAR5 record.
     """
     st = rar5_type(h.block_type)
-    xprint("%s: hdrlen=%d datlen=%d hdr_extra=%d", st, h.header_size,
-           h.compress_size, h.block_extra_size)
+    xprint("%s: hdrlen=%d datlen=%d hdr_extra=%d is=%s", st, h.header_size,
+           h.compress_size, h.block_extra_size, show_rftype(h))
     xprint("  block_flags=0x%04x:%s", h.block_flags, render_flags(h.block_flags, r5_block_flags))
     if h.block_type in (rf.RAR5_BLOCK_FILE, rf.RAR5_BLOCK_SERVICE):
         xprint("  name=%s", h.filename)
+        s_mode = show_mode(h)
         if h.file_host_os == rf.RAR5_OS_UNIX:
-            s_os = 'UNIX'
-            s_mode = "0%o" % h.mode
+            s_os = "UNIX"
         else:
-            s_os = 'WINDOWS'
-            s_mode = "0x%x" % h.mode
+            s_os = "WINDOWS"
         xprint("  file_flags=0x%04x:%s", h.file_flags, render_flags(h.file_flags, r5_file_flags))
 
         cmp_flags = h.file_compress_flags
@@ -295,7 +368,7 @@ def show_item_v5(h):
         if h.CRC is not None:
             xprint("  crc=0x%08x (%d)", h.CRC, h.CRC)
         if h.blake2sp_hash is not None:
-            xprint("  blake2sp=%s", rf.tohex(h.blake2sp_hash))
+            xprint("  blake2sp=%s", tohex(h.blake2sp_hash))
         if h.date_time is not None:
             xprint("  date_time=%s", fmt_time(h.date_time))
         if h.mtime:
@@ -308,40 +381,40 @@ def show_item_v5(h):
             xprint("  arctime=%s", fmt_time(h.arctime))
         if h.flags & rf.RAR_FILE_PASSWORD:
             enc_algo, enc_flags, kdf_count, salt, iv, checkval = h.file_encryption
-            algo_name = 'AES256' if enc_algo == rf.RAR5_XENC_CIPHER_AES256 else 'UnknownAlgo'
-            xprint('  algo=%d:%s enc_flags=%04x:%s kdf_lg=%d kdf_count=%d salt=%s iv=%s checkval=%s',
+            algo_name = "AES256" if enc_algo == rf.RAR5_XENC_CIPHER_AES256 else "UnknownAlgo"
+            xprint("  algo=%d:%s enc_flags=%04x:%s kdf_lg=%d kdf_count=%d salt=%s iv=%s checkval=%s",
                    enc_algo, algo_name, enc_flags, render_flags(enc_flags, r5_file_enc_flags),
-                   kdf_count, 1 << kdf_count, rf.tohex(salt), rf.tohex(iv),
-                   checkval and rf.tohex(checkval) or '-')
+                   kdf_count, 1 << kdf_count, tohex(salt), tohex(iv),
+                   checkval and tohex(checkval) or "-")
         if h.file_redir:
             redir_type, redir_flags, redir_name = h.file_redir
-            xprint('  redir: type=%s flags=%d:%s destination=%s',
-                   r5_file_redir_types.get(redir_type, 'Unknown'),
+            xprint("  redir: type=%s flags=%d:%s destination=%s",
+                   r5_file_redir_types.get(redir_type, "Unknown"),
                    redir_flags, render_flags(redir_flags, r5_file_redir_flags),
                    redir_name)
         if h.file_owner:
             uname, gname, uid, gid = h.file_owner
-            xprint('  owner: name=%r group=%r uid=%r gid=%r',
+            xprint("  owner: name=%r group=%r uid=%r gid=%r",
                    uname, gname, uid, gid)
         if h.file_version:
             flags, version = h.file_version
-            xprint('  version: flags=%r version=%r', flags, version)
+            xprint("  version: flags=%r version=%r", flags, version)
     elif h.block_type == rf.RAR5_BLOCK_MAIN:
         xprint("  flags=0x%04x:%s", h.flags, render_flags(h.main_flags, r5_main_flags))
     elif h.block_type == rf.RAR5_BLOCK_ENDARC:
         xprint("  flags=0x%04x:%s", h.flags, render_flags(h.endarc_flags, r5_endarc_flags))
     elif h.block_type == rf.RAR5_BLOCK_ENCRYPTION:
-        algo_name = 'AES256' if h.encryption_algo == rf.RAR5_XENC_CIPHER_AES256 else 'UnknownAlgo'
+        algo_name = "AES256" if h.encryption_algo == rf.RAR5_XENC_CIPHER_AES256 else "UnknownAlgo"
         xprint("  algo=%d:%s flags=0x%04x:%s", h.encryption_algo, algo_name, h.flags,
                render_flags(h.encryption_flags, r5_enc_flags))
         xprint("  kdf_lg=%d kdf_count=%d", h.encryption_kdf_count, 1 << h.encryption_kdf_count)
-        xprint("  salt=%s", rf.tohex(h.encryption_salt))
+        xprint("  salt=%s", tohex(h.encryption_salt))
     else:
         xprint("  - missing info -")
 
     if h.comment is not None:
         cm = repr(h.comment)
-        if cm[0] == 'u':
+        if cm[0] == "u":
             cm = cm[1:]
         xprint("  comment=%s", cm)
 
@@ -363,7 +436,7 @@ def check_crc(f, inf, desc):
         return
     ucrc = f._md_context.digest()
     if ucrc != exp:
-        print('crc error - %s - exp=%r got=%r' % (desc, exp, ucrc))
+        print("crc error - %s - exp=%r got=%r" % (desc, exp, ucrc))
 
 
 def test_read_long(r, inf):
@@ -382,7 +455,7 @@ def test_read_long(r, inf):
     if total != inf.file_size:
         xprint("\n *** %s has corrupt file: %s ***", r.rarfile, inf.filename)
         xprint(" *** short read: got=%d, need=%d ***\n", total, inf.file_size)
-    check_crc(f, inf, 'read')
+    check_crc(f, inf, "read")
     bhash = bctx.hexdigest()
     if cf_verbose > 1:
         if f._md_context.digest() == inf._md_expect:
@@ -397,7 +470,7 @@ def test_read_long(r, inf):
         f.seek(0, 0)
 
         total = 0
-        buf = bytearray(rf.ZERO * 1024)
+        buf = bytearray(1024)
         while 1:
             res = f.readinto(buf)
             if not res:
@@ -405,7 +478,7 @@ def test_read_long(r, inf):
             total += res
         if inf.file_size != total:
             xprint(" *** readinto failed: got=%d, need=%d ***\n", total, inf.file_size)
-        #check_crc(f, inf, 'readinto')
+        #check_crc(f, inf, "readinto")
     f.close()
 
 
@@ -414,7 +487,7 @@ def test_read(r, inf):
     test_read_long(r, inf)
 
 
-def test_real(fn, psw):
+def test_real(fn, pwd):
     """Actual archive processing.
     """
     xprint("Archive: %s", fn)
@@ -425,7 +498,7 @@ def test_real(fn, psw):
 
     rfarg = fn
     if cf_test_memory:
-        rfarg = io.BytesIO(open(fn, 'rb').read())
+        rfarg = io.BytesIO(open(fn, "rb").read())
 
     # check if rar
     if not rf.is_rarfile(rfarg):
@@ -436,30 +509,28 @@ def test_real(fn, psw):
     r = rf.RarFile(rfarg, charset=cf_charset, info_callback=cb)
     # set password
     if r.needs_password():
-        if psw:
-            r.setpassword(psw)
+        if pwd:
+            r.setpassword(pwd)
         else:
             xprint(" --- %s requires password ---", fn)
             return
 
     # show comment
     if cf_show_comment and r.comment:
-        for ln in r.comment.split('\n'):
+        for ln in r.comment.split("\n"):
             xprint("    %s", ln)
     elif cf_verbose > 0 and r.comment:
         cm = repr(r.comment)
-        if cm[0] == 'u':
+        if cm[0] == "u":
             cm = cm[1:]
         xprint("  comment=%s", cm)
 
     # process
     for n in r.namelist():
         inf = r.getinfo(n)
-        if inf.isdir():
-            continue
         if cf_verbose == 1:
             show_item(inf)
-        if cf_test_read:
+        if cf_test_read and inf.is_file():
             test_read(r, inf)
 
     if cf_extract:
@@ -471,13 +542,13 @@ def test_real(fn, psw):
         r.testrar()
 
 
-def test(fn, psw):
+def test(fn, pwd):
     """Process one archive with error handling.
     """
     try:
-        test_real(fn, psw)
-    except rf.NeedFirstVolume:
-        xprint(" --- %s is middle part of multi-vol archive ---", fn)
+        test_real(fn, pwd)
+    except rf.NeedFirstVolume as ex:
+        xprint(" --- %s is middle part of multi-vol archive (%s)---", fn, str(ex))
     except rf.Error:
         exc, msg, tb = sys.exc_info()
         xprint("\n *** %s: %s ***\n", exc.__name__, msg)
@@ -495,34 +566,34 @@ def main():
     global cf_extract, cf_test_read, cf_test_unrar
     global cf_test_memory
 
-    psw = None
+    pwd = None
 
     # parse args
     try:
-        opts, args = getopt.getopt(sys.argv[1:], 'p:C:hvcxtRM')
+        opts, args = getopt.getopt(sys.argv[1:], "p:C:hvcxtRM")
     except getopt.error as ex:
         print(str(ex), file=sys.stderr)
         sys.exit(1)
 
     for o, v in opts:
-        if o == '-p':
-            psw = v
-        elif o == '-h':
+        if o == "-p":
+            pwd = v
+        elif o == "-h":
             xprint(usage)
             return
-        elif o == '-v':
+        elif o == "-v":
             cf_verbose += 1
-        elif o == '-c':
+        elif o == "-c":
             cf_show_comment = 1
-        elif o == '-x':
+        elif o == "-x":
             cf_extract = 1
-        elif o == '-t':
+        elif o == "-t":
             cf_test_read += 1
-        elif o == '-T':
+        elif o == "-T":
             cf_test_unrar = 1
-        elif o == '-M':
+        elif o == "-M":
             cf_test_memory = 1
-        elif o == '-C':
+        elif o == "-C":
             cf_charset = v
         else:
             raise Exception("unhandled switch: " + o)
@@ -530,7 +601,7 @@ def main():
     args2 = []
     for a in args:
         if a[0] == "@":
-            for ln in open(a[1:], 'r'):
+            for ln in open(a[1:], "r"):
                 fn = ln[:-1]
                 args2.append(fn)
         else:
@@ -540,15 +611,11 @@ def main():
     if not args:
         xprint(usage)
 
-    # pypy .readinto()+memoryview() is buggy
-    #if cf_test_read > 1 and hasattr(sys, 'pypy_version_info'):
-    #    cf_test_read = 1
-
     for fn in args:
-        test(fn, psw)
+        test(fn, pwd)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     try:
         main()
     except KeyboardInterrupt:
