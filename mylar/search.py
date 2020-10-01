@@ -1088,7 +1088,7 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueDa
                                     logger.fdebug('Failure to meet the Maximium size threshold - skipping')
                                     continue
 
-                if mylar.CONFIG.IGNORE_COVERS is True and 'coveronly' in re.sub('[\s\s+\_\.]', '',
+                if mylar.CONFIG.IGNORE_COVERS is True and 'coveronly' in re.sub('[\s+\_\.]', '',
                                                                                 entry['title'].lower(), re.UNICODE):
                     logger.fdebug('Cover only detected. Ignoring result.')
                     continue
@@ -2001,6 +2001,7 @@ def searchforissue(issueid=None, new=False, rsscheck=None, manual=False):
                     if result['DateAdded'] is None:
                         DA = datetime.datetime.today()
                         DateAdded = DA.strftime('%Y-%m-%d')
+                        table = None
                         if result['mode'] == 'want':
                             table = 'issues'
                         elif result['mode'] == 'want_ann':
@@ -2615,7 +2616,7 @@ def searcher(nzbprov, nzbname, comicinfo, link, IssueID, ComicID, tmpprov, direc
             filen = re.sub("\&", 'and', filen)
             filen = re.sub('[\,\:\?\']', '', filen)
             filen = re.sub('[\(\)]', ' ', filen)
-            filen = re.sub('[\s\s+]', '', filen)  # make sure we remove the extra spaces.
+            filen = re.sub('\s+', '', filen)  # make sure we remove the extra spaces.
             logger.fdebug('[FILENAME] filename (remove chars): %s' % filen)
             filen = re.sub('.cbr', '', filen).strip()
             filen = re.sub('.cbz', '', filen).strip()
