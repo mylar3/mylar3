@@ -23,4 +23,4 @@ simplejson>=3.17.0
 six>=1.13.0
 tzlocal>=2.0.0
 urllib3>=1.25.7
-
+pysignald==0.0.6

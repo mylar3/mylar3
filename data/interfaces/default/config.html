@@ -1581,7 +1581,37 @@
                             </div>
                         </div>
                     </fieldset>
-
+										<fieldset>
+                        <h3><img src="images/signal.png" style="vertical-align: middle; margin: 3px; margin-top: -1px;" height="30" width="30"/>Signal</h3>
+                        <div class="row checkbox">
+                          <input type="checkbox" name="signal_enabled" id="signal" value="1" ${config['signal_enabled']}/>
+                          <label>Enable Signal Notification</label>
+                        </div>
+                        <div id="signaloptions" style="display:none;">
+                          <div class="row">
+                            <label>Receiver Phone Number</label>
+                            <input type="text" name="signal_phone_number_to" id="phone_to" style="width: 18em" value="${config['signal_phone_number_to']}">
+                            <small>+1800123456</small>
+                          </div>
+                          <div class="row">
+                            <label>Sender Phone Number</label>
+                            <input type="text" id="phone_from" name="signal_phone_number_from" style="width: 18em" value="${config['signal_phone_number_from']}">
+                            <small>+1800123456</small>
+                          </div>
+                          <div class="row checkbox">
+                              <input type="checkbox" name="signal_onsnatch" value="1" ${config['signal_onsnatch']} /><label>Notify on snatch?</label>
+                              <small>Notify when comics are snatched?</small>
+                          </div>
+                          <div class="row checkbox">
+                              <input type="checkbox" name="signal_onpost" value="1" ${config['signal_onpost']} /><label>Notify on post processing?</label>
+                              <small>Notify when comics are post processed?</small>
+                          </div>
+                          <div class="row">
+                            <img name="signal_statusicon" id="signal_statusicon" src="images/success.png" style="float:right;visibility:hidden;" height="20" width="20" />
+                            <input type="button" value="Test Signal" id="signal_test" />
+                          </div>
+                        </div>
+                    </fieldset>
 	       </td>
              </tr>
         </table>
@@ -1928,6 +1958,26 @@
                     else
                     {
                         $("#emailoptions").slideUp();
+                    }
+                });
+
+							  if ($("#signal").is(":checked"))
+                {
+                  $("#signaloptions").show();
+                }
+                else 
+                {
+                  $("#signaloptions").hide();
+                }
+
+                $("#signal").click(function(){
+                    if ($("#signal").is(":checked"))
+                    {
+                        $("#signaloptions").slideDown();
+                    }
+                    else
+                    {
+                        $("#signaloptions").slideUp();
                     }
                 });
 
@@ -2350,6 +2400,30 @@
                     torformfields.append("</div>");
                     $("#add_torznab").before(torformfields);
                 });
+
+								$('#signal_test').click(function() {
+										var phonefrom = document.getElementById("phone_from").value;
+										var phoneto = document.getElementById("phone_to").value;
+										$.get("testsignal",
+												{ phonefrom, phoneto },
+												function(data){
+													if (data.error != undefined) {
+													alert(data.error);
+													return;
+												}
+												$('#ajaxMsg').html("<div class='msg'><span class='ui-icon ui-icon-check'></span>"+data+"</div>");
+												if (data.indexOf("Successfully") > -1){
+													imagechk.src = "";
+													imagechk.src = "images/success.png";
+													imagechk.style.visibility = "visible";
+												} else {
+														imagechk.src = "";
+														imagechk.src = "images/fail.png";
+														imagechk.style.visibility = "visible";
+													}
+												});
+										$('#ajaxMsg').addClass('success').fadeIn().delay(3000).fadeOut();
+								});
 
                 $('#qbittorrent_test').click(function () {
                     var imagechk = document.getElementById("qbittorrent_statusicon");
