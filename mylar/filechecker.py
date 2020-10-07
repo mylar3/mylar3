@@ -636,7 +636,11 @@ class FileChecker(object):
                 locateiss_st = modfilename.find('#')
                 locateiss_end = modfilename.find(' ', locateiss_st)
                 if locateiss_end == -1:
-                    locateiss_end = len(modfilename)
+                    locateiss_end = modfilename.find('_', locateiss_st)
+                    if locateiss_end == -1:
+                        locateiss_end = modfilename.find('\.', locateiss_st)
+                        if locateiss_end == -1:
+                            locateiss_end = len(modfilename)
                 if modfilename[locateiss_end-1] == ')':
                     locateiss_end = locateiss_end -1
                 possible_issuenumbers.append({'number':       modfilename[locateiss_st:locateiss_end],
