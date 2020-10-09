@@ -442,10 +442,10 @@ class FileHandlers(object):
                 iss = issuenum
                 issueno = iss
             # issue zero-suppression here
-            if mylar.CONFIG.ZERO_LEVEL == "0":
+            if mylar.CONFIG.ZERO_LEVEL is False:
                 zeroadd = ""
             else:
-                if mylar.CONFIG.ZERO_LEVEL_N  == "none": zeroadd = ""
+                if any([mylar.CONFIG.ZERO_LEVEL_N  == "none", mylar.CONFIG.ZERO_LEVEL_N is None]): zeroadd = ""
                 elif mylar.CONFIG.ZERO_LEVEL_N == "0x": zeroadd = "0"
                 elif mylar.CONFIG.ZERO_LEVEL_N == "00x": zeroadd = "00"
 
@@ -473,7 +473,7 @@ class FileHandlers(object):
                     logger.warn('Unable to properly determine issue number [ %s] - you should probably log this on github for help.' % issueno)
                     return
 
-            if prettycomiss is None and len(str(issueno)) > 0:
+            if all([prettycomiss is None, len(str(issueno)) > 0]):
                 #if int(issueno) < 0:
                 #    self._log("issue detected is a negative")
                 #    prettycomiss = '-' + str(zeroadd) + str(abs(issueno))
@@ -492,7 +492,7 @@ class FileHandlers(object):
                     logger.fdebug('Zero level supplement set to ' + str(mylar.CONFIG.ZERO_LEVEL_N) + '. Issue will be set as : ' + str(prettycomiss))
                 elif int(issueno) >= 10 and int(issueno) < 100:
                     logger.fdebug('issue detected greater than 10, but less than 100')
-                    if mylar.CONFIG.ZERO_LEVEL_N == "none":
+                    if any([mylar.CONFIG.ZERO_LEVEL_N == "none", mylar.CONFIG.ZERO_LEVEL_N is None, mylar.CONFIG.ZERO_LEVEL is False]):
                         zeroadd = ""
                     else:
                         zeroadd = "0"
