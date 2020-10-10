@@ -459,7 +459,7 @@ class FileChecker(object):
         lastmod_position = 0
         booktype = 'issue'
         #exceptions that are considered alpha-numeric issue numbers
-        exceptions = ('NOW', 'AI', 'AU', 'X', 'A', 'B', 'C', 'INH', 'MU', 'HU', 'SUMMER', 'SPRING', 'FALL', 'WINTER', 'PREVIEW')
+        exceptions = ('NOW', 'AI', 'AU', 'X', 'A', 'B', 'C', 'INH', 'MU', 'HU', 'SUMMER', 'SPRING', 'FALL', 'WINTER', 'PREVIEW', 'OMEGA', 'ALPHA')
 
         #unicode characters, followed by int value 
 #        num_exceptions = [{iss:u'\xbd',val:.5},{iss:u'\xbc',val:.25}, {iss:u'\xe',val:.75}, {iss:u'\221e',val:'infinity'}]
