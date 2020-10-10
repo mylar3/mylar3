@@ -1107,7 +1107,7 @@ def issuedigits(issnum):
                                 a+=1
                             int_issnum = (int(issno) * 1000) + ordtot
                     elif invchk == "true":
-                        if any([issnum.lower() == 'fall', issnum.lower() == 'spring', issnum.lower() == 'summer', issnum.lower() == 'winter']):
+                        if any([issnum.lower() == 'alpha', issnum.lower() == 'omega', issnum.lower() == 'fall', issnum.lower() == 'spring', issnum.lower() == 'summer', issnum.lower() == 'winter']):
                             inu = 0
                             ordtot = 0
                             while (inu < len(issnum)):
