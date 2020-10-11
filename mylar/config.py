@@ -978,6 +978,11 @@ class Config(object):
         elif self.ENABLE_RSS is False and mylar.RSS_STATUS == 'Waiting':
             mylar.RSS_STATUS = 'Paused'
 
+        if self.DUPECONSTRAINT is None:
+            #default dupecontraint to filesize
+            setattr(self, 'DUPECONSTRAINT', 'filesize')
+            config.set('Duplicates', 'dupeconstraint', 'filesize')
+
         if not helpers.is_number(self.CHMOD_DIR):
             logger.fdebug("CHMOD Directory value is not a valid numeric - please correct. Defaulting to 0777")
             self.CHMOD_DIR = '0777'
