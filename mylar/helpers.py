@@ -393,19 +393,8 @@ def rename_param(comicid, comicname, issue, ofilename, comicyear=None, issueid=N
             #comicid = issuenzb['ComicID']
             #issueno = str(issuenum).split('.')[0]
             issue_except = 'None'
-            issue_exceptions = ['AU',
-                                'INH',
-                                'NOW',
-                                'AI',
-                                'MU',
-                                'HU',
-                                'A',
-                                'B',
-                                'C',
-                                'X',
-                                'O']
             valid_spaces = ('.', '-')
-            for issexcept in issue_exceptions:
+            for issexcept in mylar.ISSUE_EXCEPTIONS:
                 if issexcept.lower() in issuenum.lower():
                     logger.fdebug('ALPHANUMERIC EXCEPTION : [' + issexcept + ']')
                     v_chk = [v for v in valid_spaces if v in issuenum]
@@ -969,7 +958,7 @@ def issuedigits(issnum):
                 int_issnum = (int(issnum[:-2]) * 1000) + ord('a') + ord('u')
             elif 'ai' in issnum.lower() and issnum[:1].isdigit():
                 int_issnum = (int(issnum[:-2]) * 1000) + ord('a') + ord('i')
-            elif 'inh' in issnum.lower() or 'now' in issnum.lower():
+            elif 'inh' in issnum.lower():
                 remdec = issnum.find('.')  #find the decimal position.
                 if remdec == -1:
                 #if no decimal, it's all one string
@@ -992,6 +981,12 @@ def issuedigits(issnum):
                     int_issnum = (int(issnum[:-2]) * 1000) + ord('m') + ord('u')
                 else:
                     int_issnum = (int(issnum[:-3]) * 1000) + ord('m') + ord('u')
+            elif 'lr' in issnum.lower():
+                remdec = issnum.find('.')
+                if remdec == -1:
+                    int_issnum = (int(issnum[:-2]) * 1000) + ord('l') + ord('r')
+                else:
+                    int_issnum = (int(issnum[:-3]) * 1000) + ord('l') + ord('r')
             elif 'hu' in issnum.lower():
                 remdec = issnum.find('.')  #find the decimal position.
                 if remdec == -1:

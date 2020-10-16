@@ -374,18 +374,8 @@ class FileHandlers(object):
             #comicid = issueinfo['ComicID']
             #issueno = str(issuenum).split('.')[0]
             issue_except = 'None'
-            issue_exceptions = ['AU',
-                                'INH',
-                                'NOW',
-                                'AI',
-                                'MU',
-                                'A',
-                                'B',
-                                'C',
-                                'X',
-                                'O']
             valid_spaces = ('.', '-')
-            for issexcept in issue_exceptions:
+            for issexcept in mylar.ISSUE_EXCEPTIONS:
                 if issexcept.lower() in issuenum.lower():
                     logger.fdebug('ALPHANUMERIC EXCEPTION : [' + issexcept + ']')
                     v_chk = [v for v in valid_spaces if v in issuenum]

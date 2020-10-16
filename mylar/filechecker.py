@@ -458,11 +458,6 @@ class FileChecker(object):
         lastissue_position = 0
         lastmod_position = 0
         booktype = 'issue'
-        #exceptions that are considered alpha-numeric issue numbers
-        exceptions = ('NOW', 'AI', 'AU', 'X', 'A', 'B', 'C', 'INH', 'MU', 'HU', 'SUMMER', 'SPRING', 'FALL', 'WINTER', 'PREVIEW', 'OMEGA', 'ALPHA')
-
-        #unicode characters, followed by int value 
-#        num_exceptions = [{iss:u'\xbd',val:.5},{iss:u'\xbc',val:.25}, {iss:u'\xe',val:.75}, {iss:u'\221e',val:'infinity'}]
 
         file_length = 0
         validcountchk = False
@@ -485,7 +480,7 @@ class FileChecker(object):
 
             #this handles the exceptions list in the match for alpha-numerics
             test_exception = ''.join([i for i in sf if not i.isdigit()])
-            if any([x for x in exceptions if x.lower() == test_exception.lower()]):
+            if any(ext in test_exception.upper() for ext in mylar.ISSUE_EXCEPTIONS):
                 logger.fdebug('Exception match: %s' % test_exception)
                 if lastissue_label is not None:
                     if lastissue_position == (split_file.index(sf) -1):
