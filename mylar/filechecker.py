@@ -480,7 +480,7 @@ class FileChecker(object):
 
             #this handles the exceptions list in the match for alpha-numerics
             test_exception = ''.join([i for i in sf if not i.isdigit()])
-            if any(ext in test_exception.upper() for ext in mylar.ISSUE_EXCEPTIONS):
+            if any(ext == test_exception.upper() for ext in mylar.ISSUE_EXCEPTIONS):
                 logger.fdebug('Exception match: %s' % test_exception)
                 if lastissue_label is not None:
                     if lastissue_position == (split_file.index(sf) -1):
