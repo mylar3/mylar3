@@ -393,19 +393,8 @@ def rename_param(comicid, comicname, issue, ofilename, comicyear=None, issueid=N
             #comicid = issuenzb['ComicID']
             #issueno = str(issuenum).split('.')[0]
             issue_except = 'None'
-            issue_exceptions = ['AU',
-                                'INH',
-                                'NOW',
-                                'AI',
-                                'MU',
-                                'HU',
-                                'A',
-                                'B',
-                                'C',
-                                'X',
-                                'O']
             valid_spaces = ('.', '-')
-            for issexcept in issue_exceptions:
+            for issexcept in mylar.ISSUE_EXCEPTIONS:
                 if issexcept.lower() in issuenum.lower():
                     logger.fdebug('ALPHANUMERIC EXCEPTION : [' + issexcept + ']')
                     v_chk = [v for v in valid_spaces if v in issuenum]
@@ -462,10 +451,10 @@ def rename_param(comicid, comicname, issue, ofilename, comicyear=None, issueid=N
                 iss = issuenum
                 issueno = iss
             # issue zero-suppression here
-            if mylar.CONFIG.ZERO_LEVEL == "0":
+            if mylar.CONFIG.ZERO_LEVEL is False:
                 zeroadd = ""
             else:
-                if mylar.CONFIG.ZERO_LEVEL_N  == "none": zeroadd = ""
+                if any([mylar.CONFIG.ZERO_LEVEL_N  == "none", mylar.CONFIG.ZERO_LEVEL_N is None]): zeroadd = ""
                 elif mylar.CONFIG.ZERO_LEVEL_N == "0x": zeroadd = "0"
                 elif mylar.CONFIG.ZERO_LEVEL_N == "00x": zeroadd = "00"
 
@@ -493,7 +482,7 @@ def rename_param(comicid, comicname, issue, ofilename, comicyear=None, issueid=N
                     logger.warn('Unable to properly determine issue number [ %s] - you should probably log this on github for help.' % issueno)
                     return
 
-            if prettycomiss is None and len(str(issueno)) > 0:
+            if all([prettycomiss is None, len(str(issueno)) > 0]):
                 #if int(issueno) < 0:
                 #    self._log("issue detected is a negative")
                 #    prettycomiss = '-' + str(zeroadd) + str(abs(issueno))
@@ -512,7 +501,7 @@ def rename_param(comicid, comicname, issue, ofilename, comicyear=None, issueid=N
                     logger.fdebug('Zero level supplement set to ' + str(mylar.CONFIG.ZERO_LEVEL_N) + '. Issue will be set as : ' + str(prettycomiss))
                 elif int(issueno) >= 10 and int(issueno) < 100:
                     logger.fdebug('issue detected greater than 10, but less than 100')
-                    if mylar.CONFIG.ZERO_LEVEL_N == "none":
+                    if any([mylar.CONFIG.ZERO_LEVEL_N == "none", mylar.CONFIG.ZERO_LEVEL_N is None, mylar.CONFIG.ZERO_LEVEL is False]):
                         zeroadd = ""
                     else:
                         zeroadd = "0"
@@ -969,7 +958,7 @@ def issuedigits(issnum):
                 int_issnum = (int(issnum[:-2]) * 1000) + ord('a') + ord('u')
             elif 'ai' in issnum.lower() and issnum[:1].isdigit():
                 int_issnum = (int(issnum[:-2]) * 1000) + ord('a') + ord('i')
-            elif 'inh' in issnum.lower() or 'now' in issnum.lower():
+            elif 'inh' in issnum.lower():
                 remdec = issnum.find('.')  #find the decimal position.
                 if remdec == -1:
                 #if no decimal, it's all one string
@@ -992,6 +981,12 @@ def issuedigits(issnum):
                     int_issnum = (int(issnum[:-2]) * 1000) + ord('m') + ord('u')
                 else:
                     int_issnum = (int(issnum[:-3]) * 1000) + ord('m') + ord('u')
+            elif 'lr' in issnum.lower():
+                remdec = issnum.find('.')
+                if remdec == -1:
+                    int_issnum = (int(issnum[:-2]) * 1000) + ord('l') + ord('r')
+                else:
+                    int_issnum = (int(issnum[:-3]) * 1000) + ord('l') + ord('r')
             elif 'hu' in issnum.lower():
                 remdec = issnum.find('.')  #find the decimal position.
                 if remdec == -1:
@@ -1107,7 +1102,7 @@ def issuedigits(issnum):
                                 a+=1
                             int_issnum = (int(issno) * 1000) + ordtot
                     elif invchk == "true":
-                        if any([issnum.lower() == 'fall', issnum.lower() == 'spring', issnum.lower() == 'summer', issnum.lower() == 'winter']):
+                        if any([issnum.lower() == 'alpha', issnum.lower() == 'omega', issnum.lower() == 'fall', issnum.lower() == 'spring', issnum.lower() == 'summer', issnum.lower() == 'winter']):
                             inu = 0
                             ordtot = 0
                             while (inu < len(issnum)):

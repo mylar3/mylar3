@@ -116,10 +116,12 @@ def initialize(options):
             #
             # Login sessions timeout after 43800 minutes (1 month) unless
             # changed in the config.
-            cherrypy.tools.sessions.timeout = options['login_timeout']
+            # Note - the following command doesn't actually work, see update statement 2 lines down
+            # cherrypy.tools.sessions.timeout = options['login_timeout']
             conf['/'].update({
                 'tools.sessions.on': True,
                 'tools.auth.on': True,
+                'tools.sessions.timeout': options['login_timeout'],
                 'auth.forms_username': options['http_username'],
                 'auth.forms_password': options['http_password'],
                 # Set all pages to require authentication.

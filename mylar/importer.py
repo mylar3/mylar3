@@ -1149,6 +1149,8 @@ def updateissuedata(comicid, comicname=None, issued=None, comicIssues=None, call
                     int_issnum = (int(issnum[:-4]) * 1000) + ord('n') + ord('o') + ord('w')
                 elif 'mu' in issnum.lower():
                     int_issnum = (int(issnum[:-3]) * 1000) + ord('m') + ord('u')
+                elif 'lr' in issnum.lower():
+                    int_issnum = (int(issnum[:-3]) * 1000) + ord('l') + ord('r')
                 elif 'hu' in issnum.lower():
                     int_issnum = (int(issnum[:-3]) * 1000) + ord('h') + ord('u')
                 elif '\xbd' in issnum:
@@ -1243,7 +1245,7 @@ def updateissuedata(comicid, comicname=None, issued=None, comicIssues=None, call
                                     a+=1
                                 int_issnum = (int(issno) * 1000) + ordtot
                         elif invchk == "true":
-                            if any([issnum.lower() == 'fall 2005', issnum.lower() == 'spring 2005', issnum.lower() == 'summer 2006', issnum.lower() == 'winter 2009']):
+                            if any([issnum.lower() == 'omega', issnum.lower() == 'alpha', issnum.lower() == 'fall 2005', issnum.lower() == 'spring 2005', issnum.lower() == 'summer 2006', issnum.lower() == 'winter 2009']):
                                 issnum = re.sub('[0-9]+', '', issnum).strip()
                                 inu = 0
                                 ordtot = 0
