@@ -558,12 +558,19 @@ class Config(object):
                         print('Unable to create the log directory. Logging to screen only.')
 
             # Start the logger, silence console logging if we need to
+            # quick check to make sure log_level isn't just blank in the config
+            if self.LOG_LEVEL is None:
+                self.LOG_LEVEL = 1  #default it to INFO level (1) if not set.
+
+            log_level = self.LOG_LEVEL
+            if mylar.LOG_LEVEL is not None:
+                log_level = mylar.LOG_LEVEL
+                print('Logging level in config over-ridden by startup value. Logging level set to : %s' % (log_level))
+
             if logger.LOG_LANG.startswith('en'):
-                logger.initLogger(console=not mylar.QUIET, log_dir=self.LOG_DIR, max_logsize=self.MAX_LOGSIZE, max_logfiles=self.MAX_LOGFILES, loglevel=mylar.LOG_LEVEL)
+                logger.initLogger(console=not mylar.QUIET, log_dir=self.LOG_DIR, max_logsize=self.MAX_LOGSIZE, max_logfiles=self.MAX_LOGFILES, loglevel=log_level)
             else:
-                if self.LOG_LEVEL != mylar.LOG_LEVEL:
-                    print(('Logging level over-ridden by startup value. Changing from %s to %s' % (self.LOG_LEVEL, mylar.LOG_LEVEL)))
-                logger.mylar_log.initLogger(loglevel=mylar.LOG_LEVEL, log_dir=self.LOG_DIR, max_logsize=self.MAX_LOGSIZE, max_logfiles=self.MAX_LOGFILES)
+                logger.mylar_log.initLogger(loglevel=log_level, log_dir=self.LOG_DIR, max_logsize=self.MAX_LOGSIZE, max_logfiles=self.MAX_LOGFILES)
 
         self.configure(startup=startup)
         if self.WRITE_THE_CONFIG is True:
