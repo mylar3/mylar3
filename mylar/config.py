@@ -567,10 +567,13 @@ class Config(object):
                 log_level = mylar.LOG_LEVEL
                 print('Logging level in config over-ridden by startup value. Logging level set to : %s' % (log_level))
 
+            mylar.LOG_LEVEL = log_level # set this to the calculated log_leve value so that logs display fine in the GUI
+
             if logger.LOG_LANG.startswith('en'):
                 logger.initLogger(console=not mylar.QUIET, log_dir=self.LOG_DIR, max_logsize=self.MAX_LOGSIZE, max_logfiles=self.MAX_LOGFILES, loglevel=log_level)
             else:
                 logger.mylar_log.initLogger(loglevel=log_level, log_dir=self.LOG_DIR, max_logsize=self.MAX_LOGSIZE, max_logfiles=self.MAX_LOGFILES)
+
 
         self.configure(startup=startup)
         if self.WRITE_THE_CONFIG is True:
