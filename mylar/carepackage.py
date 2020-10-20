@@ -285,7 +285,7 @@ class carePackage(object):
                                 if mylar.KEYS_32P['authkey'] in line:
                                     line = line.replace(mylar.KEYS_32P['authkey'], '-REDACTED-')
                             for keyed in self.keylist:
-                                if keyed in line and len(keyed) > 0:
+                                if keyed in line and len(keyed) > 0 and (len(keyed) > 4 and not keyed.isdigit()):
                                     cnt+=1
                                     line = line.replace(keyed, '-REDACTED-')
                             output.write(line)
