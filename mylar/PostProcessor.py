@@ -2231,13 +2231,7 @@ class PostProcessor(object):
                 #issnum = utf-8 will encode the infinity symbol without any help
                 issuenum = 'infinity'
             else:
-                issue_exceptions = ['A',
-                                    'B',
-                                    'C',
-                                    'X',
-                                    'O']
-
-                exceptionmatch = [x for x in issue_exceptions if x.lower() in issuenum.lower()]
+                exceptionmatch = [x for x in mylar.ISSUE_EXCEPTIONS if x.lower() in issuenum.lower()]
                 if exceptionmatch:
                     logger.fdebug('[FILECHECKER] We matched on : ' + str(exceptionmatch))
                     for x in exceptionmatch:
