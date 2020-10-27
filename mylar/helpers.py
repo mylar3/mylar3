@@ -4249,10 +4249,10 @@ def log_that_exception(except_info):
     #write it to the exceptions table.
     logdate = now()
     myDB = db.DBConnection()
-    myDB.upsert("exceptions", gather_info, {'date': logdate})
+    myDB.upsert("exceptions_log", gather_info, {'date': logdate})
 
     #write the leadup log lines that were tailed above to the external file here...
-    fileline = myDB.selectone("SELECT rowid from exceptions where date = ?", [logdate]).fetchone()
+    fileline = myDB.selectone("SELECT rowid from exceptions_log where date = ?", [logdate]).fetchone()
     with open(os.path.join(mylar.CONFIG.LOG_DIR, 'specific_' + str(fileline['rowid']) + '.log'), 'w') as f:
         f.writelines(leadup)
         f.write(except_info.get('traceback', None))
