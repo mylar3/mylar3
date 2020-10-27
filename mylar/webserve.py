@@ -6452,7 +6452,7 @@ class WebInterface(object):
     def deleteSpecificLog(self, log_id):
         logger.info('log_id: %s' % log_id)
         myDB = db.DBConnection()
-        myDB.action('DELETE from exceptions WHERE rowid=?', [log_id])
+        myDB.action('DELETE from exceptions_log WHERE rowid=?', [log_id])
         try:
             os.remove(os.path.join(mylar.CONFIG.LOG_DIR, 'specific_' + log_id + '.log'))
         except Exception as e:
@@ -6465,7 +6465,7 @@ class WebInterface(object):
     def manageExceptions(self):
         exception_list = []
         myDB = db.DBConnection()
-        elist = myDB.select("SELECT rowid, * FROM exceptions")
+        elist = myDB.select("SELECT rowid, * FROM exceptions_log")
         for et in elist:
             exception_list.append({'id':   et['rowid'],
                                    'date': et['date'],
