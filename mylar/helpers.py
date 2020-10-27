@@ -4226,6 +4226,74 @@ def file_ops(path,dst,arc=False,one_off=False):
     else:
         return False
 
+def log_that_exception(except_info):
+
+    #snip the log here and get the last 100 lines as quick leadup glance.
+    leadup = tail_that_log()
+
+    #logger.info('[LEADUP_LOG] %s' % leadup)
+    gather_info = {'comicname':   except_info.get('comicname', None),
+                   'issuenumber': except_info.get('issuenumber', None),
+                   'seriesyear':  except_info.get('seriesyear', None),
+                   'issueid':     except_info.get('issueid', None),
+                   'comicid':     except_info.get('comicid', None),
+                   'searchmode':  except_info.get('mode', None),
+                   'booktype':    except_info.get('booktype', None),
+                   'filename':    except_info.get('filename', None),
+                   'line_num':    except_info.get('line_num', None),
+                   'func_name':   except_info.get('func_name', None),
+                   'error_text':  except_info.get('err_text', None),
+                   'error':       except_info.get('err', None),
+                   'traceback':   except_info.get('traceback', None)}
+
+    #write it to the exceptions table.
+    logdate = now()
+    myDB = db.DBConnection()
+    myDB.upsert("exceptions", gather_info, {'date': logdate})
+
+    #write the leadup log lines that were tailed above to the external file here...
+    fileline = myDB.selectone("SELECT rowid from exceptions where date = ?", [logdate]).fetchone()
+    with open(os.path.join(mylar.CONFIG.LOG_DIR, 'specific_' + str(fileline['rowid']) + '.log'), 'w') as f:
+        f.writelines(leadup)
+        f.write(except_info.get('traceback', None))
+
+def tail_that_log():
+    """Tail a file and get X lines from the end"""
+    # place holder for the lines found
+    lines_found = []
+
+    f = open(os.path.join(mylar.CONFIG.LOG_DIR,'mylar.log'), 'r')
+    lines = 100
+    buffer = 4098
+
+    # block counter will be multiplied by buffer
+    # to get the block size from the end
+    block_counter = -1
+
+    # loop until we find X lines
+    while len(lines_found) <= lines:
+        try:
+            f.seek(block_counter * buffer, os.SEEK_END)
+        except IOError:  # either file is too small, or too many lines requested
+            f.seek(0)
+            lines_found = f.readlines()
+            break
+
+        lines_found = f.readlines()
+
+        # we found enough lines, get out
+        # Removed this line because it was redundant the while will catch
+        # it, I left it for history
+        # if len(lines_found) > lines:
+        #    break
+
+        # decrement the block counter to get the
+        # next X bytes
+        block_counter -= 1
+
+    return lines_found[-lines:]
+
+
 from threading import Thread
 
 class ThreadWithReturnValue(Thread):

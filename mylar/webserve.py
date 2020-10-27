@@ -6440,6 +6440,44 @@ class WebInterface(object):
         return json.dumps(provider_list)
     blockProviders.exposed = True
 
+    def viewSpecificLog(self, log_id):
+        logger.info('log_id: %s' % log_id)
+        # because log_id = rowid, we don't need to check the db - just reference the log file directly.
+        with open(os.path.join(mylar.CONFIG.LOG_DIR, 'specific_' + log_id + '.log')) as f:
+            loglines = f.read()
+            loglines = loglines.replace('\n', '</br>')
+        return loglines
+    viewSpecificLog.exposed = True
+
+    def deleteSpecificLog(self, log_id):
+        logger.info('log_id: %s' % log_id)
+        myDB = db.DBConnection()
+        myDB.action('DELETE from exceptions WHERE rowid=?', [log_id])
+        try:
+            os.remove(os.path.join(mylar.CONFIG.LOG_DIR, 'specific_' + log_id + '.log'))
+        except Exception as e:
+            logger.warn('[EXCEPTION-LOG-DELETION] Cannot find %s in the logs directory of %s. Error returned: %s' % ('specific_' + log_id + '.log', mylar.CONFIG.LOG_DIR, e))
+            return json.dumps({"status": "error"})
+        else:
+            return json.dumps({"status": "success"})
+    deleteSpecificLog.exposed = True
+
+    def manageExceptions(self):
+        exception_list = []
+        myDB = db.DBConnection()
+        elist = myDB.select("SELECT rowid, * FROM exceptions")
+        for et in elist:
+            exception_list.append({'id':   et['rowid'],
+                                   'date': et['date'],
+                                   'error': et['error'],
+                                   'error_text': et['error_text'],
+                                   'line_num': et['line_num'],
+                                   'func_name': et['func_name'],
+                                   'filename': re.sub('.py', '', os.path.basename(et['filename'])).strip(),
+                                   'traceback': et['traceback']})
+        return json.dumps(exception_list)
+    manageExceptions.exposed = True
+
     def unblock_provider(self, site, simple=True):
         logger.info('unblocking..')
         if simple == 'false':

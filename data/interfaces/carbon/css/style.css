@@ -1783,6 +1783,23 @@ div#artistheader h2 a {
   min-width: 160px;
   text-align: center;
 }
+
+#exceptions_table th#date { text-align: center; max-width: 20px; }
+#exceptions_table th#line_num { text-align: center; width: 5px; }
+#exceptions_table th#func_name { text-align: center; width: 15px; }
+#exceptions_table th#filename { text-align: center; max-width: 15px; }
+#exceptions_table th#error { text-align: center; max-width: 40px; }
+#exceptions_table th#error_text { text-align: center; max-width: 50px; }
+#exceptions_table th#options { text-align: center; max-width: 15px; }
+
+#exceptions_table td#date { vertical-align: middle; text-align: left; max-width: 20px; }
+#exceptions_table td#line_num { vertical-align: middle; text-align: left; width: 5px; }
+#exceptions_table td#func_name { vertical-align: middle; text-align: left; width: 15px; }
+#exceptions_table td#filename { vertical-align: middle; text-align: center; max-width: 15px; }
+#exceptions_table td#error { vertical-align: middle; text-align: left; max-width:40px; }
+#exceptions_table td#error_text { vertical-align: middle; text-align: left; max-width: 50px; }
+#exceptions_table td#options { vertical-align: middle; text-align: center; max-width: 15px; }
+
 DIV.progress-container
 {
 	position: relative;
