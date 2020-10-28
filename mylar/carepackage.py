@@ -162,20 +162,23 @@ class carePackage(object):
                     if tmpkey not in self.keylist:
                         self.keylist.append(tmpkey)
                     tmpconfig.set(v[0], v[1], 'xXX[REMOVED]XXx')
-            except configparser.NoSectionError as e:
+            except (configparser.NoSectionError, configparser.NoOptionError) as e:
                 pass
 
         for h in self.hostname_list:
-            hkey = tmpconfig.get(h[0], h[1])
-            if all([hkey is not None, hkey != 'None']):
-                if hkey[:5] == '^~$z$':
-                    hk = encrypted.Encryptor(hkey)
-                    hk_stat = tk.decrypt_it()
-                    if tk_stat['status'] is True and 'username' not in h[1]:
-                        hkey = hk_stat['password']
-                if hkey not in self.keylist:
-                    self.keylist.append(hkey)
-                tmpconfig.set(h[0], h[1], 'xXX[REMOVED]XXx')
+            try:
+                hkey = tmpconfig.get(h[0], h[1])
+                if all([hkey is not None, hkey != 'None']):
+                    if hkey[:5] == '^~$z$':
+                        hk = encrypted.Encryptor(hkey)
+                        hk_stat = tk.decrypt_it()
+                        if tk_stat['status'] is True and 'username' not in h[1]:
+                            hkey = hk_stat['password']
+                    if hkey not in self.keylist:
+                        self.keylist.append(hkey)
+                    tmpconfig.set(h[0], h[1], 'xXX[REMOVED]XXx')
+            except (configparser.NoSectionError, configparser.NoOptionError) as e:
+                pass
 
         extra_newznabs = list(zip(*[iter(tmpconfig.get('Newznab', 'extra_newznabs').split(', '))]*6))
         extra_torznabs = list(zip(*[iter(tmpconfig.get('Torznab', 'extra_torznabs').split(', '))]*5))
