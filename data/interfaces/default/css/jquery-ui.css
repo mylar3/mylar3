@@ -88,7 +88,7 @@
 /* states and images */
 .ui-icon { width: 16px; height: 16px; background-image: url(../../../images/icon_sprite_black.png); }
 .ui-widget-content .ui-icon {background-image: url(../../../images/icon_sprite_black.png); }
-.ui-widget-header .ui-icon {background-image: url(../../..//images/icon_sprite_black.png); }
+.ui-widget-header .ui-icon {background-image: url(../../../images/icon_sprite_black.png); }
 .ui-button.ui-state-hover .ui-icon { background-image: url(../../../images/icon_sprite_white.png); }
 .ui-state-default .ui-icon { background-image: url(../../../images/ui-icons_70b2e1_256x240.png); }
 .ui-state-hover .ui-icon, .ui-state-focus .ui-icon {background-image: url(../../../images/ui-icons_3383bb_256x240.png); }

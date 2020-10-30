@@ -60,6 +60,9 @@ def serve_template(templatename, **kwargs):
                  'icon_upcoming': os.path.join(mylar.CONFIG.HTTP_ROOT, 'images', 'icon_upcoming.png'),
                  'icon_wanted': os.path.join(mylar.CONFIG.HTTP_ROOT, 'images', 'icon_wanted.png'),
                  'icon_search': os.path.join(mylar.CONFIG.HTTP_ROOT, 'images', 'icon_search.png'),
+                 'listview_icon': os.path.join(mylar.CONFIG.HTTP_ROOT, 'images', 'listview_icon.png'),
+                 'delete_icon': os.path.join(mylar.CONFIG.HTTP_ROOT, 'images', 'delete_icon.png'),
+                 'deleteall_icon': os.path.join(mylar.CONFIG.HTTP_ROOT, 'images', 'deleteall_icon.png'),
                  'prowl_logo': os.path.join(mylar.CONFIG.HTTP_ROOT, 'images', 'prowl_logo.png'),
                  'ReadingList-icon': os.path.join(mylar.CONFIG.HTTP_ROOT, 'images', 'ReadingList-icon.png'),
                  'next': os.path.join(mylar.CONFIG.HTTP_ROOT, 'images', 'next.gif'),
@@ -69,6 +72,9 @@ def serve_template(templatename, **kwargs):
                  'icon_upcoming': os.path.join(mylar.CONFIG.HTTP_ROOT, 'interfaces', 'carbon', 'images', 'icon_upcoming.png'),
                  'icon_wanted': os.path.join(mylar.CONFIG.HTTP_ROOT, 'interfaces', 'carbon', 'images', 'icon_wanted.png'),
                  'icon_search': os.path.join(mylar.CONFIG.HTTP_ROOT, 'interfaces', 'carbon', 'images', 'icon_search.png'),
+                 'listview_icon': os.path.join(mylar.CONFIG.HTTP_ROOT, 'interfaces', 'carbon', 'images', 'listview_icon.png'),
+                 'delete_icon': os.path.join(mylar.CONFIG.HTTP_ROOT, 'interfaces', 'carbon', 'images', 'delete_icon.png'),
+                 'deleteall_icon': os.path.join(mylar.CONFIG.HTTP_ROOT, 'interfaces', 'carbon', 'images', 'deleteall_icon.png'),
                  'prowl_logo': os.path.join(mylar.CONFIG.HTTP_ROOT, 'interfaces', 'carbon', 'images', 'prowl_logo.png'),
                  'ReadingList-icon': os.path.join(mylar.CONFIG.HTTP_ROOT, 'interfaces', 'carbon', 'images', 'ReadingList-icon.png'),
                  'next': os.path.join(mylar.CONFIG.HTTP_ROOT, 'interfaces', 'carbon', 'images', 'next.gif'),
@@ -6442,38 +6448,96 @@ class WebInterface(object):
 
     def viewSpecificLog(self, log_id):
         logger.info('log_id: %s' % log_id)
-        # because log_id = rowid, we don't need to check the db - just reference the log file directly.
-        with open(os.path.join(mylar.CONFIG.LOG_DIR, 'specific_' + log_id + '.log')) as f:
+        log_file = 'specific_%s.log' % log_id
+        # because log_id = rowid, we don't need to check the db - just loo at the file.
+        with open(os.path.join(mylar.CONFIG.LOG_DIR, log_file)) as f:
             loglines = f.read()
             loglines = loglines.replace('\n', '</br>')
         return loglines
     viewSpecificLog.exposed = True
 
-    def deleteSpecificLog(self, log_id):
+    def deleteSpecificLog(self, log_id, all=None):
         logger.info('log_id: %s' % log_id)
+        logger.info('all: %s' % all)
         myDB = db.DBConnection()
-        myDB.action('DELETE from exceptions_log WHERE rowid=?', [log_id])
-        try:
-            os.remove(os.path.join(mylar.CONFIG.LOG_DIR, 'specific_' + log_id + '.log'))
-        except Exception as e:
-            logger.warn('[EXCEPTION-LOG-DELETION] Cannot find %s in the logs directory of %s. Error returned: %s' % ('specific_' + log_id + '.log', mylar.CONFIG.LOG_DIR, e))
-            return json.dumps({"status": "error"})
+        if all != log_id:
+            # for group entries
+            reflines = myDB.selectone(
+                           'SELECT error, func_name, filename, line_num'
+                           ' FROM exceptions_log WHERE rowid=?', [log_id]
+                       ).fetchone()
+            # get the actual matching components
+            error = reflines['error']
+            func_name = reflines['func_name']
+            filename = reflines['filename']
+            line_num = reflines['line_num']
+            # get all the ids in the db that match the components
+            morelines = myDB.select(
+                            'SELECT rowid from exceptions_log WHERE error=? AND'
+                            ' func_name=? AND filename=? AND line_num=?',
+                            [error, func_name, filename, line_num]
+                        )
+            errors_happened = False
+            for mn in morelines:
+                # remove the specific log file if present.
+                log_file = 'specific_%s.log' % mn['rowid']
+                try:
+                    os.remove(os.path.join(mylar.CONFIG.LOG_DIR, log_file))
+                except Exception as e:
+                    logger.warn(
+                        '[EXCEPTION-LOG-DELETION] Cannot find %s in the logs directory'
+                        ' of %s. Error returned: %s'
+                        % (log_file, mylar.CONFIG.LOG_DIR, e)
+                    )
+                try:
+                    # remove the specific log entry from the dB.
+                    myDB.action(
+                        'DELETE FROM exceptions_log WHERE rowid=?', [mn['rowid']]
+                    )
+                except Exception as e:
+                    errors_happened = True
+
+            if errors_happened:
+                return json.dumps({"status": "error"})
+            else:
+                return json.dumps({"status": "success"})
+
         else:
-            return json.dumps({"status": "success"})
+            # for specific entry
+            myDB.action('DELETE from exceptions_log WHERE rowid=?', [log_id])
+            log_file = 'specific_%s.log' % log_id
+            try:
+                os.remove(os.path.join(mylar.CONFIG.LOG_DIR, log_file))
+            except Exception as e:
+                logger.warn(
+                    '[EXCEPTION-LOG-DELETION] Cannot find %s in the logs directory of'
+                    ' %s. Error returned: %s' % (log_file, mylar.CONFIG.LOG_DIR, e)
+                )
+                return json.dumps({"status": "error"})
+            else:
+                return json.dumps({"status": "success"})
     deleteSpecificLog.exposed = True
 
-    def manageExceptions(self):
+    def manageExceptions(self, **kwargs):
         exception_list = []
         myDB = db.DBConnection()
-        elist = myDB.select("SELECT rowid, * FROM exceptions_log")
+        elist = myDB.select(
+            'SELECT count(*) as count, rowid, * FROM exceptions_log group by error,'
+            ' func_name, filename, line_num order by date DESC'
+            )
         for et in elist:
+            countline = et['count']
+            if et['count'] == 1:
+                countline = ''
+            fileline = re.sub('.py', '', os.path.basename(et['filename'])).strip()
             exception_list.append({'id':   et['rowid'],
+                                   'count': countline,
                                    'date': et['date'],
                                    'error': et['error'],
                                    'error_text': et['error_text'],
                                    'line_num': et['line_num'],
                                    'func_name': et['func_name'],
-                                   'filename': re.sub('.py', '', os.path.basename(et['filename'])).strip(),
+                                   'filename': fileline,
                                    'traceback': et['traceback']})
         return json.dumps(exception_list)
     manageExceptions.exposed = True
