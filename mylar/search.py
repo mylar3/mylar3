@@ -4123,7 +4123,7 @@ def searcher(
                     # if mylar's local, use the local IP already assigned to LOCAL_IP.
                     mylar_host = (
                         '%s%s:%s%s'
-                        % (proto, mylar.LOCAL_IP, mylar.CONFIG_HTTP_ROOT, hroot)
+                        % (proto, mylar.LOCAL_IP, mylar.CONFIG.HTTP_ROOT, hroot)
                      )
                 else:
                     if mylar.EXT_IP is None:
