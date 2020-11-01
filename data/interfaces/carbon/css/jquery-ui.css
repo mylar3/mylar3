@@ -87,8 +87,8 @@
 
 /* states and images */
 .ui-icon { width: 16px; height: 16px; background-image: url(../../../images/icon_sprite_black.png); }
-.ui-widget-content .ui-icon {background-image: url(../../../images/icon_sprite_black.png); }
-.ui-widget-header .ui-icon {background-image: url(../../../images/icon_sprite_black.png); background-color: #fff; }
+.ui-widget-content .ui-icon {background-image: url(../../../images/icon_sprite_white.png); }
+.ui-widget-header .ui-icon {background-image: url(../../../images/icon_sprite_white.png); }
 .ui-button.ui-state-hover .ui-icon { background-image: url(../../../images/icon_sprite_white.png); }
 .ui-state-default .ui-icon { background-image: url(../../../images/ui-icons_70b2e1_256x240.png); }
 .ui-state-hover .ui-icon, .ui-state-focus .ui-icon {background-image: url(../../../images/ui-icons_3383bb_256x240.png); }
@@ -439,7 +439,7 @@ button.ui-button::-moz-focus-inner { border: 0; padding: 0; } /* reset extra pad
 .ui-dialog { position: absolute; padding: .2em; width: 300px; overflow: hidden; }
 .ui-dialog .ui-dialog-titlebar { padding: .4em 1em; position: relative;  }
 .ui-dialog .ui-dialog-title { float: left; margin: .1em 16px .1em 0; } 
-.ui-dialog .ui-dialog-titlebar-close { position: absolute; right: .3em; top: 50%; width: 19px; margin: -10px 0 0 0; padding: 1px; height: 18px; }
+.ui-dialog .ui-dialog-titlebar-close { position: absolute; right: .3em; top: 50%; width: 19px; margin: -10px 0 0 0; padding: 1px; height: 18px; background: transparent; }
 .ui-dialog .ui-dialog-titlebar-close span { display: block; margin: 1px; }
 .ui-dialog .ui-dialog-titlebar-close:hover, .ui-dialog .ui-dialog-titlebar-close:focus { padding: 0; }
 .ui-dialog .ui-dialog-content { position: relative; border: 0; padding: .5em 1em; background: #3e4349; overflow: auto; zoom: 1; }

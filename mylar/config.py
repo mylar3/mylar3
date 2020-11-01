@@ -542,8 +542,6 @@ class Config(object):
             setattr(self, 'CONFIG_VERSION', str(self.newconfig))
             config.set('General', 'CONFIG_VERSION', str(self.newconfig))
             self.writeconfig()
-        else:
-            self.provider_sequence()
 
         if startup is True:
             if self.LOG_DIR is None:
@@ -574,7 +572,7 @@ class Config(object):
             else:
                 logger.mylar_log.initLogger(loglevel=log_level, log_dir=self.LOG_DIR, max_logsize=self.MAX_LOGSIZE, max_logfiles=self.MAX_LOGFILES)
 
-
+        self.provider_sequence()
         self.configure(startup=startup)
         if self.WRITE_THE_CONFIG is True:
             self.writeconfig()
