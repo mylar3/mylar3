@@ -4146,7 +4146,7 @@ def searcher(
                             )
                             mylar_host = (
                                 '%s%s:%s%s'
-                                % (proto, mylar.CONFIG.HTTP_ROOT,
+                                % (proto, mylar.CONFIG.CONFIG.HTTP_HOST,
                                    mylar.CONFIG.HTTP_PORT, hroot)
                             )
                     else:
