@@ -4123,7 +4123,7 @@ def searcher(
                     # if mylar's local, use the local IP already assigned to LOCAL_IP.
                     mylar_host = (
                         '%s%s:%s%s'
-                        % (proto, mylar.LOCAL_IP, mylar.CONFIG.HTTP_ROOT, hroot)
+                        % (proto, mylar.LOCAL_IP, mylar.CONFIG.HTTP_PORT, hroot)
                      )
                 else:
                     if mylar.EXT_IP is None:
@@ -4136,7 +4136,7 @@ def searcher(
                             nat_type, ext_ip, ext_port = stun.get_ip_info(sip, port)
                             mylar_host = (
                                 '%s%s:%s%s'
-                                % (proto, ext_ip, mylar.CONFIG.HTTP_ROOT, hroot)
+                                % (proto, ext_ip, ext_port, hroot)
                              )
                             mylar.EXT_IP = ext_ip
                         except Exception as e:
@@ -4147,12 +4147,12 @@ def searcher(
                             mylar_host = (
                                 '%s%s:%s%s'
                                 % (proto, mylar.CONFIG.HTTP_ROOT,
-                                   mylar.CONFIG.HTTP_ROOT, hroot)
+                                   mylar.CONFIG.HTTP_PORT, hroot)
                             )
                     else:
                         mylar_host = (
                             '%s%s:%s%s'
-                            % (proto, mylar.EXT_IP, mylar.CONFIG.HTTP_ROOT, hroot)
+                            % (proto, mylar.EXT_IP, mylar.CONFIG.HTTP_PORT, hroot)
                         )
 
             else:
