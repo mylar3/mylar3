@@ -13,7 +13,7 @@
     <name>Mylar Server</name>
     <uri>https://github.com/mylar3/mylar3</uri>
   </author>
-    %for link in opds['links']:
+  %for link in opds['links']:
   <%
       linktitle = ''
       if 'title' in link:
@@ -49,20 +49,23 @@
       rel="${entry['rel']}"
       type="application/atom+xml; profile=opds-catalog; kind=${entry['kind']}"
     />
-    %endif %if 'stream' in entry and 'pse_count' in entry:
+    %endif 
+    %if 'stream' in entry and 'pse_count' in entry:
     <link
       href="${entry['stream']}&amp;page={pageNumber}&amp;width={maxWidth}"
       rel="http://vaemendis.net/opds-pse/stream"
       type="image/jpeg"
       pse:count="${entry['pse_count']}"
     />
-    %endif %if 'thumbnail' in entry and entry['thumbnail']:
+    %endif 
+    %if 'thumbnail' in entry and entry['thumbnail']:
     <link
       href="${entry['thumbnail']}"
       type="image/jpeg"
       rel="http://opds-spec.org/image/thumbnail"
     />
-    %endif %if 'image' in entry and entry['image']:
+    %endif 
+    %if 'image' in entry and entry['image']:
     <link
       href="${entry['image']}"
       type="image/jpeg"
