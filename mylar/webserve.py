@@ -4125,7 +4125,7 @@ class WebInterface(object):
 
     ReadMassCopy.exposed = True
 
-    def logs(self):
+    def logs(self, **kwargs):
         return serve_template(templatename="logs.html", title="Log", lineList=mylar.LOGLIST)
     logs.exposed = True
 
@@ -6433,7 +6433,7 @@ class WebInterface(object):
     def download_0day(self, week):
         logger.info('Now attempting to search for 0-day pack for week: %s' % week)
         #week contains weekinfo['midweek'] = YYYY-mm-dd of Wednesday of the given week's pull
-        foundcom, prov = search.search_init('0-Day Comics Pack - %s.%s' % (week[:4],week[5:]), None, week[:4], None, None, week, week, None, allow_packs=True, oneoff=True)
+        foundcom, prov = search.search_init('%s.%s.%s Weekly Pack' % (week[:4],week[5:7],week[8:]), None, week[:4], None, None, week, week, None, allow_packs=True, oneoff=True)
 
     download_0day.exposed = True
 
@@ -6515,6 +6515,7 @@ class WebInterface(object):
                 )
                 return json.dumps({"status": "error"})
             else:
+                logger.info('successfully deleted entry: %s' % log_id)
                 return json.dumps({"status": "success"})
     deleteSpecificLog.exposed = True
 

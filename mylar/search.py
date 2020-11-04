@@ -354,21 +354,29 @@ def search_init(
 
         logger.fdebug('Initiating Search via : %s' % searchmode)
 
+        if len(prov_order) == 1:
+            tmp_prov_count = 1
+        else:
+            tmp_prov_count = len(prov_order)
+
         while cmloopit >= 1:
             prov_count = 0
-            if len(prov_order) == 1:
-                tmp_prov_count = 1
-            else:
-                tmp_prov_count = len(prov_order)
-
             if cmloopit == 4:
                 IssueNumber = None
 
             searchprov = None
-
+            checked_once = False
             while tmp_prov_count > prov_count:
-                checked_once = False
+                if checked_once is True:
+                    prov_count +=1
+                    checked_once = False
+                    continue
                 provider_blocked = helpers.block_provider_check(prov_order[prov_count])
+                if provider_blocked:
+                    logger.warn('provider blocked. Ignoring search on this provider.')
+                    prov_count += 1
+                    continue
+                checked_once = False
                 send_prov_count = tmp_prov_count - prov_count
                 newznab_host = None
                 torznab_host = None
@@ -642,7 +650,7 @@ def search_init(
                     searchprov = torznab_host[0].rstrip() + ' (torznab)'
                 srchloop = 4
                 break
-            elif srchloop == 2 and (cmloopit - 1 >= 1):
+            elif srchloop == 2 and (cmloopit - 1 >= 1) and checked_once is not True:
                 time.sleep(30)  # pause for 30s to not hammmer api's
 
             cmloopit -= 1
@@ -865,11 +873,11 @@ def NZB_SEARCH(
         if any([nzbprov == '32P', nzbprov == 'Public Torrents', nzbprov == 'DDL']):
             # 32p directly stores the exact issue, no need to iterate over variations
             # of the issue number. DDL iteration is handled in it's own module.
-            findloop == 99
+            findloop = 99
 
         if done is True:  # and seperatealpha == "no":
             logger.fdebug("we should break out now - sucessful search previous")
-            findloop == 99
+            findloop = 99
             break
 
             # here we account for issue pattern variations
