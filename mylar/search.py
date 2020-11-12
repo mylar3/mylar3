@@ -735,7 +735,7 @@ def NZB_SEARCH(
     else:
         allow_packs = False
     newznab_local = False
-
+    untouched_name = None
     if nzbprov == 'nzb.su':
         apikey = mylar.CONFIG.NZBSU_APIKEY
         verify = bool(mylar.CONFIG.NZBSU_VERIFY)
@@ -758,6 +758,7 @@ def NZB_SEARCH(
         # updated to include Newznab Name now
         name_newznab = newznab_host[0].rstrip()
         host_newznab = newznab_host[1].rstrip()
+        untouched_name = name_newznab
         if name_newznab[-7:] == '[local]':
             name_newznab = name_newznab[:-7].strip()
             newznab_local = True
@@ -947,7 +948,9 @@ def NZB_SEARCH(
                     'Sending request to RSS for %s : %s (%s)'
                     % (findcomic, mod_isssearch, ComicYear)
                 )
-                if nzbprov == 'newznab':
+                if untouched_name is not None:
+                    nzbprov_fix = untouched_name
+                elif nzbprov == 'newznab':
                     nzbprov_fix = name_newznab
                 elif nzbprov == 'torznab':
                     nzbprov_fix = name_torznab
