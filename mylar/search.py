@@ -1643,7 +1643,16 @@ def NZB_SEARCH(
                             epochyr = '1970'
                             if int(isyear) <= int(epochyr):
                                 tm = datetime.datetime(1970, 1, 1)
-                                usedate_int = int(time.mktime(tm.timetuple()))
+                                try:
+                                    usedate_int = int(time.mktime(tm.timetuple()))
+                                except Exception as e:
+                                    logger.warn(
+                                        '[%s] Failed to convert tm of [%s]' % (e,tm)
+                                    )
+                                    logger.fdebug('issconv: %s' % issconv)
+                                    diff = issconv - tm
+                                    logger.fdebug('diff: %s' % diff)
+                                    usedate_int = diff.total_seconds()
                             else:
                                 continue
                         if i == 0:
