@@ -1779,7 +1779,7 @@ class WebInterface(object):
                             break
 
                 else:
-                    xlist = [x['Status'] for x in oneofflist if x['IssueID'] == weekly['IssueID']]
+                    xlist = [x['Status'] for x in oneofflist if x['IssueID'] == weekly['IssueID'] and weekly['IssueID'] is not None]
                     if xlist:
                         haveit = 'OneOff'
                         tmp_status = xlist[0]
