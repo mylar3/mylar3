@@ -46,10 +46,10 @@ class FileChecker(object):
         if watchcomic:
             #watchcomic = unicode name of series that is being searched against
             self.og_watchcomic = watchcomic
-            self.watchcomic = re.sub('\?', '', watchcomic).strip()  #strip the ? sepearte since it affects the regex.
-            self.watchcomic = re.sub('\u2014', ' - ', watchcomic).strip()  #replace the \u2014 with a normal - because this world is f'd up enough to have something like that.
-            self.watchcomic = re.sub('\u2013', ' - ', watchcomic).strip()  #replace the \u2013 with a normal - because again, people are dumb.
-            self.watchcomic = re.sub('\u2019', " ' ", watchcomic).strip()  #replace the \u2019 with a normal ' because again, people are dumb.
+            self.watchcomic = re.sub('\?', '', watchcomic).strip()  #strip the ? seperate since it affects the regex.
+            #replace variations of unicode dashes with a normal - because this world is f'd up enough to have something like that.
+            self.watchcomic = re.sub(r'[\u2014|\u2013|\u2e3a|\u2e3b]', ' - ', self.watchcomic).strip()
+            self.watchcomic = re.sub(r'\u2019', " ' ", self.watchcomic).strip()  #replace the \u2019 with a normal ' because again, people are dumb.
             if type(self.watchcomic) != str:
                 self.watchcomic = unicodedata.normalize('NFKD', self.watchcomic).encode('ASCII', 'ignore')
         else:
@@ -1539,8 +1539,7 @@ class FileChecker(object):
                                 spacer+='|'
                             mod_watchcomic = mod_watchcomic[:wd] + spacer + mod_watchcomic[wd+len(wdrm):]
 
-        series_name = re.sub('\u2014', ' - ', series_name)
-        series_name = re.sub('\u2013', ' - ', series_name)
+        series_name = re.sub(r'[\u2014|\u2013|\u2e3a|\u2e3b]', ' - ', series_name)
         series_name = re.sub('\u2019', " ' ", series_name)
         seriesdynamic_handlers_match = [x for x in self.dynamic_handlers if x.lower() in series_name.lower()]
         #logger.fdebug('series dynamic handlers recognized : ' + str(seriesdynamic_handlers_match))
