@@ -2990,13 +2990,17 @@ class WebInterface(object):
         self.schedulerForceCheck(jobid='search')
     forceSearch.exposed = True
 
-    def forceRescan(self, ComicID, bulk=False, action='recheck'):
+    def forceRescan(self, ComicID, bulk=False, action='recheck', api=False):
         if bulk:
             cnt = 1
             if action == 'recheck':
                 for cid in ComicID:
-                    logger.info('[MASS BATCH][RECHECK-FILES][' + str(cnt) + '/' + str(len(ComicID)) + '] Rechecking ' + cid['ComicName'] + '(' + str(cid['ComicYear']) + ')')
-                    updater.forceRescan(cid['ComicID'])
+                    if api is False:
+                        logger.info('[MASS BATCH][RECHECK-FILES][' + str(cnt) + '/' + str(len(ComicID)) + '] Rechecking ' + cid['ComicName'] + '(' + str(cid['ComicYear']) + ')')
+                        updater.forceRescan(cid['ComicID'])
+                    else:
+                        logger.info('[MASS BATCH][RECHECK-FILES][' + str(cnt) + '/' + str(len(ComicID)) + '] Rechecking ComicID ' + str(cid))
+                        updater.forceRescan(cid)
                     cnt+=1
                 logger.info('[MASS BATCH][RECHECK-FILES] I have completed rechecking files for ' + str(len(ComicID)) + ' series.')
             else:
@@ -3008,6 +3012,8 @@ class WebInterface(object):
 
         else:
             threading.Thread(target=updater.forceRescan, args=[ComicID]).start()
+        #if api is True:
+        #    return 'Successfully submitted Recheck Files request for designated IDs'
     forceRescan.exposed = True
 
     def checkGithub(self):

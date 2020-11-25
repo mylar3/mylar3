@@ -1,5 +1,4 @@
-# -*- coding: utf-8 -*-
-
+#-# -*- coding: utf-8 -*-
 #  This file is part of Mylar.
 #
 #  Mylar is free software: you can redistribute it and/or modify
@@ -30,8 +29,8 @@ import datetime
 
 cmd_list = ['getIndex', 'getComic', 'getUpcoming', 'getWanted', 'getHistory',
             'getLogs', 'getAPI', 'clearLogs','findComic', 'addComic', 'delComic',
-            'pauseComic', 'resumeComic', 'refreshComic', 'addIssue',
-            'queueIssue', 'unqueueIssue', 'forceSearch', 'forceProcess',
+            'pauseComic', 'resumeComic', 'refreshComic', 'addIssue', 'recheckFiles',
+            'queueIssue', 'unqueueIssue', 'forceSearch', 'forceProcess', 'changeStatus',
             'getVersion', 'checkGithub','shutdown', 'restart', 'update',
             'getComicInfo', 'getIssueInfo', 'getArt', 'downloadIssue',
             'downloadNZB', 'getReadList', 'getStoryArc', 'addStoryArc']
@@ -396,6 +395,64 @@ class Api(object):
 
         return
 
+    def _changeStatus(self, **kwargs):
+        #change status_from of every issue in series to specified status_to
+        #if no comicid specified will mark ALL issues in EVERY series from status_from to specific status_to
+        #required fields: status_to, status_from. Optional: id  (which is the ComicID if applicable)
+        if all(['status_to' not in kwargs, 'status_from' not in kwargs]):
+            self.data = self._failureResponse('Missing Status')
+            return
+        else:
+            self.status_to = kwargs['status_to']
+            self.status_from = kwargs['status_from']
+
+        if 'id' not in kwargs:
+            self.data = self._failureResponse('Missing Status')
+            return
+        else:
+            self.id = kwargs['id']
+            if self.id == 'All':
+                bulk = True
+            else:
+                bulk = False
+                self.id = kwargs['id']
+                if type(self.id) is list:
+                    bulk = True
+
+        logger.info('[BULK:%s] [%s --> %s] ComicIDs to Change Status: %s' % (bulk, self.status_from, self.status_to, self.id))
+
+        try:
+            self.data = helpers.statusChange(self.status_from, self.status_to, self.id, bulk=bulk, api=True)
+        except Exception as e:
+            logger.error('[ERROR] %s' % e)
+            self.data = e
+
+        return
+
+    def _recheckFiles(self, **kwargs):
+        #allow either individual / bulk recheck Files based on ComiciD
+        #multiples are allowed as long as in a list: {'id': ['100101', '101010', '20181', '47101']}
+        if 'id' not in kwargs:
+            self.data = self._failureResponse('Missing ComicID')
+            return
+        else:
+            self.id = kwargs['id']
+
+        if type(self.id) != list:
+            bulk = False
+        else:
+            bulk = True
+
+        logger.info('[BULK:%s] ComicIDs to ReCheck: %s' % (bulk, self.id))
+
+        try:
+            fc = webserve.WebInterface()
+            self.data= fc.forceRescan(ComicID=self.id, bulk=bulk, api=True)
+        except Exception as e:
+            self.data = e
+
+        return
+
     def _addComic(self, **kwargs):
         if 'id' not in kwargs:
             self.data = self._failureResponse('Missing parameter: id')
@@ -495,12 +552,22 @@ class Api(object):
         else:
             ddl = True
 
+        if 'oneoff' not in kwargs:
+            oneoff = False
+        else:
+            if kwargs['oneoff'] == 'True':
+                oneoff = True
+            else:
+                oneoff = False
+
+
         if 'apc_version' not in kwargs:
             logger.info('Received API Request for PostProcessing %s [%s]. Queueing...' % (self.nzb_name, self.nzb_folder))
             mylar.PP_QUEUE.put({'nzb_name':    self.nzb_name,
                                 'nzb_folder':  self.nzb_folder,
                                 'issueid':     issueid,
                                 'failed':      failed,
+                                'oneoff':      oneoff,
                                 'comicid':     comicid,
                                 'apicall':     True,
                                 'ddl':         ddl})
