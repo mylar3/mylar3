@@ -1650,7 +1650,7 @@ def NZB_SEARCH(
                                         '[%s] Failed to convert tm of [%s]' % (e,tm)
                                     )
                                     logger.fdebug('issconv: %s' % issconv)
-                                    diff = issconv - tm
+                                    diff = issue_convert - tm
                                     logger.fdebug('diff: %s' % diff)
                                     usedate_int = diff.total_seconds()
                             else:
