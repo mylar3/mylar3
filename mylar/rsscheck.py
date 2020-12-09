@@ -402,12 +402,11 @@ def ddl(forcerss=False):
     else:
         if r.status_code != 200:
             #typically 403 will not return results, but just catch anything other than a 200
-            if r.status_code == 403:
-                logger.warn('ERROR - status code:%s' % r.status_code)
-                return False
+            if r.status_code == 503:
+                logger.warn('[ERROR - Cloudflare is probably active] Status code returned: %s' % r.status_code)
             else:
-                logger.warn('[%s] Status code returned: %s' % (r.status_code))
-                return False
+                logger.warn('[ERROR] Status code returned: %s' % r.status_code)
+            return False
 
         feedme = feedparser.parse(r.content)
         results = []
