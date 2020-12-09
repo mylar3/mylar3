@@ -3,6 +3,7 @@ import re
 import cherrypy
 import stat
 import zipfile
+import urllib.parse
 from lib.rarfile import rarfile
 
 import mylar
@@ -147,7 +148,7 @@ class ComicScanner(object):
             opened_zip.extractall(os.path.join(mylar.CONFIG.CACHE_DIR, "webviewer", ish_id))
         return
 
-    # This method will return a list of .jpg files in their numberical order to be fed into the reading view.
+    # This method will return a list of .jpg files in their numerical order to be fed into the reading view.
     def reading_images(self, ish_id):
         logger.debug("Image List Requested")
         image_list = []
@@ -156,7 +157,7 @@ class ComicScanner(object):
         for root, dirs, files in os.walk(image_src):
             for f in files:
                 if f.endswith((".png", ".gif", ".bmp", ".dib", ".jpg", ".jpeg", ".jpe", ".jif", ".jfif", ".jfi", ".tiff", ".tif")):
-                    image_list.append( os.path.join(image_loc, f) )
+                    image_list.append(urllib.parse.quote(os.path.join(image_loc, f)))
                     image_list.sort()
         logger.debug("Image List Created")
         return image_list

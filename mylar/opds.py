@@ -401,7 +401,7 @@ class OPDS(object):
                     continue
                 metainfo = None
                 if mylar.CONFIG.OPDS_METAINFO:
-                    issuedetails = mylar.helpers.IssueDetails(issue['fileloc']).get('metadata', None)
+                    issuedetails = mylar.helpers.IssueDetails(fileloc).get('metadata', None)
                     if issuedetails is not None:
                        metainfo = issuedetails.get('metadata', None)
                 if not metainfo:
@@ -487,11 +487,11 @@ class OPDS(object):
                     location = issuebook['Location']
                     fileloc = os.path.join(comic['ComicLocation'],issuebook['Location'])
                     metainfo = None
-                    if mylar.CONFIG.OPDS_METAINFO: 
-                        issuedetails = mylar.helpers.IssueDetails(issue['fileloc']).get('metadata', None)
+                    if mylar.CONFIG.OPDS_METAINFO:
+                        issuedetails = mylar.helpers.IssueDetails(fileloc).get('metadata', None)
                         if issuedetails is not None:
                             metainfo = issuedetails.get('metadata', None)
-                    if not metainfo: 
+                    if not metainfo:
                         metainfo = {}
                         metainfo[0] = {'writer': None,'summary': ''}
                     cb, _ = open_archive(fileloc)

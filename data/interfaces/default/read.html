@@ -76,18 +76,22 @@
         $("#page-settings-right-text").toggle();
       });
       $(".page-right").click(function() {
-        $(".whole-page").load("${mylar.CONFIG.HTTP_ROOT}read_comic?ish_id=${ish_id}&page_num=${np}&size=${size}");
+        if (${np} < ${nop}) {
+          $(".whole-page").load("${mylar.CONFIG.HTTP_ROOT}read_comic?ish_id=${ish_id}&page_num=${np}&size=${size}");
+        }
       });
       $(".page-left").click(function() {
-        $(".whole-page").load("${mylar.CONFIG.HTTP_ROOT}read_comic?ish_id=${ish_id}&page_num=${pp}&size=${size}");
+        if (${pp} >= 0) {
+          $(".whole-page").load("${mylar.CONFIG.HTTP_ROOT}read_comic?ish_id=${ish_id}&page_num=${pp}&size=${size}");
+        }
       });
       $(document).one("keyup", function(e) {
-        if (e.which == 39) {
+        if (e.which == 39 && ${np} < ${nop}) {
           $(".whole-page").load("${mylar.CONFIG.HTTP_ROOT}read_comic?ish_id=${ish_id}&page_num=${np}&size=${size}");
         }
         });
       $(document).one("keyup", function(e) {
-        if (e.which == 37) {
+        if (e.which == 37 && ${pp} >= 0) {
           $(".whole-page").load("${mylar.CONFIG.HTTP_ROOT}read_comic?ish_id=${ish_id}&page_num=${pp}&size=${size}");
         }
         });
