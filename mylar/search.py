@@ -362,8 +362,9 @@ def search_init(
         while cmloopit >= 1:
             prov_count = 0
             if cmloopit == 4:
-                IssueNumber = None
-
+                tmp_IssueNumber = None
+            else:
+                tmp_IssueNumber = IssueNumber
             searchprov = None
             checked_once = False
             while tmp_prov_count > prov_count:
@@ -441,7 +442,7 @@ def search_init(
                 if searchmode == 'rss':
                     findit = NZB_SEARCH(
                         ComicName,
-                        IssueNumber,
+                        tmp_IssueNumber,
                         ComicYear,
                         SeriesYear,
                         Publisher,
@@ -482,7 +483,7 @@ def search_init(
                                 )
                                 findit = NZB_SEARCH(
                                     AS_Alternate,
-                                    IssueNumber,
+                                    tmp_IssueNumber,
                                     ComicYear,
                                     SeriesYear,
                                     Publisher,
@@ -522,7 +523,7 @@ def search_init(
                 else:
                     findit = NZB_SEARCH(
                         ComicName,
-                        IssueNumber,
+                        tmp_IssueNumber,
                         ComicYear,
                         SeriesYear,
                         Publisher,
@@ -575,7 +576,7 @@ def search_init(
                                 )
                                 findit = NZB_SEARCH(
                                     AS_Alternate,
-                                    IssueNumber,
+                                    tmp_IssueNumber,
                                     ComicYear,
                                     SeriesYear,
                                     Publisher,
@@ -618,8 +619,8 @@ def search_init(
                 elif searchprov == 'torznab':
                     searchprov = torznab_host[0].rstrip()
                 if manual is not True:
-                    if IssueNumber is not None:
-                        issuedisplay = IssueNumber
+                    if tmp_IssueNumber is not None:
+                        issuedisplay = tmp_IssueNumber
                     else:
                         if any([booktype == 'One-Shot', booktype == 'TPB']):
                             issuedisplay = None
