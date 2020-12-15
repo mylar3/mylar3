@@ -186,6 +186,11 @@ def addComictoDB(comicid, mismatch=None, pullupd=None, imported=None, ogcname=No
     #since the weekly issue check could return either annuals or issues, let's initialize it here so it carries through properly.
     weeklyissue_check = []
 
+    if oldcomversion is not None:
+        if re.sub(r'[^0-9]', '', oldcomversion).strip() == comic['incorrect_volume']:
+            # if we mistakingly got the incorrect volume previously, we wipe out the existing volume so we can put the new one
+            # if it was changed manually, that value will still over-ride this and won't be in this check.
+            oldcomversion = None
     if any([oldcomversion is None, oldcomversion == "None"]):
         logger.info('Previous version detected as None - seeing if update required')
         if comic['ComicVersion'].isdigit():

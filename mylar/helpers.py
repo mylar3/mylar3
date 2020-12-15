@@ -2112,7 +2112,7 @@ def duplicate_filecheck(filename, ComicID=None, IssueID=None, StoryArcID=None, r
     except OSError as e:
         logger.warn('[DUPECHECK] File cannot be located in location specified. Something has moved or altered the name.')
         logger.warn('[DUPECHECK] Make sure if you are using ComicRN, you do not have Completed Download Handling enabled (or vice-versa). Aborting')
-        return
+        return {'action': None}
 
     if IssueID:
         dupchk = myDB.selectone("SELECT * FROM issues WHERE IssueID=?", [IssueID]).fetchone()
@@ -2120,7 +2120,7 @@ def duplicate_filecheck(filename, ComicID=None, IssueID=None, StoryArcID=None, r
         dupchk = myDB.selectone("SELECT * FROM annuals WHERE IssueID=?", [IssueID]).fetchone()
         if dupchk is None:
             logger.info('[DUPECHECK] Unable to find corresponding Issue within the DB. Do you still have the series on your watchlist?')
-            return
+            return {'action': None}
 
     series = myDB.selectone("SELECT * FROM comics WHERE ComicID=?", [dupchk['ComicID']]).fetchone()
 
@@ -3080,7 +3080,7 @@ def ddl_downloader(queue):
                                             'apicall':      True,
                                             'ddl':          True})
                 except Exception as e:
-                    logger.info('process error: %s [%s]' %(e, ddzstat))
+                    logger.error('process error: %s [%s]' %(e, ddzstat))
             elif all([ddzstat['success'] is True, mylar.CONFIG.POST_PROCESSING is False]):
                 logger.info('File successfully downloaded. Post Processing is not enabled - item retained here: %s' % os.path.join(ddzstat['path'],ddzstat['filename']))
             else:
@@ -3175,6 +3175,33 @@ def worker_main(queue):
 
 def nzb_monitor(queue):
     while True:
+        if mylar.RETURN_THE_NZBQUEUE.qsize() >= 1:
+            if mylar.USE_SABNZBD is True:
+                # this checks the sabnzbd queue to see if it's paused / unpaused.
+                sab_params = {
+                    'apikey': mylar.CONFIG.SAB_APIKEY,
+                    'mode': 'queue',
+                    'start': 0,
+                    'limit': 5,
+                    'search': None,
+                    'output': 'json',
+                }
+                s = sabnzbd.SABnzbd(params=sab_params)
+                sabresponse = s.sender(chkstatus=True)
+                # response will be: Paused = True, UnPaused = False
+                if sabresponse['status'] is False:
+                    while True:
+                        if mylar.RETURN_THE_NZBQUEUE.qsize() >= 1:
+                            qu_retrieve = mylar.RETURN_THE_NZBQUEUE.get(True)
+                            try:
+                                nzstat = s.historycheck(qu_retrieve)
+                                cdh_monitor(queue, qu_retrieve, nzstat, readd=True)
+                            except Exception as e:
+                                logger.error('Exception occured trying to re-add %s to queue: %s' % (qu_retrieve, e))
+                            time.sleep(5)
+                        else:
+                            break
+
         if queue.qsize() >= 1:
             item = queue.get(True)
             if item == 'exit':
@@ -3190,35 +3217,52 @@ def nzb_monitor(queue):
             else:
                 logger.warn('There are no NZB Completed Download handlers enabled. Not sending item to completed download handling...')
                 break
-
-            known_nzb_id = item['nzo_id'] if (mylar.USE_SABNZBD is True) else item['NZBID']
-            if any([nzstat['status'] == 'file not found', nzstat['status'] == 'double-pp']):
-                logger.warn('Unable to complete post-processing call due to not finding file in the location provided. [%s]' % item)
-            elif nzstat['status'] == 'nzb removed':
-                logger.warn('NZB seems to have been removed from queue: %s' % known_nzb_id)
-            elif nzstat['status'] is False:
-                logger.info('Download %s failed. Requeue NZB to check later...' % known_nzb_id)
-                time.sleep(5)
-                mylar.NZB_QUEUE.put(item)
-            elif nzstat['status'] is True:
-                if nzstat['failed'] is False:
-                    logger.info('File successfully downloaded - now initiating completed downloading handling.')
-                else:
-                    logger.info('File failed either due to being corrupt or incomplete - now initiating completed failed downloading handling.')
-                try:
-                    mylar.PP_QUEUE.put({'nzb_name':     nzstat['name'],
-                                        'nzb_folder':   nzstat['location'],
-                                        'failed':       nzstat['failed'],
-                                        'issueid':      nzstat['issueid'],
-                                        'comicid':      nzstat['comicid'],
-                                        'apicall':      nzstat['apicall'],
-                                        'ddl':          False})
-                    #cc = process.Process(nzstat['name'], nzstat['location'], failed=nzstat['failed'])
-                    #nzpp = cc.post_process()
-                except Exception as e:
-                    logger.info('process error: %s' % e)
+            cdh_monitor(queue, item, nzstat)
         else:
             time.sleep(5)
+
+
+def cdh_monitor(queue, item, nzstat, readd=False):
+    known_nzb_id = item['nzo_id'] if (mylar.USE_SABNZBD is True) else item['NZBID']
+    if any([nzstat['status'] == 'file not found', nzstat['status'] == 'double-pp']):
+        logger.warn('Unable to complete post-processing call due to not finding file in the location provided. [%s]' % item)
+    elif nzstat['status'] == 'nzb removed' or 'unhandled status' in str(nzstat['status']).lower():
+        if readd is True:
+            # if the queue isn't empty, retry it like 5 times or until queue is empty
+            # if queue is empty, this could be a timing issue, so we'd have to recheck it one more time at least
+            # need to implement some kind of counter here for all of this ^^^
+            logger.warn('NZB seems to have been in a staging process within SABnzbd during attempt. Will requeue: %s.' % known_nzb_id)
+            mylar.RETURN_THE_NZBQUEUE.put(item)
+        else:
+            logger.warn('NZB seems to have been removed from queue: %s' % known_nzb_id)
+    elif nzstat['status'] == 'failed_in_sab':
+        logger.warn('Failure returned from SAB for %s for some reason. You should probably check your SABnzbd logs' % known_nzb_id)
+    elif nzstat['status'] == 'queue_paused':
+        # queue pause check for sabnzbd only atm.
+        if mylar.USE_SABNZBD is True:
+            logger.info('[PAUSED_SAB_QUEUE] adding %s to a temporary queue that will fire off when SABnzbd is unpaused' % item)
+            mylar.RETURN_THE_NZBQUEUE.put(item)
+    elif nzstat['status'] is False:
+        logger.info('Download %s failed. Requeue NZB to check later...' % known_nzb_id)
+        time.sleep(5)
+        if item not in queue.queue:
+            mylar.NZB_QUEUE.put(item)
+    elif nzstat['status'] is True:
+        if nzstat['failed'] is False:
+            logger.info('File successfully downloaded - now initiating completed downloading handling.')
+        else:
+            logger.info('File failed either due to being corrupt or incomplete - now initiating completed failed downloading handling.')
+        try:
+            mylar.PP_QUEUE.put({'nzb_name':     nzstat['name'],
+                                'nzb_folder':   nzstat['location'],
+                                'failed':       nzstat['failed'],
+                                'issueid':      nzstat['issueid'],
+                                'comicid':      nzstat['comicid'],
+                                'apicall':      nzstat['apicall'],
+                                'ddl':          False})
+        except Exception as e:
+            logger.error('process error: %s' % e)
+    return
 
 def script_env(mode, vars):
     #mode = on-snatch, pre-postprocess, post-postprocess
