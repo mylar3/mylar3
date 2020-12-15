@@ -452,6 +452,7 @@ def GetComicInfo(comicid, dom, safechk=None):
     else:
         comic['Issue_List'] = 'None'
 
+    comic['incorrect_volume'] = None
     while (desdeck > 0):
         if desdeck == 1:
             if comic_desc == 'None':
@@ -467,12 +468,23 @@ def GetComicInfo(comicid, dom, safechk=None):
 
         i = 0
         while (i < 2):
+            incorrect_volume = None
             if 'volume' in comicDes.lower():
                 #found volume - let's grab it.
                 v_find = comicDes.lower().find('volume')
                 #arbitrarily grab the next 10 chars (6 for volume + 1 for space + 3 for the actual vol #)
                 #increased to 10 to allow for text numbering (+5 max)
                 #sometimes it's volume 5 and ocassionally it's fifth volume.
+                if 'collected' in comicDes.lower():
+                    cde = re.sub(r'[\s\-]', '', comicDes).strip().lower()
+                    if (
+                           'oneshot' in cde[:cde.find('collected')]
+                           and cde.find('volume') > cde.find('collected')
+                    ):
+                        # we set the incorrect_volume here so that when it returns to update the db we can
+                        # check to see if it matches the existing volume and if so replace it with any new
+                        # values since the incorrect volume is incorrect.
+                        incorrect_volume = comicDes[v_find:v_find+15]
                 if comicDes[v_find+7:comicDes.find(' ', v_find+7)].isdigit():
                     comic['ComicVersion'] = re.sub("[^0-9]", "", comicDes[v_find+7:comicDes.find(' ', v_find+7)]).strip()
                     break
@@ -484,6 +496,7 @@ def GetComicInfo(comicid, dom, safechk=None):
                     vfind = comicDes[:v_find]   # if it's fifth volume format
                     basenums = {'zero': '0', 'first': '1', 'second': '2', 'third': '3', 'fourth': '4', 'fifth': '5', 'sixth': '6', 'seventh': '7', 'eighth': '8', 'nineth': '9', 'tenth': '10', 'i': '1', 'ii': '2', 'iii': '3', 'iv': '4', 'v': '5'}
                     logger.fdebug('X volume format - ' + str(i) + ': ' + vfind)
+                og_vfind = vfind
                 volconv = ''
                 for nums in basenums:
                     if nums in vfind.lower():
@@ -509,9 +522,14 @@ def GetComicInfo(comicid, dom, safechk=None):
                 try:
                     ledigit = re.sub("[^0-9]", "", vf[0])
                     if ledigit != '':
-                        comic['ComicVersion'] = ledigit
-                        logger.fdebug("Volume information found! Adding to series record : volume " + comic['ComicVersion'])
-                        break
+                        #logger.info('incorrect_volume: %s / vfind: %s' % (incorrect_volume, og_vfind))
+                        if all([incorrect_volume is not None, incorrect_volume == og_vfind]):
+                            logger.fdebug('previous incorrect volume possible. Assigning incorrect value as: %s' % ledigit)
+                            comic['incorrect_volume'] = ledigit
+                        else:
+                            comic['ComicVersion'] = ledigit
+                            logger.fdebug("Volume information found! Adding to series record : volume " + comic['ComicVersion'])
+                            break
                 except:
                     pass
 

@@ -2058,11 +2058,10 @@ def NZB_SEARCH(
                                 ' issue number based on Volume'
                                 % fndcomicversion
                             )
-                        elif all(
+                        elif booktype == 'TPB' and all(
                             [
                                 int(F_ComicVersion) == int(findcomiciss),
                                 fndcomicversion is not None,
-                                booktype == 'TPB',
                                 filecomic['booktype'] == 'TPB',
                                 filecomic['justthedigits'] is None,
                             ]
