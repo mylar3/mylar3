@@ -26,12 +26,10 @@ import mylar
 
 class SABnzbd(object):
     def __init__(self, params):
-        #self.sab_url = sab_host + '/api'
-        #self.sab_apikey = 'e90f54f4f757447a20a4fa89089a83ed'
         self.sab_url = mylar.CONFIG.SAB_HOST + '/api'
         self.params = params
 
-    def sender(self):
+    def sender(self, chkstatus=False):
         try:
             from requests.packages.urllib3 import disable_warnings
             disable_warnings()
@@ -39,14 +37,26 @@ class SABnzbd(object):
             logger.info('Unable to disable https warnings. Expect some spam if using https nzb providers.')
 
         try:
-            logger.info('parameters set to %s' % self.params)
-            logger.info('sending now to %s' % self.sab_url)
-            sendit = requests.post(self.sab_url, data=self.params, verify=False)
-        except:
-            logger.info('Failed to send to client.')
+            if chkstatus is True:
+                sendit = requests.get(self.sab_url, params=self.params, verify=False)
+            else:
+                logger.fdebug('parameters set to %s' % self.params)
+                logger.fdebug('sending now to %s' % self.sab_url)
+                sendit = requests.post(self.sab_url, data=self.params, verify=False)
+        except Exception as e:
+            logger.info('Failed to send to client. Error returned: %s' % e)
             return {'status': False}
         else:
             sendresponse = sendit.json()
+            if chkstatus is True:
+                queueinfo = sendresponse['queue']
+                if str(queueinfo['status']).lower() == 'paused':
+                    #logger.info('queue IS paused')
+                    return {'status': True}
+                else:
+                    #logger.info('queue NOT paused')
+                    return {'status': False}
+
             logger.info(sendresponse)
             if sendresponse['status'] is True:
                 queue_params = {'status': True,
@@ -82,7 +92,7 @@ class SABnzbd(object):
 
                 if str(queueinfo['status']) == 'Paused':
                     logger.warn('[WARNING] SABnzbd has the active queue Paused. CDH will not work in this state.')
-                    return {'status': False, 'failed': False}
+                    return {'status': 'queue_paused', 'failed': False}
                 while any([str(queueinfo['status']) == 'Downloading', str(queueinfo['status']) == 'Idle']) and float(queueinfo['mbleft']) > 0:
                     #if 'comicrn' in queueinfo['script'].lower():
                     #    logger.warn('ComicRN has been detected as being active for this category & download. Completed Download Handling will NOT be performed due to this.')
@@ -148,7 +158,8 @@ class SABnzbd(object):
                     nzo_exists = True
                     #get the stage / error message and see what we can do
                     stage = hq['stage_log']
-                    for x in stage[0]:
+                    logger.fdebug('stage: %s' % (stage,))
+                    for x in stage:
                         if 'Failed' in x['actions'] and any([x['name'] == 'Unpack', x['name'] == 'Repair']):
                             if 'moving' in x['actions']:
                                 logger.warn('There was a failure in SABnzbd during the unpack/repair phase that caused a failure: %s' % x['actions'])
@@ -164,14 +175,17 @@ class SABnzbd(object):
                                              'apicall':  True,
                                              'ddl':      False}
                             break
-                    break
+                    if found['status'] is False:
+                        return {'status': 'failed_in_sab', 'failed': False}
+                    else:
+                        break
                 elif hq['nzo_id'] == sendresponse:
                     nzo_exists = True
                     logger.fdebug('nzo_id: %s found while processing queue in an unhandled status: %s' % (hq['nzo_id'], hq['status']))
-                    break
+                    return {'failed': False, 'status': 'unhandled status of: %s' %( hq['status'])}
 
             if not nzo_exists:
-                logger.info("Cannot find nzb %s in the queue.  Was it removed?" % sendresponse)
+                logger.info('Cannot find nzb %s in the queue.  Was it removed?' % sendresponse)
                 return {'status': 'nzb removed', 'failed': False}
         except Exception as e:
             logger.warn('error %s' % e)
