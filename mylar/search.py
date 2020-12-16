@@ -359,6 +359,7 @@ def search_init(
         else:
             tmp_prov_count = len(prov_order)
 
+        checked_once = []
         while cmloopit >= 1:
             prov_count = 0
             if cmloopit == 4:
@@ -366,18 +367,16 @@ def search_init(
             else:
                 tmp_IssueNumber = IssueNumber
             searchprov = None
-            checked_once = False
             while tmp_prov_count > prov_count:
-                if checked_once is True:
-                    prov_count +=1
-                    checked_once = False
-                    continue
+                if checked_once:
+                    if prov_order[prov_count] in checked_once:
+                        prov_count +=1
+                        continue
                 provider_blocked = helpers.block_provider_check(prov_order[prov_count])
                 if provider_blocked:
                     logger.warn('provider blocked. Ignoring search on this provider.')
                     prov_count += 1
                     continue
-                checked_once = False
                 send_prov_count = tmp_prov_count - prov_count
                 newznab_host = None
                 torznab_host = None
@@ -429,14 +428,11 @@ def search_init(
                     prov_count += 1
                     continue
                 elif all(
-                    [checked_once is True, not provider_blocked]
-                ) and searchprov not in (
-                    '32P',
-                    'DDL',
-                    'Public Torrents',
-                    'experimental',
-                    'DDL',
-                ):
+                         [
+                             not provider_blocked,
+                             searchprov in checked_once,
+                         ]
+                    ):
                     prov_count += 1
                     continue
                 if searchmode == 'rss':
@@ -554,15 +550,17 @@ def search_init(
                         ignore_booktype=ignore_booktype,
                     )
                     if all(
-                        [checked_once is False, not provider_blocked]
-                    ) and searchprov in (
-                        '32P',
-                        'DDL',
-                        'Public Torrents',
-                        'experimental',
-                        'DDL',
-                    ):
-                        checked_once = True
+                           [
+                               not provider_blocked,
+                               searchprov not in checked_once,
+                           ]
+                          ) and searchprov in (
+                              '32P',
+                              'DDL',
+                              'Public Torrents',
+                              'experimental',
+                          ):
+                              checked_once.append(searchprov)
                     if findit['status'] is False:
                         if AlternateSearch is not None and AlternateSearch != "None":
                             chkthealt = AlternateSearch.split('##')
@@ -651,7 +649,7 @@ def search_init(
                     searchprov = torznab_host[0].rstrip() + ' (torznab)'
                 srchloop = 4
                 break
-            elif srchloop == 2 and (cmloopit - 1 >= 1) and checked_once is not True:
+            elif srchloop == 2 and (cmloopit - 1 >= 1) and searchprov not in checked_once:
                 time.sleep(30)  # pause for 30s to not hammmer api's
 
             cmloopit -= 1
