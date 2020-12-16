@@ -198,6 +198,41 @@ class GC(object):
                         issues = title[issfind_st + 1 : iss_en]
                         pack = True
 
+            # to handle packs that are denoted without a # sign being present.
+            # if there's a dash, check to see if both sides of the dash are numeric.
+            if pack is False and title.find('-') != -1:
+                issfind_en = title.find('-')
+                if all(
+                       [
+                           title[issfind_en + 1] == ' ',
+                           title[issfind_en + 2].isdigit(),
+                       ]
+                ) and all(
+                       [
+                           title[issfind_en -1] == ' ',
+                       ]
+                ):
+                    spaces = [m.start() for m in re.finditer(' ', title)]
+                    dashfind = title.find('-')
+                    space_beforedash = title.find(' ', dashfind - 1)
+                    space_afterdash = title.find(' ', dashfind + 1)
+                    if not title[space_afterdash+1].isdigit():
+                        pass
+                    else:
+                        iss_end = title.find(' ', space_afterdash + 1)
+                        if iss_end == -1:
+                            iss_end = len(title)
+                        set_sp = None
+                        for sp in spaces:
+                            if sp < space_beforedash:
+                                prior_sp = sp
+                            else:
+                                set_sp = prior_sp
+                                break
+                        if title[set_sp:space_beforedash].strip().isdigit():
+                            issues = title[set_sp:iss_end].strip()
+                            pack = True
+
             # if it's a pack - remove the issue-range and the possible issue years
             # (cause it most likely will span) and pass thru as separate items
             if pack is True:
