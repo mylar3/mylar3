@@ -4127,6 +4127,46 @@ def DateAddedFix():
     for an in annuals:
         myDB.upsert("annuals", {'DateAdded': DateAdded}, {'IssueID': an[0]})
 
+
+def statusChange(status_from, status_to, comicid=None, bulk=False, api=True):
+    myDB = db.DBConnection()
+    the_list = []
+    if bulk is False: #type(comicid) != list:
+        sc = myDB.select("SELECT IssueID FROM issues WHERE ComicID=? AND Status=?", [comicid, status_from])
+        for s in sc:
+            the_list.append(s[0])
+    else:
+        if comicid == 'All':
+            sc = myDB.select("SELECT IssueID FROM issues WHERE Status=?", [comicid, status_from])
+            for s in sc:
+                the_list.append(s[0])
+        else:
+            for x in comicid:
+                sc = myDB.select("SELECT IssueID FROM issues WHERE ComicID=? AND Status=?", [x, status_from])
+                for s in sc:
+                    the_list.append(s[0])
+
+    logger.info('the_list: %s' % the_list)
+    #for genlist in chunker(the_list, 200):
+    #    tmpsql = "SELECT IssueID FROM issues WHERE Status=? AND ComicID in ({seq})".format(status_from, seq=','.join(['?'] *(len(genlist) -1)))
+    #    chkthis = myDB.upsert("issues", {'Status': status_to}, dict(myDB.select(tmpsql, genlist))) #select(tmpsql, genlist)
+    #    logger.info('succeeded')
+
+    #this probably won't scale well, but atm it's the best that can be done
+    cnt=0
+    dlist = []
+    for x in the_list:
+        try:
+            myDB.upsert("issues", {'Status': status_to}, {'IssueID': x, 'Status': status_from})
+        except Exception as e:
+            pass
+        else:
+            cnt+=1
+
+    logger.info('Updated %s Issues from a status of %s to %s' % (cnt, status_from, status_to))
+    #upto.execute("UPDATE issues SET Status = ? WHERE (?)", [status_to, tmpsql])
+
+
 def file_ops(path,dst,arc=False,one_off=False):
 #    # path = source path + filename
 #    # dst = destination path + filename
