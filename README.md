@@ -32,6 +32,7 @@ The Mylar Forums are also online @ https://forum.mylarcomics.com
 ## Installation
 - run `pip3 install -r requirements.txt` to install all required dependencies not included. 
 - Note Windows users may need to run `py -m pip install -r requirements.txt` if the above fails.
+- Prefer Docker? Take a look over [here](https://docs.linuxserver.io/images/docker-mylar3)! 
 
 ## Upgrading from evilhero/mylar
 - `git clone https://github.com/mylar3/mylar3`
