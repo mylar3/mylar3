@@ -1085,7 +1085,7 @@ def NZB_SEARCH(
                     elif str(mylar.CONFIG.SEARCH_DELAY).isdigit() and manual is False:
                         pause_the_search = int(mylar.CONFIG.SEARCH_DELAY) * 60
                     else:
-                        logger.info(
+                        logger.warn(
                             'Check Search Delay - invalid numerical given.'
                             ' Force-setting to 30 seconds.'
                         )
@@ -1114,7 +1114,7 @@ def NZB_SEARCH(
                             )
                             and newznab_local is not False
                         ):
-                            logger.info(
+                            logger.fdebug(
                                 'local domain bypass for %s is active.' % name_newznab
                             )
                             localbypass = True
@@ -1257,7 +1257,7 @@ def NZB_SEARCH(
                                 done = True
                             break
                     except Exception:
-                        logger.info('no errors on data retrieval...proceeding')
+                        logger.fdebug('no errors on data retrieval...proceeding')
                         pass
             elif nzbprov == 'experimental':
                 logger.info('sending %s to experimental search' % findcomic)
@@ -1292,7 +1292,7 @@ def NZB_SEARCH(
                         logger.info(
                             '[32P-0DAY] More than one pack for the week is available...'
                         )
-                        logger.info('bb-entries: %s' % bb['entries'])
+                        logger.fdebug('bb-entries: %s' % bb['entries'])
                         if bb['entries'][1]['int_pubdate'] >= bb['int_pubdate']:
                             logger.info(
                                 '[32P-0DAY] 2nd Pack is newest. Snatching that...'
@@ -1750,7 +1750,7 @@ def NZB_SEARCH(
                 parsed_comic = p_comic.listFiles()
 
                 logger.fdebug('parsed_info: %s' % parsed_comic)
-                logger.info(
+                logger.fdebug(
                     'booktype: %s / parsed_booktype: %s [ignore_booktype: %s]'
                     % (booktype, parsed_comic['booktype'], ignore_booktype)
                 )
@@ -2477,7 +2477,7 @@ def NZB_SEARCH(
         #                 " from Issue # and re-trying.")
         #     cmloopit = origcmloopit
         #     seperatealpha = "yes"
-        logger.info(
+        logger.fdebug(
             'booktype:%s / chktpb: %s / findloop: %s' % (booktype, chktpb, findloop)
         )
         if booktype == 'TPB' and chktpb == 1 and findloop + 1 > findcount:
@@ -2489,7 +2489,7 @@ def NZB_SEARCH(
         if 'Public Torrents' in tmpprov and any([nzbprov == 'WWT', nzbprov == 'DEM']):
             tmpprov = re.sub('Public Torrents', nzbprov, tmpprov)
         foundcomic.append("yes")
-        logger.info('mylar.COMICINFO: %s' % mylar.COMICINFO)
+        logger.fdebug('mylar.COMICINFO: %s' % mylar.COMICINFO)
         if mylar.COMICINFO[0]['pack'] is True:
             try:
                 issinfo = mylar.COMICINFO[0]['pack_issuelist']
