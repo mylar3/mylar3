@@ -875,7 +875,11 @@ def updateComicLocation():
                     comlocation = re.sub(ddir, ccdir, dlc).strip()
 
                 #regenerate the new path location so that it's os.dependent now.
-                com_done = re.sub('%&', os.sep.encode('unicode-escape'), comlocation).strip()
+                try:
+                    com_done = re.sub('%&', os.sep.encode().decode('unicode-escape'), comlocation).strip()
+                except Exception as e:
+                    logger.warn('[%s] error during conversion: %s' % (comlocation, e))
+                    com_done = comlocation.replace('%&', os.sep).strip()
 
                 comloc.append({"comlocation":  com_done,
                                "origlocation": dl['ComicLocation'],
