@@ -45,6 +45,8 @@ from mylar.auth import AuthController, require
 
 import simplejson as simplejson
 
+from importlib.util import find_spec
+
 from operator import itemgetter
 
 def serve_template(templatename, **kwargs):
@@ -6196,6 +6198,20 @@ class WebInterface(object):
         else:
             return "Error sending test message to Boxcar"
     testboxcar.exposed = True
+
+    def testsignal(self, phonefrom, phoneto):
+        has_signald = find_spec('signald')
+        if not has_signald:
+            logger.warn("Signal python module is missing. Visit the Mylar wikia for installation instructions")
+            return "Signal python module is missing. Visit the Mylar wikia for installation instructions"
+        signal_sms = notifiers.SIGNAL_SMS(test_phonefrom=phonefrom, test_phoneto=phoneto)
+        result = signal_sms.test_notify()
+        if result == True:
+            return "Successfully sent Signal test -  check to make sure it worked"
+        else:
+            return "Error sending test message to Signal sms"
+
+    testsignal.exposed = True
 
     def testpushover(self, apikey, userkey, device):
         pushover = notifiers.PUSHOVER(test_apikey=apikey, test_userkey=userkey, test_device=device)

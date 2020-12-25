@@ -31,7 +31,7 @@ import smtplib
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from email.utils import formatdate, make_msgid
-from signald import Signal
+from importlib.util import find_spec
 
 # This was obviously all taken from headphones with great appreciation :)
 
@@ -518,9 +518,14 @@ class DISCORD:
 
 class SIGNAL_SMS:
     def __init__(self, test_phonefrom=None, test_phoneto=None):
-        self.phone_from = mylar.CONFIG.SIGNAL_PHONE_NUMBER_FROM if test_phonefrom is None else test_phonefrom
-        self.phone_to = mylar.CONFIG.SIGNAL_PHONE_NUMBER_TO if test_phoneto is None else test_phoneto
-        self.signal = Signal(self.phone_from)
+        pysignal_spec = find_spec('signald')
+        if pysignal_spec is None:
+            logger.warn('Could not find Signald module')
+        else:
+            from signald import Signal
+            self.phone_from = mylar.CONFIG.SIGNAL_PHONE_NUMBER_FROM if test_phonefrom is None else test_phonefrom
+            self.phone_to = mylar.CONFIG.SIGNAL_PHONE_NUMBER_TO if test_phoneto is None else test_phoneto
+            self.signal = Signal(self.phone_from)
 
     def notify(self, text, attachment_text, module=None):
         if module is None:
@@ -530,9 +535,12 @@ class SIGNAL_SMS:
 
         try:
             logger.debug(module + ' Sending sms notification from [%s] to [%s] ' % (self.phone_from, self.phone_to))
-            self.signal.send_message(self.phone_to, text)
-            self.signal.send_message(self.phone_to, attachment_text)
-            sent_successfully = True
+            if self.signal is None:
+                sent_successfully = False
+            else:
+                self.signal.send_message(self.phone_to, text)
+                self.signal.send_message(self.phone_to, attachment_text)
+                sent_successfully = True
         except Exception as e:
             logger.info(module + ' Signal notify failed: ' + str(e))
 
