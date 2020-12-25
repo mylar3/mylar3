@@ -49,7 +49,7 @@ LOG_DIR = None
 LOGTYPE = 'log'
 LOG_LANG = 'en'
 LOG_CHARSET = 'UTF-8'
-LOG_LEVEL = 1
+LOG_LEVEL = None
 LOGLIST = []
 ARGS = None
 SIGNAL = None
@@ -115,7 +115,7 @@ USE_BLACKHOLE = False
 USE_RTORRENT = False
 USE_DELUGE = False
 USE_TRANSMISSION = False
-USE_QBITTORENT = False
+USE_QBITTORRENT = False
 USE_UTORRENT = False
 USE_WATCHDIR = False
 SNPOOL = None
@@ -128,6 +128,7 @@ NZB_QUEUE = queue.Queue()
 PP_QUEUE = queue.Queue()
 SEARCH_QUEUE = queue.Queue()
 DDL_QUEUE = queue.Queue()
+RETURN_THE_NZBQUEUE = queue.Queue()
 SEARCH_TIER_DATE = None
 COMICSORT = None
 PULLBYFILE = False
@@ -149,7 +150,10 @@ DDL_LOCK = False
 CMTAGGER_PATH = None
 STATIC_COMICRN_VERSION = "1.01"
 STATIC_APC_VERSION = "2.04"
+ISSUE_EXCEPTIONS = ['AU', 'AI', 'INH', 'NOW', 'MU', 'HU', 'LR', 'A', 'B', 'C', 'X', 'O','SUMMER', 'SPRING', 'FALL', 'WINTER', 'PREVIEW', 'OMEGA']
 SAB_PARAMS = None
+TMP_PROV = None
+EXT_IP = None
 COMICINFO = ()
 SCHED = BackgroundScheduler({
                              'apscheduler.executors.default': {
@@ -170,11 +174,12 @@ def initialize(config_file):
         global CONFIG, _INITIALIZED, QUIET, CONFIG_FILE, OS_DETECT, MAINTENANCE, CURRENT_VERSION, LATEST_VERSION, COMMITS_BEHIND, INSTALL_TYPE, IMPORTLOCK, PULLBYFILE, INKDROPS_32P, \
                DONATEBUTTON, CURRENT_WEEKNUMBER, CURRENT_YEAR, UMASK, USER_AGENT, SNATCHED_QUEUE, NZB_QUEUE, PP_QUEUE, SEARCH_QUEUE, DDL_QUEUE, PULLNEW, COMICSORT, WANTED_TAB_OFF, CV_HEADERS, \
                IMPORTBUTTON, IMPORT_FILES, IMPORT_TOTALFILES, IMPORT_CID_COUNT, IMPORT_PARSED_COUNT, IMPORT_FAILURE_COUNT, CHECKENABLED, CVURL, DEMURL, EXPURL, WWTURL, WWT_CF_COOKIEVALUE, \
-               DDLPOOL, NZBPOOL, SNPOOL, PPPOOL, SEARCHPOOL, \
+               DDLPOOL, NZBPOOL, SNPOOL, PPPOOL, SEARCHPOOL, RETURN_THE_NZBQUEUE, \
                USE_SABNZBD, USE_NZBGET, USE_BLACKHOLE, USE_RTORRENT, USE_UTORRENT, USE_QBITTORRENT, USE_DELUGE, USE_TRANSMISSION, USE_WATCHDIR, SAB_PARAMS, \
                PROG_DIR, DATA_DIR, CMTAGGER_PATH, DOWNLOAD_APIKEY, LOCAL_IP, STATIC_COMICRN_VERSION, STATIC_APC_VERSION, KEYS_32P, AUTHKEY_32P, FEED_32P, FEEDINFO_32P, \
                MONITOR_STATUS, SEARCH_STATUS, RSS_STATUS, WEEKLY_STATUS, VERSION_STATUS, UPDATER_STATUS, DBUPDATE_INTERVAL, LOG_LANG, LOG_CHARSET, APILOCK, SEARCHLOCK, DDL_LOCK, LOG_LEVEL, \
-               SCHED_RSS_LAST, SCHED_WEEKLY_LAST, SCHED_MONITOR_LAST, SCHED_SEARCH_LAST, SCHED_VERSION_LAST, SCHED_DBUPDATE_LAST, COMICINFO, SEARCH_TIER_DATE, BACKENDSTATUS_CV, BACKENDSTATUS_WS, PROVIDER_STATUS
+               SCHED_RSS_LAST, SCHED_WEEKLY_LAST, SCHED_MONITOR_LAST, SCHED_SEARCH_LAST, SCHED_VERSION_LAST, SCHED_DBUPDATE_LAST, COMICINFO, SEARCH_TIER_DATE, \
+               BACKENDSTATUS_CV, BACKENDSTATUS_WS, PROVIDER_STATUS, TMP_PROV, EXT_IP, ISSUE_EXCEPTIONS
 
         cc = mylar.config.Config(config_file)
         CONFIG = cc.read(startup=True)
@@ -696,6 +701,7 @@ def dbcheck():
     c.execute('CREATE TABLE IF NOT EXISTS manualresults (provider TEXT, id TEXT, kind TEXT, comicname TEXT, volume TEXT, oneoff TEXT, fullprov TEXT, issuenumber TEXT, modcomicname TEXT, name TEXT, link TEXT, size TEXT, pack_numbers TEXT, pack_issuelist TEXT, comicyear TEXT, issuedate TEXT, tmpprov TEXT, pack TEXT, issueid TEXT, comicid TEXT, sarc TEXT, issuearcid TEXT)')
     c.execute('CREATE TABLE IF NOT EXISTS storyarcs(StoryArcID TEXT, ComicName TEXT, IssueNumber TEXT, SeriesYear TEXT, IssueYEAR TEXT, StoryArc TEXT, TotalIssues TEXT, Status TEXT, inCacheDir TEXT, Location TEXT, IssueArcID TEXT, ReadingOrder INT, IssueID TEXT, ComicID TEXT, ReleaseDate TEXT, IssueDate TEXT, Publisher TEXT, IssuePublisher TEXT, IssueName TEXT, CV_ArcID TEXT, Int_IssueNumber INT, DynamicComicName TEXT, Volume TEXT, Manual TEXT, DateAdded TEXT, DigitalDate TEXT, Type TEXT, Aliases TEXT)')
     c.execute('CREATE TABLE IF NOT EXISTS ddl_info (ID TEXT UNIQUE, series TEXT, year TEXT, filename TEXT, size TEXT, issueid TEXT, comicid TEXT, link TEXT, status TEXT, remote_filesize TEXT, updated_date TEXT, mainlink TEXT, issues TEXT)')
+    c.execute('CREATE TABLE IF NOT EXISTS exceptions_log(date TEXT UNIQUE, comicname TEXT, issuenumber TEXT, seriesyear TEXT, issueid TEXT, comicid TEXT, booktype TEXT, searchmode TEXT, error TEXT, error_text TEXT, filename TEXT, line_num TEXT, func_name TEXT, traceback TEXT)')
     conn.commit
     c.close
 

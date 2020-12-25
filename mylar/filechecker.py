@@ -46,9 +46,10 @@ class FileChecker(object):
         if watchcomic:
             #watchcomic = unicode name of series that is being searched against
             self.og_watchcomic = watchcomic
-            self.watchcomic = re.sub('\?', '', watchcomic).strip()  #strip the ? sepearte since it affects the regex.
-            self.watchcomic = re.sub('\u2014', ' - ', watchcomic).strip()  #replace the \u2014 with a normal - because this world is f'd up enough to have something like that.
-            self.watchcomic = re.sub('\u2013', ' - ', watchcomic).strip()  #replace the \u2013 with a normal - because again, people are dumb.
+            self.watchcomic = re.sub('\?', '', watchcomic).strip()  #strip the ? seperate since it affects the regex.
+            #replace variations of unicode dashes with a normal - because this world is f'd up enough to have something like that.
+            self.watchcomic = re.sub(r'[\u2014|\u2013|\u2e3a|\u2e3b]', ' - ', self.watchcomic).strip()
+            self.watchcomic = re.sub(r'\u2019', " ' ", self.watchcomic).strip()  #replace the \u2019 with a normal ' because again, people are dumb.
             if type(self.watchcomic) != str:
                 self.watchcomic = unicodedata.normalize('NFKD', self.watchcomic).encode('ASCII', 'ignore')
         else:
@@ -98,7 +99,7 @@ class FileChecker(object):
             self.pp_mode = False
 
         self.failed_files = []
-        self.dynamic_handlers = ['/','-',':',';','\'',',','&','?','!','+','(',')','\\u2014','\\u2013']
+        self.dynamic_handlers = ['/','-',':',';','\'',',','&','?','!','+','(',')','\\u2014','\\u2013','\\u2019']
         self.dynamic_replacements = ['and','the']
         self.rippers = ['-empire','-empire-hd','minutemen-','-dcp','Glorith-HD']
 
@@ -457,11 +458,6 @@ class FileChecker(object):
         lastissue_position = 0
         lastmod_position = 0
         booktype = 'issue'
-        #exceptions that are considered alpha-numeric issue numbers
-        exceptions = ('NOW', 'AI', 'AU', 'X', 'A', 'B', 'C', 'INH', 'MU', 'HU', 'SUMMER', 'SPRING', 'FALL', 'WINTER', 'PREVIEW')
-
-        #unicode characters, followed by int value 
-#        num_exceptions = [{iss:u'\xbd',val:.5},{iss:u'\xbc',val:.25}, {iss:u'\xe',val:.75}, {iss:u'\221e',val:'infinity'}]
 
         file_length = 0
         validcountchk = False
@@ -484,7 +480,7 @@ class FileChecker(object):
 
             #this handles the exceptions list in the match for alpha-numerics
             test_exception = ''.join([i for i in sf if not i.isdigit()])
-            if any([x for x in exceptions if x.lower() == test_exception.lower()]):
+            if any(ext == test_exception.upper() for ext in mylar.ISSUE_EXCEPTIONS):
                 logger.fdebug('Exception match: %s' % test_exception)
                 if lastissue_label is not None:
                     if lastissue_position == (split_file.index(sf) -1):
@@ -635,7 +631,11 @@ class FileChecker(object):
                 locateiss_st = modfilename.find('#')
                 locateiss_end = modfilename.find(' ', locateiss_st)
                 if locateiss_end == -1:
-                    locateiss_end = len(modfilename)
+                    locateiss_end = modfilename.find('_', locateiss_st)
+                    if locateiss_end == -1:
+                        locateiss_end = modfilename.find('\.', locateiss_st)
+                        if locateiss_end == -1:
+                            locateiss_end = len(modfilename)
                 if modfilename[locateiss_end-1] == ')':
                     locateiss_end = locateiss_end -1
                 possible_issuenumbers.append({'number':       modfilename[locateiss_st:locateiss_end],
@@ -1539,8 +1539,8 @@ class FileChecker(object):
                                 spacer+='|'
                             mod_watchcomic = mod_watchcomic[:wd] + spacer + mod_watchcomic[wd+len(wdrm):]
 
-        series_name = re.sub('\u2014', ' - ', series_name)
-        series_name = re.sub('\u2013', ' - ', series_name)
+        series_name = re.sub(r'[\u2014|\u2013|\u2e3a|\u2e3b]', ' - ', series_name)
+        series_name = re.sub('\u2019', " ' ", series_name)
         seriesdynamic_handlers_match = [x for x in self.dynamic_handlers if x.lower() in series_name.lower()]
         #logger.fdebug('series dynamic handlers recognized : ' + str(seriesdynamic_handlers_match))
         seriesdynamic_replacements_match = [x for x in self.dynamic_replacements if x.lower() in series_name.lower()]

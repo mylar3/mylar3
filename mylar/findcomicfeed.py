@@ -152,7 +152,7 @@ def Startit(searchName, searchIssue, searchYear, ComicVersion, IssDateFix, bookt
             splitTitle = title.split("\"")
             noYear = 'False'
             _digits = re.compile('\d')
-
+            subcnt = 0
             for subs in splitTitle:
                 #logger.fdebug('sub:' + subs)
                 regExCount = 0
@@ -174,7 +174,18 @@ def Startit(searchName, searchIssue, searchYear, ComicVersion, IssDateFix, bookt
                         else:
                             #this is the crap we ignore. Continue (commented else, as it spams the logs)
                             #logger.fdebug('this starts with FOR : ' + str(subs) + '. This is not present in the series - ignoring.')
+                            subcnt += 1
                             continue
+
+                    p = re.compile(r'\d{4}\-(0?[1-9]|1[012])\-(0?[1-9]|[12][0-9]|3[01])*')
+                    d = p.match(subs)
+                    if d:
+                        dtchk = d.group()
+                        if any(['2019' in dtchk, '2020' in dtchk, '2021' in dtchk]) and subcnt == 0:
+                            subcnt += 1
+                            continue
+
+
                     #logger.fdebug('match.')
                     if IssDateFix != "no":
                         if IssDateFix == "01" or IssDateFix == "02": ComicYearFix = str(int(searchYear) - 1)
@@ -201,7 +212,7 @@ def Startit(searchName, searchIssue, searchYear, ComicVersion, IssDateFix, bookt
                                   'length':    entry['length']
                                   })
                         break  # break out so we don't write more shit.
-
+                subcnt +=1
 #    if len(entries) >= 1:
     if tallycount >= 1:
         mres['entries'] = entries

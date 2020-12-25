@@ -61,6 +61,10 @@ def serve_template(templatename, **kwargs):
         icons = {'icon_gear': os.path.join(mylar.CONFIG.HTTP_ROOT, 'images', 'icon_gear.png'),
                  'icon_upcoming': os.path.join(mylar.CONFIG.HTTP_ROOT, 'images', 'icon_upcoming.png'),
                  'icon_wanted': os.path.join(mylar.CONFIG.HTTP_ROOT, 'images', 'icon_wanted.png'),
+                 'icon_search': os.path.join(mylar.CONFIG.HTTP_ROOT, 'images', 'icon_search.png'),
+                 'listview_icon': os.path.join(mylar.CONFIG.HTTP_ROOT, 'images', 'listview_icon.png'),
+                 'delete_icon': os.path.join(mylar.CONFIG.HTTP_ROOT, 'images', 'delete_icon.png'),
+                 'deleteall_icon': os.path.join(mylar.CONFIG.HTTP_ROOT, 'images', 'deleteall_icon.png'),
                  'prowl_logo': os.path.join(mylar.CONFIG.HTTP_ROOT, 'images', 'prowl_logo.png'),
                  'ReadingList-icon': os.path.join(mylar.CONFIG.HTTP_ROOT, 'images', 'ReadingList-icon.png'),
                  'next': os.path.join(mylar.CONFIG.HTTP_ROOT, 'images', 'next.gif'),
@@ -69,6 +73,10 @@ def serve_template(templatename, **kwargs):
         icons = {'icon_gear': os.path.join(mylar.CONFIG.HTTP_ROOT, 'interfaces', 'carbon', 'images', 'icon_gear.png'),
                  'icon_upcoming': os.path.join(mylar.CONFIG.HTTP_ROOT, 'interfaces', 'carbon', 'images', 'icon_upcoming.png'),
                  'icon_wanted': os.path.join(mylar.CONFIG.HTTP_ROOT, 'interfaces', 'carbon', 'images', 'icon_wanted.png'),
+                 'icon_search': os.path.join(mylar.CONFIG.HTTP_ROOT, 'interfaces', 'carbon', 'images', 'icon_search.png'),
+                 'listview_icon': os.path.join(mylar.CONFIG.HTTP_ROOT, 'interfaces', 'carbon', 'images', 'listview_icon.png'),
+                 'delete_icon': os.path.join(mylar.CONFIG.HTTP_ROOT, 'interfaces', 'carbon', 'images', 'delete_icon.png'),
+                 'deleteall_icon': os.path.join(mylar.CONFIG.HTTP_ROOT, 'interfaces', 'carbon', 'images', 'deleteall_icon.png'),
                  'prowl_logo': os.path.join(mylar.CONFIG.HTTP_ROOT, 'interfaces', 'carbon', 'images', 'prowl_logo.png'),
                  'ReadingList-icon': os.path.join(mylar.CONFIG.HTTP_ROOT, 'interfaces', 'carbon', 'images', 'ReadingList-icon.png'),
                  'next': os.path.join(mylar.CONFIG.HTTP_ROOT, 'interfaces', 'carbon', 'images', 'next.gif'),
@@ -1773,7 +1781,7 @@ class WebInterface(object):
                             break
 
                 else:
-                    xlist = [x['Status'] for x in oneofflist if x['IssueID'] == weekly['IssueID']]
+                    xlist = [x['Status'] for x in oneofflist if x['IssueID'] == weekly['IssueID'] and weekly['IssueID'] is not None]
                     if xlist:
                         haveit = 'OneOff'
                         tmp_status = xlist[0]
@@ -1791,7 +1799,7 @@ class WebInterface(object):
                 try:
                     x = float(weekly['ISSUE'])
                 except ValueError as e:
-                    if 'au' in weekly['ISSUE'].lower() or 'ai' in weekly['ISSUE'].lower() or '.inh' in weekly['ISSUE'].lower() or '.now' in weekly['ISSUE'].lower() or '.mu' in weekly['ISSUE'].lower() or '.hu' in weekly['ISSUE'].lower():
+                    if any(ext in weekly['ISSUE'].upper() for ext in mylar.ISSUE_EXCEPTIONS):
                         x = weekly['ISSUE']
 
                 if x is not None:
@@ -1934,7 +1942,7 @@ class WebInterface(object):
                 try:
                     x = float(future['ISSUE'])
                 except ValueError as e:
-                    if 'au' in future['ISSUE'].lower() or 'ai' in future['ISSUE'].lower() or '.inh' in future['ISSUE'].lower() or '.now' in future['ISSUE'].lower() or '.mu' in future['ISSUE'].lower() or '.hu' in future['ISSUE'].lower():
+                    if any(ext in future['ISSUE'].upper() for ext in mylar.ISSUE_EXCEPTIONS):
                         x = future['ISSUE']
 
                 if future['EXTRA'] == 'N/A' or future['EXTRA'] == '':
@@ -2984,13 +2992,17 @@ class WebInterface(object):
         self.schedulerForceCheck(jobid='search')
     forceSearch.exposed = True
 
-    def forceRescan(self, ComicID, bulk=False, action='recheck'):
+    def forceRescan(self, ComicID, bulk=False, action='recheck', api=False):
         if bulk:
             cnt = 1
             if action == 'recheck':
                 for cid in ComicID:
-                    logger.info('[MASS BATCH][RECHECK-FILES][' + str(cnt) + '/' + str(len(ComicID)) + '] Rechecking ' + cid['ComicName'] + '(' + str(cid['ComicYear']) + ')')
-                    updater.forceRescan(cid['ComicID'])
+                    if api is False:
+                        logger.info('[MASS BATCH][RECHECK-FILES][' + str(cnt) + '/' + str(len(ComicID)) + '] Rechecking ' + cid['ComicName'] + '(' + str(cid['ComicYear']) + ')')
+                        updater.forceRescan(cid['ComicID'])
+                    else:
+                        logger.info('[MASS BATCH][RECHECK-FILES][' + str(cnt) + '/' + str(len(ComicID)) + '] Rechecking ComicID ' + str(cid))
+                        updater.forceRescan(cid)
                     cnt+=1
                 logger.info('[MASS BATCH][RECHECK-FILES] I have completed rechecking files for ' + str(len(ComicID)) + ' series.')
             else:
@@ -3002,6 +3014,8 @@ class WebInterface(object):
 
         else:
             threading.Thread(target=updater.forceRescan, args=[ComicID]).start()
+        #if api is True:
+        #    return 'Successfully submitted Recheck Files request for designated IDs'
     forceRescan.exposed = True
 
     def checkGithub(self):
@@ -4119,7 +4133,7 @@ class WebInterface(object):
 
     ReadMassCopy.exposed = True
 
-    def logs(self):
+    def logs(self, **kwargs):
         return serve_template(templatename="logs.html", title="Log", lineList=mylar.LOGLIST)
     logs.exposed = True
 
@@ -6446,7 +6460,7 @@ class WebInterface(object):
     def download_0day(self, week):
         logger.info('Now attempting to search for 0-day pack for week: %s' % week)
         #week contains weekinfo['midweek'] = YYYY-mm-dd of Wednesday of the given week's pull
-        foundcom, prov = search.search_init('0-Day Comics Pack - %s.%s' % (week[:4],week[5:]), None, week[:4], None, None, week, week, None, allow_packs=True, oneoff=True)
+        foundcom, prov = search.search_init('%s.%s.%s Weekly Pack' % (week[:4],week[5:7],week[8:]), None, week[:4], None, None, week, week, None, allow_packs=True, oneoff=True)
 
     download_0day.exposed = True
 
@@ -6458,6 +6472,103 @@ class WebInterface(object):
                                   'reason': x['reason']})
         return json.dumps(provider_list)
     blockProviders.exposed = True
+
+    def viewSpecificLog(self, log_id):
+        logger.info('log_id: %s' % log_id)
+        log_file = 'specific_%s.log' % log_id
+        # because log_id = rowid, we don't need to check the db - just loo at the file.
+        with open(os.path.join(mylar.CONFIG.LOG_DIR, log_file)) as f:
+            loglines = f.read()
+            loglines = loglines.replace('\n', '</br>')
+        return loglines
+    viewSpecificLog.exposed = True
+
+    def deleteSpecificLog(self, log_id, all=None):
+        logger.info('log_id: %s' % log_id)
+        logger.info('all: %s' % all)
+        myDB = db.DBConnection()
+        if all != log_id:
+            # for group entries
+            reflines = myDB.selectone(
+                           'SELECT error, func_name, filename, line_num'
+                           ' FROM exceptions_log WHERE rowid=?', [log_id]
+                       ).fetchone()
+            # get the actual matching components
+            error = reflines['error']
+            func_name = reflines['func_name']
+            filename = reflines['filename']
+            line_num = reflines['line_num']
+            # get all the ids in the db that match the components
+            morelines = myDB.select(
+                            'SELECT rowid from exceptions_log WHERE error=? AND'
+                            ' func_name=? AND filename=? AND line_num=?',
+                            [error, func_name, filename, line_num]
+                        )
+            errors_happened = False
+            for mn in morelines:
+                # remove the specific log file if present.
+                log_file = 'specific_%s.log' % mn['rowid']
+                try:
+                    os.remove(os.path.join(mylar.CONFIG.LOG_DIR, log_file))
+                except Exception as e:
+                    logger.warn(
+                        '[EXCEPTION-LOG-DELETION] Cannot find %s in the logs directory'
+                        ' of %s. Error returned: %s'
+                        % (log_file, mylar.CONFIG.LOG_DIR, e)
+                    )
+                try:
+                    # remove the specific log entry from the dB.
+                    myDB.action(
+                        'DELETE FROM exceptions_log WHERE rowid=?', [mn['rowid']]
+                    )
+                except Exception as e:
+                    errors_happened = True
+
+            if errors_happened:
+                return json.dumps({"status": "error"})
+            else:
+                return json.dumps({"status": "success"})
+
+        else:
+            # for specific entry
+            myDB.action('DELETE from exceptions_log WHERE rowid=?', [log_id])
+            log_file = 'specific_%s.log' % log_id
+            try:
+                os.remove(os.path.join(mylar.CONFIG.LOG_DIR, log_file))
+            except Exception as e:
+                logger.warn(
+                    '[EXCEPTION-LOG-DELETION] Cannot find %s in the logs directory of'
+                    ' %s. Error returned: %s' % (log_file, mylar.CONFIG.LOG_DIR, e)
+                )
+                return json.dumps({"status": "error"})
+            else:
+                logger.info('successfully deleted entry: %s' % log_id)
+                return json.dumps({"status": "success"})
+    deleteSpecificLog.exposed = True
+
+    def manageExceptions(self, **kwargs):
+        exception_list = []
+        myDB = db.DBConnection()
+        elist = myDB.select(
+            'SELECT count(*) as count, rowid, * FROM exceptions_log group by error,'
+            ' func_name, filename, line_num order by date DESC'
+            )
+        for et in elist:
+            countline = et['count']
+            if et['count'] == 1:
+                countline = ''
+            fileline = re.sub('.py', '', os.path.basename(et['filename'])).strip()
+            exception_list.append({'id':   et['rowid'],
+                                   'count': countline,
+                                   'date': et['date'],
+                                   'error': et['error'],
+                                   'error_text': et['error_text'],
+                                   'line_num': et['line_num'],
+                                   'func_name': et['func_name'],
+                                   'filename': fileline,
+                                   'traceback': et['traceback']})
+        return json.dumps(exception_list)
+    manageExceptions.exposed = True
 
     def unblock_provider(self, site, simple=True):
         logger.info('unblocking..')
@@ -6573,7 +6684,7 @@ class WebInterface(object):
                 try:
                     x = float(weekly['ISSUE'])
                 except ValueError as e:
-                    if 'au' in weekly['ISSUE'].lower() or 'ai' in weekly['ISSUE'].lower() or '.inh' in weekly['ISSUE'].lower() or '.now' in weekly['ISSUE'].lower() or '.mu' in weekly['ISSUE'].lower() or '.hu' in weekly['ISSUE'].lower():
+                    if any(ext in weekly['ISSUE'].upper() for ext in mylar.ISSUE_EXCEPTIONS):
                         x = weekly['ISSUE']
 
                 if x is not None:

@@ -143,7 +143,7 @@ def main():
         print('Quiet logging mode enabled...')
         mylar.LOG_LEVEL = 0
     else:
-        mylar.LOG_LEVEL = 1
+        mylar.LOG_LEVEL = None
 
     if args.daemon:
         if sys.platform == 'win32':

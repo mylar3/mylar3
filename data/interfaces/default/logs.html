@@ -15,6 +15,37 @@
               OFF
             %endif
             </a>
+                        <a id="menu_link_edit" title="Manage Exceptions" href="javascript:void(0)" onclick="manageTheExceptions()">Exceptions / Tracebacks</a>
+                        <div id="manage_exceptions_dialog" title="View currently logged tracebacks / exceptions" style="display:none">
+                            <input id="listview" value="${icons['listview_icon']}" style="display:none;" />
+                            <input id="delete" value="${icons['delete_icon']}" style="display:none;" />
+                            <input id="deleteall" value="${icons['deleteall_icon']}" style="display:none;" />
+                            <table name="exceptions_table" id="exceptions_table" width="100%" border="1px;" style="border-collapse: separate; border-spacing:5px;">
+                                <thead>
+                                <tr>
+                                    <th id="date">Date</th>
+                                    <th id="line_num">Line #</th>
+                                    <th id="func_name">Function</th>
+                                    <th id="filename">Filename</th>
+                                    <th id="error">Error</th>
+                                    <th id="times" title="number of occurances with different timestamps"># Times</th>
+                                    <th id="error_text">Error Text</th>
+                                    <th id="options">Options</th>
+                                </tr>
+                                </thead>
+                                <tbody id="exception_table_body" value="There is nothing logged to the excptions db currently">
+                                </tbody>
+                            </table>
+                            <div id="deleteConfirm" title="Delete all occurances confirmation" style="display:none" class="configtable">
+                                  <p id="err_text"></p>
+                                  <input type="text" value="" id="log_id" name="log_id" hidden/>
+                                  <input type="text" value="all" id="all" name="all" hidden/>
+                                  <form action="#" onsubmit="javascript:delete_log()" method="GET" style="vertical-align: middle; text-align: center">
+                                  </br><input type="submit" value="Delete all occurances" />
+                              </form>
+                           </div>
+                        </div>
+
         </div>
     </div>
 </%def>
@@ -56,6 +87,132 @@
 <%def name="javascriptIncludes()">
 	<script src="js/libs/jquery.dataTables.min.js"></script>
         <script>
+        function manageTheExceptions() {
+                var del_icon = document.getElementById("delete").value;
+                var delall_icon = document.getElementById("deleteall").value;
+                var listview_icon = document.getElementById("listview").value;
+                $.ajax({
+                        url: "manageExceptions",
+                        dataType: "json",
+                        success: function (data) {
+                                if (data.error != undefined) {
+                                        $('#exception_table_body').text("No data available...");
+                                }
+                                if (data.length != 0) {
+                                        document.getElementById("exception_table_body").innerHTML = '';
+                                        for( var i = 0, len = data.length; i < len; i++ ) {
+                                                if (data[i].count > 1) {
+                                                    $('#exception_table_body').append('<tr><td id="date">'+data[i].date+'</a></td><td id="line_num">'+data[i].line_num+'</td><td id="func_name">'+data[i].func_name+'</td><td id="filename">'+data[i].filename+'</td><td id="error">'+data[i].error + '</td><td id="times">' + data[i].count + '</td><td id="error_text">'+data[i].error_text+'</td><td id="options"><a id="delete" onclick="delete_log(' + data[i].id + ', \'' + data[i].id + '\')" name="delete" href="#"><img style="padding:3px;" src="' + del_icon + '" height="20" width="20" title="delete latest entry" class="highqual" /></a><a id="delete_all" onclick="openDelete(' + data[i].id + ')" name="delete_all" href="#"><img style="padding:3px;" src="' + delall_icon + '" height="25" width="25" title="delete all occurances of this specific error" class="highqual" /></a><a id="view" onclick="view_log(' + data[i].id + ')" name="view" class="view" href="#"><img style="padding:3px;" src="' + listview_icon + '" height="20" title="view latest log snippet" width="20" class="highqual" /></a></td></tr>');
+                                                } else { 
+                                                    $('#exception_table_body').append('<tr><td id="date">'+data[i].date+'</a></td><td id="line_num">'+data[i].line_num+'</td><td id="func_name">'+data[i].func_name+'</td><td id="filename">'+data[i].filename+'</td><td id="error">'+data[i].error + '</td><td id="count"></td><td id="error_text">'+data[i].error_text+'</td><td id="options"><a id="delete" onclick="delete_log(' + data[i].id + ', ' + data[i].id + ')" name="delete" href="#"><img style="padding:10px;" src="' + del_icon + '" height="20" width="20" title="delete entry" class="highqual" /></a> <a id="view" onclick="view_log(' + data[i].id + ')" name="view" class="view" href="#"><img style="padding:10px;" src="' + listview_icon + '" height="20" title="view log snippet" width="20" class="highqual" /></a></td></tr>');
+                                                }
+                                        };
+                                        if ($.fn.dataTable.isDataTable('#exceptions_table')) {
+                                            $.fn.dataTable.ext.errMode = 'none';
+                                            var table = $('#exceptions_table').DataTable();
+                                            table.ajax.reload(null, false); 
+                                            $.fn.dataTable.ext.errMode = 'throw';
+                                        } else {
+                                            var table = $('#exceptions_table').dataTable({
+                                                "aaSorting": [[ 1, 'desc']],
+                                                "bFilter": false,
+                                                "bInfo": false,
+                                                "bPaginate": false,
+                                                "bDestroy": true
+                                            });
+                                        }
+                                } else {
+                                        document.getElementById("exception_table_body").innerHTML = '</br><td colspan="3"><center>There are no errors/tracebacks logged thus far...</center></td>';
+                                }
+                        }
+                }).done(function() {
+                        $("#manage_exceptions_dialog").dialog({
+                            modal: true,
+                            width: "75%",
+                            maxHeight: 500,
+                            close: function(event, ui){
+                                $("#manage_exceptions_dialog").innerHTML = '';
+                            }
+                        });
+                });
+        }
+        </script>
+        <script>
+        function delete_log(log_id, all) {
+            if (log_id == undefined) {
+                log_id = document.getElementById("log_id").value;
+                all = document.getElementById("all").value;
+            }
+            $.ajax({
+                url: "deleteSpecificLog",
+                data: { log_id: log_id, all: all },
+                success: function (data) {
+                   var obj = JSON.parse(data);
+                   if ( !isNaN(all) ) {
+                       if (data.error != undefined) {
+                           $('#ajaxMsg').html("<div class='msg'><span class='ui-icon ui-icon-check'></span>Unable to delete specific log file</div>");
+                           $('#ajaxMsg').addClass('failure').fadeIn().delay(3000).fadeOut();
+                       } else if ( obj['status'].indexOf("success") > -1 )  {
+                           $('#ajaxMsg').html("<div class='msg'><span class='ui-icon ui-icon-check'></span>Successfully deleted log file</div>");
+                           $('#ajaxMsg').addClass('success').fadeIn().delay(3000).fadeOut();
+                       } else {
+                           $('#ajaxMsg').html("<div class='msg'><span class='ui-icon ui-icon-check'></span>Unable to delete specific log file</div>");
+                           $('#ajaxMsg').addClass('failure').fadeIn().delay(3000).fadeOut();
+                       }
+                   } else {
+                       if (data.error != undefined) {
+                           $('#ajaxMsg').html("<div class='msg'><span class='ui-icon ui-icon-check'></span>Unable to delete log files</div>");
+                           $('#ajaxMsg').addClass('failure').fadeIn().delay(3000).fadeOut();
+                       } else if ( obj['status'].indexOf("success") > -1 )  {
+                           $("#deleteConfirm").dialog("close");
+                           $("#deleteConfirm").dialog('destroy').empty();
+                           $('#ajaxMsg').html("<div class='msg'><span class='ui-icon ui-icon-check'></span>Successfully deleted log files</div>");
+                           $('#ajaxMsg').addClass('success').fadeIn().delay(3000).fadeOut();
+                       } else {
+                           $('#ajaxMsg').html("<div class='msg'><span class='ui-icon ui-icon-check'></span>Unable to delete log files</div>");
+                           $('#ajaxMsg').addClass('failure').fadeIn().delay(3000).fadeOut();
+                       }
+                   }
+                }
+            }).done(function() {
+                //document.getElementById("exception_table_body").innerHTML = '';
+                //$("#manage_exceptions_dialog").dialog("close");
+                //$("#manage_exceptions_dialog").dialog("destroy"); 
+                //$('#exception_table_body').empty(); //dialog('destroy');
+                manageTheExceptions();
+            });
+        }
+
+        function view_log(log_id) {
+            $.get("viewSpecificLog",
+                { log_id: log_id },
+                function(data){
+                   if (data.error != undefined) {
+                       $('#specific_log_body').text("No data available...");
+                   }
+                   if (data.length != 0) {
+                       $('<div id="specific_log_dialog" title="View specific log snippet">'+data+'</div>').appendTo('body');
+                   } else {
+                       document.getElementById("specific_log_body").innerHTML = 'There is nothing to see here atm at least.';
+                   }
+
+            $("#specific_log_dialog").dialog({
+                    modal: true,
+                    width: "50%",
+                    maxHeight: 500,
+                    close: function(event, ui){
+                        $("#specific_log_dialog").remove();
+                    }
+            });
+            return false;
+            });
+        }
+
+        function openDelete(id){
+            document.getElementById("log_id").value = id;
+            $("#deleteConfirm").dialog({modal: true});
+        }
+
         $(document).ready(function() {
             initActions();
             $('#log_table').dataTable( {

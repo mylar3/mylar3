@@ -1,49 +1,77 @@
-<feed xmlns="http://www.w3.org/2005/Atom"
-      xmlns:xhtml="http://www.w3.org/1999/xhtml"
-      xmlns:opds="http://opds-spec.org/2010/catalog"
-      xmlns:opensearch="http://a9.com/-/spec/opensearch/1.1/"
-      xmlns:pse="http://vaemendis.net/opds-pse/ns"
-      xmlns:dcterms="http://purl.org/dc/terms/">
-    <title>${opds['title']}</title>
-    <id>${opds['id']}</id>
-    <updated>${opds['updated']}</updated>
+<feed
+  xmlns="http://www.w3.org/2005/Atom"
+  xmlns:xhtml="http://www.w3.org/1999/xhtml"
+  xmlns:opds="http://opds-spec.org/2010/catalog"
+  xmlns:opensearch="http://a9.com/-/spec/opensearch/1.1/"
+  xmlns:pse="http://vaemendis.net/opds-pse/ns"
+  xmlns:dcterms="http://purl.org/dc/terms/"
+>
+  <title>${opds['title']}</title>
+  <id>${opds['id']}</id>
+  <updated>${opds['updated']}</updated>
+  <author>
+    <name>Mylar Server</name>
+    <uri>https://github.com/mylar3/mylar3</uri>
+  </author>
+  %for link in opds['links']:
+  <%
+      linktitle = ''
+      if 'title' in link:
+          linktitle = ' title="%s"' % link['title']
+  %>
+  <link
+    rel="${link['rel']}"
+    href="${link['href']}"
+    type="${link['type']}"
+    ${linktitle}
+  />
+  %endfor
+  %for entry in opds['entries']:
+  <entry>
+    <title>${entry['title']}</title>
+    <id>${entry['id']}</id>
+    %if 'author' in entry and entry['author']:
     <author>
-        <name>Mylar Server</name>
-        <uri>https://github.com/evilhero/mylar</uri>
+      <name>${entry['author']}</name>
     </author>
-    %for link in opds['links']:
-    <%
-        linktitle = ''
-        if 'title' in link:
-            linktitle = ' title="%s"' % link['title']
-    %>
-    <link rel="${link['rel']}" href="${link['href']}" type="${link['type']}"${linktitle}/>
-    %endfor
-    %for entry in opds['entries']:
-    <entry>
-        <title>${entry['title']}</title>
-        <id>${entry['id']}</id>
-        %if 'author' in entry and entry['author']:
-        <author>
-            <name>${entry['author']}</name>
-        </author>
-        %endif
-        <updated>${entry['updated']}</updated>
-        <content type="text">${entry['content']}</content>
-        %if entry['rel'] == 'file':
-        <link href="${entry['href']}" rel="http://opds-spec.org/acquisition" type="application/octet-stream"/>
-        %else:
-        <link href="${entry['href']}" rel= "${entry['rel']}" type="application/atom+xml; profile=opds-catalog; kind=${entry['kind']}"/>
-        %endif
-        %if 'stream' in entry and 'pse_count' in entry:
-        <link href="${entry['stream']}&amp;page={pageNumber}&amp;width={maxWidth}" rel="http://vaemendis.net/opds-pse/stream" type="image/jpeg" pse:count="${entry['pse_count']}"/>
-        %endif
-        %if 'thumbnail' in entry and entry['thumbnail']:
-        <link href="${entry['thumbnail']}" type="image/jpeg" rel="http://opds-spec.org/image/thumbnail"/>
-        %endif
-        %if 'image' in entry and entry['image']:
-        <link href="${entry['image']}" type="image/jpeg" rel="http://opds-spec.org/image"/>
-        %endif
-    </entry>
-    %endfor
+    %endif
+    <updated>${entry['updated']}</updated>
+    <content type="text">${entry['content']}</content>
+    %if entry['rel'] == 'file':
+    <link
+      href="${entry['href']}"
+      rel="http://opds-spec.org/acquisition"
+      type="application/octet-stream"
+    />
+    %else:
+    <link
+      href="${entry['href']}"
+      rel="${entry['rel']}"
+      type="application/atom+xml; profile=opds-catalog; kind=${entry['kind']}"
+    />
+    %endif 
+    %if 'stream' in entry and 'pse_count' in entry:
+    <link
+      href="${entry['stream']}&amp;page={pageNumber}&amp;width={maxWidth}"
+      rel="http://vaemendis.net/opds-pse/stream"
+      type="image/jpeg"
+      pse:count="${entry['pse_count']}"
+    />
+    %endif 
+    %if 'thumbnail' in entry and entry['thumbnail']:
+    <link
+      href="${entry['thumbnail']}"
+      type="image/jpeg"
+      rel="http://opds-spec.org/image/thumbnail"
+    />
+    %endif 
+    %if 'image' in entry and entry['image']:
+    <link
+      href="${entry['image']}"
+      type="image/jpeg"
+      rel="http://opds-spec.org/image"
+    />
+    %endif
+  </entry>
+  %endfor
 </feed>
