@@ -6592,22 +6592,25 @@ class WebInterface(object):
                                 'a_size':  None,
                                 'a_id':  None})
          else:
-             filelocation = os.path.join(mylar.CONFIG.DDL_LOCATION, active['filename'])
-             #logger.fdebug('checking file existance: %s' % filelocation)
-             if os.path.exists(filelocation) is True:
-                 filesize = os.stat(filelocation).st_size
-                 cmath = int(float(filesize*100)/int(int(active['remote_filesize'])*100) * 100)
-                 #logger.fdebug('ACTIVE DDL: %s  %s  [%s]' % (active['filename'], cmath, 'Downloading'))
-                 return json.dumps({'status':      'Downloading',
-                                    'percent':     "%s%s" % (cmath, '%'),
-                                    'a_series':    active['series'],
-                                    'a_year':      active['year'],
-                                    'a_filename':  active['filename'],
-                                    'a_size':      active['size'],
-                                    'a_id':        active['id']})
+             if active['filename'] is not None:
+                 filelocation = os.path.join(mylar.CONFIG.DDL_LOCATION, active['filename'])
+                 #logger.fdebug('checking file existance: %s' % filelocation)
+                 if os.path.exists(filelocation) is True:
+                     filesize = os.stat(filelocation).st_size
+                     cmath = int(float(filesize*100)/int(int(active['remote_filesize'])*100) * 100)
+                     #logger.fdebug('ACTIVE DDL: %s  %s  [%s]' % (active['filename'], cmath, 'Downloading'))
+                     return json.dumps({'status':      'Downloading',
+                                        'percent':     "%s%s" % (cmath, '%'),
+                                        'a_series':    active['series'],
+                                        'a_year':      active['year'],
+                                        'a_filename':  active['filename'],
+                                        'a_size':      active['size'],
+                                        'a_id':        active['id']})
+                 statline = '%s does not exist.</br> This probably needs to be restarted (use the option in the GUI)' % filelocation
              else:
-             #    myDB.upsert('ddl_info', {'status': 'Incomplete'}, {'id': active['id']})
-                 return json.dumps({'a_id': active['id'], 'status': 'File does not exist in %s.</br> This probably needs to be restarted (use the option in the GUI)' % filelocation, 'percent': 0})
+                 infoline = '%s (%s)' % (active['series'], active['year'])
+                 statline = 'No filename assigned for %s.</br> This was probably never started successfully - you should restart the download (use the option in the GUI)' % infoline
+             return json.dumps({'a_id': active['id'], 'status': statline, 'percent': 0})
 
     check_ActiveDDL.exposed = True
 
