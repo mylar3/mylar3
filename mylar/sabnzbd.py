@@ -114,7 +114,7 @@ class SABnzbd(object):
             logger.info('File has now downloaded!')
             return self.historycheck(self.params)
 
-    def historycheck(self, nzbinfo):
+    def historycheck(self, nzbinfo, roundtwo=False):
         sendresponse = nzbinfo['nzo_id']
         hist_params = {'mode':      'history',
                        'category':  mylar.CONFIG.SAB_CATEGORY,
@@ -182,11 +182,19 @@ class SABnzbd(object):
                 elif hq['nzo_id'] == sendresponse:
                     nzo_exists = True
                     logger.fdebug('nzo_id: %s found while processing queue in an unhandled status: %s' % (hq['nzo_id'], hq['status']))
-                    return {'failed': False, 'status': 'unhandled status of: %s' %( hq['status'])}
+                    if hq['status'] == 'Queued' and roundtwo is False:
+                        time.sleep(4)
+                        return self.historycheck(nzbinfo, roundtwo=True)
+                    else:
+                        return {'failed': False, 'status': 'unhandled status of: %s' %( hq['status'])}
 
             if not nzo_exists:
                 logger.info('Cannot find nzb %s in the queue.  Was it removed?' % sendresponse)
-                return {'status': 'nzb removed', 'failed': False}
+                time.sleep(5)
+                if roundtwo is False:
+                    return self.historycheck(nzbinfo, roundtwo=True)
+                else:
+                    return {'status': 'nzb removed', 'failed': False}
         except Exception as e:
             logger.warn('error %s' % e)
             return {'status': False, 'failed': False}
