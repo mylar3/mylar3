@@ -375,6 +375,7 @@ class GC(object):
                             [
                                 'run.php' in linkline['href'],
                                 'go.php' in linkline['href'],
+                                'comicfiles.ru' in linkline['href'],
                             ]
                         ):
                             volume = x.findNext(text=True)
