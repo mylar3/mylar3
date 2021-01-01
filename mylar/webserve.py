@@ -5308,7 +5308,7 @@ class WebInterface(object):
                     "dlstats": dlprovstats,
                     "dltotals": freq_tot,
                     "alphaindex": mylar.CONFIG.ALPHAINDEX,
-                    "backup_on_start": mylar.CONFIG.BACKUP_ON_START
+                    "backup_on_start": helpers.checked(mylar.CONFIG.BACKUP_ON_START)
                }
         return serve_template(templatename="config.html", title="Settings", config=config, comicinfo=comicinfo)
     config.exposed = True
