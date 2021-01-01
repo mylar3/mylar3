@@ -3,12 +3,13 @@ FROM python:${BASE_VERSION}
 
 # set version label
 ARG MYLAR_COMMIT=v0.3.0
+ARG ORG=mylar3
 LABEL version ${BASE_VERSION}_${MYLAR_COMMIT}
 
 RUN \
 echo "**** install system packages ****" && \
  apk add --no-cache \
- git=2.24.1-r0 \
+ git=2.24.3-r0 \
  # cfscrape dependecies
  nodejs=12.15.0-r1 \
  # unrar-cffi & Pillow dependencies
@@ -24,7 +25,7 @@ echo "**** install system packages ****" && \
 # docker host over /app/mylar.
 RUN echo "**** install app ****" && \
  git config --global advice.detachedHead false && \
- git clone https://github.com/mylar3/mylar3.git --depth 1 --branch ${MYLAR_COMMIT} --single-branch /app/mylar
+ git clone https://github.com/${ORG}/mylar3.git --depth 1 --branch ${MYLAR_COMMIT} --single-branch /app/mylar
 
 RUN echo "**** install requirements ****" && \
  pip3 install --no-cache-dir -U -r /app/mylar/requirements.txt && \
