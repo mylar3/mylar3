@@ -214,6 +214,9 @@ def main():
 
     # backup the db and configs before they load.
     if args.backup:
+        mylar.config.BACKUP_ON_START = True
+
+    if mylar.config.BACKUP_ON_START:
         print('[AUTO-BACKUP] Backing up .db and config.ini files for safety.')
         backupdir = os.path.join(mylar.DATA_DIR, 'backup')
 
