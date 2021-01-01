@@ -237,7 +237,7 @@ def main():
                 back_1 = os.path.join(backupdir, 'config.ini.1')
 
             try:
-                print('[AUTO-BACKUP] Now Backing up mylar.db file')
+                print('[AUTO-BACKUP] Now Backing up ' + back + ' file')
                 if os.path.isfile(back_1):
                     print('[AUTO-BACKUP] ' + back_1 + ' exists. Deleting and keeping new.')
                     os.remove(back_1)
