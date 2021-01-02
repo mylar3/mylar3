@@ -2910,7 +2910,6 @@ def weekly_info(week=None, year=None, current=None):
     if week:
         weeknumber = int(week)
         year = int(year)
-
         #monkey patch for 2018/2019 - week 52/week 0
         if all([weeknumber == 52, c_weeknumber == 51, c_weekyear == 2018]):
             weeknumber = 0
@@ -2926,6 +2925,14 @@ def weekly_info(week=None, year=None, current=None):
         elif all([weeknumber == 52, c_weeknumber == 0, c_weekyear == 2020]):
             weeknumber = 51
             year = 2019
+
+        #monkey patch for 2020/2021 - week 52/week 0
+        if all([int(weeknumber) == 0, c_weeknumber == 52, c_weekyear == 2020]):
+            weeknumber = 1
+            year = 2021
+        elif all([int(weeknumber) == 0, c_weeknumber == 1, c_weekyear == 2021]):
+            weeknumber = 52
+            year = 2020
 
         #view specific week (prev_week, next_week)
         startofyear = date(year,1,1)
@@ -2955,30 +2962,44 @@ def weekly_info(week=None, year=None, current=None):
             weeknumber = 51
             year = 2019
 
+        #monkey patch for 2020/2021 - week 52/week 0
+        if all([int(weeknumber) == 0, int(year) == 2021]) or all([int(weeknumber) == 52, int(year) == 2020]):
+            weeknumber = 52
+            year = 2020
+
         stweek = datetime.datetime.strptime(todaydate.strftime('%Y-%m-%d'), '%Y-%m-%d')
         startweek = stweek - timedelta(days = (stweek.weekday() + 1) % 7)
         midweek = startweek + timedelta(days = 3)
         endweek = startweek + timedelta(days = 6)
 
-    prev_week = int(weeknumber) - 1
-    prev_year = year
-    if prev_week < 0:
+    if all([weeknumber == 1, year == 2021]):
+        # make sure the arrow going back will hit the correct week in the previous year.
         prev_week = 52
-        prev_year = int(year) - 1
+        prev_year = 2020
+    else:
+        prev_week = int(weeknumber) - 1
+        prev_year = year
+        if prev_week < 0:
+            prev_week = 52
+            prev_year = int(year) - 1
 
     next_week = int(weeknumber) + 1
     next_year = year
     if next_week > 52:
         next_year = int(year) + 1
-        next_week = datetime.date(int(next_year),1,1).strftime("%U")
+        if all([weeknumber == 52, year == 2020]):
+            # make sure the next arrow will hit the correct week in the following year.
+            next_week = '1'
+        else:
+            next_week = datetime.date(int(next_year),1,1).strftime("%U")
 
     date_fmt = "%B %d, %Y"
     try:
-        con_startweek = "" + startweek.strftime(date_fmt) #.decode('utf-8')
-        con_endweek = "" + endweek.strftime(date_fmt) #.decode('utf-8')
+        con_startweek = "" + startweek.strftime(date_fmt)
+        con_endweek = "" + endweek.strftime(date_fmt)
     except:
-        con_startweek = "" + startweek.strftime(date_fmt) #.decode('cp1252')
-        con_endweek = "" + endweek.strftime(date_fmt) #.decode('cp1252')
+        con_startweek = "" + startweek.strftime(date_fmt)
+        con_endweek = "" + endweek.strftime(date_fmt)
 
     if mylar.CONFIG.WEEKFOLDER_LOC is not None:
         weekdst = mylar.CONFIG.WEEKFOLDER_LOC
