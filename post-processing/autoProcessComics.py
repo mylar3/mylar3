@@ -112,11 +112,6 @@ def processIssue(dirName, nzbName=None, failed=False, comicrn_version=None):
             return 0
         else:
             return 1
-    elif type(result) == bytes:
-        if b'Post Processing SUCCESSFUL' in result:
-            return 0
-        else:
-            return 1
     else:
         if any("Post Processing SUCCESSFUL" in s for s in result.split('\n')):
             return 0
