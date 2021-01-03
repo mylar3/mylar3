@@ -21,7 +21,7 @@ for result in results.stdout.splitlines():
                 next
 #                print("filename %s is correctly metatagged" % target_zip)
             else:
-                print("Tits up! %s" % target_zip)
+                print("Something's not right! %s" % target_zip)
     except BadZipFile:
         print("%s is a bad zipfile!" % target_zip)        
 
