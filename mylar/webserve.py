@@ -2155,8 +2155,9 @@ class WebInterface(object):
 #                                               "Status":       upc['Status'],
 #                                               "DisplayComicName": upc['DisplayComicName']})
 
-        futureupcoming = sorted(futureupcoming, key=itemgetter('IssueDate', 'ComicName', 'IssueNumber'), reverse=True)
-
+        fup1 = sorted(futureupcoming, key=lambda x: x if isinstance(itemgetter('IssueDate'), str) else "", reverse=True)
+        fup2 = sorted(fup1, key=itemgetter('ComicName'), reverse=True)
+        futureupcoming = sorted(fup2, key=lambda x: x if isinstance(itemgetter('IssueNumber'), str) else "", reverse=True)
 
         #fix None DateAdded points here
         helpers.DateAddedFix()
