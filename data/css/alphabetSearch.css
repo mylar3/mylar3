@@ -37,3 +37,28 @@ div.alphabetInfo {
         text-align: center; 
         z-index: 1;
 }
+
+.alphabet-container {
+           float: left;
+           width: 10%;   
+        }
+        
+        .alphabet-container .alphabet-info,
+        .alphabet-container .alphabet-info-display { 
+           display: none 
+        }
+        
+        .alphabet-container .alphabet ul,
+        .alphabet-container .alphabet li,
+        .alphabet-container .alphabet a {
+           display: block;
+        }
+        
+        .alphabet-container .alphabet {
+           margin:0 15px 0 0;
+        }
+        
+        .table-container {
+           float: left;
+           width: 90%;
+        }
