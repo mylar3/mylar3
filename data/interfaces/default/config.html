@@ -240,6 +240,28 @@
                                       %endfor
                                     </select>
                                  </div>
+                                 <div class="row">
+                                   <label>Alphabet Index</label> 
+                                      <select name="alphaindex_loc" onchange="ailocoptions()" id="alphaindex_loc">
+                                            %for ailoc in [0, 1, 2, 3]:
+                                                     <%
+                                                             if config['alphaindex_loc'] == ailoc:
+                                                                     ailocoutputselect = 'selected'
+                                                             else:
+                                                                     ailocoutputselect = ''
+                                                             if ailoc == 3:
+                                                                     ailoc_value = 'Right'
+                                                             elif ailoc == 2:
+                                                                     ailoc_value = 'Left'
+                                                             elif ailoc == 1:
+                                                                     ailoc_value = 'Top'
+                                                             else:
+                                                                     ailoc_value = 'None'
+                                                     %>
+                                                <option value=${ailoc} ${ailocoutputselect}>${ailoc_value}</option>
+                                             %endfor
+                                      </select>
+                                 </div>
                     		 </fieldset>
                          <fieldset>
                              <legend>Annual Handling</legend>
@@ -1628,7 +1650,16 @@
                 document.getElementById("auth_options").style.display = "none";
             }
         }
-        function show_stats()
+        function ailocoptions()
+         {
+             var answer = document.getElementById("alphaindex_loc");
+             if(answer[answer.selectedIndex].value == 3 || answer[answer.selectedIndex].value == 2 || answer[answer.selectedIndex].value == 1){
+                 document.getElementById("ailoc_options").style.display = "initial";
+             } else {
+                 document.getElementById("ailoc_options").style.display = "none";
+             }
+         }
+       function show_stats()
         {
             var x = document.getElementById("stats");
             if (x.style.display === "none") {

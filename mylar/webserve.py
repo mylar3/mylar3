@@ -109,10 +109,11 @@ class WebInterface(object):
     def home(self):
         if mylar.CONFIG.ALPHAINDEX == True:
             comics = helpers.havetotals()
-            return serve_template(templatename="index-alphaindex.html", title="Home", comics=comics, alphaindex=mylar.CONFIG.ALPHAINDEX)
+            return serve_template(templatename="index-alphaindex.html", title="Home", comics=comics, alphaindex=mylar.CONFIG.ALPHAINDEX, alphaindex_loc=mylar.CONFIG.ALPHAINDEX_LOC)
         else:
             return serve_template(templatename="index.html", title="Home")
     home.exposed = True
+    
 
     def loadhome(self, iDisplayStart=0, iDisplayLength=100, iSortCol_0=5, sSortDir_0="desc", sSearch="", **kwargs):
         resultlist = helpers.havetotals()
@@ -2155,9 +2156,8 @@ class WebInterface(object):
 #                                               "Status":       upc['Status'],
 #                                               "DisplayComicName": upc['DisplayComicName']})
 
-        fup1 = sorted(futureupcoming, key=lambda x: x if isinstance(itemgetter('IssueDate'), str) else "", reverse=True)
-        fup2 = sorted(fup1, key=itemgetter('ComicName'), reverse=True)
-        futureupcoming = sorted(fup2, key=lambda x: x if isinstance(itemgetter('IssueNumber'), str) else "", reverse=True)
+        futureupcoming = sorted(futureupcoming, key=itemgetter('IssueDate', 'ComicName', 'IssueNumber'), reverse=True)
+
 
         #fix None DateAdded points here
         helpers.DateAddedFix()
@@ -5309,6 +5309,7 @@ class WebInterface(object):
                     "dlstats": dlprovstats,
                     "dltotals": freq_tot,
                     "alphaindex": mylar.CONFIG.ALPHAINDEX,
+                    "alphaindex_loc": mylar.CONFIG.ALPHAINDEX_LOC,
                     "backup_on_start": helpers.checked(mylar.CONFIG.BACKUP_ON_START)
                }
         return serve_template(templatename="config.html", title="Settings", config=config, comicinfo=comicinfo)
