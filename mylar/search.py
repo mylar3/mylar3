@@ -2996,6 +2996,7 @@ def searchforissue(issueid=None, new=False, rsscheck=None, manual=False):
 
             if rsscheck:
                 logger.info('Completed RSS Search scan')
+                mylar.SEARCHLOCK = False
             else:
                 logger.info('Completed Queueing API Search scan')
         else:
