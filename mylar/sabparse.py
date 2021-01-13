@@ -33,8 +33,6 @@ class sabnzbd(object):
         self.sabpassword = sabpassword
 
     def sab_get(self):
-        if self.sabusername is None or self.sabpassword is None:
-            logger.fdebug('No Username / Password specified for SABnzbd. Unable to auto-retrieve SAB API')
         if 'https' not in self.sabhost:
             self.sabhost = re.sub('http://', '', self.sabhost)
             sabhttp = 'http://'
@@ -45,33 +43,31 @@ class sabnzbd(object):
             self.sabhost = self.sabhost + '/'
 
         sabline = sabhttp + str(self.sabhost)
-        with requests.Session() as s:
-            postdata = {'username': self.sabusername,
-                        'password': self.sabpassword,
-                        'remember_me': 0}
-            lo = s.post(sabline + 'login/', data=postdata, verify=False)
 
-            if not lo.status_code == 200:
-                return
+        try:
+            with requests.Session() as s:
+                # Note that attempting to authenticate when SABnzbd is not configured with a username and password doe not cause an error, but only attempt it if credentials are provided.
+                if all([self.sabusername is not None, self.sabusername != 'None', self.sabusername != '']) and all([self.sabpassword is not None, self.sabpassword != 'None', self.sabpassword != '']):
 
-            r = s.get(sabline + 'config/general', verify=False)
+                    postdata = {'username': self.sabusername,
+                                'password': self.sabpassword,
+                                'remember_me': 0}
+                    lo = s.post(sabline + 'login/', data=postdata, verify=False)
 
-            soup = BeautifulSoup(r.content, "html.parser")
-            resultp = soup.findAll("div", {"class": "field-pair"})
+                    if not bool(s.cookies.get('login_cookie')):
+                        logger.fdebug('SABnzbd authentication failed - this may or may not be relevant depending on your configuration.')
 
-            for res in resultp:
-                if res.find("label", {"for": "apikey"}):
-                    try:
-                        result = res.find("input", {"type": "text"})
-                    except:
-                        continue
-                    if result['id'] == "apikey":
-                        apikey = result['value']
-                        logger.fdebug('found SABnzbd APIKey: ' + str(apikey))
-                        return apikey
+                r = s.get(sabline + 'config/general', verify=False)
+                soup = BeautifulSoup(r.content, "html.parser")
+                find_apikey = soup.find(id="apikey_display")
+                if find_apikey is not None:
+                    apikey = find_apikey['value']
+                    logger.fdebug('Found SABnzbd API Key: ' + apikey)
+                    return apikey
+
+        except Exception as e:
+            logger.error('Error encountered finding SABnzbd API Key: %s' % e)
 
 if __name__ == '__main__':
     test = sabnzbd()
     test.sab_get()
-
-
