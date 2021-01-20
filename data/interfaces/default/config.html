@@ -2217,7 +2217,7 @@
                             var obj = JSON.parse(data);
                             var versionsab = obj['version'];
                             vsab = numberWithDecimals(versionsab);
-                            $('#sabstatus').val(obj['status']);
+                            $('#sabstatus').val(obj['message']);
                             $('#sabversion span').text('SABnzbd version: '+versionsab);
                             if ( vsab < "0.8.0" ){
                                 scdh = document.getElementById("sab_cdh");
@@ -2232,8 +2232,8 @@
                                 nocdh = document.getElementById("sab_nocdh");
                                 nocdh.style.display = "none";
                             }
-                            $('#ajaxMsg').html("<div class='msg'><span class='ui-icon ui-icon-check'></span>"+obj['status']+"</div>");
-                            if ( data.indexOf("Successfully") > -1){
+                            $('#ajaxMsg').html("<div class='msg'><span class='ui-icon ui-icon-check'></span>"+obj['message']+"</div>");
+                            if (obj['status']){
                                 imagechk.src = "";
                                 imagechk.src = "images/success.png";
                                 imagechk.style.visibility = "visible";
