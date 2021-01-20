@@ -2327,7 +2327,7 @@ class WebInterface(object):
                                      'id':       item['id'],
                                      'resume':   resume})
 
-            linemessage = '%s successful for %s' % (mode, item['series'])
+                linemessage = '%s successful for %s' % (mode, item['series'])
             if mode == 'restart_queue':
                 logger.info('[DDL-RESTART-QUEUE] DDL Queue successfully restarted. Put %s items back into the queue for downloading..' % len(itemlist))
                 linemessage = 'Successfully restarted Queue'
