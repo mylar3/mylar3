@@ -21,8 +21,9 @@ import os
 import sys
 import re
 import time
-from . import logger
+from pkg_resources import parse_version
 import mylar
+from mylar import logger
 
 class SABnzbd(object):
     def __init__(self, params):
@@ -34,17 +35,19 @@ class SABnzbd(object):
             from requests.packages.urllib3 import disable_warnings
             disable_warnings()
         except:
-            logger.info('Unable to disable https warnings. Expect some spam if using https nzb providers.')
+            logger.warn('Unable to disable https warnings. Expect some spam if using https nzb providers.')
 
         try:
             if chkstatus is True:
                 sendit = requests.get(self.sab_url, params=self.params, verify=False)
             else:
+                tmp_apikey = self.params.pop('apikey')
                 logger.fdebug('parameters set to %s' % self.params)
+                self.params['apikey'] = tmp_apikey
                 logger.fdebug('sending now to %s' % self.sab_url)
                 sendit = requests.post(self.sab_url, data=self.params, verify=False)
         except Exception as e:
-            logger.info('Failed to send to client. Error returned: %s' % e)
+            logger.warn('Failed to send to client. Error returned: %s' % e)
             return {'status': False}
         else:
             sendresponse = sendit.json()
@@ -57,7 +60,7 @@ class SABnzbd(object):
                     #logger.info('queue NOT paused')
                     return {'status': False}
 
-            logger.info(sendresponse)
+            #logger.fdebug(sendresponse)
             if sendresponse['status'] is True:
                 queue_params = {'status': True,
                                 'nzo_id': ''.join(sendresponse['nzo_ids']),
@@ -74,16 +77,18 @@ class SABnzbd(object):
     def processor(self):
         sendresponse = self.params['nzo_id']
         try:
-            logger.info('sending now to %s' % self.sab_url)
-            logger.info('parameters set to %s' % self.params)
+            logger.fdebug('sending now to %s' % self.sab_url)
+            tmp_apikey = self.params['queue'].pop('apikey')
+            logger.fdebug('parameters set to %s' % self.params)
+            self.params['queue']['apikey'] = tmp_apikey
             time.sleep(5)   #pause 5 seconds before monitoring just so it hits the queue
             h = requests.get(self.sab_url, params=self.params['queue'], verify=False)
         except Exception as e:
-            logger.info('uh-oh: %s' % e)
+            logger.fdebug('uh-oh: %s' % e)
             return self.historycheck(self.params)
         else:
             queueresponse = h.json()
-            logger.info('successfully queried the queue for status')
+            logger.fdebug('successfully queried the queue for status')
             try:
                 queueinfo = queueresponse['queue']
                 #logger.fdebug('queue: %s' % queueinfo)
@@ -121,6 +126,39 @@ class SABnzbd(object):
                        'failed':    0,
                        'output':    'json',
                        'apikey':    mylar.CONFIG.SAB_APIKEY}
+
+        sab_check = None
+        if mylar.CONFIG.SAB_VERSION is None:
+            try:
+                sc = mylar.webserve.WebInterface()
+                sab_check = sc.SABtest(sabhost=mylar.CONFIG.SAB_HOST, sabusername=mylar.CONFIG.SAB_USERNAME, sabpassword=mylar.CONFIG.SAB_PASSWORD, sabapikey=mylar.CONFIG.SAB_APIKEY)
+            except Exception as e:
+                logger.warn('[SABNZBD-VERSION-TEST] Exception encountered trying to retrieve SABnzbd version: %s. Setting history length to last 200 items.' % e)
+                hist_params['limit'] = 200
+                sab_check = 'some value'
+            else:
+                sab_check = None
+
+        if sab_check is None:
+            #set min_sab to 3.2.0 since 3.2.0 beta 1 has the api call for history search by nzo_id
+            try:
+                sab_minimum_version = '3.2.0'
+                min_sab = re.sub('[^0-9]', '', sab_minimum_version)
+                sab_vers = mylar.CONFIG.SAB_VERSION
+                if 'beta' in sab_vers:
+                    sab_vers = re.sub('[^0-9]', '', sab_vers)
+                    if len(sab_vers) > 3:
+                        sab_vers = sab_vers[:-1] # remove beta value entirely...
+                if parse_version(sab_vers) >= parse_version(min_sab):
+                    logger.fdebug('SABnzbd version is higher than 3.2.0. Querying history based on nzo_id directly.')
+                    hist_params['nzo_ids'] = sendresponse
+                else:
+                    logger.fdebug('SABnzbd version is less than 3.2.0. Querying history based on history size of 200.')
+                    hist_params['limit'] = 200
+            except Exception as e:
+                logger.warn('[SABNZBD-VERSION-CHECK] Exception encountered trying to compare installed version [%s] to [%s]. Setting history length to last 200 items. (error: %s)' % (mylar.CONFIG.SAB_VERSION, sab_minimum_version ,e))
+                hist_params['limit'] = 200
+
         hist = requests.get(self.sab_url, params=hist_params, verify=False)
         historyresponse = hist.json()
         #logger.info(historyresponse)
@@ -130,7 +168,7 @@ class SABnzbd(object):
 
         try:
             for hq in histqueue['slots']:
-                logger.info('nzo_id: %s --- %s [%s]' % (hq['nzo_id'], sendresponse, hq['status']))
+                logger.fdebug('nzo_id: %s --- %s [%s]' % (hq['nzo_id'], sendresponse, hq['status']))
                 if hq['nzo_id'] == sendresponse and any([hq['status'] == 'Completed', hq['status'] == 'Running', 'comicrn' in hq['script'].lower()]):
                     nzo_exists = True
                     logger.info('found matching completed item in history. Job has a status of %s' % hq['status'])
@@ -140,7 +178,7 @@ class SABnzbd(object):
                         return {'status': 'double-pp', 'failed': False}
 
                     if os.path.isfile(hq['storage']):
-                        logger.info('location found @ %s' % hq['storage'])
+                        logger.fdebug('location found @ %s' % hq['storage'])
                         found = {'status':   True,
                                  'name':     ntpath.basename(hq['storage']), #os.pathre.sub('.nzb', '', hq['nzb_name']).strip(),
                                  'location': os.path.abspath(os.path.join(hq['storage'], os.pardir)),
@@ -151,7 +189,7 @@ class SABnzbd(object):
                                  'ddl':      False}
                         break
                     else:
-                        logger.info('no file found where it should be @ %s - is there another script that moves things after completion ?' % hq['storage'])
+                        logger.error('no file found where it should be @ %s - is there another script that moves things after completion ?' % hq['storage'])
                         return {'status': 'file not found', 'failed': False}
 
                 elif hq['nzo_id'] == sendresponse and hq['status'] == 'Failed':
@@ -189,7 +227,7 @@ class SABnzbd(object):
                         return {'failed': False, 'status': 'unhandled status of: %s' %( hq['status'])}
 
             if not nzo_exists:
-                logger.info('Cannot find nzb %s in the queue.  Was it removed?' % sendresponse)
+                logger.error('Cannot find nzb %s in the queue.  Was it removed?' % sendresponse)
                 time.sleep(5)
                 if roundtwo is False:
                     return self.historycheck(nzbinfo, roundtwo=True)

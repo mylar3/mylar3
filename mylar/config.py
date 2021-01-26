@@ -81,6 +81,7 @@ _CONFIG_DEFINITIONS = OrderedDict({
     'CLEANUP_CACHE': (bool, 'General', False),
     'SECURE_DIR': (str, 'General', None),
     'ENCRYPT_PASSWORDS': (bool, 'General', False),
+    'BACKUP_ON_START': (bool, 'General', False),
 
     'RSS_CHECKINTERVAL': (int, 'Scheduler', 20),
     'SEARCH_INTERVAL': (int, 'Scheduler', 360),
@@ -528,20 +529,6 @@ class Config(object):
         self.config_vals()
         setattr(self, 'EXTRA_NEWZNABS', self.get_extra_newznabs())
         setattr(self, 'EXTRA_TORZNABS', self.get_extra_torznabs())
-        if any([self.CONFIG_VERSION == 0, self.CONFIG_VERSION < self.newconfig]):
-            try:
-                shutil.move(self._config_file, os.path.join(mylar.DATA_DIR, 'config.ini.backup'))
-            except:
-                print(('Unable to make proper backup of config file in %s' % os.path.join(mylar.DATA_DIR, 'config.ini.backup')))
-            if self.CONFIG_VERSION < 10:
-                print('Attempting to update configuration..')
-                #8-torznab multiple entries merged into extra_torznabs value
-                #9-remote rtorrent ssl option
-                #10-encryption of all keys/passwords.
-                self.config_update()
-            setattr(self, 'CONFIG_VERSION', str(self.newconfig))
-            config.set('General', 'CONFIG_VERSION', str(self.newconfig))
-            self.writeconfig()
 
         if startup is True:
             if self.LOG_DIR is None:
@@ -566,11 +553,25 @@ class Config(object):
                 print('Logging level in config over-ridden by startup value. Logging level set to : %s' % (log_level))
 
             mylar.LOG_LEVEL = log_level # set this to the calculated log_leve value so that logs display fine in the GUI
-
             if logger.LOG_LANG.startswith('en'):
                 logger.initLogger(console=not mylar.QUIET, log_dir=self.LOG_DIR, max_logsize=self.MAX_LOGSIZE, max_logfiles=self.MAX_LOGFILES, loglevel=log_level)
             else:
                 logger.mylar_log.initLogger(loglevel=log_level, log_dir=self.LOG_DIR, max_logsize=self.MAX_LOGSIZE, max_logfiles=self.MAX_LOGFILES)
+
+        if any([self.CONFIG_VERSION == 0, self.CONFIG_VERSION < self.newconfig]):
+            try:
+                shutil.move(self._config_file, os.path.join(mylar.DATA_DIR, 'config.ini.backup'))
+            except:
+                logger.warn('Unable to make proper backup of config file in %s' % os.path.join(mylar.DATA_DIR, 'config.ini.backup'))
+            if self.CONFIG_VERSION < 10:
+                logger.info('Attempting to update configuration..')
+                #8-torznab multiple entries merged into extra_torznabs value
+                #9-remote rtorrent ssl option
+                #10-encryption of all keys/passwords.
+                self.config_update()
+            setattr(self, 'CONFIG_VERSION', str(self.newconfig))
+            config.set('General', 'CONFIG_VERSION', str(self.newconfig))
+            self.writeconfig()
 
         self.provider_sequence()
         self.configure(startup=startup)
@@ -579,23 +580,23 @@ class Config(object):
         return self
 
     def config_update(self):
-        print(('Updating Configuration from %s to %s' % (self.CONFIG_VERSION, self.newconfig)))
+        logger.info('Updating Configuration from %s to %s' % (self.CONFIG_VERSION, self.newconfig))
         if self.CONFIG_VERSION < 8:
-            print('Checking for existing torznab configuration...')
+            logger.info('Checking for existing torznab configuration...')
             if not any([self.TORZNAB_NAME is None, self.TORZNAB_HOST is None, self.TORZNAB_APIKEY is None, self.TORZNAB_CATEGORY is None]):
                 torznabs =[(self.TORZNAB_NAME, self.TORZNAB_HOST, self.TORZNAB_VERIFY, self.TORZNAB_APIKEY, self.TORZNAB_CATEGORY, str(int(self.ENABLE_TORZNAB)))]
                 setattr(self, 'EXTRA_TORZNABS', torznabs)
                 config.set('Torznab', 'EXTRA_TORZNABS', str(torznabs))
-                print('Successfully converted existing torznab for multiple configuration allowance. Removing old references.')
+                logger.info('Successfully converted existing torznab for multiple configuration allowance. Removing old references.')
             else:
-                print('No existing torznab configuration found. Just removing config references at this point..')
+                logger.info('No existing torznab configuration found. Just removing old config references at this point..')
             config.remove_option('Torznab', 'torznab_name')
             config.remove_option('Torznab', 'torznab_host')
             config.remove_option('Torznab', 'torznab_verify')
             config.remove_option('Torznab', 'torznab_apikey')
             config.remove_option('Torznab', 'torznab_category')
             config.remove_option('Torznab', 'torznab_verify')
-            print('Successfully removed outdated config entries.')
+            logger.info('Successfully removed outdated config entries.')
         if self.newconfig < 9:
             #rejig rtorrent settings due to change.
             try:
@@ -605,7 +606,7 @@ class Config(object):
             except:
                 pass
             config.remove_option('Rtorrent', 'rtorrent_ssl')
-            print('Successfully removed oudated config entries.')
+            logger.info('Successfully removed oudated config entries.')
         if self.newconfig < 10:
             #encrypt all passwords / apikeys / usernames in ini file.
             #leave non-ini items (ie. memory) as un-encrypted items.
@@ -613,9 +614,9 @@ class Config(object):
                 if self.ENCRYPT_PASSWORDS is True:
                     self.encrypt_items(mode='encrypt', updateconfig=True)
             except Exception as e:
-                print(('Error: %s' % e))
-            print('Successfully updated config to version 10 ( password / apikey - .ini encryption )')
-        print(('Configuration upgraded to version %s' % self.newconfig))
+                logger.error('Error: %s' % e)
+            logger.info('Successfully updated config to version 10 ( password / apikey - .ini encryption )')
+        logger.info('Configuration upgraded to version %s' % self.newconfig)
 
     def check_section(self, section, key):
         """ Check if INI section exists, if not create it """

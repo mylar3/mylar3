@@ -269,9 +269,16 @@ class GC(object):
                         if all(
                             [
                                 re.sub(':', '', size).strip() != 'Size',
-                                len(re.sub('r[^0-9]', '', size).strip()) > 0,
+                                len(re.sub(r'[^0-9]', '', size).strip()) > 0,
                             ]
                         ):
+                            if all(
+                                      [
+                                          '-' in size,
+                                          re.sub(r'[^0-9]', '', size).strip() == '',
+                                      ]
+                            ):
+                                size = None
                             if 'MB' in size:
                                 size = re.sub('MB', 'M', size).strip()
                             if 'GB' in size:
@@ -282,6 +289,8 @@ class GC(object):
                             elif '/' in size:
                                 nwsize = size.find('/')
                                 size = re.sub(r'\[', '', size[:nwsize]).strip()
+                            if '-' in size:
+                                size = None
                         else:
                             size = '0M'
                     i += 1

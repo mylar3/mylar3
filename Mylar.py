@@ -213,7 +213,7 @@ def main():
             raise SystemExit('Cannot write to the data directory: ' + mylar.DATA_DIR + '. Exiting...')
 
     # backup the db and configs before they load.
-    if args.backup:
+    if args.backup or mylar.CONFIG.BACKUP_ON_START:
         print('[AUTO-BACKUP] Backing up .db and config.ini files for safety.')
         backupdir = os.path.join(mylar.DATA_DIR, 'backup')
 
@@ -237,7 +237,7 @@ def main():
                 back_1 = os.path.join(backupdir, 'config.ini.1')
 
             try:
-                print('[AUTO-BACKUP] Now Backing up mylar.db file')
+                print('[AUTO-BACKUP] Now Backing up ' + back + ' file')
                 if os.path.isfile(back_1):
                     print('[AUTO-BACKUP] ' + back_1 + ' exists. Deleting and keeping new.')
                     os.remove(back_1)

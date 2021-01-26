@@ -1398,7 +1398,16 @@ def NZB_SEARCH(
                                 if entry['site'] == 'WWT':
                                     comsize_b = entry['size']
                                 elif entry['site'] == 'DDL':
-                                    comsize_b = helpers.human2bytes(entry['size'])
+                                    comsize_b = entry['size']
+                                    if comsize_b is not None:
+                                        cb2 = re.sub(r'[^0-9]', '', comsize_b).strip()
+                                        if cb2 == '':
+                                            logger.warn(
+                                                'Invalid filesize encountered. Ignoring'
+                                            )
+                                            comsize_b = None
+                                        else:
+                                            comsize_b = helpers.human2bytes(entry['size'])
                             except Exception:
                                 tmpsz = entry.enclosures[0]
                                 comsize_b = tmpsz['length']
@@ -2996,6 +3005,7 @@ def searchforissue(issueid=None, new=False, rsscheck=None, manual=False):
 
             if rsscheck:
                 logger.info('Completed RSS Search scan')
+                mylar.SEARCHLOCK = False
             else:
                 logger.info('Completed Queueing API Search scan')
         else:
