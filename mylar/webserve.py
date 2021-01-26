@@ -2304,6 +2304,8 @@ class WebInterface(object):
 
         if itemlist is not None:
             for item in itemlist:
+                seriesname = item['series']
+                seriessize = item['size']
                 if all([mylar.CONFIG.DDL_AUTORESUME is True, mode == 'resume', item['status'] != 'Completed']):
                     try:
                         filesize = os.stat(os.path.join(mylar.CONFIG.DDL_LOCATION, item['filename'])).st_size
@@ -2328,18 +2330,19 @@ class WebInterface(object):
                                      'id':       item['id'],
                                      'resume':   resume})
 
-            linemessage = '%s successful for %s' % (mode, item['series'])
+                linemessage = '%s successful for %s' % (mode, item['series'])
+
             if mode == 'restart_queue':
                 logger.info('[DDL-RESTART-QUEUE] DDL Queue successfully restarted. Put %s items back into the queue for downloading..' % len(itemlist))
                 linemessage = 'Successfully restarted Queue'
             elif mode == 'restart':
-                logger.info('[DDL-RESTART] Successfully restarted %s [%s] for downloading..' % (item['series'], item['size']))
+                logger.info('[DDL-RESTART] Successfully restarted %s [%s] for downloading..' % (seriesname, seriessize))
             elif mode == 'requeue':
-                logger.info('[DDL-REQUEUE] Successfully requeued %s [%s] for downloading..' % (item['series'], item['size']))
+                logger.info('[DDL-REQUEUE] Successfully requeued %s [%s] for downloading..' % (seriesname, seriessize))
             elif mode == 'abort':
-                logger.info('[DDL-ABORT] Successfully aborted downloading of %s [%s]..' % (item['series'], item['size']))
+                logger.info('[DDL-ABORT] Successfully aborted downloading of %s [%s]..' % (seriesname, seriessize))
             elif mode == 'remove':
-                logger.info('[DDL-REMOVE] Successfully removed %s [%s]..' % (item['series'], item['size']))
+                logger.info('[DDL-REMOVE] Successfully removed %s [%s]..' % (seriesname, seriessize))
         else:
             linemessage = "No items to requeue"
         return json.dumps({'status': True, 'message': linemessage})
@@ -4875,7 +4878,7 @@ class WebInterface(object):
                                     imp_cid = sres['haveit']
                             except Exception as e:
                                 imp_cid = sres['haveit']
-                                
+
                             cVal = {"SRID":        SRID,
                                     "comicid":     sres['comicid']}
                             #should store ogcname in here somewhere to account for naming conversions above.
