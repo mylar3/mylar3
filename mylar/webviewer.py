@@ -157,7 +157,9 @@ class ComicScanner(object):
         for root, dirs, files in os.walk(image_src):
             for f in files:
                 if f.endswith((".png", ".gif", ".bmp", ".dib", ".jpg", ".jpeg", ".jpe", ".jif", ".jfif", ".jfi", ".tiff", ".tif")):
-                    image_list.append(urllib.parse.quote(os.path.join(image_loc, f)))
+                    rel_dir = os.path.relpath(root, image_src)
+                    rel_file = os.path.join(rel_dir, f)
+                    image_list.append(urllib.parse.quote(os.path.join(image_loc, rel_file)))
                     image_list.sort()
         logger.debug("Image List Created")
         return image_list
