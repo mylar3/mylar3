@@ -1452,6 +1452,7 @@ def forceRescan(ComicID, archive=None, module=None, recheck=False):
     update_iss = []
     #break this up in sequnces of 200 so it doesn't break the sql statement.
     cnt = 0
+    u_start = datetime.datetime.now()
     for genlist in helpers.chunker(issID_to_ignore, 200):
         tmpsql = "SELECT * FROM issues WHERE ComicID=? AND IssueID not in ({seq})".format(seq=','.join(['?'] *(len(genlist) -1)))
         chkthis = myDB.select(tmpsql, genlist)
@@ -1483,19 +1484,22 @@ def forceRescan(ComicID, archive=None, module=None, recheck=False):
                 #    issStatus = "Snatched"
                 #else:
                 #    issStatus = "Skipped"
-                update_iss.append({"IssueID": chk['IssueID'],
-                                   "Status":  issStatus})
+                update_iss.append((issStatus, chk['IssueID']))
+
+    logger.fdebug('issue_status_generation_time_taken: %s' % (datetime.datetime.now() - u_start))
 
     if len(update_iss) > 0:
-        i = 0
-        #do it like this to avoid DB locks...
-        for ui in update_iss:
-            controlValueDict = {"IssueID": ui['IssueID']}
-            newStatusValue = {"Status": ui['Status']}
-            myDB.upsert("issues", newStatusValue, controlValueDict)
-            i+=1
-        logger.info(module + ' Updated the status of ' + str(i) + ' issues for ' + rescan['ComicName'] + ' (' + str(rescan['ComicYear']) + ') that were not found.')
-
+        r_start = datetime.datetime.now()
+        try:
+            conn = mylar.sql_db()
+            c = conn.cursor()
+            c.executemany("UPDATE issues SET Status=? WHERE IssueID=?", update_iss)
+        except Exception as e:
+            logger.warn('Error updating: %s' % e)
+        conn.commit()
+        conn.close()
+        logger.fdebug('issue_status_writing took %s' % (datetime.datetime.now() - r_start))
+        logger.info(module + ' Updated the status of ' + str(len(update_iss)) + ' issues for ' + rescan['ComicName'] + ' (' + str(rescan['ComicYear']) + ') that were not found.')
     logger.info(module + ' Total files located: ' + str(havefiles))
 
     foundcount = havefiles

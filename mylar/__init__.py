@@ -705,6 +705,13 @@ def dbcheck():
     conn.commit
     c.close
 
+    #create some indexes
+    c.execute('CREATE INDEX IF NOT EXISTS issues_id on issues(IssueID)')
+    c.execute('CREATE INDEX IF NOT EXISTS comics_id on comics(ComicID)')
+
+    #might enable these at a later date.
+    #c.execute('''PRAGMA synchronous = EXTRA''')
+    #c.execute('''PRAGMA journal_mode = WAL''')
 
     #add in the late players to the game....
     # -- Comics Table --
