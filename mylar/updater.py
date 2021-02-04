@@ -1070,9 +1070,12 @@ def forceRescan(ComicID, archive=None, module=None, recheck=False):
     issID_to_ignore.append(str(ComicID))
     issID_to_write = []
     ANNComicID = None
+    d_annuals = []
+    d_issues = []
 
     reissues = myDB.select('SELECT * FROM issues WHERE ComicID=?', [ComicID])
 
+    a_start = datetime.datetime.now()
     while (fn < fccnt):
         haveissue = "no"
         issuedupe = "no"
@@ -1424,7 +1427,6 @@ def forceRescan(ComicID, archive=None, module=None, recheck=False):
 
             if writeit == True and haveissue == 'yes':
                 #logger.fdebug(module + ' issueID to write to db:' + str(iss_id))
-                controlValueDict = {"IssueID": str(iss_id)}
 
                 #if Archived, increase the 'Have' count.
                 if archive:
@@ -1432,21 +1434,26 @@ def forceRescan(ComicID, archive=None, module=None, recheck=False):
                 else:
                     issStatus = "Downloaded"
 
-                newValueDict = {"Location":           isslocation,
-                                "ComicSize":          issSize,
-                                "Status":             issStatus
-                                }
-
                 issID_to_ignore.append(str(iss_id))
 
                 if ANNComicID:
-                    myDB.upsert("annuals", newValueDict, controlValueDict)
+                    d_annuals.append((issStatus, issSize, isslocation, iss_id))
                     ANNComicID = None
                 else:
-                    myDB.upsert("issues", newValueDict, controlValueDict)
+                    d_issues.append((issStatus, issSize, isslocation, iss_id))
             else:
                 ANNComicID = None
         fn+=1
+    logger.fdebug('[haves] issue_status_generation took %s' % (datetime.datetime.now() - a_start))
+
+    b_start = datetime.datetime.now()
+    try:
+        myDB.action("UPDATE issues SET Status=?, ComicSize=?, Location=? WHERE IssueID=?", d_issues, executemany=True)
+        if d_annuals:
+            myDB.action("UPDATE annuals SET Status=?, ComicSize=?, Location=? WHERE IssueID=?", d_annuals, executemany=True)
+    except Exception as e:
+        logger.warn('Error updating: %s' % e)
+    logger.fdebug('[haves] issue_status_writing took %s' % (datetime.datetime.now() - b_start))
 
     #here we need to change the status of the ones we DIDN'T FIND above since the loop only hits on FOUND issues.
     update_iss = []
@@ -1486,19 +1493,15 @@ def forceRescan(ComicID, archive=None, module=None, recheck=False):
                 #    issStatus = "Skipped"
                 update_iss.append((issStatus, chk['IssueID']))
 
-    logger.fdebug('issue_status_generation_time_taken: %s' % (datetime.datetime.now() - u_start))
+    logger.fdebug('[nothaves] issue_status_generation_time_taken: %s' % (datetime.datetime.now() - u_start))
 
     if len(update_iss) > 0:
         r_start = datetime.datetime.now()
         try:
-            conn = mylar.sql_db()
-            c = conn.cursor()
-            c.executemany("UPDATE issues SET Status=? WHERE IssueID=?", update_iss)
+            myDB.action("UPDATE issues SET Status=? WHERE IssueID=?", update_iss, executemany=True)
         except Exception as e:
             logger.warn('Error updating: %s' % e)
-        conn.commit()
-        conn.close()
-        logger.fdebug('issue_status_writing took %s' % (datetime.datetime.now() - r_start))
+        logger.fdebug('[nothaves] issue_status_writing took %s' % (datetime.datetime.now() - r_start))
         logger.info(module + ' Updated the status of ' + str(len(update_iss)) + ' issues for ' + rescan['ComicName'] + ' (' + str(rescan['ComicYear']) + ') that were not found.')
     logger.info(module + ' Total files located: ' + str(havefiles))
 
