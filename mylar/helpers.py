@@ -3237,9 +3237,14 @@ def nzb_monitor(queue):
             if item == 'exit':
                 logger.info('Cleaning up workers for shutdown')
                 break
-            tmp_apikey = item['queue'].pop('apikey')
-            logger.info('Now loading from queue: %s' % item)
-            item['queue']['apikey'] = tmp_apikey
+            try:
+                tmp_apikey = item['queue'].pop('apikey')
+                logger.info('Now loading from queue: %s' % item)
+            except Exception:
+                #nzbget doesn't pass the queue field. So just let it fly.
+                logger.info('Now loading from queue: %s' % item)
+            else:
+                item['queue']['apikey'] = tmp_apikey
             if all([mylar.USE_SABNZBD is True, mylar.CONFIG.SAB_CLIENT_POST_PROCESSING is True]):
                 nz = sabnzbd.SABnzbd(item)
                 nzstat = nz.processor()
