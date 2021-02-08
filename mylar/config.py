@@ -280,7 +280,7 @@ _CONFIG_DEFINITIONS = OrderedDict({
 
     'STORYARCDIR': (bool, 'StoryArc', False),
     'COPY2ARCDIR': (bool, 'StoryArc', False),
-    'ARC_FOLDERFORMAT': (str, 'StoryArc', None),
+    'ARC_FOLDERFORMAT': (str, 'StoryArc', '$arc ($spanyears)'),
     'ARC_FILEOPS': (str, 'StoryArc', 'copy'),
     'UPCOMING_STORYARCS': (bool, 'StoryArc', False),
     'SEARCH_STORYARCS': (bool, 'StoryArc', False),
@@ -964,6 +964,9 @@ class Config(object):
         if all([self.GRABBAG_DIR is None, self.DESTINATION_DIR is not None]):
             self.GRABBAG_DIR = os.path.join(self.DESTINATION_DIR, 'Grabbag')
             logger.fdebug('[Grabbag Directory] Setting One-Off directory to default location: %s' % self.GRABBAG_DIR)
+
+        if self.ARC_FOLDERFORMAT is None:
+            self.ARC_FOLDERFORMAT = '$arc ($spanyears)'
 
         ## Sanity checking
         if any([self.COMICVINE_API is None, self.COMICVINE_API == 'None', self.COMICVINE_API == '']):
