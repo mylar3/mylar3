@@ -2707,14 +2707,15 @@ def arcformat(arc, spanyears, publisher):
 
     tmp_folderformat = mylar.CONFIG.ARC_FOLDERFORMAT
 
-    if publisher == 'None':
-        chunk_f_f = re.sub('\$publisher', '', tmp_folderformat)
-        chunk_f = re.compile(r'\s+')
-        tmp_folderformat = chunk_f.sub(' ', chunk_f_f)
+    if tmp_folderformat is not None:
+        if publisher == 'None':
+            chunk_f_f = re.sub('\$publisher', '', tmp_folderformat)
+            chunk_f = re.compile(r'\s+')
+            tmp_folderformat = chunk_f.sub(' ', chunk_f_f)
 
 
     if any([tmp_folderformat == '', tmp_folderformat is None]):
-        arcpath = arcdir
+        arcpath = replace_all('$arc ($spanyears)', values)
     else:
         arcpath = replace_all(tmp_folderformat, values)
 
