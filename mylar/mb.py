@@ -305,12 +305,13 @@ def findComic(name, mode, issue, limityear=None, type=None):
                                 xml_lastissueid = result.getElementsByTagName('id')[cl].firstChild.wholeText
                             cl+=1
 
-                        if result.getElementsByTagName('super_url')[0].firstChild.wholeText:
+                        try:
                             xmlimage = result.getElementsByTagName('super_url')[0].firstChild.wholeText
-                        elif result.getElementsByTagName('small_url')[0].firstChild.wholeText:
-                            xmlimage = result.getElementsByTagName('small_url')[0].firstChild.wholeText
-                        else:
-                            xmlimage = "cache/blankcover.jpg"
+                        except Exception:
+                            try:
+                                xmlimage = result.getElementsByTagName('small_url')[0].firstChild.wholeText
+                            except Exception:
+                                xmlimage = "cache/blankcover.jpg"
 
                         if (result.getElementsByTagName('start_year')[0].firstChild) is not None:
                             xmlYr = result.getElementsByTagName('start_year')[0].firstChild.wholeText
