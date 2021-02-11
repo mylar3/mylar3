@@ -361,8 +361,8 @@ def findComic(name, mode, issue, limityear=None, type=None):
                                 xmlpub = "Unknown"
 
                             #ignore specific publishers on a global scale here.
-                            if mylar.CONFIG.BLACKLISTED_PUBLISHERS is not None and any([x for x in mylar.CONFIG.BLACKLISTED_PUBLISHERS if x.lower() == xmlpub.lower()]):
-                                logger.fdebug('Blacklisted publisher [' + xmlpub + ']. Ignoring this result.')
+                            if mylar.CONFIG.IGNORED_PUBLISHERS is not None and any([x for x in mylar.CONFIG.IGNORED_PUBLISHERS if x.lower() == xmlpub.lower()]):
+                                logger.fdebug('Ignored publisher [%s]. Ignoring this result.' % xmlpub)
                                 continue
 
                             try:
