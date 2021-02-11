@@ -1502,8 +1502,11 @@ def forceRescan(ComicID, archive=None, module=None, recheck=False):
         except Exception as e:
             logger.warn('Error updating: %s' % e)
         logger.fdebug('[nothaves] issue_status_writing took %s' % (datetime.datetime.now() - r_start))
-        logger.info(module + ' Updated the status of ' + str(len(update_iss)) + ' issues for ' + rescan['ComicName'] + ' (' + str(rescan['ComicYear']) + ') that were not found.')
-    logger.info(module + ' Total files located: ' + str(havefiles))
+        logger.info(
+            '%s Updated the status of %s issues for %s (%s) that were not found.'
+            % (module, len(update_iss), rescan['ComicName'], rescan['ComicYear'])
+        )
+    logger.info('%s Total files located: %s' % (module, havefiles))
 
     foundcount = havefiles
     arcfiles = 0
@@ -1521,11 +1524,18 @@ def forceRescan(ComicID, archive=None, module=None, recheck=False):
         if arcfiles > 0 or arcanns > 0:
             arcfiles = arcfiles + arcanns
             havefiles = havefiles + arcfiles
-            logger.fdebug(module + ' Adjusting have total to ' + str(havefiles) + ' because of this many archive files already in Archive status :' + str(arcfiles))
+            logger.fdebug(
+                '%s Adjusting have total to %s because of %s files already'
+                ' in an Archive status' % (module, havefiles, arcfiles)
+            )
     else:
         #if files exist in the given directory, but are in an archived state - the numbers will get botched up here.
         if (arcfiles + arcanns) > 0:
-            logger.fdebug(module + ' ' + str(int(arcfiles + arcanns)) + ' issue(s) are in an Archive status already. Increasing Have total from ' + str(havefiles) + ' to include these archives.') 
+            logger.fdebug(
+                '%s %s issue(s) are in an Archive status already.'
+                ' Increasing Have total from %s to include these archives.'
+                % (module, arcfiles + arcanns, havefiles)
+            )
             havefiles = havefiles + (arcfiles + arcanns)
 
     ignorecount = 0
@@ -1535,8 +1545,10 @@ def forceRescan(ComicID, archive=None, module=None, recheck=False):
         ignorecount = int(ignoresi[0][0]) + int(ignoresa[0][0])
         if ignorecount > 0:
             havefiles = havefiles + ignorecount
-            logger.fdebug(module + ' Adjusting have total to ' + str(havefiles) + ' because of this many Ignored files:' + str(ignorecount))
-
+            logger.fdebug(
+                '%s Adjusting have total to %s because of %s Ignored files.'
+                % (module, havefiles, ignorecount)
+            )
 
     snatchedcount = 0
     if mylar.CONFIG.SNATCHED_HAVETOTAL:   # if this is enabled, will increase Have total as if in Archived Status
@@ -1544,54 +1556,62 @@ def forceRescan(ComicID, archive=None, module=None, recheck=False):
         if int(snatches[0][0]) > 0:
             snatchedcount = snatches[0][0]
             havefiles = havefiles + snatchedcount
-            logger.fdebug(module + ' Adjusting have total to ' + str(havefiles) + ' because of this many Snatched files:' + str(snatchedcount))
+            logger.fdebug(
+                '%s Adjusting have total to %s because of %s Snatched files.'
+                % (module, havefiles, snatchedcount)
+            )
 
     #now that we are finished...
     #adjust for issues that have been marked as Downloaded, but aren't found/don't exist.
     #do it here, because above loop only cycles though found comics using filechecker.
-    downissues = myDB.select("SELECT * FROM issues WHERE ComicID=? and Status='Downloaded'", [ComicID])
-    downissues += myDB.select("SELECT * FROM annuals WHERE ComicID=? and Status='Downloaded'", [ComicID])
-    if downissues is None:
+    downissues = "SELECT *, 0 as type FROM issues WHERE Status='Downloaded' and ComicID=? AND IssueID not in ({seq})".format(seq=','.join(['?'] *(len(issID_to_ignore) -1)))
+    downchk = myDB.select(downissues, issID_to_ignore)
+    downannuals = "SELECT *, 1 as type FROM annuals WHERE Status='Downloaded' and ComicID=? AND IssueID not in ({seq})".format(seq=','.join(['?'] *(len(issID_to_ignore) -1)))
+    downchk += myDB.select(downannuals, issID_to_ignore)
+    if downchk is None:
         pass
     else:
         archivedissues = 0 #set this to 0 so it tallies correctly.
-        for down in downissues:
-            #print "downlocation:" + str(down['Location'])
-            #remove special characters from
-            #temploc = rescan['ComicLocation'].replace('_', ' ')
-            #temploc = re.sub('[\#\'\/\.]', '', temploc)
-            #print ("comiclocation: " + str(rescan['ComicLocation']))
-            #print ("downlocation: " + str(down['Location']))
+        dvalues = []
+        for down in downchk:
+            if down['type'] == 1:
+                dtable = 'annuals'
+            else:
+                dtable = 'issues'
+
             if down['Location'] is None:
-                logger.fdebug(module + ' Location does not exist which means file was not downloaded successfully, or was moved.')
+                logger.fdebug(
+                    '%s Location does not exist which means file was not downloaded'
+                    ' successfully, or was moved.' % (module)
+                )
                 controlValue = {"IssueID":  down['IssueID']}
                 newValue = {"Status":    "Archived"}
-                myDB.upsert("issues", newValue, controlValue)
+                myDB.upsert(dtable, newValue, controlValue)
                 archivedissues+=1
-                pass
             else:
                 comicpath = os.path.join(rescan['ComicLocation'], down['Location'])
-                if os.path.exists(comicpath):
-                    continue
-                    logger.fdebug('Issue exists - no need to change status.')
-                else:
-                    if mylar.CONFIG.MULTIPLE_DEST_DIRS is not None and mylar.CONFIG.MULTIPLE_DEST_DIRS != 'None':
-                        if os.path.exists(os.path.join(mylar.CONFIG.MULTIPLE_DEST_DIRS, os.path.basename(rescan['ComicLocation']))):
-                            #logger.fdebug('Issue(s) currently exist and found within multiple destination directory location')
-                            continue
-                    #print "Changing status from Downloaded to Archived - cannot locate file"
+                if not os.path.exists(comicpath):
+                    logger.info(
+                        '[%s] Changing status of #%s from Downloaded to Archived -'
+                        ' cannot locate file' % (down['Issue_Number'], down['IssueID'])
+                    )
                     controlValue = {"IssueID":   down['IssueID']}
                     newValue = {"Status":    "Archived"}
-                    myDB.upsert("issues", newValue, controlValue)
+                    myDB.upsert(dtable, newValue, controlValue)
                     archivedissues+=1
-        if archivedissues > 0:
-            logger.fdebug(module + ' I have changed the status of ' + str(archivedissues) + ' issues to a status of Archived, as I now cannot locate them in the series directory.')
 
+        if archivedissues > 0:
+            logger.fdebug(
+                '%s I have changed the status of %s issues to a status of Archived,'
+                ' as I now cannot locate them in the series directory.'
+                % (module, len(dvalues))
+            )
         havefiles = havefiles + archivedissues  #arcfiles already tallied in havefiles in above segment
 
     #combined total for dispay total purposes only.
     combined_total = iscnt + anncnt
-    if mylar.CONFIG.IGNORE_TOTAL:   # if this is enabled, will increase Have total as if in Archived Status
+    if mylar.CONFIG.IGNORE_TOTAL:
+        # if this is enabled, will increase Have total as if in Archived Status
         ignoresa = myDB.select("SELECT count(*) FROM issues WHERE ComicID=? AND Status='Ignored'", [ComicID])
         ignoresb = myDB.select("SELECT count(*) FROM annuals WHERE ComicID=? AND Status='Ignored'", [ComicID])
         ignorecnt = ignoresa[0][0] + ignoresb[0][0]
