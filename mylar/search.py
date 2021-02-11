@@ -922,7 +922,10 @@ def NZB_SEARCH(
                 lineq = findcomic
             else:
                 lineq = '%s %s' % (findcomic, isssearch)
-            b = getcomics.GC(query=lineq)
+            fline = {'comicname': findcomic,
+                     'issue':     isssearch,
+                     'year':      comyear}
+            b = getcomics.GC(query=fline)
             bb = b.search()
         elif RSS == "yes":
             if nzbprov == 'DDL':
