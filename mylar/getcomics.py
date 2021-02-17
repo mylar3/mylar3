@@ -110,14 +110,16 @@ class GC(object):
                     for x in self.search_results()['entries']:
                         bb = next((item for item in resultset if item['link'] == x['link']), None)
                         try:
-                            if bb is None:
+                            if 'Weekly' not in self.query['comicname'] and 'Weekly' in x['title']:
+                                continue
+                            elif bb is None:
                                 resultset.append(x)
                         except:
                             resultset.append(x)
                         else:
                             continue
 
-                    if len(resultset) > 0:
+                    if len(resultset) > 1:
                         break
                     time.sleep(2)
 
@@ -363,7 +365,11 @@ class GC(object):
         results['entries'] = resultlist
         return results
 
-    def parse_downloadresults(self, id, mainlink):
+    def parse_downloadresults(self, id, mainlink, comicinfo=None):
+        try:
+            booktype = comicinfo[0]['booktype']
+        except Exception:
+            booktype = None
         myDB = db.DBConnection()
         series = None
         year = None
@@ -465,43 +471,46 @@ class GC(object):
                                     }
                                 )
         else:
-            check_extras = soup.findAll("h3")
-            for sb in check_extras:
-                header = sb.findNext(text=True)
-                if header == 'TPBs':
-                    nxt = sb.next_sibling
-                    if nxt.name == 'ul':
-                        bb = nxt.findAll('li')
-                        for x in bb:
-                            volume = x.findNext(text=True)
-                            if '\u2013' in volume:
-                                volume = re.sub(r'\u2013', '-', volume)
-                            series_st = volume.find('(')
-                            issues_st = volume.find('#')
-                            series = volume[:issues_st].strip()
-                            issues = volume[issues_st:series_st].strip()
-                            year_end = volume.find(')', series_st + 1)
-                            year = re.sub(
-                                r'[\(\)\|]', '', volume[series_st + 1 : year_end]
-                            ).strip()
-                            size_end = volume.find(')', year_end + 1)
-                            size = re.sub(
-                                r'[\(\)\|]', '', volume[year_end + 1 : size_end]
-                            ).strip()
-                            linkline = x.find('a')
-                            linked = linkline['href']
-                            site = linkline.findNext(text=True)
-                            links.append(
-                                {
-                                    "series": series,
-                                    "volume": volume,
-                                    "site": site,
-                                    "year": year,
-                                    "issues": issues,
-                                    "size": size,
-                                    "link": linked,
-                                }
-                            )
+            if booktype != 'TPB':
+                logger.fdebug('TPB links detected, but booktype set to %s' % booktype)
+            else:
+                check_extras = soup.findAll("h3")
+                for sb in check_extras:
+                    header = sb.findNext(text=True)
+                    if header == 'TPBs' and bookype == 'TPB':
+                        nxt = sb.next_sibling
+                        if nxt.name == 'ul':
+                            bb = nxt.findAll('li')
+                            for x in bb:
+                                volume = x.findNext(text=True)
+                                if '\u2013' in volume:
+                                    volume = re.sub(r'\u2013', '-', volume)
+                                series_st = volume.find('(')
+                                issues_st = volume.find('#')
+                                series = volume[:issues_st].strip()
+                                issues = volume[issues_st:series_st].strip()
+                                year_end = volume.find(')', series_st + 1)
+                                year = re.sub(
+                                    r'[\(\)\|]', '', volume[series_st + 1 : year_end]
+                                ).strip()
+                                size_end = volume.find(')', year_end + 1)
+                                size = re.sub(
+                                    r'[\(\)\|]', '', volume[year_end + 1 : size_end]
+                                ).strip()
+                                linkline = x.find('a')
+                                linked = linkline['href']
+                                site = linkline.findNext(text=True)
+                                links.append(
+                                    {
+                                        "series": series,
+                                        "volume": volume,
+                                        "site": site,
+                                        "year": year,
+                                        "issues": issues,
+                                        "size": size,
+                                        "link": linked,
+                                    }
+                                )
 
         if all([link is None, len(links) == 0]):
             logger.warn(

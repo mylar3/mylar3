@@ -2216,6 +2216,7 @@ def NZB_SEARCH(
                             "tmpprov": tmpprov,
                             "kind": kind,
                             "SARC": SARC,
+                            "booktype": booktype,
                             "IssueArcID": IssueArcID,
                             "newznab": newznab_host,
                             "torznab": torznab_host,
@@ -2390,6 +2391,7 @@ def NZB_SEARCH(
                                     "size": comsize_m,
                                     "tmpprov": tmpprov,
                                     "kind": kind,
+                                    "booktype": booktype,
                                     "SARC": SARC,
                                     "IssueArcID": IssueArcID,
                                     "newznab": newznab_host,
@@ -3837,7 +3839,7 @@ def searcher(
             tmp_issueid = IssueID
         ggc = getcomics.GC(issueid=tmp_issueid, comicid=ComicID)
         ggc.loadsite(nzbid, link)
-        ddl_it = ggc.parse_downloadresults(nzbid, link)
+        ddl_it = ggc.parse_downloadresults(nzbid, link, comicinfo)
         if ddl_it['success'] is True:
             logger.info(
                 'Successfully snatched %s from DDL site. It is currently being queued'
