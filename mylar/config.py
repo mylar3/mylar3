@@ -119,7 +119,7 @@ _CONFIG_DEFINITIONS = OrderedDict({
 
     'CVAPI_RATE' : (int, 'CV', 2),
     'COMICVINE_API': (str, 'CV', None),
-    'BLACKLISTED_PUBLISHERS' : (str, 'CV', None),
+    'IGNORED_PUBLISHERS' : (str, 'CV', ""),
     'CV_VERIFY': (bool, 'CV', True),
     'CV_ONLY': (bool, 'CV', True),
     'CV_ONETIMER': (bool, 'CV', True),
@@ -280,7 +280,7 @@ _CONFIG_DEFINITIONS = OrderedDict({
 
     'STORYARCDIR': (bool, 'StoryArc', False),
     'COPY2ARCDIR': (bool, 'StoryArc', False),
-    'ARC_FOLDERFORMAT': (str, 'StoryArc', None),
+    'ARC_FOLDERFORMAT': (str, 'StoryArc', '$arc ($spanyears)'),
     'ARC_FILEOPS': (str, 'StoryArc', 'copy'),
     'UPCOMING_STORYARCS': (bool, 'StoryArc', False),
     'SEARCH_STORYARCS': (bool, 'StoryArc', False),
@@ -396,6 +396,7 @@ _BAD_DEFINITIONS = OrderedDict({
     'SAB_CLIENT_POST_PROCESSING': ('SABnbzd', None),
     'ENABLE_PUBLIC': ('Torrents', 'ENABLE_TPSE'),
     'PUBLIC_VERIFY': ('Torrents', 'TPSE_VERIFY'),
+    'IGNORED_PUBLISHERS': ('CV', 'BLACKLISTED_PUBLISHERS'),
 })
 
 class Config(object):
@@ -443,20 +444,22 @@ class Config(object):
 
             for b, bv in _BAD_DEFINITIONS.items():
                 try:
-                    if config.has_section(bv[0]) and any([b == k, bv[1] is None]):
+                    if all([config.has_section(bv[0]), any([b == k, bv[1] is None])]) and not config.has_option(xv[2],xv[0]):
                         cvs = xv
                         if bv[1] is None:
                             ckey = k
                         else:
                             ckey = bv[1]
                         corevalues = [ckey if x == 0 else x for x in cvs]
-                        corevalues = [bv[0] if x == corevalues.index(bv[0]) else x for x in cvs]
+                        corevalues = [bv[1] if x == b else x for x in cvs]
                         value = self.check_setting(corevalues)
-                        if bv[1] is None:
-                            config.remove_option(bv[0], ckey.lower())
-                            config.remove_section(bv[0])
-                        else:
-                            config.remove_option(bv[0], bv[1].lower())
+                        if config.has_section(bv[0]):
+                            if bv[1] is None:
+                                config.remove_option(bv[0], ckey.lower())
+                                config.remove_section(bv[0])
+                            else:
+                                config.remove_option(bv[0], bv[1].lower())
+                            self.WRITE_THE_CONFIG = True
                         break
                 except:
                     pass
@@ -529,6 +532,7 @@ class Config(object):
         self.config_vals()
         setattr(self, 'EXTRA_NEWZNABS', self.get_extra_newznabs())
         setattr(self, 'EXTRA_TORZNABS', self.get_extra_torznabs())
+        setattr(self, 'IGNORED_PUBLISHERS', self.get_ignored_pubs())
 
         if startup is True:
             if self.LOG_DIR is None:
@@ -775,14 +779,17 @@ class Config(object):
         config.set('Torznab', 'extra_torznabs', ', '.join(self.write_extras(self.EXTRA_TORZNABS)))
 
         ###this should be moved elsewhere...
-        if type(self.BLACKLISTED_PUBLISHERS) != list:
-            if self.BLACKLISTED_PUBLISHERS is None:
+        if type(self.IGNORED_PUBLISHERS) != list:
+            if self.IGNORED_PUBLISHERS is None:
                 bp = 'None'
             else:
-                bp = ', '.join(self.write_extras(self.BLACKLISTED_PUBLISHERS))
-            config.set('CV', 'blacklisted_publishers', bp)
+                if ',,' in self.IGNORED_PUBLISHERS:
+                    bp = 'None'
+                else:
+                    bp = ', '.join(self.IGNORED_PUBLISHERS)
+            config.set('CV', 'ignored_publishers', bp)
         else:
-            config.set('CV', 'blacklisted_publishers', ', '.join(self.BLACKLISTED_PUBLISHERS))
+            config.set('CV', 'ignored_publishers', ', '.join(self.IGNORED_PUBLISHERS))
         ###
         config.set('General', 'dynamic_update', str(self.DYNAMIC_UPDATE))
 
@@ -965,6 +972,9 @@ class Config(object):
             self.GRABBAG_DIR = os.path.join(self.DESTINATION_DIR, 'Grabbag')
             logger.fdebug('[Grabbag Directory] Setting One-Off directory to default location: %s' % self.GRABBAG_DIR)
 
+        if self.ARC_FOLDERFORMAT is None:
+            self.ARC_FOLDERFORMAT = '$arc ($spanyears)'
+
         ## Sanity checking
         if any([self.COMICVINE_API is None, self.COMICVINE_API == 'None', self.COMICVINE_API == '']):
             logger.error('No User Comicvine API key specified. I will not work very well due to api limits - http://api.comicvine.com/ and get your own free key.')
@@ -1007,8 +1017,10 @@ class Config(object):
             #we can't have metatagging enabled with hard/soft linking. Forcibly disable it here just in case it's set on load.
             self.ENABLE_META = False
 
-        if self.BLACKLISTED_PUBLISHERS is not None and type(self.BLACKLISTED_PUBLISHERS) == str:
-            setattr(self, 'BLACKLISTED_PUBLISHERS', self.BLACKLISTED_PUBLISHERS.split(', '))
+        if all([self.IGNORED_PUBLISHERS is not None, self.IGNORED_PUBLISHERS != '']):
+            logger.info('Ignored Publishers: %s' % self.IGNORED_PUBLISHERS)
+            if type(self.IGNORED_PUBLISHERS) == str:
+                setattr(self, 'ignored_PUBLISHERS', self.IGNORED_PUBLISHERS.split(', '))
 
         if all([self.AUTHENTICATION == 0, self.HTTP_USERNAME is not None, self.HTTP_PASSWORD is not None]):
             #set it to the default login prompt if nothing selected.
@@ -1018,7 +1030,6 @@ class Config(object):
 
         if self.ENCRYPT_PASSWORDS is True:
             self.encrypt_items(mode='decrypt')
-
         if all([self.IGNORE_TOTAL is True, self.IGNORE_HAVETOTAL is True]):
             self.IGNORE_TOTAL = False
             self.IGNORE_HAVETOTAL = False
@@ -1026,7 +1037,7 @@ class Config(object):
 
         #comictagger - force to use included version if option is enabled.
         import comictaggerlib.ctversion as ctversion
-        logger.info('[COMICTAGGER] Version detected: %s' % ctversion.version) 
+        logger.info('[COMICTAGGER] Version detected: %s' % ctversion.version)
         if self.ENABLE_META:
             mylar.CMTAGGER_PATH = mylar.PROG_DIR
 
@@ -1188,6 +1199,16 @@ class Config(object):
     def get_extra_torznabs(self):
         extra_torznabs = list(zip(*[iter(self.EXTRA_TORZNABS.split(', '))]*6))
         return extra_torznabs
+
+    def get_ignored_pubs(self):
+        if all([self.IGNORED_PUBLISHERS is not None, self.IGNORED_PUBLISHERS != '', len(self.IGNORED_PUBLISHERS) != 0]):
+            if not ',,' in self.IGNORED_PUBLISHERS:
+                ignored_pubs = [x.strip() for x in self.IGNORED_PUBLISHERS.split(',')]
+            else:
+                ignored_pubs = []
+        else:
+            ignored_pubs = []
+        return ignored_pubs
 
     def provider_sequence(self):
         PR = []
