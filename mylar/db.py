@@ -109,7 +109,7 @@ class DBConnection:
 
 
 
-    def action(self, query, args=None):
+    def action(self, query, args=None, executemany=False):
 
         with db_lock:
             if query == None:
@@ -121,11 +121,15 @@ class DBConnection:
             while attempt < 5:
                 try:
                     if args == None:
-                        #logger.fdebug("[ACTION] : " + query)
-                        sqlResult = self.connection.execute(query)
+                        if executemany is False:
+                            sqlResult = self.connection.execute(query)
+                        else:
+                            sqlResult = self.connection.executemany(query)
                     else:
-                        #logger.fdebug("[ACTION] : " + query + " with args " + str(args))
-                        sqlResult = self.connection.execute(query, args)
+                        if executemany is False:
+                            sqlResult = self.connection.execute(query, args)
+                        else:
+                            sqlResult = self.connection.executemany(query, args)
                     self.connection.commit()
                     break
                 except sqlite3.OperationalError as e:

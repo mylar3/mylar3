@@ -151,8 +151,11 @@ class WebInterface(object):
 
         #below sort is for multi-sort columns, maybe make them user configurable - not sure how to pass mutli-sort thru otherwise
         #filtered.sort(key= itemgetter(sortcolumn2, sortcolumn), reverse=sSortDir_0 == "desc")
-
-        filtered.sort(key=lambda x: (x[sortcolumn] is None, x[sortcolumn] == '', x[sortcolumn]), reverse=sSortDir_0 == "desc")
+        if sortcolumn == 'percent':
+            filtered.sort(key=lambda x: (x['totalissues'] is None, x['totalissues'] == '', x['totalissues']), reverse=sSortDir_0 == "asc")
+            filtered.sort(key=lambda x: (x['haveissues'] is None, x['haveissues'] == '', x['haveissues']), reverse=sSortDir_0 == "desc")
+        else:
+            filtered.sort(key=lambda x: (x[sortcolumn] is None, x[sortcolumn] == '', x[sortcolumn]), reverse=sSortDir_0 == "desc")
         rows = filtered[iDisplayStart:(iDisplayStart + iDisplayLength)]
         rows = [[row['ComicPublisher'], row['ComicName'], row['ComicYear'], row['LatestIssue'], row['LatestDate'], row['recentstatus'], row['Status'], row['percent'], row['haveissues'], row['totalissues'], row['ComicID'], row['displaytype'], row['ComicVolume']] for row in rows]
         return json.dumps({
@@ -5674,10 +5677,6 @@ class WebInterface(object):
             sabapikey = mylar.CONFIG.SAB_APIKEY
         logger.fdebug('Now attempting to test SABnzbd connection')
 
-        #if user/pass given, we can auto-fill the API ;)
-        if sabusername is None or sabpassword is None:
-            logger.error('No Username / Password provided for SABnzbd credentials. Unable to test API key')
-            return "Invalid Username/Password provided"
         logger.fdebug('testing connection to SABnzbd @ ' + sabhost)
         if sabhost.endswith('/'):
             sabhost = sabhost
@@ -5723,9 +5722,9 @@ class WebInterface(object):
                     r = requests.get(querysab, params=payload, verify=verify)
                 except Exception as e:
                     logger.warn('Error fetching data from %s: %s' % (sabhost, e))
-                    return 'Unable to retrieve data from SABnzbd'
+                    return json.dumps({"status": False, "message": "Unable to retrieve data from SABnzbd.", "version": str(version)})
             else:
-                return 'Unable to retrieve data from SABnzbd'
+                return json.dumps({"status": False, "message": "Unable to retrieve data from SABnzbd.", "version": str(version)})
 
 
         logger.fdebug('status code: ' + str(r.status_code))
@@ -5739,21 +5738,14 @@ class WebInterface(object):
         try:
             q_apikey = data['config']['misc']['api_key']
         except:
-            logger.error('Error detected attempting to retrieve SAB data using FULL APIKey')
-            if all([sabusername is not None, sabpassword is not None]):
-                try:
-                    sp = sabparse.sabnzbd(sabhost, sabusername, sabpassword)
-                    q_apikey = sp.sab_get()
-                except Exception as e:
-                    logger.warn('Error fetching data from %s: %s' % (sabhost, e))
-                if q_apikey is None:
-                    return "Invalid APIKey provided"
+            logger.error('Error detected attempting to retrieve SAB data using FULL API Key')
+            return json.dumps({"status": False, "message": "Invalid API Key provided.", "version": str(version)})
 
         mylar.CONFIG.SAB_APIKEY = q_apikey
-        logger.info('APIKey provided is the FULL APIKey which is the correct key. You still need to SAVE the config for the changes to be applied.')
+        logger.info('APIKey provided is the FULL API Key which is the correct key. You still need to SAVE the config for the changes to be applied.')
         logger.info('Connection to SABnzbd tested sucessfully')
         mylar.CONFIG.SAB_VERSION = version
-        return json.dumps({"status": "Successfully verified APIkey.", "version": str(version)})
+        return json.dumps({"status": True, "message": "Successfully verified API Key.", "version": str(version)})
 
     SABtest.exposed = True
 
@@ -5852,7 +5844,7 @@ class WebInterface(object):
     def findsabAPI(self, sabhost=None, sabusername=None, sabpassword=None):
         sp = sabparse.sabnzbd(sabhost, sabusername, sabpassword)
         sabapi = sp.sab_get()
-        logger.info('SAB APIKey found as : ' + str(sabapi) + '. You still have to save the config to retain this setting.')
+        logger.info('SAB API Key found as : ' + str(sabapi) + '. You still have to save the config to retain this setting.')
         mylar.CONFIG.SAB_APIKEY = sabapi
         return sabapi
 
