@@ -265,7 +265,7 @@ def search_init(
         if mylar.CONFIG.ENABLE_RSS:
             searchcnt = 1  # rss-only
         else:
-            searchcnt = 0  # if it's not enabled, don't even bother.
+            searchcnt = 1  # if it's not enabled, don't even bother.
     else:
         if mylar.CONFIG.ENABLE_RSS:
             searchcnt = 2  # rss first, then api on non-matches
@@ -2597,7 +2597,7 @@ def NZB_SEARCH(
                 cyear = ComicYear
             else:
                 cyear = comyear
-            notify_snatch(sent_to, ComicName, cyear, IssueNumber, nzbprov, False)
+            notify_snatch(sent_to, ComicName, cyear, IssueNumber, tmpprov, False)
         prov_count == 0
         mylar.TMP_PROV = nzbprov
 
@@ -4379,7 +4379,7 @@ def searcher(
             )
         # send out notifications for on snatch after the updater incase notification
         # fails (it would bugger up the updater/pp scripts)
-        notify_snatch(sent_to, ComicName, comyear, IssueNumber, nzbprov, False)
+        notify_snatch(sent_to, ComicName, comyear, IssueNumber, tmpprov, False)
         mylar.TMP_PROV = nzbprov
         return return_val
 
@@ -4394,6 +4394,9 @@ def notify_snatch(sent_to, comicname, comyear, IssueNumber, nzbprov, pack):
         snatched_name = '%s (%s) #%s' % (comicname, comyear, IssueNumber)
     else:
         snatched_name = '%s (%s)' % (comicname, comyear)
+
+    nzbprov = re.sub(r'\(newznab\)', '', nzbprov).strip()
+    nzbprov = re.sub(r'\(torznab\)', '', nzbprov).strip()
 
     if mylar.CONFIG.PROWL_ENABLED and mylar.CONFIG.PROWL_ONSNATCH:
         logger.info("Sending Prowl notification")
