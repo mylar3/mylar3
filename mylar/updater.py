@@ -14,7 +14,6 @@
 #  along with Mylar.  If not, see <http://www.gnu.org/licenses/>.
 import time
 import datetime
-from xml.dom.minidom import parseString
 import urllib.request, urllib.error, urllib.parse
 import shlex
 import operator
@@ -22,6 +21,7 @@ import re
 import os
 import itertools
 import sys
+import calendar
 
 import mylar
 from mylar import db, logger, helpers, filechecker
@@ -183,6 +183,14 @@ def dbUpdate(ComicIDList=None, calledfrom=None, sched=False):
                 #myDB.action('DELETE FROM annuals WHERE ComicID=?', [ComicID])
                 logger.fdebug("Refreshing the series and pulling in new data using only CV.")
 
+                lastissuedate = myDB.selectone('SELECT IssueDate, ReleaseDate FROM issues WHERE ComicID=? ORDER BY IssueDate DESC LIMIT 1', [ComicID]).fetchone()
+                if not lastissuedate:
+                    last_issuedate = '0000-00-00'  # set it to make sure every new issue gets autowanted if enabled.
+                else:
+                    last_issuedate = lastissuedate['IssueDate']
+                    if any([last_issuedate is None, last_issuedate == '0000-00-00']):
+                        last_issuedate = lastissuedate['ReleaseDate']
+
                 if whack == False:
                     chkstatus = mylar.importer.addComictoDB(ComicID, mismatch, calledfrom='dbupdate', annload=annload, csyear=csyear, fixed_type=fixed_type)
                     if chkstatus['status'] == 'complete':
@@ -263,6 +271,9 @@ def dbUpdate(ComicIDList=None, calledfrom=None, sched=False):
                                                 logger.fdebug('Issue_week: %s -- now_week: %s' % (issue_week, now_week))
                                                 logger.fdebug('Issue date [%s] is in/beyond current week - marking as Wanted.' % dk)
                                                 newVAL = {"Status": "Wanted"}
+                                            elif all([int(re.sub('-', '', last_issuedate).strip()) < int(dk), mylar.CONFIG.AUTOWANT_UPCOMING is True]):
+                                                logger.info('Autowant upcoming triggered for issue #%s' % issuenew['Issue_Number'])
+                                                newVal = {"Status": "Wanted"}
                                             else:
                                                 newVAL = {"Status":  "Skipped"}
 
@@ -342,7 +353,7 @@ def dbUpdate(ComicIDList=None, calledfrom=None, sched=False):
                 chkstatus = mylar.importer.addComictoDB(ComicID, mismatch)
 
         cnt += 1
-        if all([sched is False, calledfrom != 'refresh']):
+        if all([sched is False, calledfrom != 'refresh', len(comiclist) > 1]):
             time.sleep(15) #pause for 15 secs so dont hammer CV and get 500 error
         else:
             break
@@ -1680,3 +1691,165 @@ def totals(ComicID, havefiles=None, totalfiles=None, module=None, issueid=None, 
                             "ComicID":     ComicID}
         newValueStat = {"ComicSize":       os.path.getsize(file)}
         myDB.upsert(filetable, newValueStat, controlValueStat)
+
+
+def watchlist_updater(calledfrom=None, sched=False):
+    # this will retrieve the 'rss' from CV showing the last updated comicids
+    # btwn the last update & the current time. Any id's that fall into the existing
+    # watchlist, and whose last update time is before the update in the feed will
+    # then be queued to be updated. This is to replace the 5 minute auto-updater
+    # since that was very ineffecient.
+
+    myDB = db.DBConnection()
+
+    last_date = None
+    last_run = None
+
+    chk_time = myDB.selectone(
+                   "SELECT prev_run_datetime, last_run_completed, last_date"
+                   " from jobhistory WHERE JobName='DB Updater'"
+               ).fetchone()
+    if chk_time:
+        # get the last updated time from the sqlitedb.
+        last_run = chk_time['last_date']
+        last_date = chk_time['prev_run_datetime']
+
+    elif mylar.DB_BACKFILL is True:
+        ld = datetime.datetime.today()
+        lastrun = ld - datetime.timedelta(weeks = mylar.CONFIG.BACKFILL_LENGTH)
+        last_date = datetime.datetime.strftime(lastrun, '%Y-%m-%d %H:%M:%S')
+        logger.info(
+            '[BACKFILL-UPDATE][%s weeks] Setting backfill date to : %s. Anything that has '
+            ' been updated since this date will get refreshed. Let\'s GoOoo'
+            % (mylar.CONFIG.BACKFILL_LENGTH, last_date)
+        )
+
+    if last_run is not None:
+        # if last_run has a value, then the previous result set was > 1500
+        # so it's going thru the space-out process to backfill properly.
+        last_dater = datetime.datetime.utcfromtimestamp(last_run)
+        last_date = datetime.datetime.strftime(last_dater, '%Y-%m-%d %H:%M:%S')
+
+    # in order to make sure we update a bunch that probably haven't been updated
+    # on intially moving to this new update method, we need to backfill a certain
+    # amount. Set it to the last month which 'should' be enough. Note that this will
+    # get passed on config loading so it's set at that point
+
+    logger.info('[BACKFILL-UPDATE] last date set to : %s' % last_date)
+
+    # the initial load to this new method will be LARGE. So we'll have to
+    # stagger the rss over a few hrs just to make sure.
+
+    # first we get the rss feed.
+    try:
+        update_list = mylar.cv.getComic(
+                          comicid=None, rtype='db_updater', dateinfo=last_date
+                      )
+        # if it returns just a boolean, problem encountered. handle it.
+        if update_list is False:
+            logger.warn(
+                '[BACKFILL-UPDATE] CV is having problems atm. Deferring backfill'
+                ' job until next db update scheduled run time.'
+            )
+            mylar.DB_BACKFILL = False
+            helpers.job_management(write=True, job='DB Updater', last_run_completed=helpers.utctimestamp(), status='Waiting')
+            mylar.UPDATER_STATUS = 'Waiting'
+    except Exception:
+        pass
+
+    logger.fdebug('update_list: %s' % (update_list,))
+
+    if update_list['count'] == 0:
+        logger.info('[BACKFILL-UPDATE] Nothing new has been posted to any series in your watchlist')
+        return
+
+    set_the_bar = False
+
+    # set the staggered amount here, 1500 results = 100 * 15 api requests.
+    if update_list['totalcount'] >= 1500:
+        #counter = update_list['count'] - 1500
+        set_the_bar = True
+        if mylar.DB_BACKFILL is False:
+            logger.info(
+                '[BACKFILL-UPDATE] %s items returned since last CV update run. Will run every'
+                ' %s minutes grabbing the next 1500 results each time'
+                % (update_list['totalcount'], mylar.CONFIG.BACKFILL_TIMESPAN)
+            )
+            mylar.DB_BACKFILL = True
+
+
+    # update_list now contains dictionary containing all required info.
+    # cycle thru it to get any comicids in list, separate then poll those.
+
+    library = {}
+
+    if mylar.CONFIG.ANNUALS_ON is True:
+        list = myDB.select("SELECT a.comicid, b.releasecomicid, a.status, a.LastUpdated, a.Total FROM Comics AS a LEFT JOIN annuals AS b on a.comicid=b.comicid group by a.comicid")
+    else:
+        list = myDB.select("SELECT comicid, status FROM Comics group by comicid")
+
+    for row in list:
+        tm = datetime.datetime.strptime(row['LastUpdated'], '%Y-%m-%d %H:%M:%S')
+        library[int(row['ComicID'])] = {'comicid':        row['ComicID'],
+                                        'status':         row['Status'],
+                                        'lastupdated':    calendar.timegm(tm.utctimetuple()),
+                                        'total':          row['Total']}
+        try:
+            if row['ReleaseComicID'] is not None:
+                library[row['ReleaseComicID']] = {'comicid':   row['ComicID'],
+                                                  'status':    row['Status']}
+        except:
+            pass
+
+    # this is based on comicid updates atm.
+    to_check = []
+    loaddate_stamp = None
+    cntr = int(update_list['count'])
+    cntr_chk = 1
+    for x in update_list['results']:
+        if all([set_the_bar is True, loaddate_stamp is None, cntr_chk == cntr]) or loaddate_stamp is not None:
+            # set the last record timestamp as the newest date since it's in asc
+            loaddate = datetime.datetime.strptime(x['last_updated'], '%Y-%m-%d %H:%M:%S')
+            loaddate_stamp = calendar.timegm(loaddate.utctimetuple())
+
+        if x['comicid']['id'] in library:
+            #logger.info('matched to %s' % x['comicid']['id'])
+            tm = datetime.datetime.strptime(x['last_updated'], '%Y-%m-%d %H:%M:%S')
+            if all(
+               [
+                   library[x['comicid']['id']]['lastupdated'] < calendar.timegm(tm.utctimetuple()),
+               ]
+            ):
+                if x['comicid']['id'] not in to_check:
+                    to_check.append(x['comicid']['id'])
+        cntr_chk += 1
+
+    if len(to_check) > 0:
+        logger.info(
+            '[BACKFILL-UPDATE] [%s] series to update: %s' % (len(to_check), to_check)
+        )
+    else:
+        logger.info(
+            '[BACKFILL-UPDATE] No updates to watchlisted items checked against %s items'
+            % (cntr)
+        )
+
+    logger.info('[BACKFILL-UPDATE] Setting last update date to: %s' % loaddate_stamp)
+
+    # dbUpdate updates lasupdated so this won't get called again unless updated.
+    dbUpdate(to_check, calledfrom='updatedb')
+
+    # update the last_date so that if it's large set, we'll keep on ramping it up.
+    myDB.upsert("jobhistory", {'last_date': loaddate_stamp }, {'jobName': 'DB Updater'})
+    if loaddate_stamp is not None:
+        logger.info(
+            '[BACKFILL-UPDATE] [%s/%s] Setting last date update point temporarily to %s [%s]'
+            % (update_list['count'], update_list['totalcount'],
+            datetime.datetime.strftime(datetime.datetime.utcfromtimestamp(loaddate_stamp),
+            '%Y-%m-%d %H:%M:%S'), loaddate_stamp)
+        )
+    # once we trigger it the dates above are updated to backfill dates and we can
+    # reset the backfill to None so it doesn't fire off again.
+    if mylar.DB_BACKFILL is True and loaddate_stamp is None:
+        mylar.DB_BACKFILL = False
+    return

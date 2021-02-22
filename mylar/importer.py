@@ -66,6 +66,7 @@ def addComictoDB(comicid, mismatch=None, pullupd=None, imported=None, ogcname=No
             comlocation = None
         oldcomversion = None
         series_status = 'Loading'
+        serieslast_updated = None
         lastissueid = None
         aliases = None
         FirstImageSize = 0
@@ -83,6 +84,7 @@ def addComictoDB(comicid, mismatch=None, pullupd=None, imported=None, ogcname=No
         newValueDict = {"Status":   "Loading"}
         comlocation = dbcomic['ComicLocation']
         lastissueid = dbcomic['LatestIssueID']
+        serieslast_updated = dbcomic['LastUpdated']
         aliases = dbcomic['AlternateSearch']
         logger.info('aliases currently: %s' % aliases)
 
@@ -372,7 +374,7 @@ def addComictoDB(comicid, mismatch=None, pullupd=None, imported=None, ogcname=No
 
     #move to own function so can call independently to only refresh issue data
     #issued is from cv.getComic, comic['ComicName'] & comicid would both be already known to do independent call.
-    updateddata = updateissuedata(comicid, comic['ComicName'], issued, comicIssues, calledfrom, SeriesYear=SeriesYear, latestissueinfo=latestissueinfo)
+    updateddata = updateissuedata(comicid, comic['ComicName'], issued, comicIssues, calledfrom, SeriesYear=SeriesYear, latestissueinfo=latestissueinfo, serieslast_updated=serieslast_updated)
     issuedata = updateddata['issuedata']
     anndata = updateddata['annualchk']
     nostatus = updateddata['nostatus']
@@ -382,7 +384,7 @@ def addComictoDB(comicid, mismatch=None, pullupd=None, imported=None, ogcname=No
         return {'status': 'incomplete'}
 
     if any([calledfrom is None, calledfrom == 'maintenance']):
-        issue_collection(issuedata, nostatus='False')
+        issue_collection(issuedata, nostatus='False', serieslast_updated=serieslast_updated)
         #need to update annuals at this point too....
         if anndata:
             manualAnnual(annchk=anndata)
@@ -905,12 +907,20 @@ def GCDimport(gcomicid, pullupd=None, imported=None, ogcname=None):
         logger.info("Finished grabbing what I could.")
 
 
-def issue_collection(issuedata, nostatus):
+def issue_collection(issuedata, nostatus, serieslast_updated=None):
     myDB = db.DBConnection()
     nowdate = datetime.datetime.now()
     now_week = datetime.datetime.strftime(nowdate, "%Y%U")
 
     if issuedata:
+        isslastdate = myDB.selectone('SELECT IssueDate, ReleaseDate from issues where ComicID=? ORDER BY IssueDate DESC LIMIT 1', [issuedata[0]['ComicID']]).fetchone()
+        if not isslastdate:
+            lastchkdate = '0000-00-00'  # set it to make sure every new issue gets autowanted if enabled.
+        else:
+            lastchkdate = isslastdate['IssueDate']
+            if any([lastchkdate is None, lastchkdate == '0000-00-00']):
+                lastchkdate = isslastdate['ReleaseDate']
+
         for issue in issuedata:
 
 
@@ -955,8 +965,13 @@ def issue_collection(issuedata, nostatus):
                         if mylar.CONFIG.AUTOWANT_ALL:
                             newValueDict['Status'] = "Wanted"
                             #logger.fdebug('autowant all')
+                        elif serieslast_updated is None:
+                            newValueDict['Status'] = "Skipped"
                         elif issue_week >= now_week and mylar.CONFIG.AUTOWANT_UPCOMING:
                             #logger.fdebug(str(datechk) + ' >= ' + str(nowtime))
+                            newValueDict['Status'] = "Wanted"
+                        elif all([serieslast_updated < int(dk), mylar.CONFIG.AUTOWANT_UPCOMING is True]):
+                            logger.info('Autowant upcoming triggered for issue #%s' % issue['Issue_Number'])
                             newValueDict['Status'] = "Wanted"
                         else:
                             newValueDict['Status'] = "Skipped"
@@ -1070,7 +1085,7 @@ def manualAnnual(manual_comicid=None, comicname=None, comicyear=None, comicid=No
         return
 
 
-def updateissuedata(comicid, comicname=None, issued=None, comicIssues=None, calledfrom=None, issuechk=None, issuetype=None, SeriesYear=None, latestissueinfo=None):
+def updateissuedata(comicid, comicname=None, issued=None, comicIssues=None, calledfrom=None, issuechk=None, issuetype=None, SeriesYear=None, latestissueinfo=None, serieslast_updated=None):
     annualchk = []
     weeklyissue_check = []
     logger.fdebug('issuedata call references...')
@@ -1345,10 +1360,10 @@ def updateissuedata(comicid, comicname=None, issued=None, comicIssues=None, call
         #if calledfrom == 'weeklycheck':
         if len(issuedata) >= 1 and not calledfrom  == 'dbupdate':
             logger.fdebug('initiating issue updating - info & status')
-            issue_collection(issuedata, nostatus='False')
+            issue_collection(issuedata, nostatus='False', serieslast_updated=serieslast_updated)
         else:
             logger.fdebug('initiating issue updating - just the info')
-            issue_collection(issuedata, nostatus='True')
+            issue_collection(issuedata, nostatus='True', serieslast_updated=serieslast_updated)
 
         styear = str(SeriesYear)
         if firstdate is not None:
@@ -1497,7 +1512,6 @@ def annual_check(ComicName, SeriesYear, comicid, issuetype, issuechk, annualslis
         annualyear = SeriesYear  # no matter what, the year won't be less than this.
         logger.fdebug('[IMPORTER-ANNUAL] - Annual Year:' + str(annualyear))
         sresults = mb.findComic(annComicName, mode, issue=None)
-        type='comic'
 
         annual_types_ignore = {'paperback', 'collecting', 'reprints', 'collected edition', 'print edition', 'tpb', 'available in print', 'collects'}
 

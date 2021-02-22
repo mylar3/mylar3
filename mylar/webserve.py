@@ -635,7 +635,7 @@ class WebInterface(object):
                             f.write(chunk)
                             f.flush()
 
-        arc_results = mylar.cv.getComic(comicid=None, type='issue', arcid=arcid, arclist=arclist)
+        arc_results = mylar.cv.getComic(comicid=None, rtype='issue', arcid=arcid, arclist=arclist)
         logger.fdebug('%s Arcresults: %s' % (module, arc_results))
         logger.fdebug('%s Arclist: %s' % (module, arclist))
         if len(arc_results) > 0:
@@ -731,7 +731,7 @@ class WebInterface(object):
                                   "Int_IssueNumber":    int_issnum,
                                   "Manual":             manual_mod})
                 n+=1
-            comicid_results = mylar.cv.getComic(comicid=None, type='comicyears', comicidlist=cidlist)
+            comicid_results = mylar.cv.getComic(comicid=None, rtype='comicyears', comicidlist=cidlist)
             logger.fdebug('%s Initiating issue updating - just the info' % module)
 
             for AD in issuedata:
@@ -6913,3 +6913,9 @@ class WebInterface(object):
         #data = wv.read_comic(ish_id)
         return data
     read_comic.exposed = True
+
+    def dbupdater_watchlist(self):
+        updater.watchlist_updater()
+    dbupdater_watchlist.exposed = True
+
+

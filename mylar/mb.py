@@ -533,7 +533,7 @@ def storyarcinfo(xmlid):
             fi+=1
         logger.fdebug('firstid: ' + str(firstid))
         if firstid is not None:
-            firstdom = cv.pulldetails(comicid=None, type='firstissue', issueid=firstid)
+            firstdom = cv.pulldetails(comicid=None, rtype='firstissue', issueid=firstid)
             logger.fdebug('success')
             arcyear = cv.Getissue(firstid,firstdom,'firstissue')
     except:
