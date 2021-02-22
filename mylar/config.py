@@ -82,6 +82,8 @@ _CONFIG_DEFINITIONS = OrderedDict({
     'SECURE_DIR': (str, 'General', None),
     'ENCRYPT_PASSWORDS': (bool, 'General', False),
     'BACKUP_ON_START': (bool, 'General', False),
+    'BACKFILL_LENGTH': (int, 'General', 8),  # weeks
+    'BACKFILL_TIMESPAN': (int, 'General', 10),   # minutes
 
     'RSS_CHECKINTERVAL': (int, 'Scheduler', 20),
     'SEARCH_INTERVAL': (int, 'Scheduler', 360),
