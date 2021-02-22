@@ -135,9 +135,11 @@ def today():
     yyyymmdd = datetime.date.isoformat(today)
     return yyyymmdd
 
-def now():
+def now(format_string=None):
     now = datetime.datetime.now()
-    return now.strftime("%Y-%m-%d %H:%M:%S")
+    if format_string is None:
+        format_string = "%Y-%m-%d %H:%M:%S"
+    return now.strftime(format_string)
 
 def utctimestamp():
     return time.time()
@@ -1928,7 +1930,7 @@ def manualArc(issueid, reading_order, storyarcid):
                            "ReadingOrder":   issarc['ReadingOrder']})
 
 
-    arc_results = mylar.cv.getComic(comicid=None, type='issue', issueid=None, arcid=storyarcid, arclist='M' + str(issueid))
+    arc_results = mylar.cv.getComic(comicid=None, rtype='issue', issueid=None, arcid=storyarcid, arclist='M' + str(issueid))
     arcval = arc_results['issuechoice'][0]
     comicname = arcval['ComicName']
     st_d = mylar.filechecker.FileChecker(watchcomic=comicname)
@@ -1967,7 +1969,7 @@ def manualArc(issueid, reading_order, storyarcid):
     storedate = str(arcval['Store_Date'])
     int_issnum = issuedigits(issnum)
 
-    comicid_results = mylar.cv.getComic(comicid=None, type='comicyears', comicidlist=cidlist)
+    comicid_results = mylar.cv.getComic(comicid=None, rtype='comicyears', comicidlist=cidlist)
     seriesYear = 'None'
     issuePublisher = 'None'
     seriesVolume = 'None'
@@ -3642,7 +3644,16 @@ def job_management(write=False, job=None, last_run_completed=None, current_run=N
                             if 'Status Updater' in jb.lower():
                                continue
                             elif job == 'DB Updater' and 'update' in jb.lower():
-                                nextrun_stamp = utctimestamp() + (int(mylar.DBUPDATE_INTERVAL) * 60)
+                                if mylar.DB_BACKFILL is True:
+                                    #if backfilling, set it for every 15 mins
+                                    nextrun_stamp = utctimestamp() + (mylar.CONFIG.BACKFILL_TIMESPAN * 60)
+                                    logger.fdebug(
+                                        '[BACKFILL-UPDATER] Will fire off every %s'
+                                        ' minutes until backlog is decimated.'
+                                        % (mylar.CONFIG.BACKFILL_TIMESPAN)
+                                    )
+                                else:
+                                    nextrun_stamp = utctimestamp() + (int(mylar.DBUPDATE_INTERVAL) * 60)
                                 jobstore = jbst
                                 break
                             elif job == 'Auto-Search' and 'search' in jb.lower():
