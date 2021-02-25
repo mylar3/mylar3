@@ -134,9 +134,9 @@ def dbUpdate(ComicIDList=None, calledfrom=None, sched=False):
                 cchk = importer.addComictoDB(ComicID, mismatch)
         else:
             if mylar.CONFIG.CV_ONETIMER == 1:
-                if sched is True:
-                    helpers.job_management(write=True, job='DB Updater', current_run=helpers.utctimestamp(), status='Running')
-                    mylar.UPDATER_STATUS = 'Running'
+                #if sched is True:
+                #    helpers.job_management(write=True, job='DB Updater', current_run=helpers.utctimestamp(), status='Running')
+                #    mylar.UPDATER_STATUS = 'Running'
                 logger.fdebug("CV_OneTimer option enabled...")
                 #in order to update to JUST CV_ONLY, we need to delete the issues for a given series so it's a clea$
                 logger.fdebug("Gathering the status of all issues for the series.")
@@ -358,8 +358,8 @@ def dbUpdate(ComicIDList=None, calledfrom=None, sched=False):
         else:
             break
 
-    helpers.job_management(write=True, job='DB Updater', last_run_completed=helpers.utctimestamp(), status='Waiting')
-    mylar.UPDATER_STATUS = 'Waiting'
+    #helpers.job_management(write=True, job='DB Updater', last_run_completed=helpers.utctimestamp(), status='Waiting')
+    #mylar.UPDATER_STATUS = 'Waiting'
     logger.fdebug('Update complete')
 
 def latest_update(ComicID, LatestIssue, LatestDate):
@@ -1700,6 +1700,9 @@ def watchlist_updater(calledfrom=None, sched=False):
     # then be queued to be updated. This is to replace the 5 minute auto-updater
     # since that was very ineffecient.
 
+    helpers.job_management(write=True, job='DB Updater', current_run=helpers.utctimestamp(), status='Running')
+    mylar.UPDATER_STATUS = 'Running'
+
     myDB = db.DBConnection()
 
     last_date = None
@@ -1761,6 +1764,8 @@ def watchlist_updater(calledfrom=None, sched=False):
 
     if update_list['count'] == 0:
         logger.info('[BACKFILL-UPDATE] Nothing new has been posted to any series in your watchlist')
+        helpers.job_management(write=True, job='DB Updater', current_run=helpers.utctimestamp(), status='Running')
+        mylar.UPDATER_STATUS = 'Running'
         return
 
     set_the_bar = False
@@ -1848,6 +1853,10 @@ def watchlist_updater(calledfrom=None, sched=False):
             datetime.datetime.strftime(datetime.datetime.utcfromtimestamp(loaddate_stamp),
             '%Y-%m-%d %H:%M:%S'), loaddate_stamp)
         )
+
+    helpers.job_management(write=True, job='DB Updater', current_run=helpers.utctimestamp(), status='Running')
+    mylar.UPDATER_STATUS = 'Running'
+
     # once we trigger it the dates above are updated to backfill dates and we can
     # reset the backfill to None so it doesn't fire off again.
     if mylar.DB_BACKFILL is True and loaddate_stamp is None:
