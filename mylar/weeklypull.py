@@ -69,25 +69,44 @@ def pullit(forcecheck=None, weeknumber=None, year=None):
         newpull.newpull()
     elif mylar.CONFIG.ALT_PULL == 2:
         logger.info('[PULL-LIST] Populating & Loading pull-list data directly from alternate website')
-        if pulldate is not None:
-            chk_locg = locg.locg('00000000')  #setting this to 00000000 will do a Recreate on every call instead of a Refresh
-        else:
-            logger.info('[PULL-LIST] Populating & Loading pull-list data directly from alternate website for specific week of %s, %s' % (weeknumber, year))
-            chk_locg = locg.locg(weeknumber=weeknumber, year=year)
+        for x in [1, 2]:
+            if x == 1:
+                if pulldate is not None:
+                    todaydate = datetime.datetime.today().replace(second=0,microsecond=0)
+                    weeknumber = todaydate.strftime('%U')
+                    year = todaydate.strftime("%Y")
 
-        if chk_locg['status'] == 'up2date':
-            logger.info('[PULL-LIST] Pull-list is already up-to-date with ' + str(chk_locg['count']) + 'issues. Polling watchlist against it to see if anything is new.')
-            mylar.PULLNEW = 'no'
-            return new_pullcheck(chk_locg['weeknumber'],chk_locg['year'])
-        elif chk_locg['status'] == 'success':
-            logger.info('[PULL-LIST] Weekly Pull List successfully loaded with ' + str(chk_locg['count']) + ' issues.')
-            return new_pullcheck(chk_locg['weeknumber'],chk_locg['year'])
-        elif chk_locg['status'] == 'update_required':
-            logger.warn('[PULL-LIST] Your version of Mylar is not up-to-date. You MUST update before this works')
-            return
-        else:
-            logger.info('[PULL-LIST] Unable to retrieve weekly pull-list. Dropping down to legacy method of PW-file')
-            mylar.PULLBYFILE = pull_the_file(newrl)
+                weeknumber_mod = int(weeknumber) - 1
+                year_mod = year
+                if weeknumber_mod < 0:
+                    weeknumber_mod = 52
+                    year_mod = int(year) - 1
+            else:
+               weeknumber_mod = weeknumber
+               year_mod = year
+
+            if forcecheck == 'yes' and x == 1:
+               continue
+
+            logger.info('[PULL-LIST] Populating & Loading pull-list data directly from alternate website for specific week of %s, %s' % (weeknumber_mod, year_mod))
+            chk_locg = locg.locg(weeknumber=weeknumber_mod, year=year_mod)
+
+            if chk_locg['status'] == 'up2date':
+                logger.info('[PULL-LIST] Pull-list is already up-to-date with ' + str(chk_locg['count']) + 'issues. Polling watchlist against it to see if anything is new.')
+                mylar.PULLNEW = 'no'
+                new_pullcheck(chk_locg['weeknumber'],chk_locg['year'])
+            elif chk_locg['status'] == 'success':
+                logger.info('[PULL-LIST] Weekly Pull List successfully loaded with ' + str(chk_locg['count']) + ' issues.')
+                new_pullcheck(chk_locg['weeknumber'],chk_locg['year'])
+            elif chk_locg['status'] == 'update_required':
+                logger.warn('[PULL-LIST] Your version of Mylar is not up-to-date. You MUST update before this works')
+                return
+            else:
+                logger.info('[PULL-LIST] Unable to retrieve weekly pull-list. Dropping down to legacy method of PW-file')
+                mylar.PULLBYFILE = pull_the_file(newrl)
+                break
+        return
+
     else:
         logger.info('[PULL-LIST] Populating & Loading pull-list data from file')
         mylar.PULLBYFILE = pull_the_file(newrl)
