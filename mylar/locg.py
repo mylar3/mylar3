@@ -132,7 +132,7 @@ def locg(pulldate=None,weeknumber=None,year=None):
                                 'FORMAT':      x['format']}
                 myDB.upsert("weekly", newValueDict, controlValueDict)
 
-            logger.info('[PULL-LIST] Successfully populated pull-list into Mylar for the week of: ' + str(weeknumber))
+            logger.info('[PULL-LIST] Successfully populated pull-list into Mylar for week %s of %s' % (weeknumber, year))
             #set the last poll date/time here so that we don't start overwriting stuff too much...
             mylar.CONFIG.PULL_REFRESH = todaydate.strftime('%Y-%m-%d %H:%M:%S')
             mylar.CONFIG.writeconfig(values={'pull_refresh': mylar.CONFIG.PULL_REFRESH})
