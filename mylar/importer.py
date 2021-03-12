@@ -47,6 +47,15 @@ def is_exists(comicid):
     else:
         return False
 
+def addvialist():
+    if mylar.ADD_LIST:
+        cnt = 1
+        for x in mylar.ADD_LIST:
+            logger.info('[MASS-ADD][%s/%s] Now adding %s [%s] to your watchlist' % (cnt, len(mylar.ADD_LIST), x['series'], x['comicid']))
+            addComictoDB(x['comicid'])
+            #mylar.ADD_LIST.pop(x)
+            cnt += 1
+        logger.info('[MASS-ADD] Succesfully added %s series to your watchlist' % (cnt-1))
 
 def addComictoDB(comicid, mismatch=None, pullupd=None, imported=None, ogcname=None, calledfrom=None, annload=None, chkwant=None, issuechk=None, issuetype=None, latestissueinfo=None, csyear=None, fixed_type=None):
     myDB = db.DBConnection()

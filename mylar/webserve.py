@@ -6918,4 +6918,34 @@ class WebInterface(object):
         updater.watchlist_updater()
     dbupdater_watchlist.exposed = True
 
+    def dump_that_shizzle(self, weeknumber,  year):
+        # if any([user == 'Offspring', user == 'SCSi']):
+        #     print('now leave me alone.')
+        watchlibrary = helpers.listLibrary()
+        watch = []
 
+        myDB = db.DBConnection()
+        watchlist = myDB.select('SELECT * FROM weekly WHERE weeknumber=? and year=?', [weeknumber, year])
+
+        if watchlist:
+            for wt in watchlist:
+                if wt['comicid'] not in watchlibrary and wt['comicid'] is not None:
+                    if not any(ext['comicid'] == wt['comicid'] for ext in mylar.ADD_LIST):
+                        watch.append({'comicid': wt['comicid'], 'series': wt['comic']})
+
+        if len(watch) > 0:
+            logger.info('[SHIZZLE-WHIZZLE] Now queueing to mass add %s new series to your watchlist' % len(watch))
+            try:
+                if mylar.MASS_ADD.is_alive():
+                    mylar.ADD_LIST += watch
+                    logger.info('[MASS-ADD] MASS_ADD thread already running. Adding an additional %s items to existing queue' % len(watch))
+                    return
+            except Exception:
+                pass
+
+            logger.info('[MASS-ADD] MASS_ADD thread not started. Started & submitting.')
+            mylar.ADD_LIST += watch
+            mylar.MASS_ADD = threading.Thread(target=importer.addvialist, name="mass-add")
+            mylar.MASS_ADD.start()
+
+    dump_that_shizzle.exposed = True

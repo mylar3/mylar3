@@ -11,10 +11,13 @@
                         <a href="#" id="menu_link_refresh" onclick="doAjaxCall('pullist?week=${weekinfo['weeknumber']}&year=${weekinfo['year']}',$(this),'table')" data-success="Refresh submitted.">Refresh Pull-list</a>
                         <a href="#" id="menu_link_retry" onclick="doAjaxCall('pullrecreate?weeknumber=${weekinfo['weeknumber']}&year=${weekinfo['year']}',$(this),'table')" data-success="Recreating Pullist for week ${weekinfo['weeknumber']}, ${weekinfo['year']}">Recreate Pull-list</a>
 <!--
-                    <a href="#" id="menu_link_retry" onclick="doAjaxCall('create_readlist?weeknumber=${weekinfo['weeknumber']}&year=${weekinfo['year']}',$(this),'table')" data-success="Submitted request for reading-list generation for this week">Generate Reading-List</a>
+                        <a href="#" id="menu_link_retry" onclick="doAjaxCall('create_readlist?weeknumber=${weekinfo['weeknumber']}&year=${weekinfo['year']}',$(this),'table')" data-success="Submitted request for reading-list generation for this week">Generate Reading-List</a>
 -->
-                        <a id="menu_link_scan" class="button">Download</a>
-                        <a href="#" id="menu_link_refresh" onclick="doAjaxCall('pullSearch?week=${weekinfo['weeknumber']}&year=${weekinfo['year']}',$(this),'table')" data-success="Submitted background search request for new pull issues">Manually check for issues</a>
+                        <a href="#" id="menu_link_retry" title="Add all series to your watchlist for week ${weekinfo['weeknumber']}" onclick="doAjaxCall('dump_that_shizzle?weeknumber=${weekinfo['weeknumber']}&year=${weekinfo['year']}',$(this),true)" data-success="Queueing adding of entire Pullist into your watchlist for week ${weekinfo['weeknumber']}, ${weekinfo['year']}" data-failure="Could not queue items for mass add. Check logs">Add it all.</a>
+                        %if mylar.CONFIG.WEEKFOLDER:
+                            <a id="menu_link_scan" title="copy weekly snatched items into weekly folder of ${weekfold}" class="button">Download</a>
+                        %endif
+                        <a href="#" id="menu_link_refresh" title="Search for all issues marked as Wanted for week ${weekinfo['weeknumber']}" onclick="doAjaxCall('pullSearch?week=${weekinfo['weeknumber']}&year=${weekinfo['year']}',$(this),'table')" data-success="Submitted background search request for new pull issues">Manually check for issues</a>
                         %if all([mylar.CONFIG.ENABLE_TORRENT_SEARCH is True, mylar.CONFIG.ENABLE_32P is True, mylar.CONFIG.MODE_32P is True]):
                             <a href="#" id="menu_link_refresh" onclick="doAjaxCall('download_0day?week=${weekinfo['midweek']}',$(this),'table')" data-success="Submitted background search request for 0-day pack for this week">Download 0-Day Pack</a>
                         %endif
