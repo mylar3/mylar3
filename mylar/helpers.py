@@ -505,7 +505,7 @@ def rename_param(comicid, comicname, issue, ofilename, comicyear=None, issueid=N
                     logger.fdebug('issue detected greater than 10, but less than 100')
                     if any([mylar.CONFIG.ZERO_LEVEL_N == "none", mylar.CONFIG.ZERO_LEVEL_N is None, mylar.CONFIG.ZERO_LEVEL is False, mylar.CONFIG.ZERO_LEVEL_N == "0x"]):
                         zeroadd = ""
-                    else :
+                    else:
                         zeroadd = "0"
                     if '.' in iss:
                         if int(iss_decval) > 0:
