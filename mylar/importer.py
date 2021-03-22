@@ -298,14 +298,19 @@ def addComictoDB(comicid, mismatch=None, pullupd=None, imported=None, ogcname=No
                     filechecker.setperms(comiclocal)
             except IOError as e:
                 logger.error('[%s] Unable to save cover (%s) into series directory (%s) at this time.' % (e, cimage, comiclocal))
+
     else:
         ComicImage = None
 
-    #for description ...
-    #Cdesc = helpers.cleanhtml(comic['ComicDescription'])
-    #cdes_find = Cdesc.find("Collected")
-    #cdes_removed = Cdesc[:cdes_find]
-    #logger.fdebug('description: ' + cdes_removed)
+    # store the cover for the series as a thumbnail as folder.jpg if option is enabled.
+    if mylar.CONFIG.COVER_FOLDER_LOCAL is True:
+        if comic['ComicImageThumbnail'] != 'None':
+            if not os.path.exists(os.path.join(comlocation, 'folder.jpg')):
+                th_check = helpers.getImage(comicid, comic['ComicImageThumbnail'], thumbnail_path=os.path.join(comlocation, 'folder.jpg'))
+                if th_check['status'] == 'success':
+                    logger.fdebug('Thumbnail image successfully stored as %s' % os.path.join(comlocation, 'folder.jpg'))
+        else:
+            logger.fdebug('Thumbnail not present on CV. Not storing locallly.')
 
     #dynamic-name generation here.
     as_d = filechecker.FileChecker(watchcomic=comic['ComicName'])
@@ -341,6 +346,16 @@ def addComictoDB(comicid, mismatch=None, pullupd=None, imported=None, ogcname=No
     else:
         booktype = comic['Type']
 
+    #for description ...
+    #Cdesc = helpers.cleanhtml(comic['ComicDescription'])
+    Cdesc = comic['ComicDescription']
+    if Cdesc != 'None':
+        cdes_find = Cdesc.find('Collected')
+        cdes_removed = Cdesc[:cdes_find]
+    else:
+        cdes_removed = None
+    #logger.fdebug('description: ' + cdes_removed)
+
     controlValueDict = {"ComicID":        comicid}
     newValueDict = {"ComicName":          comic['ComicName'],
                     "ComicSortName":      sortname,
@@ -355,7 +370,7 @@ def addComictoDB(comicid, mismatch=None, pullupd=None, imported=None, ogcname=No
                     "ComicVersion":       comicVol,
                     "ComicLocation":      comlocation,
                     "ComicPublisher":     comic['ComicPublisher'],
-#                    "Description":       Cdesc, #.dencode('utf-8', 'replace'),
+                    "Description":        cdes_removed,
                     "DetailURL":          comic['ComicURL'],
                     "AlternateSearch":    aliases,
 #                    "ComicPublished":    gcdinfo['resultPublished'],
@@ -391,6 +406,52 @@ def addComictoDB(comicid, mismatch=None, pullupd=None, imported=None, ogcname=No
     if issuedata is None:
         logger.warn('Unable to complete Refreshing / Adding issue data - this WILL create future problems if not addressed.')
         return {'status': 'incomplete'}
+    else:
+
+        #write out series.json here if enabled.
+        if mylar.CONFIG.SERIES_METADATA_LOCAL is True:
+            c_date = datetime.date(int(importantdates['LatestDate'][:4]), int(importantdates['LatestDate'][5:7]), 1)
+            n_date = datetime.date.today()
+            recentchk = (n_date - c_date).days
+            if importantdates['NewPublish'] is True:
+                series_status = 'Continuing'
+            else:
+                #do this just incase and as an extra measure of accuracy hopefully.
+                if recentchk < 55:
+                    series_status = 'Continuing'
+                else:
+                    series_status = 'Ended'
+
+            clean_issue_list = None
+            if comic['Issue_List'] != 'None':
+                clean_issue_list = comic['Issue_List']
+
+            c_image = comic
+            metadata = {}
+            metadata['metadata'] = [(
+                                        {'type': 'comicSeries',
+                                         'publisher': comic['ComicPublisher'],
+                                         'name': comic['ComicName'],
+                                         'comicid': comicid,
+                                         'year': SeriesYear,
+                                         'description': cdes_removed,
+                                         'volume': comicVol,
+                                         'booktype': booktype,
+                                         'collects': clean_issue_list,
+                                         'ComicImage': comic.get('ComicImage', None),
+                                         'ComicImageThumbnail': comic.get('ComicImageThumbnail', None),
+                                         'total_issues': comicIssues,
+                                         'publication_run': importantdates['ComicPublished'],
+                                         'status': series_status}
+            )]
+
+            try:
+                with open(os.path.join(comlocation, 'series.json'), 'w', encoding='utf-8') as outfile:
+                    json.dump(metadata, outfile, indent=4, ensure_ascii=False)
+            except Exception as e:
+                logger.error('Unable to write series.json to %s. Error returned: %s' % (comlocation, e))
+            else:
+                logger.fdebug('Successfully written series.json file to %s' % comlocation)
 
     if any([calledfrom is None, calledfrom == 'maintenance']):
         issue_collection(issuedata, nostatus='False', serieslast_updated=serieslast_updated)
@@ -1390,6 +1451,13 @@ def updateissuedata(comicid, comicname=None, issued=None, comicIssues=None, call
         else:
             stmonth = helpers.fullmonth(firstdate[5:7])
 
+        #if the store date exists and is newer than the pub date - use the store date for ended calcs.
+        if latest_stdate is not None:
+            p_date = datetime.date(int(latestdate[:4]), int(latestdate[5:7]), 1)
+            s_date = datetime.date(int(latest_stdate[:4]), int(latest_stdate[5:7]), 1)
+            if s_date > p_date:
+               latestdate = latest_stdate
+
         ltyear = re.sub('/s', '', latestdate[:4])
         if latestdate[5:7] == '00':
             ltmonth = "?"
@@ -1428,7 +1496,10 @@ def updateissuedata(comicid, comicname=None, issued=None, comicIssues=None, call
             publishfigure = str(styear) + ' - ' + str(lastpubdate)
         else:
             newpublish = False
-            publishfigure = str(stmonth) + ' ' + str(styear) + ' - ' + str(lastpubdate)
+            if lastpubdate == '%s %s' % (stmonth, styear):
+                publishfigure = '%s %s' % (stmonth, styear)
+            else:
+                publishfigure = '%s %s - %s' % (stmonth, styear, lastpubdate)
 
         if stmonth == '?' and styear == '?' and lastpubdate =='0000' and comicIssues == '0':
             logger.info('No available issue data - I believe this is a NEW series.')
@@ -1460,12 +1531,14 @@ def updateissuedata(comicid, comicname=None, issued=None, comicIssues=None, call
     importantdates['LatestStoreDate'] = latest_stdate
     importantdates['LastPubDate'] = lastpubdate
     importantdates['SeriesStatus'] = 'Active'
+    importantdates['ComicPublished'] = publishfigure
+    importantdates['NewPublish'] = newpublish
 
     if calledfrom == 'weeklycheck':
         return weeklyissue_check
 
     elif len(issuedata) >= 1 and not calledfrom  == 'dbupdate':
-        return {'issuedata': issuedata, 
+        return {'issuedata': issuedata,
                 'annualchk': annualchk,
                 'importantdates': importantdates,
                 'nostatus':  False}
