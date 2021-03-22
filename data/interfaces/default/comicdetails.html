@@ -93,6 +93,15 @@
                                          css = '<div class=\"progress-container missing\">'
                           %>
                    <div style="display:table;position:relative;margin:auto;top:0px;"><span title="${comicConfig['percent']}"></span>${css}<div style="width:${comicConfig['percent']}%"><span class="progressbar-front-text">${comicConfig['haveissues']}/${comicConfig['totalissues']}</span></div></div></div>
+                   %if mylar.CONFIG.SERIES_METADATA_LOCAL is True:
+                       <div class="outerglow" style="z-index: 10; position: absolute; float: right; bottom: 10px; right: -50px;">
+                       %if os.path.exists(os.path.join(comic['ComicLocation'], 'series.json')):
+                           <span title="series.json found in comic directory" class="outerglow_shadow">series.json</span>
+                           <span class="outerglow_text">series.json</span>
+                       %endif
+                       </div>
+                   %endif
+
                  </td>
                  <td width="100%" padding="10">
                        %if comicConfig['publisher_image'] is not None:
@@ -186,13 +195,20 @@
                                        <label><big>Directory</big><br/><norm>${comic['ComicLocation']}</norm></label>
                                     %endif
                                 </div>
-<!--                            <div>
-                                   <label><big>Description:</big></label><br/>
-                                   <small>${comic['Description']}</small>
--->                             </div>
+                                %if comic['Description']:
+                                    <%
+                                         if len(comic['Description']) > 300:
+                                             cdescription = '%s <span id="dots">...</span><span id="more">%s</span><a href="#" onclick="moreMore()" style="color:yellow;" id="readMore"> more</a>' % (comic['Description'][:300], comic['Description'][300:])
+                                         else:
+                                             cdescription = comic['Description']
+                                    %>
+                                    <div>
+                                        <br/><label><big>Description:</big></label><br/>
+                                        <small><p>${cdescription}</p></small>
+                                    </div>
+                                %endif
                          </fieldset>
-
-            	</td>
+                </td>
             </tr>
         </table>
 	</div>
@@ -766,7 +782,7 @@
         #annseries{ width: 25em; }
         </style>
         <script>
-       $(document).ready(function() {
+        $(document).ready(function() {
             $('.edit').editable('issue_edit', {
                 callback : function(value, settings) {
                     console.log(this);
@@ -776,6 +792,21 @@
                 }
             });
         });
+        // ... more
+        function moreMore() {
+           var dots = document.getElementById("dots");
+           var moreText = document.getElementById("more");
+           var optText = document.getElementById("readMore");
+           if (dots.style.display == "none"){
+             dots.style.display = "inline";
+             optText.innerHTML = " more";
+             moreText.style.display = "none";
+           } else {
+             dots.style.display = "none";
+             optText.innerHTML = "  less";
+             moreText.style.display = "inline";
+           }
+        }
         </script>
         <script>
         $(document).ready(function() {
