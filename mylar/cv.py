@@ -352,7 +352,7 @@ def GetComicInfo(comicid, dom, safechk=None):
     except:
         comic_deck = 'None'
 
-    #comic['ComicDescription'] = comic_desc
+    comic['ComicDescription'] = comic_desc
 
     try:
         comic['Aliases'] = dom.getElementsByTagName('aliases')[0].firstChild.wholeText
@@ -590,8 +590,23 @@ def GetComicInfo(comicid, dom, safechk=None):
     else:
         comic['ComicIssues'] = dom.getElementsByTagName('count_of_issues')[0].firstChild.wholeText
 
-    comic['ComicImage'] = dom.getElementsByTagName('super_url')[0].firstChild.wholeText
-    comic['ComicImageALT'] = dom.getElementsByTagName('small_url')[0].firstChild.wholeText
+    try:
+        comic['ComicImage'] = dom.getElementsByTagName('super_url')[0].firstChild.wholeText
+    except:
+        try:
+            comic['ComicImage'] = dom.getElementByTagName('original_url')[0].firstChild.wholeText
+        except:
+            comic['ComicImage'] = 'None'
+
+    try:
+        comic['ComicImageALT'] = dom.getElementsByTagName('small_url')[0].firstChild.wholeText
+    except:
+        comic['ComicImageALT'] = 'None'
+
+    try:
+        comic['ComicImageThumbnail'] = dom.getElementsByTagName('icon_url')[0].firstChild.wholeText
+    except:
+        comic['ComicImageThumbnail'] = 'None'
 
     comic['FirstIssueID'] = dom.getElementsByTagName('id')[0].firstChild.wholeText
 

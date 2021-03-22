@@ -3813,22 +3813,25 @@ def sizeof_fmt(num, suffix='B'):
         num /= 1024.0
     return "%.1f%s%s" % (num, 'Yi', suffix)
 
-def getImage(comicid, url, issueid=None):
+def getImage(comicid, url, issueid=None, thumbnail_path=None):
 
-    if os.path.exists(mylar.CONFIG.CACHE_DIR):
-        pass
+    if thumbnail_path is None:
+        if os.path.exists(mylar.CONFIG.CACHE_DIR):
+            pass
+        else:
+            #let's make the dir.
+            try:
+                os.makedirs(str(mylar.CONFIG.CACHE_DIR))
+                logger.info('Cache Directory successfully created at: %s' % mylar.CONFIG.CACHE_DIR)
+
+            except OSError:
+                logger.error('Could not create cache dir. Check permissions of cache dir: %s' % mylar.CONFIG.CACHE_DIR)
+
+        coverfile = os.path.join(mylar.CONFIG.CACHE_DIR,  str(comicid) + '.jpg')
     else:
-        #let's make the dir.
-        try:
-            os.makedirs(str(mylar.CONFIG.CACHE_DIR))
-            logger.info('Cache Directory successfully created at: %s' % mylar.CONFIG.CACHE_DIR)
+        coverfile = thumbnail_path
 
-        except OSError:
-            logger.error('Could not create cache dir. Check permissions of cache dir: %s' % mylar.CONFIG.CACHE_DIR)
-
-    coverfile = os.path.join(mylar.CONFIG.CACHE_DIR,  str(comicid) + '.jpg')
-
-    #if cover has '+' in url it's malformed, we need to replace '+' with '%20' to retreive properly.
+    #if cover has '+' in url it's malformed, we need to replace '+' with '%20' to retrieve properly.
 
     #new CV API restriction - one api request / second.(probably unecessary here, but it doesn't hurt)
     if mylar.CONFIG.CVAPI_RATE is None or mylar.CONFIG.CVAPI_RATE < 2:
@@ -3877,7 +3880,7 @@ def getImage(comicid, url, issueid=None):
         return {'coversize': coversize,
                 'status':    'success'}
 
-    if any([int(coversize) < 10000, statuscode != '200']):
+    if any([int(coversize) < 10000, statuscode != '200']) and thumbnail_path is None:
         try:
             if statuscode != '200':
                 logger.info('Trying to grab an alternate cover due to problems trying to retrieve the main cover image.')
@@ -3893,7 +3896,9 @@ def getImage(comicid, url, issueid=None):
 
         return {'coversize': coversize,
                 'status':    'retry'}
-
+    else:
+        return {'coversize': coversize,
+                'status':    'failed'}
 def publisherImages(publisher):
     comicpublisher = None
     if mylar.CONFIG.INTERFACE == 'default':

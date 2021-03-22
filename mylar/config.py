@@ -68,6 +68,8 @@ _CONFIG_DEFINITIONS = OrderedDict({
     'AUTOWANT_UPCOMING': (bool, 'General', True),
     'AUTOWANT_ALL': (bool, 'General', False),
     'COMIC_COVER_LOCAL': (bool, 'General', False),
+    'SERIES_METADATA_LOCAL': (bool, 'General', False),
+    'COVER_FOLDER_LOCAL': (bool, 'General', False),
     'ADD_TO_CSV': (bool, 'General', True),
     'SKIPPED2WANTED': (bool, 'General', False),
     'READ2FILENAME': (bool, 'General', False),

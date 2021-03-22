@@ -246,6 +246,9 @@ textarea,
 button {
   font: 99%;
 }
+#more {
+  display: none;
+}
 textarea {
   overflow: auto;
 }
@@ -2269,4 +2272,32 @@ table#annual_table td#aissuename { vertical-align: middle; text-align: center; m
   filter: progid:dximagetransform.microsoft.gradient(startColorstr=#fafafa, endColorstr=#eaeaea) !important;
   color: #FFF;
   border-color: #272b30 #272b30 #272b30;
+}
+
+input[type="checkbox"] + label.series_metadata_local::before {
+   content: "";
+   display: inline-block;
+   vertical-align: -25%;
+   height: 2ex;
+   width: 2ex;
+   background-color: white;
+   border: 1px solid rgb(166, 166, 166);
+   border-radius: 4px;
+   box-shadow: inset 0 2px 5px rgba(0,0,0,0.25);
+   margin-right: 0.5em;
+}
+.outerglow {
+    font-family: Helvetica, Arial;
+    font-size: 10pt;
+    font-weight: bold;
+    /* line-height: 2em; */
+    /* padding: 0.5em; */
+}
+.outerglow_shadow {
+    color: #FFFF66;
+    text-shadow: 0 0 0.9em #FFFF00;
+}
+.outerglow_text {
+  -webkit-text-fill-color: transparent;
+  -webkit-background-clip: text;
 }
