@@ -135,7 +135,7 @@ class WebInterface(object):
         sortcolumn = 'ComicPublisher'
         if iSortCol_0 == '0':
             sortcolumn = 'ComicPublisher'
-        if iSortCol_0 == '1':
+        elif iSortCol_0 == '1':
             sortcolumn = 'ComicName'
         elif iSortCol_0 == '2':
             sortcolumn = 'ComicYear'
@@ -152,7 +152,9 @@ class WebInterface(object):
         #filtered.sort(key= itemgetter(sortcolumn2, sortcolumn), reverse=sSortDir_0 == "desc")
         if sortcolumn == 'percent':
             filtered.sort(key=lambda x: (x['totalissues'] is None, x['totalissues'] == '', x['totalissues']), reverse=sSortDir_0 == "asc")
+            filtered.sort(key=lambda x: (x['percent'] is None, x['percent'] == '', x['percent']), reverse=sSortDir_0 == "desc")
             filtered.sort(key=lambda x: (x['haveissues'] is None, x['haveissues'] == '', x['haveissues']), reverse=sSortDir_0 == "desc")
+            filtered.sort(key=lambda x: (x['percent'] is None, x['percent'] == '', x['percent']), reverse=sSortDir_0 == "desc")
         else:
             filtered.sort(key=lambda x: (x[sortcolumn] is None, x[sortcolumn] == '', x[sortcolumn]), reverse=sSortDir_0 == "desc")
         rows = filtered[iDisplayStart:(iDisplayStart + iDisplayLength)]
