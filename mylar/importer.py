@@ -1452,7 +1452,7 @@ def updateissuedata(comicid, comicname=None, issued=None, comicIssues=None, call
             stmonth = helpers.fullmonth(firstdate[5:7])
 
         #if the store date exists and is newer than the pub date - use the store date for ended calcs.
-        if latest_stdate is not None:
+        if all([latest_stdate is not None, latest_stdate != '0000-00-00']):
             p_date = datetime.date(int(latestdate[:4]), int(latestdate[5:7]), 1)
             s_date = datetime.date(int(latest_stdate[:4]), int(latest_stdate[5:7]), 1)
             if s_date > p_date:

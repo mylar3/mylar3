@@ -124,14 +124,16 @@ class WebInterface(object):
         else:
             for row in resultlist:
                 try:
-                    if any([sSearch.lower() in row['ComicPublisher'].lower(), sSearch.lower() in row['ComicName'].lower(), sSearch.lower() in row['ComicYear'], sSearch.lower() in row['LatestIssue'].lower(), sSearch.lower() in row['recentstatus'].lower()]):
+                    lat_iss = row['LatestIssue']
+                    if lat_iss is None:
+                        lat_iss = ''
+                    if any([sSearch.lower() in row['ComicPublisher'].lower(), sSearch.lower() in row['ComicName'].lower(), sSearch.lower() in row['ComicYear'], sSearch.lower() in lat_iss, sSearch.lower() in row['recentstatus'].lower()]):
                         filtered.append(row)
                     elif row['displaytype'] is not None and sSearch.lower() in row['displaytype'].lower():
                         filtered.append(row)
                 except Exception as e:
                     filtered = [row for row in resultlist if any([sSearch.lower() in row['ComicName'].lower(), sSearch.lower() in row['ComicYear'], sSearch.lower() in row['recentstatus']]) or (row['LatestIssue'] is not None and sSearch.lower() in row['LatestIssue'].lower())]
 
-            #filtered = [row for row in resultlist if any([sSearch.lower() in row['ComicPublisher'].lower(), sSearch.lower() in row['ComicName'].lower(), sSearch.lower() in row['ComicYear'], False if row['displaytype'] is None else (True if sSearch.lower() in row['displaytype'] else False), sSearch.lower() in row['LatestIssue'], sSearch.lower() in row['recentstatus']])]
         sortcolumn = 'ComicPublisher'
         if iSortCol_0 == '0':
             sortcolumn = 'ComicPublisher'
