@@ -2293,9 +2293,13 @@ input[type="checkbox"] + label.series_metadata_local::before {
     /* line-height: 2em; */
     /* padding: 0.5em; */
 }
-.outerglow_shadow {
+.outerglow_shadow_yellow {
     color: #FFFF66;
     text-shadow: 0 0 0.9em #FFFF00;
+}
+.outerglow_shadow_red {
+    color: #FF6666;
+    text-shadow: 0 0 0.9em #FF0000;
 }
 .outerglow_text {
   -webkit-text-fill-color: transparent;
