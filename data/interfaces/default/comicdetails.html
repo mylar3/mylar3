@@ -122,6 +122,9 @@
                                 </div>
                                 <div>
                                    <label><big>Publisher: </big><norm>${comic['ComicPublisher']}</norm></label>
+                                   %if comic['PublisherImprint']:
+                                       </br><label><big>Imprint: </big><norm>${comic['PublisherImprint']}</norm></label>
+                                   %endif
 	            		</div>
                                 <div>
                                     <label><big>Status: </big><norm>${comic['Status']}</norm></label>
