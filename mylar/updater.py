@@ -1738,7 +1738,7 @@ def watchlist_updater(calledfrom=None, sched=False):
         rd_mins = rd + datetime.timedelta(seconds = 900)
         rd_now = datetime.datetime.utcfromtimestamp(time.time())
         if calendar.timegm(rd_mins.utctimetuple()) > calendar.timegm(rd_now.utctimetuple()):
-            logger.info('[BACKFILL-UPDATE] Update ran < 5 minutes ago. Not running.')
+            logger.info('[BACKFILL-UPDATE] Update ran < 15 minutes ago. Not running.')
             return
 
     # in order to make sure we update a bunch that probably haven't been updated

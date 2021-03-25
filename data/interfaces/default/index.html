@@ -48,10 +48,14 @@
                        "targets": [ 0 ],
                        "visible": true,
                        "render":function (data,type,full) {
-                           if (full[0].length > 20){
-                               cb = '<span title="' + full[0] + '"></span>'+full[0].slice(0,20)+"...";
+                           if (full[0]){
+                               if (full[0].length > 20){
+                                   cb = '<span title="' + full[0] + '"></span>'+full[0].slice(0,20)+"...";
+                               } else {
+                                   cb = '<span title="' + full[0] + '"></span>'+full[0];
+                               }
                            } else {
-                               cb = '<span title="' + full[0] + '"></span>'+full[0];
+                               cb = '<span title="Unavailable (due to CV)"></span>'+full[0];
                            }
                            return cb;
                         }
@@ -72,12 +76,16 @@
                             } else {
                                 bt = '';
                             }
-                            if (full[0].length > 55){
-                               cn = full[1].slice(0,55)+"...";
+                            if (full[0]){
+                               if (full[0].length > 55){
+                                 cn = full[1].slice(0,55)+"...";
+                               } else {
+                                 cn = full[1];
+                               }
+                               return '<span title="' + full[1] + '"></span><a title="'+ full[1] +'"href="comicDetails?ComicID=' + full[10] + '">' + cn + vol + bt + '</a>';
                             } else {
-                               cn = full[1];
+                               return '<span title="' + full[1] + '"></span><a title="'+ full[1] +'"href="comicDetails?ComicID=' + full[10] + '">' + full[1] + '</a>';
                             }
-                            return '<span title="' + full[1] + '"></span><a title="'+ full[1] +'"href="comicDetails?ComicID=' + full[10] + '">' + cn + vol + bt + '</a>';
                        }
                     },
                     {

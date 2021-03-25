@@ -95,7 +95,7 @@ def pulldetails(comicid, rtype, issueid=None, offset=1, arclist=None, comicidlis
         else:
             dom = parseString(r.content)
     except ExpatError:
-        if '<title>Abnormal Traffic Detected' in r.content:
+        if '<title>Abnormal Traffic Detected' in r.content.decode('utf-8'):
             logger.error('ComicVine has banned this server\'s IP address because it exceeded the API rate limit.')
         else:
             logger.warn('[WARNING] ComicVine is not responding correctly at the moment. This is usually due to some problems on their end. If you re-try things again in a few moments, things might work')
@@ -108,7 +108,7 @@ def pulldetails(comicid, rtype, issueid=None, offset=1, arclist=None, comicidlis
     else:
         return dom
 
-def getComic(comicid, rtype, issueid=None, arc=None, arcid=None, arclist=None, comicidlist=None, dateinfo=None):
+def getComic(comicid, rtype, issueid=None, arc=None, arcid=None, arclist=None, comicidlist=None, dateinfo=None, series=False):
     if rtype == 'issue':
         offset = 1
         issue = {}
@@ -162,7 +162,7 @@ def getComic(comicid, rtype, issueid=None, arc=None, arcid=None, arclist=None, c
 
     elif rtype == 'comic':
         dom = pulldetails(comicid, 'comic', None, 1)
-        return GetComicInfo(comicid, dom)
+        return GetComicInfo(comicid, dom, series=series)
     elif any([rtype == 'image', rtype == 'firstissue']):
         dom = pulldetails(comicid, rtype, issueid, 1)
         return Getissue(issueid, dom, rtype)
@@ -257,7 +257,7 @@ def getComic(comicid, rtype, issueid=None, arc=None, arcid=None, arclist=None, c
                 'results': theResults,
                 'totalcount': overallResults}
 
-def GetComicInfo(comicid, dom, safechk=None):
+def GetComicInfo(comicid, dom, safechk=None, series=False):
     if safechk is None:
         #safetycheck when checking comicvine. If it times out, increment the chk on retry attempts up until 5 tries then abort.
         safechk = 1
@@ -266,7 +266,11 @@ def GetComicInfo(comicid, dom, safechk=None):
         return
     #comicvine isn't as up-to-date with issue counts..
     #so this can get really buggered, really fast.
-    tracks = dom.getElementsByTagName('issue')
+    try:
+       tracks = dom.getElementsByTagName('issue')
+    except:
+       logger.error('Unable to add / refresh the series due to inablity to retrieve data from ComicVine. You might want to try abit later and/or make sure ComicVine is up.')
+       return
     try:
         cntit = dom.getElementsByTagName('count_of_issues')[0].firstChild.wholeText
     except:
@@ -306,9 +310,9 @@ def GetComicInfo(comicid, dom, safechk=None):
             elif dom.getElementsByTagName('name')[n].parentNode.nodeName == 'publisher':
                 try:
                     comic['ComicPublisher'] = dom.getElementsByTagName('name')[n].firstChild.wholeText
-                except:
+                except Exception as e:
+                    logger.error('error encountered: %s' % e)
                     comic['ComicPublisher'] = "Unknown"
-
             n += 1
     except:
         logger.warn('Something went wrong retrieving from ComicVine. Ensure your API is up-to-date and that comicvine is accessible')
@@ -322,6 +326,80 @@ def GetComicInfo(comicid, dom, safechk=None):
     #safety check, cause you known, dufus'...
     if any([comic['ComicYear'][-1:] == '-', comic['ComicYear'][-1:] == '?']):
         comic['ComicYear'] = comic['ComicYear'][:-1]
+
+    found = False
+    comicPublisher = comic['ComicPublisher']
+    publisherImprint= None
+
+    if series is True:
+        # this is a really crappy way to do it - it works, but meh.
+        try:
+            for k,v in mylar.PUBLISHER_IMPRINTS.items():
+                if k == 'publishers':
+                    for b in v:
+                        for d,e in b.items():
+                            for g in e:
+                                chkyear = False
+                                for f,h in g.items():
+                                    if f == 'name':
+                                        pubname = h
+                                    if f == 'publication_run' and chkyear is True:
+                                        pubrun = h
+                                        y = pubrun.find('-')
+                                        pub_start = pubrun[:y][:4].strip()
+                                        pub_end = pubrun[y+2:][:4].strip()
+                                        if len(pub_end) == 0 and len(pub_start) == 0:
+                                            chkyear = False
+                                            found = False
+                                            continue
+                                        elif len(pub_end) == 0:
+                                            pub_end = None
+                                            if int(comic['ComicYear']) < int(pub_start[:4]):
+                                                logger.info('comic year of %s is prior to imprint publication date of %s' % (comic['ComicYear'], pub_start[:4]))
+                                                comic['ComicPublisher'] = None
+                                                comic['PublisherImprint'] = None
+                                                found = False
+                                            else:
+                                                found = True
+                                        else:
+                                            if int(pub_end[:4]) > int(comic['ComicYear'])  > int(pub_start[:4]):
+                                                found = True
+                                            else:
+                                                logger.info('comic year of %s is not within the imprint publication date range of %s - %s' % (comic['ComicYear'], pub_start[:4], pub_end[:4]))
+                                                comicPublisher = None
+                                                publisherImprint = None
+                                                found = False
+                                        chkyear = False
+
+                                    elif f == 'imprints' and h is not None:
+                                        # if we get here, it's an imprint of an imprint
+                                        for i in h:
+                                            if i['name'].lower() == comic['ComicPublisher'].lower():
+                                                logger.info('imprint matched: %s ---> %s' % (i['name'],h))
+                                                comicPublisher = pubname
+                                                publisherImprint = i['name']
+                                                found = True
+                                                break
+                                    elif all([f != 'imprints', f != 'publication_run']) and h is not None:
+                                        if h.lower() == comic['ComicPublisher'].lower():
+                                            logger.info('imprint matched: %s ---> %s' % (d, h))
+                                            comicPublisher = d
+                                            publisherImprint = h
+                                            chkyear = True
+                                            found = True
+
+                                if found is True:
+                                    break
+                            if found is True:
+                                break
+                        if found is True:
+                            break
+        except Exception as e:
+            logger.error('error: %s' % e)
+
+    if comicPublisher is not None:
+        comic['ComicPublisher'] = comicPublisher
+    comic['PublisherImprint'] = publisherImprint
 
     try:
         comic['ComicURL'] = dom.getElementsByTagName('site_detail_url')[trackcnt].firstChild.wholeText

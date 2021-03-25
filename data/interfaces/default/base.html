@@ -120,25 +120,34 @@
                                     %if mylar.BACKENDSTATUS_CV == 'up':
                                         <img src="images/success.png", height="8" width="8">
                                     %else:
-                                        <img src="images/fail.png", height="8", width="8">
+                                        <img src="images/x_red.png", height="8", width="8">
                                     %endif
                                 , WS 
                                     %if mylar.BACKENDSTATUS_WS == 'up':
                                         <img src="images/success.png", height="8" width="8">
                                     %else:
-                                        <img src="images/fail.png", height="8", width="8">
+                                        <img src="images/x_red.png", height="8", width="8">
                                     %endif
                                 <br>
 				<%
-                    for ko, vo in sorted(mylar.CONFIG.PROVIDER_ORDER.items()):
-                        mylar.PROVIDER_STATUS.update({vo : '<img src="images/success.png", height="8" width="8">'})
-                        for kb in mylar.PROVIDER_BLOCKLIST:
-                            if vo == kb['site']:
-                                mylar.PROVIDER_STATUS.update({vo :'<img src="images/fail.png", height="8" width="8">'})
-                                break
-                %>
-                Providers: ${mylar.PROVIDER_STATUS}    
-			</div>			
+                                    for ko, vo in sorted(mylar.CONFIG.PROVIDER_ORDER.items()):
+                                        mylar.PROVIDER_STATUS.update({vo : 'success'})
+                                        for kb in mylar.PROVIDER_BLOCKLIST:
+                                            if vo == kb['site']:
+                                                mylar.PROVIDER_STATUS.update({vo : 'fail'})
+                                                break
+                                %>
+                                Providers:
+                                %for prov, stats in sorted(mylar.PROVIDER_STATUS.items()):
+                                    <%
+                                        if stats == 'success':
+                                            st_image = '<img src="images/success.png" height="8" width="8">'
+                                        else:
+                                            st_image = '<img src="images/x_red.png" height="8" width="8">'
+                                    %>
+                                    ${prov}:${st_image} &nbsp
+                                %endfor
+                        </div>			
 		</footer>
 		<a href="#main" id="toTop"><span>Back to top</span></a>
 	</div>
