@@ -1700,23 +1700,22 @@ def watchlist_updater(calledfrom=None, sched=False):
     # then be queued to be updated. This is to replace the 5 minute auto-updater
     # since that was very ineffecient.
 
-    helpers.job_management(write=True, job='DB Updater', current_run=helpers.utctimestamp(), status='Running')
-    mylar.UPDATER_STATUS = 'Running'
-
     myDB = db.DBConnection()
 
     last_date = None
     last_run = None
 
     chk_time = myDB.selectone(
-                   "SELECT prev_run_datetime, last_run_completed, last_date"
-                   " from jobhistory WHERE JobName='DB Updater'"
+                   "SELECT prev_run_datetime, last_run_completed, last_date,"
+                   " prev_run_timestamp from jobhistory WHERE JobName='DB Updater'"
                ).fetchone()
+
+    last_runtimestamp = None
     if chk_time:
         # get the last updated time from the sqlitedb.
         last_run = chk_time['last_date']
         last_date = chk_time['prev_run_datetime']
-
+        last_runtimestamp = chk_time['prev_run_timestamp']
     elif mylar.DB_BACKFILL is True:
         ld = datetime.datetime.today()
         lastrun = ld - datetime.timedelta(weeks = mylar.CONFIG.BACKFILL_LENGTH)
@@ -1732,11 +1731,23 @@ def watchlist_updater(calledfrom=None, sched=False):
         # so it's going thru the space-out process to backfill properly.
         last_dater = datetime.datetime.utcfromtimestamp(last_run)
         last_date = datetime.datetime.strftime(last_dater, '%Y-%m-%d %H:%M:%S')
+    elif last_runtimestamp is not None:
+        # check here to see if it's so it fires off no more than 15 minutes since last startup.
+        # this is to avoid constant checks if mylar is restarted several times.
+        rd = datetime.datetime.utcfromtimestamp(last_runtimestamp)
+        rd_mins = rd + datetime.timedelta(seconds = 900)
+        rd_now = datetime.datetime.utcfromtimestamp(time.time())
+        if calendar.timegm(rd_mins.utctimetuple()) > calendar.timegm(rd_now.utctimetuple()):
+            logger.info('[BACKFILL-UPDATE] Update ran < 5 minutes ago. Not running.')
+            return
 
     # in order to make sure we update a bunch that probably haven't been updated
     # on intially moving to this new update method, we need to backfill a certain
     # amount. Set it to the last month which 'should' be enough. Note that this will
     # get passed on config loading so it's set at that point
+
+    helpers.job_management(write=True, job='DB Updater', current_run=helpers.utctimestamp(), status='Running')
+    mylar.UPDATER_STATUS = 'Running'
 
     logger.info('[BACKFILL-UPDATE] last date set to : %s' % last_date)
 
@@ -1757,15 +1768,24 @@ def watchlist_updater(calledfrom=None, sched=False):
             mylar.DB_BACKFILL = False
             helpers.job_management(write=True, job='DB Updater', last_run_completed=helpers.utctimestamp(), status='Waiting')
             mylar.UPDATER_STATUS = 'Waiting'
+            return
     except Exception:
-        pass
+        logger.warn(
+            '[BACKFILL-UPDATE] CV is having problems atm. Deferring backfill'
+            ' job until next db update scheduled run time.'
+        )
+        mylar.DB_BACKFILL = False
+        helpers.job_management(write=True, job='DB Updater', last_run_completed=helpers.utctimestamp(), status='Waiting')
+        mylar.UPDATER_STATUS = 'Waiting'
+        return
+
 
     logger.fdebug('update_list: %s' % (update_list,))
 
     if update_list['count'] == 0:
         logger.info('[BACKFILL-UPDATE] Nothing new has been posted to any series in your watchlist')
-        helpers.job_management(write=True, job='DB Updater', current_run=helpers.utctimestamp(), status='Running')
-        mylar.UPDATER_STATUS = 'Running'
+        helpers.job_management(write=True, job='DB Updater', current_run=helpers.utctimestamp(), status='Waiting')
+        mylar.UPDATER_STATUS = 'Waiting'
         return
 
     set_the_bar = False
@@ -1854,8 +1874,8 @@ def watchlist_updater(calledfrom=None, sched=False):
             '%Y-%m-%d %H:%M:%S'), loaddate_stamp)
         )
 
-    helpers.job_management(write=True, job='DB Updater', current_run=helpers.utctimestamp(), status='Running')
-    mylar.UPDATER_STATUS = 'Running'
+    helpers.job_management(write=True, job='DB Updater', current_run=helpers.utctimestamp(), status='Waiting')
+    mylar.UPDATER_STATUS = 'Waiting'
 
     # once we trigger it the dates above are updated to backfill dates and we can
     # reset the backfill to None so it doesn't fire off again.
