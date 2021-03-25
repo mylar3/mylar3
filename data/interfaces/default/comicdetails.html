@@ -81,7 +81,7 @@
                 <td id="mainimg">
                    <fieldset>
                        <div id="artistImg">
-                          <img src="${comicConfig['ComicImage']}" alt="" height="400" width="263" />
+                          <img src="${comicConfig['ComicImage']}" alt="" height="400px" width="263px" />
                        </div>
                    </fieldset>
                          <%
@@ -95,19 +95,20 @@
                    <div style="display:table;position:relative;margin:auto;top:0px;"><span title="${comicConfig['percent']}"></span>${css}<div style="width:${comicConfig['percent']}%"><span class="progressbar-front-text">${comicConfig['haveissues']}/${comicConfig['totalissues']}</span></div></div></div>
                    <%
                         try:
-                            meta_series = False
+                            meta_color = 'red'
+                            meta_title = 'series.json not located in comic directory. Click here to generate a new one.'
                             if mylar.CONFIG.SERIES_METADATA_LOCAL is True:
                                 if os.path.exists(os.path.join(comic['ComicLocation'], 'series.json')):
-                                    meta_series = True
+                                    meta_color = 'yellow'
+                                    meta_title = 'series.json located in comic directory'
                         except:
                             pass
                    %>
                    %if mylar.CONFIG.SERIES_METADATA_LOCAL is True:
                        <div class="outerglow" style="z-index: 10; position: absolute; float: right; bottom: 10px; right: -50px;">
-                       %if meta_series is True:
-                           <span title="series.json found in comic directory" class="outerglow_shadow">series.json</span>
-                           <span class="outerglow_text">series.json</span>
-                       %endif
+                           <a href="#" onclick="doAjaxCall('update_metadata?comicid=${comic['ComicID']}', $(this), 'tabs');" data-success="successfully generated series.json" data-error="nope.">
+                           <span title="${meta_title}" class="outerglow_shadow_${meta_color}">series.json</span>
+                           <span class="outerglow_text">series.json</span></a>
                        </div>
                    %endif
 
@@ -207,16 +208,18 @@
                                        <label><big>Directory</big><br/><norm>${comic['ComicLocation']}</norm></label>
                                     %endif
                                 </div>
-                                %if comic['Description']:
+                                %if comicConfig['description']:
                                     <%
-                                         if len(comic['Description']) > 300:
-                                             cdescription = '%s <span id="dots">...</span><span id="more">%s</span><a href="#" onclick="moreMore()" style="color:yellow;" id="readMore"> more</a>' % (comic['Description'][:300], comic['Description'][300:])
+                                         comicDescription = re.sub(r'[\n\r]', '</br>', comicConfig['description']).strip()
+                                         if len(comicDescription) > 300:
+                                             cdescription = '%s <span id="dots">...</span><span id="more">%s</span><a href="#" onclick="moreMore()" style="color:yellow;" id="readMore"> more</a>' % (comicDescription[:300], comicDescription[300:])
                                          else:
-                                             cdescription = comic['Description']
+                                             cdescription = comicDescription
                                     %>
                                     <div>
                                         <br/><label><big>Description:</big></label><br/>
-                                        <small><p>${cdescription}</p></small>
+                                        <small><input type="image" href="#" id="jeditable-activate" src="images/edit.png" height="15px" width="15px" title="Edit description" />
+                                        <span style="white-space: pre-wrap" class="description_edit" id="d${comic['ComicID']}">${cdescription}</span></small>
                                     </div>
                                 %endif
                          </fieldset>
@@ -777,7 +780,8 @@
 
 <%def name="headIncludes()">
         <link rel="stylesheet" href="interfaces/${interface}/css/data_table.css">
-
+         // bootstrap css is just for the editable buttons.
+        <link rel="stylesheet" href="interfaces/${interface}/css/bootstrap-theme.css">
         %if comic['Status'] == 'Loading':
         <meta http-equiv="refresh" content="10">
         %endif
@@ -791,10 +795,14 @@
         .ui-autocomplete-loading {
           background: white url('images/loader_black.gif') right center no-repeat;
         }
-        #annseries{ width: 25em; }
+        //#annseries{ width: 25em; }
         </style>
         <script>
         $(document).ready(function() {
+            $("#jeditable-activate").click(function() {
+               $(this).prev().click();
+               $('.description_edit').trigger('custom_event');
+            });
             $('.edit').editable('issue_edit', {
                 callback : function(value, settings) {
                     console.log(this);
@@ -803,7 +811,40 @@
                     return(value);
                 }
             });
+            $('.description_edit').editable('.description_edit', {
+                loadurl: 'get_description',
+                type: 'textarea',
+                submit: '<button class="button btn btn-success" type="submit">Ok</button>',
+                cancel: '<button class="button btn btn-danger" type="cancel">Cancel</button>',
+                event: 'custom_event',
+                height: ($("span#edit").height() + 200) + "px",
+                width: ($("span#edit").width() + 350) + "px",
+                tooltip: '',
+                onreset: function(settings, original){
+                    //alert('reset:'+JSON.stringify(original));
+                    $("#jeditable-activate.hidden").removeClass('hidden');
+                    return($(this).html(original.revert));
+                },
+                onedit: function(){
+                    $(this).siblings("#jeditable-activate").addClass('hidden');
+                },
+                callback : function(value, settings) {
+                    $("#jeditable-activate.hidden").removeClass('hidden');
+                    console.log(this);
+                    console.log(value);
+                    console.log(settings);
+                    const regex = /\\n|\\r\\n|\\n\\r|\\r/g;
+                    value.replace(regex, '<br>');
+                    if (value.length > 300){
+                      spanline = value.substr(0,300)+'<span id="dots">...</span><span id="more">'+value.substr(301)+'</span><a href="#" onclick="moreMore()" style="color:yellow;" id="readMore"> more</a>';
+                    } else {
+                      spanline = value;
+                    }
+                    return($(this).html(spanline));
+                }
+            });
         });
+
         // ... more
         function moreMore() {
            var dots = document.getElementById("dots");

@@ -275,6 +275,11 @@ class WebInterface(object):
             comicImage = comic['ComicImage']
         comicpublisher = helpers.publisherImages(comic['ComicPublisher'])
 
+        if comic['DescriptionEdit'] is not None:
+            description = comic['DescriptionEdit']
+        else:
+            description = comic['Description']
+
         if comic['Collects'] is not None:
             issues_list = json.loads(comic['Collects'])
         else:
@@ -318,6 +323,7 @@ class WebInterface(object):
                     "publisher_image_alt":            comicpublisher['publisher_image_alt'],
                     "publisher_imageH":               comicpublisher['publisher_imageH'],
                     "publisher_imageW":               comicpublisher['publisher_imageW'],
+                    "description":                    description,
                     "issue_list":                     issues_list,
                     "ComicImage":                     comicImage + '?' + datetime.datetime.now().strftime('%y-%m-%d %H:%M:%S')
                }
@@ -1082,6 +1088,29 @@ class WebInterface(object):
         #threading.Thread(target=updater.dbUpdate, args=[comicsToAdd,'refresh']).start()
         updater.dbUpdate(comicsToAdd, 'refresh')
     refreshSeries.exposed = True
+
+    def description_edit(self, id, value):
+        comicid = id[1:]
+        myDB = db.DBConnection()
+        serieschk = myDB.selectone('SELECT * from comics WHERE ComicID=?', [comicid]).fetchone()
+        if serieschk is None:
+            logger.error('Cannot edit this for some reason - something is wrong.')
+            return
+        cv_description = serieschk['Description']
+        if any([cv_description == value, serieschk['DescriptionEdit'] == value]) and len(value) > 0:
+            # only update it if it's different than the original value.
+            return value
+        if len(value) == 0:
+            logger.info('Edit set to None. Refresh the series to get the original description')
+            value = None
+        comicname = serieschk['ComicName']
+        newVal = {"DescriptionEdit": value}
+        ctrlVal = {"ComicID": comicid}
+        myDB.upsert("comics", newVal, ctrlVal)
+        logger.info('Updated Description for %s [%s]' % (comicname, comicid))
+        return value
+
+    description_edit.exposed = True
 
     def issue_edit(self, id, value):
         logger.fdebug('id: ' + str(id))
@@ -6955,3 +6984,112 @@ class WebInterface(object):
             mylar.MASS_ADD.start()
 
     dump_that_shizzle.exposed = True
+
+    def get_description(self, **args):
+        for k,v in list(args.items()):
+            if k == 'id':
+                comicid = v[1:]
+        myDB = db.DBConnection()
+        desc = myDB.selectone('SELECT Description, DescriptionEdit FROM comics WHERE comicid=?', [comicid]).fetchone()
+        if desc:
+            if desc['DescriptionEdit']:
+                return desc['DescriptionEdit']
+            else:
+                return desc['Description']
+        else:
+            return 'No description available.'
+    get_description.exposed = True
+
+    def update_metadata(self, comicid):
+        myDB = db.DBConnection()
+        comic = myDB.selectone('SELECT * FROM comics WHERE ComicID=?', [comicid]).fetchone()
+        if comic:
+
+            c_date = datetime.date(int(comic['LatestDate'][:4]), int(comic['LatestDate'][5:7]), 1)
+            n_date = datetime.date.today()
+            recentchk = (n_date - c_date).days
+            if comic['NewPublish'] is True:
+                seriesStatus = 'Continuing'
+            else:
+                #do this just incase and as an extra measure of accuracy hopefully.
+                if recentchk < 55:
+                    seriesStatus = 'Continuing'
+                else:
+                    seriesStatus = 'Ended'
+
+            clean_issue_list = None
+            if comic['Issue_List'] != 'None':
+                clean_issue_list = comic['Issue_List']
+
+            if comic['DescriptionEdit'] is not None:
+                cdes_removed = re.sub(r'\n', ' ', comic['DescriptionEdit']).strip()
+                cdes_formatted = comic['DescriptionEdit']
+            else:
+                if comic['Description'] is not None:
+                    cdes_removed = re.sub(r'\n', '', comic['Description']).strip()
+                else:
+                    cdes_removed = comic['Description']
+                    logger.warn('Series does not have a description. Not populating, but you might need to do a Refresh Series to fix this')
+                cdes_formatted = comic['Description']
+
+            comicVol = comic['ComicVersion']
+            if all([mylar.CONFIG.SETDEFAULTVOLUME is True, comicVol is None]):
+                comicVol = 'v1'
+            if comicVol is not None:
+                if comicVol.isdigit():
+                    comicVol = 'v' + comic['ComicVersion']
+                    logger.info('Updated version to :' + str(comicVol))
+                    if all([mylar.CONFIG.SETDEFAULTVOLUME is False, comicVol == 'v1']):
+                       comicVol = None
+            else:
+                if mylar.CONFIG.SETDEFAULTVOLUME is True:
+                    comicVol = 'v1'
+
+            if any([comic['ComicYear'] is None, comic['ComicYear'] == '0000', comic['ComicYear'][-1:] == '-']):
+                SeriesYear = issued['firstdate'][:4]
+            else:
+                SeriesYear = comic['ComicYear']
+
+            csyear = comic['Corrected_SeriesYear']
+
+            if any([int(SeriesYear) > int(datetime.datetime.now().year) + 1, int(SeriesYear) == 2099]) and csyear is not None:
+                logger.info('Corrected year of ' + str(SeriesYear) + ' to corrected year for series that was manually entered previously of ' + str(csyear))
+                SeriesYear = csyear
+
+            if all([int(comic['Total']) == 1, SeriesYear < helpers.today()[:4], comic['Type'] != 'One-Shot', comic['Type'] != 'TPB']):
+                logger.info('Determined to be a one-shot issue. Forcing Edition to One-Shot')
+                booktype = 'One-Shot'
+            else:
+                booktype = comic['Type']
+
+            if comic['Corrected_Type'] and comic['Corrected_Type'] != booktype:
+                booktype = comic['Corrected_Type']
+
+            c_image = comic
+            metadata = {}
+            metadata['metadata'] = [(
+                                        {'type': 'comicSeries',
+                                         'publisher': comic['ComicPublisher'],
+                                         'imprint': comic['PublisherImprint'],
+                                         'name': comic['ComicName'],
+                                         'comicid': comicid,
+                                         'year': SeriesYear,
+                                         'description_text': cdes_removed,
+                                         'description_formatted': cdes_formatted,
+                                         'volume': comicVol,
+                                         'booktype': booktype,
+                                         'collects': clean_issue_list,
+                                         'ComicImage': comic['ComicImageURL'],
+                                         'total_issues': comic['Total'],
+                                         'publication_run': comic['ComicPublished'],
+                                         'status': seriesStatus}
+            )]
+
+            try:
+                with open(os.path.join(comic['ComicLocation'], 'series.json'), 'w', encoding='utf-8') as outfile:
+                    json.dump(metadata, outfile, indent=4, ensure_ascii=False)
+            except Exception as e:
+                logger.error('Unable to write series.json to %s. Error returned: %s' % (comic['ComicLocation'], e))
+            else:
+                logger.fdebug('Successfully written series.json file to %s' % comic['ComicLocation'])
+    update_metadata.exposed = True
