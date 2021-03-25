@@ -84,6 +84,7 @@ def addComictoDB(comicid, mismatch=None, pullupd=None, imported=None, ogcname=No
             serieslast_updated = dbcomic['LastUpdated']
             aliases = dbcomic['AlternateSearch']
             logger.info('aliases currently: %s' % aliases)
+            old_description = dbcomic['DescriptionEdit']
 
             FirstImageSize = dbcomic['FirstImageSize']
 
@@ -115,6 +116,7 @@ def addComictoDB(comicid, mismatch=None, pullupd=None, imported=None, ogcname=No
         lastissueid = None
         aliases = None
         FirstImageSize = 0
+        old_description = None
 
     myDB.upsert("comics", newValueDict, controlValueDict)
 
@@ -382,6 +384,7 @@ def addComictoDB(comicid, mismatch=None, pullupd=None, imported=None, ogcname=No
                     "ComicLocation":      comlocation,
                     "ComicPublisher":     comic['ComicPublisher'],
                     "Description":        cdes_removed,
+                    "DescriptionEdit":    old_description,
                     "PublisherImprint":   comic['PublisherImprint'],
                     "DetailURL":          comic['ComicURL'],
                     "AlternateSearch":    aliases,
@@ -438,6 +441,12 @@ def addComictoDB(comicid, mismatch=None, pullupd=None, imported=None, ogcname=No
             if comic['Issue_List'] != 'None':
                 clean_issue_list = comic['Issue_List']
 
+            if old_description is not None:
+                cdes_removed = re.sub(r'\n', ' ', old_description).strip()
+                cdes_formatted = old_description
+            else:
+                cdes_formatted = None # CV doesn't format their descriptions.
+
             c_image = comic
             metadata = {}
             metadata['metadata'] = [(
@@ -447,7 +456,8 @@ def addComictoDB(comicid, mismatch=None, pullupd=None, imported=None, ogcname=No
                                          'name': comic['ComicName'],
                                          'comicid': comicid,
                                          'year': SeriesYear,
-                                         'description': cdes_removed,
+                                         'description_text': cdes_removed,
+                                         'description_formatted': cdes_formatted,
                                          'volume': comicVol,
                                          'booktype': booktype,
                                          'collects': clean_issue_list,
@@ -1230,6 +1240,9 @@ def updateissuedata(comicid, comicname=None, issued=None, comicIssues=None, call
                 firstval = issued['issuechoice'][n]
             except IndexError:
                 break
+            except Exception as e:
+                logger.warn('Unable to parse issue details for series - ComicVine is probably having problems.')
+                return
             try:
                 cleanname = firstval['Issue_Name'] #helpers.cleanName(firstval['Issue_Name'])
             except:
