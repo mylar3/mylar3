@@ -1484,6 +1484,7 @@ def havetotals(refreshit=None):
                            "LatestDate":      comic['LatestDate'],
                            "ComicVolume":     cversion,
                            "ComicPublished":  cpub,
+                           "PublisherImprint": comic['PublisherImprint'],
                            "Status":          comic['Status'],
                            "recentstatus":    recentstatus,
                            "percent":         percent,
@@ -1493,7 +1494,6 @@ def havetotals(refreshit=None):
                            "Type":            comic['Type'],
                            "Corrected_Type":  comic['Corrected_Type'],
                            "displaytype":     comictype})
-
         return comics
 
 def filesafe(comic):
@@ -3899,11 +3899,12 @@ def getImage(comicid, url, issueid=None, thumbnail_path=None):
     else:
         return {'coversize': coversize,
                 'status':    'failed'}
+
 def publisherImages(publisher):
     comicpublisher = None
     if mylar.CONFIG.INTERFACE == 'default':
         #these are specific images taht are better displayed in the default theme.
-        if publisher == 'Image':
+        if any([publisher == 'Image', publisher == 'Image Comics']):
             comicpublisher = {'publisher_image':       'images/publisherlogos/logo-imagecomics.png',
                               'publisher_image_alt':   'Image',
                               'publisher_imageH':      '125',
@@ -3921,7 +3922,7 @@ def publisherImages(publisher):
 
     else:
         # --- for carbon theme (any non-white theme)
-        if publisher == 'Image':
+        if any([publisher == 'Image', publisher == 'Image Comics']):
             comicpublisher = {'publisher_image':       'images/publisherlogos/logo-imagecomics_carbon.png',
                               'publisher_image_alt':   'Image',
                               'publisher_imageH':      '125',
@@ -4116,11 +4117,11 @@ def publisherImages(publisher):
                           'publisher_image_alt':   'Warp Graphics',
                           'publisher_imageH':      '125',
                           'publisher_imageW':      '75'}
-    elif publisher == 'Wildstorm':
+    elif any([publisher == 'WildStorm', publisher == 'Wildstorm']):
         comicpublisher = {'publisher_image':       'images/publisherlogos/logo-wildstorm.png',
                           'publisher_image_alt':   'Wildstorm',
-                          'publisher_imageH':      '50',
-                          'publisher_imageW':      '100'}
+                          'publisher_imageH':      '75',
+                          'publisher_imageW':      '75'}
     else:
         comicpublisher = {'publisher_image':       None,
                           'publisher_image_alt':   'Nope',

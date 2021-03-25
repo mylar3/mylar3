@@ -63,7 +63,43 @@ def addComictoDB(comicid, mismatch=None, pullupd=None, imported=None, ogcname=No
     controlValueDict = {"ComicID":     comicid}
 
     dbcomic = myDB.selectone('SELECT * FROM comics WHERE ComicID=?', [comicid]).fetchone()
-    if dbcomic is None:
+    bypass = True
+    if dbcomic is not None:
+        if chkwant is not None:
+            logger.fdebug('ComicID: ' + str(comicid) + ' already exists. Not adding from the future pull list at this time.')
+            return 'Exists'
+        if dbcomic['Status'] == 'Active':
+            series_status = 'Active'
+        elif dbcomic['Status'] == 'Paused':
+            series_status = 'Paused'
+        else:
+            series_status = 'Loading'
+
+        newValueDict = {"Status":   "Loading"}
+        comlocation = dbcomic['ComicLocation']
+        if comlocation is None:
+            bypass = False
+        else:
+            lastissueid = dbcomic['LatestIssueID']
+            serieslast_updated = dbcomic['LastUpdated']
+            aliases = dbcomic['AlternateSearch']
+            logger.info('aliases currently: %s' % aliases)
+
+            FirstImageSize = dbcomic['FirstImageSize']
+
+            if not latestissueinfo:
+                latestissueinfo = []
+                latestissueinfo.append({"latestiss": dbcomic['LatestIssue'],
+                                        "latestdate":  dbcomic['LatestDate']})
+
+            if mylar.CONFIG.CREATE_FOLDERS is True:
+                checkdirectory = filechecker.validateAndCreateDirectory(comlocation, True)
+                if not checkdirectory:
+                    logger.warn('Error trying to validate/create directory. Aborting this process at this time.')
+                    return {'status': 'incomplete'}
+            oldcomversion = dbcomic['ComicVersion'] #store the comicversion and chk if it exists before hammering.
+
+    if dbcomic is None or bypass is False:
         newValueDict = {"ComicName":   "Comic ID: %s" % (comicid),
                 "Status":   "Loading"}
         if all([imported is not None, imported != 'None', mylar.CONFIG.IMP_PATHS is True]):
@@ -79,37 +115,7 @@ def addComictoDB(comicid, mismatch=None, pullupd=None, imported=None, ogcname=No
         lastissueid = None
         aliases = None
         FirstImageSize = 0
-    else:
-        if chkwant is not None:
-            logger.fdebug('ComicID: ' + str(comicid) + ' already exists. Not adding from the future pull list at this time.')
-            return 'Exists'
-        if dbcomic['Status'] == 'Active':
-            series_status = 'Active'
-        elif dbcomic['Status'] == 'Paused':
-            series_status = 'Paused'
-        else:
-            series_status = 'Loading'
 
-        newValueDict = {"Status":   "Loading"}
-        comlocation = dbcomic['ComicLocation']
-        lastissueid = dbcomic['LatestIssueID']
-        serieslast_updated = dbcomic['LastUpdated']
-        aliases = dbcomic['AlternateSearch']
-        logger.info('aliases currently: %s' % aliases)
-
-        FirstImageSize = dbcomic['FirstImageSize']
-
-        if not latestissueinfo:
-            latestissueinfo = []
-            latestissueinfo.append({"latestiss": dbcomic['LatestIssue'],
-                                    "latestdate":  dbcomic['LatestDate']})
-
-        if mylar.CONFIG.CREATE_FOLDERS is True:
-            checkdirectory = filechecker.validateAndCreateDirectory(comlocation, True)
-            if not checkdirectory:
-               logger.warn('Error trying to validate/create directory. Aborting this process at this time.')
-               return {'status': 'incomplete'}
-        oldcomversion = dbcomic['ComicVersion'] #store the comicversion and chk if it exists before hammering.
     myDB.upsert("comics", newValueDict, controlValueDict)
 
     #run the re-sortorder here in order to properly display the page
@@ -117,7 +123,7 @@ def addComictoDB(comicid, mismatch=None, pullupd=None, imported=None, ogcname=No
         helpers.ComicSort(comicorder=mylar.COMICSORT, imported=comicid)
 
     # we need to lookup the info for the requested ComicID in full now
-    comic = cv.getComic(comicid, 'comic')
+    comic = cv.getComic(comicid, 'comic', series=True)
 
     if not comic:
         logger.warn('Error fetching comic. ID for : ' + comicid)
@@ -178,10 +184,14 @@ def addComictoDB(comicid, mismatch=None, pullupd=None, imported=None, ogcname=No
             #we'll defer this until later when we grab all the issues and then figure it out
             logger.info('Uh-oh. I cannot find a Series Year for this series. I am going to try analyzing deeper.')
             SeriesYear = cv.getComic(comicid, 'firstissue', comic['FirstIssueID'])
+            if not SeriesYear:
+                return
             if SeriesYear == '0000':
                 logger.info('Ok - I could not find a Series Year at all. Loading in the issue data now and will figure out the Series Year.')
                 CV_NoYearGiven = "yes"
                 issued = cv.getComic(comicid, 'issue')
+                if not issued:
+                    return
                 SeriesYear = issued['firstdate'][:4]
         else:
             SeriesYear = gcdinfo['SeriesYear']
@@ -354,6 +364,7 @@ def addComictoDB(comicid, mismatch=None, pullupd=None, imported=None, ogcname=No
         cdes_removed = Cdesc[:cdes_find]
     else:
         cdes_removed = None
+
     #logger.fdebug('description: ' + cdes_removed)
 
     controlValueDict = {"ComicID":        comicid}
@@ -371,6 +382,7 @@ def addComictoDB(comicid, mismatch=None, pullupd=None, imported=None, ogcname=No
                     "ComicLocation":      comlocation,
                     "ComicPublisher":     comic['ComicPublisher'],
                     "Description":        cdes_removed,
+                    "PublisherImprint":   comic['PublisherImprint'],
                     "DetailURL":          comic['ComicURL'],
                     "AlternateSearch":    aliases,
 #                    "ComicPublished":    gcdinfo['resultPublished'],
@@ -414,13 +426,13 @@ def addComictoDB(comicid, mismatch=None, pullupd=None, imported=None, ogcname=No
             n_date = datetime.date.today()
             recentchk = (n_date - c_date).days
             if importantdates['NewPublish'] is True:
-                series_status = 'Continuing'
+                seriesStatus = 'Continuing'
             else:
                 #do this just incase and as an extra measure of accuracy hopefully.
                 if recentchk < 55:
-                    series_status = 'Continuing'
+                    seriesStatus = 'Continuing'
                 else:
-                    series_status = 'Ended'
+                    seriesStatus = 'Ended'
 
             clean_issue_list = None
             if comic['Issue_List'] != 'None':
@@ -431,6 +443,7 @@ def addComictoDB(comicid, mismatch=None, pullupd=None, imported=None, ogcname=No
             metadata['metadata'] = [(
                                         {'type': 'comicSeries',
                                          'publisher': comic['ComicPublisher'],
+                                         'imprint': comic['PublisherImprint'],
                                          'name': comic['ComicName'],
                                          'comicid': comicid,
                                          'year': SeriesYear,
@@ -439,10 +452,9 @@ def addComictoDB(comicid, mismatch=None, pullupd=None, imported=None, ogcname=No
                                          'booktype': booktype,
                                          'collects': clean_issue_list,
                                          'ComicImage': comic.get('ComicImage', None),
-                                         'ComicImageThumbnail': comic.get('ComicImageThumbnail', None),
                                          'total_issues': comicIssues,
                                          'publication_run': importantdates['ComicPublished'],
-                                         'status': series_status}
+                                         'status': seriesStatus}
             )]
 
             try:
@@ -1040,7 +1052,7 @@ def issue_collection(issuedata, nostatus, serieslast_updated=None):
                         elif issue_week >= now_week and mylar.CONFIG.AUTOWANT_UPCOMING:
                             #logger.fdebug(str(datechk) + ' >= ' + str(nowtime))
                             newValueDict['Status'] = "Wanted"
-                        elif all([serieslast_updated < int(dk), mylar.CONFIG.AUTOWANT_UPCOMING is True]):
+                        elif all([int(re.sub('-', '', serieslast_updated).strip()) < int(dk), mylar.CONFIG.AUTOWANT_UPCOMING is True]):
                             logger.info('Autowant upcoming triggered for issue #%s' % issue['Issue_Number'])
                             newValueDict['Status'] = "Wanted"
                         else:
@@ -1078,13 +1090,17 @@ def manualAnnual(manual_comicid=None, comicname=None, comicyear=None, comicid=No
             issueid = manual_comicid
             logger.fdebug(str(issueid) + ' added to series list as an Annual')
             sr = cv.getComic(manual_comicid, 'comic')
+            if sr is None:
+                return
             logger.fdebug('Attempting to integrate ' + sr['ComicName'] + ' (' + str(issueid) + ') to the existing series of ' + comicname + '(' + str(comicyear) + ')')
-            if len(sr) is None or len(sr) == 0:
+            if len(sr) == 0:
                 logger.fdebug('Could not find any information on the series indicated : ' + str(manual_comicid))
                 return
             else:
                 n = 0
                 issued = cv.getComic(re.sub('4050-', '', manual_comicid).strip(), 'issue')
+                if not issued:
+                    return
                 if int(sr['ComicIssues']) == 0 and len(issued['issuechoice']) == 1:
                     noissues = 1
                 else:
@@ -1169,7 +1185,7 @@ def updateissuedata(comicid, comicname=None, issued=None, comicIssues=None, call
     #to facilitate independent calls to updateissuedata ONLY, account for data not available and get it.
     #chkType comes from the weeklypulllist - either 'annual' or not to distinguish annuals vs. issues
     if comicIssues is None:
-        comic = cv.getComic(comicid, 'comic')
+        comic = cv.getComic(comicid, 'comic', series=True)
         if comic is None:
             logger.warn('Error retrieving from ComicVine - either the site is down or you are not using your own CV API key')
             return
@@ -1594,6 +1610,8 @@ def annual_check(ComicName, SeriesYear, comicid, issuetype, issuechk, annualslis
         annualyear = SeriesYear  # no matter what, the year won't be less than this.
         logger.fdebug('[IMPORTER-ANNUAL] - Annual Year:' + str(annualyear))
         sresults = mb.findComic(annComicName, mode, issue=None)
+        if not sresults:
+            return
 
         annual_types_ignore = {'paperback', 'collecting', 'reprints', 'collected edition', 'print edition', 'tpb', 'available in print', 'collects'}
 
@@ -1619,7 +1637,7 @@ def annual_check(ComicName, SeriesYear, comicid, issuetype, issuechk, annualslis
                         num_res+=1 # need to manually increment since not a for-next loop
                         continue
                     issued = cv.getComic(issueid, 'issue')
-                    if len(issued) is None or len(issued) == 0:
+                    if issued is None or len(issued) == 0:
                         logger.fdebug('[IMPORTER-ANNUAL] - Could not find any annual information...')
                         pass
                     else:
@@ -1699,10 +1717,12 @@ def annual_check(ComicName, SeriesYear, comicid, issuetype, issuechk, annualslis
             manualAnnual(annchk=annualslist)
             return annualslist
 
-        elif len(sresults) == 0 or len(sresults) is None:
+        elif sresults is None or len(sresults) == 0:
             logger.fdebug('[IMPORTER-ANNUAL] - No results, removing the year from the agenda and re-querying.')
             sresults = mb.findComic(annComicName, mode, issue=None)
-            if len(sresults) == 1:
+            if not sresults:
+                return
+            elif len(sresults) == 1:
                 sr = sresults[0]
                 logger.fdebug('[IMPORTER-ANNUAL] - ' + str(comicid) + ' found. Assuming it is part of the greater collection.')
             else:
@@ -1722,6 +1742,8 @@ def image_it(comicid, latestissueid, comlocation, ComicImage):
 
     cimage = os.path.join(mylar.CONFIG.CACHE_DIR, str(comicid) + '.jpg')
     imageurl = mylar.cv.getComic(comicid, 'image', issueid=latestissueid)
+    if imageurl is None:
+        return
     covercheck = helpers.getImage(comicid, imageurl['image'])
     if covercheck['status'] == 'retry':
         logger.fdebug('Attempting to retrieve a different comic image for this particular issue.')

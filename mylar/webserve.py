@@ -132,7 +132,7 @@ class WebInterface(object):
                     elif row['displaytype'] is not None and sSearch.lower() in row['displaytype'].lower():
                         filtered.append(row)
                 except Exception as e:
-                    filtered = [row for row in resultlist if any([sSearch.lower() in row['ComicName'].lower(), sSearch.lower() in row['ComicYear'], sSearch.lower() in row['recentstatus']]) or (row['LatestIssue'] is not None and sSearch.lower() in row['LatestIssue'].lower())]
+                    pass
 
         sortcolumn = 'ComicPublisher'
         if iSortCol_0 == '0':
