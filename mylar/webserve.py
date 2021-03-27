@@ -7018,8 +7018,8 @@ class WebInterface(object):
                     seriesStatus = 'Ended'
 
             clean_issue_list = None
-            if comic['Issue_List'] != 'None':
-                clean_issue_list = comic['Issue_List']
+            if comic['Collects'] != 'None':
+                clean_issue_list = comic['Collects']
 
             if comic['DescriptionEdit'] is not None:
                 cdes_removed = re.sub(r'\n', ' ', comic['DescriptionEdit']).strip()
