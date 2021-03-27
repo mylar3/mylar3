@@ -1811,18 +1811,26 @@ def watchlist_updater(calledfrom=None, sched=False):
     if mylar.CONFIG.ANNUALS_ON is True:
         list = myDB.select("SELECT a.comicid, b.releasecomicid, a.status, a.LastUpdated, a.Total FROM Comics AS a LEFT JOIN annuals AS b on a.comicid=b.comicid group by a.comicid")
     else:
-        list = myDB.select("SELECT comicid, status FROM Comics group by comicid")
+        list = myDB.select("SELECT comicid, status, LastUpdated, Total FROM Comics group by comicid")
+
+    # if a series failed to update for w/e reason, LastUpdated will be NULL and cause an error otherwise.
+    # the prev_failed_updates dict will store all the 'failed' ID's that will be submitted in addition to any
+    # other ID's that were updated recently by CV during the check.
+    prev_failed_updates = []
 
     for row in list:
-        tm = datetime.datetime.strptime(row['LastUpdated'], '%Y-%m-%d %H:%M:%S')
-        library[int(row['ComicID'])] = {'comicid':        row['ComicID'],
-                                        'status':         row['Status'],
-                                        'lastupdated':    calendar.timegm(tm.utctimetuple()),
-                                        'total':          row['Total']}
+        if not row['LastUpdated']:
+            prev_failed_updates.append(int(row['ComicID']))
+        else:
+            tm = datetime.datetime.strptime(row['LastUpdated'], '%Y-%m-%d %H:%M:%S')
+            library[int(row['ComicID'])] = {'comicid':        row['ComicID'],
+                                            'status':         row['Status'],
+                                            'lastupdated':    calendar.timegm(tm.utctimetuple()),
+                                            'total':          row['Total']}
         try:
             if row['ReleaseComicID'] is not None:
-                library[row['ReleaseComicID']] = {'comicid':   row['ComicID'],
-                                                  'status':    row['Status']}
+                library[row['ReleaseComicID']] = {'comicid':     row['ComicID'],
+                                                  'status':      row['Status']}
         except:
             pass
 
@@ -1853,6 +1861,12 @@ def watchlist_updater(calledfrom=None, sched=False):
         logger.info(
             '[BACKFILL-UPDATE] [%s] series to update: %s' % (len(to_check), to_check)
         )
+    if len(prev_failed_updates) > 0:
+        logger.info(
+            '[BACKFILL-UPDATE] [%s] series need to be updated due to previous'
+            ' failures: %s' % (len(prev_failed_updates), prev_failed_updates)
+        )
+        to_check.extend(prev_failed_updates)
     else:
         logger.info(
             '[BACKFILL-UPDATE] No updates to watchlisted items checked against %s items'
