@@ -275,7 +275,21 @@ class WebInterface(object):
             comicImage = comic['ComicImage']
         comicpublisher = helpers.publisherImages(comic['ComicPublisher'])
 
-        if comic['DescriptionEdit'] is not None:
+        description_load = None
+        if os.path.exists(os.path.join(comic['ComicLocation'], 'series.json')):
+            try:
+                with open(os.path.join(comic['ComicLocation'], 'series.json')) as j_file:
+                    metainfo = json.load(j_file)
+                description_load = metainfo['metadata'][0]['description']
+            except Exception as e:
+                try:
+                    description_load = metainfo['metadata'][0]['description_formatted']
+                except Exception as e:
+                    logger.info('No description found within series.json. Reloading from dB if available.[error: %s]' % e)
+
+        if description_load is not None:
+            description = description_load
+        elif comic['DescriptionEdit'] is not None:
             description = comic['DescriptionEdit']
         else:
             description = comic['Description']
@@ -6989,9 +7003,25 @@ class WebInterface(object):
         for k,v in list(args.items()):
             if k == 'id':
                 comicid = v[1:]
+
         myDB = db.DBConnection()
-        desc = myDB.selectone('SELECT Description, DescriptionEdit FROM comics WHERE comicid=?', [comicid]).fetchone()
-        if desc:
+        desc = myDB.selectone('SELECT Description, DescriptionEdit, ComicLocation FROM comics WHERE comicid=?', [comicid]).fetchone()
+
+        description_load = None
+        if os.path.exists(os.path.join(desc['ComicLocation'], 'series.json')):
+            try:
+                with open(os.path.join(desc['ComicLocation'], 'series.json')) as j_file:
+                    metainfo = json.load(j_file)
+                description_load = metainfo['metadata'][0]['description']
+            except Exception as e:
+                try:
+                    description_load = metainfo['metadata'][0]['description_formatted']
+                except Exception as e:
+                    logger.info('No description found in metadata. Reloading from dB if available.[error: %s]' % e)
+
+        if descripton_load is not None:
+            return description_load
+        elif desc:
             if desc['DescriptionEdit']:
                 return desc['DescriptionEdit']
             else:
@@ -7004,6 +7034,18 @@ class WebInterface(object):
         myDB = db.DBConnection()
         comic = myDB.selectone('SELECT * FROM comics WHERE ComicID=?', [comicid]).fetchone()
         if comic:
+            description_load = None
+            if os.path.exists(os.path.join(comic['ComicLocation'], 'series.json')):
+                try:
+                    with open(os.path.join(comic['ComicLocation'], 'series.json')) as j_file:
+                        metainfo = json.load(j_file)
+                        logger.info('metainfo_loaded: %s' % (metainfo,))
+                    description_load = metainfo['metadata'][0]['description']
+                except Exception as e:
+                    try:
+                        description_load = metainfo['metadata'][0]['description_formatted']
+                    except Exception as e:
+                        logger.info('No description found in metadata. Reloading from dB if available.[error: %s]' % e)
 
             c_date = datetime.date(int(comic['LatestDate'][:4]), int(comic['LatestDate'][5:7]), 1)
             n_date = datetime.date.today()
@@ -7021,7 +7063,11 @@ class WebInterface(object):
             if comic['Collects'] != 'None':
                 clean_issue_list = comic['Collects']
 
-            if comic['DescriptionEdit'] is not None:
+
+            if description_load is not None:
+                cdes_removed = re.sub(r'\n', '', description_load).strip()
+                cdes_formatted = description_load
+            elif comic['DescriptionEdit'] is not None:
                 cdes_removed = re.sub(r'\n', ' ', comic['DescriptionEdit']).strip()
                 cdes_formatted = comic['DescriptionEdit']
             else:

@@ -425,6 +425,19 @@ def addComictoDB(comicid, mismatch=None, pullupd=None, imported=None, ogcname=No
 
         #write out series.json here if enabled.
         if mylar.CONFIG.SERIES_METADATA_LOCAL is True:
+            description_load = None
+            if os.path.exists(os.path.join(comlocation, 'series.json')):
+                try:
+                    with open(os.path.join(comlocation, 'series.json')) as j_file:
+                        metainfo = json.load(j_file)
+                        logger.info('metainfo_loaded: %s' % (metainfo,))
+                    description_load = metainfo['metadata'][0]['description']
+                except Exception as e:
+                    try:
+                        description_load = metainfo['metadata'][0]['description_formatted']
+                    except Exception as e:
+                        logger.info('No description found in metadata. Reloading from dB if available.[error: %s]' % e)
+
             c_date = datetime.date(int(importantdates['LatestDate'][:4]), int(importantdates['LatestDate'][5:7]), 1)
             n_date = datetime.date.today()
             recentchk = (n_date - c_date).days
@@ -441,7 +454,10 @@ def addComictoDB(comicid, mismatch=None, pullupd=None, imported=None, ogcname=No
             if comic['Issue_List'] != 'None':
                 clean_issue_list = comic['Issue_List']
 
-            if old_description is not None:
+            if description_load is not None:
+                cdes_removed = re.sub(r'\n', '', description_load).strip()
+                cdes_formatted = description_load
+            elif old_description is not None:
                 cdes_removed = re.sub(r'\n', ' ', old_description).strip()
                 cdes_formatted = old_description
             else:
