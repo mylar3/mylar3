@@ -51,27 +51,34 @@
         <table class="configtable" summary="Information">
             <tr>
                 <td>
-                  <fieldset>
-                  <legend>Configuration Options</legend>
-                       <div>
-                            <label><strong>Mylar Version: </strong> ${config['branch']}
+                  <fieldset class="fieldset_header">
+                      <legend>Version</legend>
+                            <center>
                             %if config['br_version_name'] and config['br_release_name']:
-                                [${config['br_version_name']} - ${config['br_release_name']}]
+                                <span style="font-weight:bold;">[${config['br_version_name']}]</span><br/>
+                                <span style="font-style:italic;">${config['br_release_name']}</span>
                             %elif config['br_version_name']:
-                                [${config['br_version_name']}]
+                                <span style="font-weight:bold;">[${config['br_version_name']}]</span>
+                            %else:
+                                <span style="font-weight:bold;">[${config['br_version']}]</span>
                             %endif
-                            </br> -- ${config['br_type']} (build ${config['br_version']})</label></br>
+                            </center>
+                            </br><span style="float:left;vertical-align:top;" title="${config['br_type']} installation detected.">${config['br_type']}</span>
+                            <span style="float:right;vertical-align:top;">${config['branch']}</span>
+                  </fieldset>
+                  <fieldset>
+                       <div>
+                            <br/>
+                            <legend>MYLAR PROGRAM OPTIONS</legend>
                             <label><strong>Python Version :</strong> ${config['py_version']}</label></br>
                             <label><strong>Language :</strong> ${config['lang']}</label></br></br>
-                            <legend>MYLAR PROGRAM OPTIONS</legend>
                             <label><strong>Mylar Data Directory :</strong>  ${config['data_dir']}</label></br>
                             <label><strong>Mylar Program Directory :</strong> ${config['prog_dir']}</label></br>
                             <label><strong>Mylar Cache Directory :</strong> ${config['cache_dir']}</label></br>
                             <a href="config_dump"><label><strong>Mylar Config File :</strong>${config['config_file']}</label></a></br>
-
-                       </div>                       
-                   </fieldset>
-                   <fieldset>
+                       </div>
+                  </fieldset>
+                  <fieldset class="fieldset_header">
                        <legend>DONATIONS</legend>
                          <a name="donate"></a>
                          <div align="center">
@@ -86,7 +93,7 @@
                    </fieldset>
                   </td>
                   <td>
-                   <fieldset>
+                   <fieldset class="fieldset_header">
                       <legend>Bragging Rights</legend>
                         <div>
                            <label><strong># of Series you're watching: </strong> ${comicinfo['COUNT_COMICS']}</br></label>
@@ -96,24 +103,25 @@
                            <label><strong> ... total HD-space being used: </strong> ${comicinfo['COUNT_SIZE']}</br></label>
                         </div>
                    </fieldset>
+                </br>
                 <fieldset>
-                     <legend>Useful Information</legend>
-                        <div class="row">
-                          <label><strong>Forums</strong></label>
-                            <div><a href="https://forum.mylarcomics.com/" target="_blank">https://forum.mylarcomics.com</a></div>
-                        </div>
-                        <div class="row">
-                          <label><strong>Source</strong></label>
-                            <div><a href="https://github.com/mylar3/mylar3" target="_blank">https://github.com/mylar3/mylar3</a></div>
-                        </div>
-                        <div class="row">
-                          <label><strong>Issues</strong></label>
-                            <div><a href="https://github.com/mylar3/mylar3/issues" target="_blank">https://github.com/mylar3/mylar3/issues/</a></div>
-                        </div>
-                        <div class="row">
-                          <label><strong>Internet Relay Chat</strong></label>
-                              <div><a href="irc://irc.freenode.net/#mylar" target="_blank">#mylar on irc.freenode.net</a></div>
-                        </div>
+                     <legend>Need help?</legend>
+                        <figure class="item">
+                          <a href="https://forum.mylarcomics.com/" target="_blank"><img src="${icons['forum-icon']}" height="64" width="64" href="https://forum.mylarcomics.com" title="https://forums.mylarcomics.com" /></a>
+                          <figcaption class="caption">Forums</caption>
+                        </figure>
+                        <figure class="item">
+                          <a href="https://github.com/mylar3/mylar3" target="_blank"><img src="${icons['github-icon']}" href="https://github.com/mylar3/mylar3" title="https://github.com/mylar3/mylar3" /></a>
+                          <figcaption class="caption">GitHub</caption>
+                        </figure>
+                        <figure class="item">
+                          <a href="https://github.com/mylar3/mylar3/issues" target="_blank"><img src="${icons['discord-icon']}" height="64" width="64" href="https://github.com/mylar3/mylar3/issues/" title="View Github project Issues" /></a>
+                          <figcaption class="caption">Discord</caption>
+                        </figure>
+                        <figure class="item">
+                           <a href="https://webchat.freenode.net?channels=#mylar" target="_blank"><img src="images/irc-icon.png" height="64" width="64" title="#mylar on irc.freenode.net" /></a>
+                          <figcaption class="caption">IRC</caption>
+                        </figure>
                 </fieldset>
                 <fieldset>
                     <legend>Branch history</legend>

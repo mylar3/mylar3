@@ -2305,3 +2305,20 @@ input[type="checkbox"] + label.series_metadata_local::before {
   -webkit-text-fill-color: transparent;
   -webkit-background-clip: text;
 }
+fieldset.fieldset_header {
+  margin: 5px;
+  padding: 0px 5px 5px;
+  border: 1px solid #666;
+  border-radius: 8px;
+  box-shadow: 0px 0px 10px #666;
+  padding-top: 5px;
+}
+figure.item{
+  vertical-align: top;
+  display: inline-block;
+  text-align: center;
+  width: 100px;
+}
+.caption.caption {
+  display: block;
+}

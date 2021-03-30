@@ -136,6 +136,7 @@ _CONFIG_DEFINITIONS = OrderedDict({
 
     'GIT_PATH' : (str, 'Git', None),
     'GIT_USER' : (str, 'Git', 'mylar3'),
+    'GIT_TOKEN' : (str, 'Git', None),
     'GIT_BRANCH' : (str, 'Git', None),
     'CHECK_GITHUB' : (bool, 'Git', False),
     'CHECK_GITHUB_ON_STARTUP' : (bool, 'Git', False),
@@ -889,6 +890,10 @@ class Config(object):
 
         #force off public torrents usage as currently broken.
         self.ENABLE_PUBLIC = False
+
+        if self.GIT_TOKEN:
+            self.GIT_TOKEN = (self.GIT_TOKEN, 'x-oauth-basic')
+            logger.info('git_token set to %s' % (self.GIT_TOKEN,))
 
         try:
             if not any([self.SAB_HOST is None, self.SAB_HOST == '', 'http://' in self.SAB_HOST[:7], 'https://' in self.SAB_HOST[:8]]):
