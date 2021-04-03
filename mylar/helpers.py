@@ -1133,6 +1133,8 @@ def issuedigits(issnum):
                             int_issnum = (112 * 1000) + (.5 * 1000)
                         elif issnum == '14-16':
                             int_issnum = (15 * 1000) + (.5 * 1000)
+                        elif issnum == '380/381':
+                            int_issnum = (380 * 1000) + (.5 * 1000)
                         elif issnum.lower() == 'preview':
                             inu = 0
                             ordtot = 0
