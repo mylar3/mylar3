@@ -115,13 +115,16 @@ class WebInterface(object):
     def home(self):
         if mylar.CONFIG.ALPHAINDEX == True:
             comics = helpers.havetotals()
-            return serve_template(templatename="index-alphaindex.html", title="Home", comics=comics, alphaindex=mylar.CONFIG.ALPHAINDEX)
+            serCounts = helpers.serTotals()
+            return serve_template(templatename="index-alphaindex.html", title="Home", comics=comics, serCounts=serCounts, alphaindex=mylar.CONFIG.ALPHAINDEX)
         else:
-            return serve_template(templatename="index.html", title="Home")
+            serCounts = helpers.serTotals()
+            return serve_template(templatename="index.html", title="Home", serCounts=serCounts)
     home.exposed = True
 
     def loadhome(self, iDisplayStart=0, iDisplayLength=100, iSortCol_0=5, sSortDir_0="desc", sSearch="", **kwargs):
         resultlist = helpers.havetotals()
+        serCounts = helpers.serTotals()
         iDisplayStart = int(iDisplayStart)
         iDisplayLength = int(iDisplayLength)
         filtered = []
@@ -171,6 +174,7 @@ class WebInterface(object):
             'iTotalDisplayRecords': len(filtered),
             'iTotalRecords': len(resultlist),
             'aaData': rows,
+            'serCounts': serCounts,
         })
     loadhome.exposed = True
 
