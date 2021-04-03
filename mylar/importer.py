@@ -1393,7 +1393,7 @@ def updateissuedata(comicid, comicname=None, issued=None, comicIssues=None, call
                                 return
                         else:
                             if int_issnum is not None:
-                                pass 
+                                pass
                             elif issnum == '9-5':
                                 issnum = '9\xbd'
                                 logger.fdebug('issue: 9-5 is an invalid entry. Correcting to : ' + issnum)
@@ -1408,6 +1408,8 @@ def updateissuedata(comicid, comicname=None, issued=None, comicIssues=None, call
                                 int_issnum = (112 * 1000) + (.5 * 1000)
                             elif issnum == '14-16':
                                 int_issnum = (15 * 1000) + (.5 * 1000)
+                            elif issnum == '380/381':
+                                int_issnum = (380 * 1000) + (.5 * 1000)
                             elif issnum.lower() == 'preview':
                                 inu = 0
                                 ordtot = 0
