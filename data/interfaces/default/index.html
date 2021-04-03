@@ -7,6 +7,13 @@
 
 <%def name="body()">
         <div class="table_wrapper">
+              <div id="checkboxControls" style="float: right; vertical-align: middle; margin: 5px 3px 3px 3px;">
+                    <div style="padding-bottom: 5px;">
+                      <label for="Continuing" class="checkbox inline Continuing"><input type="checkbox" id="Continuing" checked="checked" /> Continuing: <b>${serCounts['Continuing']}</b></label>
+                      <label for="Ended" class="checkbox inline Ended"><input type="checkbox" id="Ended" checked="checked" /> Ended: <b>${serCounts['Ended']}</b></label>
+                    </div>
+                  </div>
+        
 	<table class="display" id="series_table">
 	    <thead>
 	        <tr>

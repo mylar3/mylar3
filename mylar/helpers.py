@@ -1133,8 +1133,6 @@ def issuedigits(issnum):
                             int_issnum = (112 * 1000) + (.5 * 1000)
                         elif issnum == '14-16':
                             int_issnum = (15 * 1000) + (.5 * 1000)
-                        elif issnum == '380/381':
-                            int_issnum = (380 * 1000) + (.5 * 1000)
                         elif issnum.lower() == 'preview':
                             inu = 0
                             ordtot = 0
@@ -1498,6 +1496,25 @@ def havetotals(refreshit=None):
                            "displaytype":     comictype})
         return comics
 
+def serTotals():
+    serCounts = {}
+    serCounts[1] = 0 #1 Continuing
+    serCounts[2] = 0 #2 Ended
+    resultlist = havetotals()
+
+    for curResult in resultlist:
+        serstat = {'Continuing': 1, 'Ended': 2}
+        for ss in serstat:
+            if ss in curResult['recentstatus']:
+                ssconv = serstat[ss]
+                serCounts[ssconv] += 1
+                continue
+    serCounts = {
+        "Continuing": str(serCounts[1]),
+        "Ended": str(serCounts[2])
+    }
+    return serCounts
+    
 def filesafe(comic):
     import unicodedata
     if '\u2014' in comic:
