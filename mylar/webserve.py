@@ -5600,7 +5600,7 @@ class WebInterface(object):
 
     readlistOptions.exposed = True
 
-    def arcOptions(self, StoryArcID=None, StoryArcName=None, read2filename=0, storyarcdir=0, arc_folderformat=None, copy2arcdir=0, arc_fileops='copy'):
+    def arcOptions(self, StoryArcID=None, StoryArcName=None, read2filename=0, storyarcdir=0, arc_folderformat=None, copy2arcdir=0, arc_fileops='copy', arc_fileops_softlink_relative=0):
         mylar.CONFIG.READ2FILENAME = bool(int(read2filename))
         mylar.CONFIG.STORYARCDIR = bool(int(storyarcdir))
         if arc_folderformat is None:
@@ -5609,11 +5609,13 @@ class WebInterface(object):
             mylar.CONFIG.ARC_FOLDERFORMAT = arc_folderformat
         mylar.CONFIG.COPY2ARCDIR = bool(int(copy2arcdir))
         mylar.CONFIG.ARC_FILEOPS = arc_fileops
-        options = {'read2filename':     mylar.CONFIG.READ2FILENAME,
-                   'storyarcdir':       mylar.CONFIG.STORYARCDIR,
-                   'arc_folderformat':  mylar.CONFIG.ARC_FOLDERFORMAT,
-                   'copy2arcdir':       mylar.CONFIG.COPY2ARCDIR,
-                   'arc_fileops':       mylar.CONFIG.ARC_FILEOPS}
+        mylar.CONFIG.ARC_FILEOPS_SOFTLINK_RELATIVE = bool(int(arc_fileops_softlink_relative))
+        options = {'read2filename':                 mylar.CONFIG.READ2FILENAME,
+                   'storyarcdir':                   mylar.CONFIG.STORYARCDIR,
+                   'arc_folderformat':              mylar.CONFIG.ARC_FOLDERFORMAT,
+                   'copy2arcdir':                   mylar.CONFIG.COPY2ARCDIR,
+                   'arc_fileops':                   mylar.CONFIG.ARC_FILEOPS,
+                   'arc_fileops_softlink_relative': mylar.CONFIG.ARC_FILEOPS_SOFTLINK_RELATIVE}
         mylar.CONFIG.writeconfig(values=options)
 
         #force the check/creation of directory com_location here
