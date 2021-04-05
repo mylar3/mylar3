@@ -80,7 +80,12 @@
                                               %>
                                               <option value=${x} ${outputselect}>${x}</option>
                                          %endfor
-                                        </select><label> watchlisted issues to <span id="arcopts"></span> Directory</label>
+                                        </select><label> watchlisted issues to <span id="arcopts"></span> Directory</label></br>
+                         <div id="arc_fileops_options">
+                             <div class="row checkbox left">
+                                 <input type="checkbox" style="vertical-align: middle; margin: 3px; margin-top: -1px;" name="arc_fileops_softlink_relative" id="arc_fileops_softlink_relative" value="1" ${checked(mylar.CONFIG.ARC_FILEOPS_SOFTLINK_RELATIVE)} /><label>Create relative softlink<small> (default: absolute)</small></label></br>
+                            </div>
+                         </div>
                      </div>
                    </fieldset>
                    <div>
@@ -178,6 +183,14 @@
                             $("#arc_options").hide();
                             document.getElementById('arcopts').innerHTML = 'GrabBag';
                         }
+                if ($("#arc_fileops option:checked").val() == 'softlink')
+                        {
+                            $("#arc_fileops_options").show();
+                        }
+                else
+                        {
+                            $("#arc_fileops_options").hide();
+                        }
                 $("#storyarcdir").click(function(){
                         if ($("#storyarcdir").is(":checked"))
                         {
@@ -186,6 +199,16 @@
                         else
                         {
                             $("#arc_options").slideUp();
+                        }
+                });
+                $("#arc_fileops").change(function(){
+                        if ($("#arc_fileops option:checked").val() == 'softlink')
+                        {
+                            $("#arc_fileops_options").slideDown();
+                        }
+                        else
+                        {
+                            $("#arc_fileops_options").slideUp();
                         }
                 });
                 $(function() {

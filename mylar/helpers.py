@@ -4234,8 +4234,12 @@ def file_ops(path,dst,arc=False,one_off=False):
 #    crc_check = mylar.filechecker.crc(path)
 #    #will be either copy / move
 
+    softlink_type = 'absolute'
+
     if any([one_off, arc]):
         action_op = mylar.CONFIG.ARC_FILEOPS
+        if mylar.CONFIG.ARC_FILEOPS_SOFTLINK_RELATIVE is True:
+            softlink_type = 'relative'
     else:
         action_op = mylar.CONFIG.FILE_OPTS
 
@@ -4293,18 +4297,27 @@ def file_ops(path,dst,arc=False,one_off=False):
 
                 return True
 
-            elif action_op ==  'softlink':
+            elif action_op == 'softlink':
                 try:
                     #first we need to copy the file to the new location, then create the symlink pointing from new -> original
                     if not arc:
-                        shutil.move( path, dst )            
+                        shutil.move( path, dst )
                         if os.path.lexists( path ):
                             os.remove( path )
-                        os.symlink( dst, path )
-                        logger.fdebug('Successfully created softlink [' + dst + ' --> ' + path + ']')
+                        if softlink_type == 'absolute':
+                            os.symlink( dst, path )
+                            logger.fdebug('Successfully created softlink [' + dst + ' --> ' + path + ']')
+                        else:
+                            os.symlink(os.path.relpath(dst, os.path.dirname(path)), path)
+                            logger.fdebug('Successfully created (relative) softlink [' + os.path.relpath(dst, os.path.dirname(path)) + ' --> ' + path + ']')
+
                     else:
-                        os.symlink ( path, dst )
-                        logger.fdebug('Successfully created softlink [' + path + ' --> ' + dst + ']')
+                        if softlink_type == 'absolute':
+                            os.symlink( path, dst )
+                            logger.fdebug('Successfully created softlink [' + path + ' --> ' + dst + ']')
+                        else:
+                            os.symlink(os.path.relpath(path, os.path.dirname(dst)), dst)
+                            logger.fdebug('Successfully created (relative) softlink [' + os.path.relpath(path, os.path.dirname(dst)) + ' --> ' + dst + ']')
                 except OSError as e:
                     #if e.errno == errno.EEXIST:
                     #    os.remove(dst)
