@@ -282,16 +282,17 @@ class WebInterface(object):
         comicpublisher = helpers.publisherImages(comic['ComicPublisher'])
 
         description_load = None
-        if os.path.exists(os.path.join(comic['ComicLocation'], 'series.json')):
-            try:
-                with open(os.path.join(comic['ComicLocation'], 'series.json')) as j_file:
-                    metainfo = json.load(j_file)
-                description_load = metainfo['metadata'][0]['description']
-            except Exception as e:
+        if comic['ComicLocation'] is not None:
+            if os.path.exists(os.path.join(comic['ComicLocation'], 'series.json')):
                 try:
-                    description_load = metainfo['metadata'][0]['description_formatted']
+                    with open(os.path.join(comic['ComicLocation'], 'series.json')) as j_file:
+                        metainfo = json.load(j_file)
+                    description_load = metainfo['metadata'][0]['description']
                 except Exception as e:
-                    logger.info('No description found within series.json. Reloading from dB if available.[error: %s]' % e)
+                    try:
+                        description_load = metainfo['metadata'][0]['description_formatted']
+                    except Exception as e:
+                        logger.info('No description found within series.json. Reloading from dB if available.[error: %s]' % e)
 
         if description_load is not None:
             description = description_load
@@ -1150,16 +1151,19 @@ class WebInterface(object):
         issuenumber = issuechk['Issue_Number']
 
         #check if the new date is in the correct format of yyyy-mm-dd
-        try:
-            valid_date = time.strptime(value, '%Y-%m-%d')
-        except ValueError:
-            logger.error('invalid date provided. Rejecting edit.')
-            return oldissuedate
-
-        #if the new issue year is less than the series year - reject it.
-        if value[:4] < seriesyear:
-            logger.error('Series year of ' + str(seriesyear) + ' is less than new issue date of ' + str(value[:4]))
-            return oldissuedate
+        if value == '0000-00-00':
+            logger.fdebug('Reverting issue date to 0000-00-00 to allow for possible CV update.')
+        else:
+            try:
+                valid_date = time.strptime(value, '%Y-%m-%d')
+            except ValueError:
+                logger.error('invalid date provided. Rejecting edit.')
+                return oldissuedate
+            else:
+                #if the new issue year is less than the series year - reject it.
+                if value[:4] < seriesyear:
+                    logger.error('Series year of ' + str(seriesyear) + ' is less than new issue date of ' + str(value[:4]))
+                    return oldissuedate
 
         newVal = {"IssueDate": value,
                   "IssueDate_Edit": oldissuedate}
