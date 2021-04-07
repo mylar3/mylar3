@@ -257,7 +257,7 @@ def dbUpdate(ComicIDList=None, calledfrom=None, sched=False):
                                             dk = re.sub('-', '', issue['IssueDate']).strip()
                                         else:
                                             dk = re.sub('-', '', issuenew['ReleaseDate']).strip() # converts date to 20140718 format
-                                        if dk == '0000-00-00':
+                                        if dk == '00000000':
                                             logger.warn('Issue Data is invalid for Issue Number %s. Marking this issue as Skipped' % issue['Issue_Number'])
                                             newVAL = {"Status":  "Skipped"}
                                         else:
@@ -278,11 +278,16 @@ def dbUpdate(ComicIDList=None, calledfrom=None, sched=False):
                                                 newVAL = {"Status":  "Skipped"}
 
                                     if newVAL is not None:
-                                        if issue['IssueDate_Edit']:
-                                            logger.fdebug('[#' + str(issue['Issue_Number']) + '] detected manually edited Issue Date.')
-                                            logger.fdebug('new value : ' + str(issue['IssueDate']) + ' ... cv value : ' + str(issuenew['IssueDate']))
-                                            newVAL['IssueDate'] = issue['IssueDate']
-                                            newVAL['IssueDate_Edit'] = issue['IssueDate_Edit']
+                                        if issue['IssueDate_Edit'] is not None:
+                                            if issue['IssueDate_Edit'] == '0000-00-00':
+                                                logger.fdebug('[#%s] Reverting previously edited Issue Date and replacing with CV Issue Date.' % issue['Issue_Number'])
+                                                newVAL['IssueDate'] = issue['IssueDate']
+                                                newVAL['IssueDate_Edit'] = None
+                                            else:
+                                                logger.fdebug('[#%s] Detected manually edited Issue Date.' % issue['Issue_Number'])
+                                                logger.fdebug('new value : ' + str(issue['IssueDate']) + ' ... cv value : ' + str(issuenew['IssueDate']))
+                                                newVAL['IssueDate'] = issue['IssueDate']
+                                                newVAL['IssueDate_Edit'] = issue['IssueDate_Edit']
 
                                         if any(d['IssueID'] == str(issue['IssueID']) for d in ann_list):
                                             logger.fdebug("annual detected for " + str(issue['IssueID']) + " #: " + str(issue['Issue_Number']))
