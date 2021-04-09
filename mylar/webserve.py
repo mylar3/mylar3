@@ -7031,7 +7031,7 @@ class WebInterface(object):
                 except Exception as e:
                     logger.info('No description found in metadata. Reloading from dB if available.[error: %s]' % e)
 
-        if descripton_load is not None:
+        if description_load is not None:
             return description_load
         elif desc:
             if desc['DescriptionEdit']:
@@ -7074,7 +7074,6 @@ class WebInterface(object):
             clean_issue_list = None
             if comic['Collects'] != 'None':
                 clean_issue_list = comic['Collects']
-
 
             if description_load is not None:
                 cdes_removed = re.sub(r'\n', '', description_load).strip()
