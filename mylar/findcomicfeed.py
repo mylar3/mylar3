@@ -3,6 +3,7 @@
 import os
 import sys
 import time
+import requests
 import feedparser
 import re
 from . import logger
@@ -11,6 +12,8 @@ import unicodedata
 import urllib.request, urllib.parse, urllib.error
 
 def Startit(searchName, searchIssue, searchYear, ComicVersion, IssDateFix, booktype=None):
+    timerdelay = 5
+
     cName = searchName
 
     #clean up searchName due to webparse/redudant naming that would return too specific of results.
@@ -33,9 +36,6 @@ def Startit(searchName, searchIssue, searchYear, ComicVersion, IssDateFix, bookt
 
     searchName = re.sub('\s+', ' ', searchName)
     searchName = re.sub("[\,\:]", "", searchName).strip()
-    #logger.fdebug("searchname: %s" % searchName)
-    #logger.fdebug("issue: %s" % searchIssue)
-    #logger.fdebug("year: %s" % searchYear)
     encodeSearch = urllib.parse.quote_plus(searchName)
     splitSearch = encodeSearch.split(" ")
 
@@ -53,27 +53,27 @@ def Startit(searchName, searchIssue, searchYear, ComicVersion, IssDateFix, bookt
 
     if "-" in searchName:
         searchName = searchName.replace("-", '((\\s)?[-:])?(\\s)?')
-    regexName = searchName.replace(" ", '((\\s)?[-:])?(\\s)?') 
+    regexName = searchName.replace(" ", '((\\s)?[-:])?(\\s)?')
 
     if mylar.CONFIG.USE_MINSIZE is True:
-        minsize = str(mylar.CONFIG.MINSIZE)
+        minsize = mylar.CONFIG.MINSIZE
     else:
-        minsize = '10'
-    size_constraints = "&minsize=" + minsize
+        minsize = 10
 
     if mylar.CONFIG.USE_MAXSIZE is True:
-        maxsize = str(mylar.CONFIG.MAXSIZE)
+        maxsize = mylar.CONFIG.MAXSIZE
     else:
-        maxsize = '0'
-    size_constraints += "&maxsize=" + maxsize
+        maxsize = 0
 
     if mylar.CONFIG.USENET_RETENTION is not None:
-        max_age = "&maxage=" + str(mylar.CONFIG.USENET_RETENTION)
+        max_age = mylar.CONFIG.USENET_RETENTION
     else:
-        max_age = "&maxage=0"
-
-    feeds = []
+        max_age = 0
+    feed = []
     i = 1
+    searchline = ''
+    issue_search = []
+
     while (i <= loop):
         if i == 1:
             searchmethod = tmpsearchIssue
@@ -87,134 +87,161 @@ def Startit(searchName, searchIssue, searchYear, ComicVersion, IssDateFix, bookt
             break
 
         if i == 4:
-            logger.fdebug('Now searching experimental for %s to try and ensure all the bases are covered' % cName)
-            joinSearch = "+".join(splitSearch)
+            joinSearch = " ".join(splitSearch)
         else:
-            logger.fdebug('Now searching experimental for issue number: %s to try and ensure all the bases are covered' % searchmethod)
-            joinSearch = "+".join(splitSearch) + "+" +searchmethod
+            joinSearch = " ".join(splitSearch) + " " +searchmethod
 
-
+        issue_search.append(searchmethod)
 
         if mylar.CONFIG.PREFERRED_QUALITY == 1: joinSearch = joinSearch + " .cbr"
         elif mylar.CONFIG.PREFERRED_QUALITY == 2: joinSearch = joinSearch + " .cbz"
 
-        feeds.append(feedparser.parse(mylar.EXPURL + "search/rss?q=%s&max=50&minage=0%s&hidespam=1&hidepassword=1&sort=agedesc%s&complete=0&hidecross=0&hasNFO=0&poster=&g[]=85" % (joinSearch, max_age, size_constraints)))
-        time.sleep(5)
-        if mylar.CONFIG.ALTEXPERIMENTAL:
-            feeds.append(feedparser.parse(mylar.EXPURL + "search/rss?q=%s&max=50&minage=0%s&hidespam=1&hidepassword=1&sort=agedesc%s&complete=0&hidecross=0&hasNFO=0&poster=&g[]=86" % (joinSearch, max_age, size_constraints)))
-            time.sleep(5)
+        if i == 1:
+           searchline += joinSearch  #'"' + joinSearch + '"'
+        else:
+           searchline += ' | ' + joinSearch  #' | "' + joinSearch + '"'
+
         i+=1
+
+    params = {'q': searchline,
+              'max': 50,
+              'minage': 0,
+              'maxage': max_age,
+              'hidespam': 1,
+              'hidepassword': 1,
+              'sort': 'agedesc',
+              'minsize': minsize,
+              'maxsize': maxsize,
+              'complete': 0,
+              'hidecross': 0,
+              'hasNFO': 0,
+              'poster': "",
+              'g[]': 85}
+
+    headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 6.1; WOW64; rv:40.0) Gecko/20100101 Firefox/40.1'}
+
+    logger.fdebug('[EXPERIMENTAL] Now searching experimental for %s with numeric issue variations of %s to try and ensure all the bases are covered' % (cName, issue_search))
+    url_params = urllib.parse.urlencode(params)
+
+    time.sleep(timerdelay)
+    try:
+        r = requests.get(mylar.EXPURL + 'search/rss', params=url_params, verify=True, headers=headers)
+    except Exception as e:
+        logger.warn('[EXPERIMENTAL][ERROR] %s' % e)
+        return "no results"
+
+    if r.status_code != 200:
+        #typically 403 will not return results, but just catch anything other than a 200
+        if r.status_code == 403:
+           return "no results"
+        else:
+            logger.warn('[%s] Status code returned: %s' % (site, r.status_code))
+            if r.status_code == 503:
+                logger.warn('[%s] Site appears unresponsive/down. Disabling...' % (site))
+                return 'disable'
+            else:
+                return "no results"
+    else:
+        logger.info('[EXPERIMENTAL] Now compiling results...')
+        try:
+            feed = feedparser.parse(r.content)
+        except Exception as e:
+            # if it fails to parse, it's either invalid schema or no results.
+            return "no results"
 
     entries = []
     mres = {}
-    tallycount = 0
+    totNum = len(feed.entries)
+    keyPair = []
+    regList = []
+    countUp = 0
 
-    for feed in feeds:
-        totNum = len(feed.entries)
-        tallycount += len(feed.entries)
-
-        #keyPair = {}
-        keyPair = []
-        regList = []
-        countUp = 0
-
-        while countUp < totNum:
+    while countUp < totNum:
+        try:
             urlParse = feed.entries[countUp].enclosures[0]
-	    #keyPair[feed.entries[countUp].title] = feed.entries[countUp].link
-	    #keyPair[feed.entries[countUp].title] = urlParse["href"]
             keyPair.append({
                 "title":     feed.entries[countUp].title,
                 "link":      urlParse["href"],
                 "length":    urlParse["length"],
                 "pubdate":   feed.entries[countUp].updated})
-            countUp=countUp +1
 
-        # thanks to SpammyHagar for spending the time in compiling these regEx's!
+        except Exception as e:
+            logger.warn('[EXPERIMENTAL] Experimental returned bad data. This might be due to being down or requesting too fast.')
 
-        regExTest=""
+        countUp = countUp + 1
 
-        regEx = "(%s\\s*(0)?(0)?%s\\s*\\(%s\\))" %(regexName, searchIssue, searchYear)
-        regExOne = "(%s\\s*(0)?(0)?%s\\s*\\(.*?\\)\\s*\\(%s\\))" %(regexName, searchIssue, searchYear)
+    # thanks to SpammyHagar for spending the time in compiling these regEx's!
 
-        #Sometimes comics aren't actually published the same year comicVine says - trying to adjust for these cases
-        regExTwo = "(%s\\s*(0)?(0)?%s\\s*\\(%s\\))" %(regexName, searchIssue, int(searchYear) +1)
-        regExThree = "(%s\\s*(0)?(0)?%s\\s*\\(%s\\))" %(regexName, searchIssue, int(searchYear) -1)
-        regExFour = "(%s\\s*(0)?(0)?%s\\s*\\(.*?\\)\\s*\\(%s\\))" %(regexName, searchIssue, int(searchYear) +1)
-        regExFive = "(%s\\s*(0)?(0)?%s\\s*\\(.*?\\)\\s*\\(%s\\))" %(regexName, searchIssue, int(searchYear) -1)
+    regExTest=""
 
-        regexList=[regEx, regExOne, regExTwo, regExThree, regExFour, regExFive]
+    regEx = "(%s\\s*(0)?(0)?%s\\s*\\(%s\\))" %(regexName, searchIssue, searchYear)
+    regExOne = "(%s\\s*(0)?(0)?%s\\s*\\(.*?\\)\\s*\\(%s\\))" %(regexName, searchIssue, searchYear)
 
-        except_list=['releases', 'gold line', 'distribution', '0-day', '0 day', '0day', 'o-day']
+    #Sometimes comics aren't actually published the same year comicVine says - trying to adjust for these cases
+    regExTwo = "(%s\\s*(0)?(0)?%s\\s*\\(%s\\))" %(regexName, searchIssue, int(searchYear) +1)
+    regExThree = "(%s\\s*(0)?(0)?%s\\s*\\(%s\\))" %(regexName, searchIssue, int(searchYear) -1)
+    regExFour = "(%s\\s*(0)?(0)?%s\\s*\\(.*?\\)\\s*\\(%s\\))" %(regexName, searchIssue, int(searchYear) +1)
+    regExFive = "(%s\\s*(0)?(0)?%s\\s*\\(.*?\\)\\s*\\(%s\\))" %(regexName, searchIssue, int(searchYear) -1)
 
-        for entry in keyPair:
-            title = entry['title']
-            #logger.fdebug("titlesplit: " + str(title.split("\"")))
-            splitTitle = title.split("\"")
-            noYear = 'False'
-            _digits = re.compile('\d')
-            subcnt = 0
-            for subs in splitTitle:
-                #logger.fdebug('sub:' + subs)
-                regExCount = 0
-                if len(subs) >= len(cName) and not any(d in subs.lower() for d in except_list) and bool(_digits.search(subs)) is True:
-                #Looping through dictionary to run each regEx - length + regex is determined by regexList up top.
-#                while regExCount < len(regexList):
-#                    regExTest = re.findall(regexList[regExCount], subs, flags=re.IGNORECASE)
-#                    regExCount = regExCount +1
-#                    if regExTest:
-#                        logger.fdebug(title)
-#                        entries.append({
-#                                  'title':   subs,
-#                                  'link':    str(link)
-#                                  })
-                    # this will still match on crap like 'For SomeSomayes' especially if the series length < 'For SomeSomayes'
-                    if subs.lower().startswith('for'):
-                        if cName.lower().startswith('for'):
-                            pass
-                        else:
-                            #this is the crap we ignore. Continue (commented else, as it spams the logs)
-                            #logger.fdebug('this starts with FOR : ' + str(subs) + '. This is not present in the series - ignoring.')
-                            subcnt += 1
-                            continue
+    regexList=[regEx, regExOne, regExTwo, regExThree, regExFour, regExFive]
 
-                    p = re.compile(r'\d{4}\-(0?[1-9]|1[012])\-(0?[1-9]|[12][0-9]|3[01])*')
-                    d = p.match(subs)
-                    if d:
-                        dtchk = d.group()
-                        if any(['2019' in dtchk, '2020' in dtchk, '2021' in dtchk]) and subcnt == 0:
-                            subcnt += 1
-                            continue
+    except_list=['releases', 'gold line', 'distribution', '0-day', '0 day', '0day', 'o-day']
 
-
-                    #logger.fdebug('match.')
-                    if IssDateFix != "no":
-                        if IssDateFix == "01" or IssDateFix == "02": ComicYearFix = str(int(searchYear) - 1)
-                        else: ComicYearFix = str(int(searchYear) + 1)
+    for entry in keyPair:
+        title = entry['title']
+        splitTitle = title.split("\"")
+        noYear = 'False'
+        _digits = re.compile('\d')
+        subcnt = 0
+        for subs in splitTitle:
+            regExCount = 0
+            if len(subs) >= len(cName) and not any(d in subs.lower() for d in except_list) and bool(_digits.search(subs)) is True:
+                # this will still match on crap like 'For SomeSomayes' especially if the series length < 'For SomeSomayes'
+                if subs.lower().startswith('for'):
+                    if cName.lower().startswith('for'):
+                        pass
                     else:
-                        ComicYearFix = searchYear
+                        #this is the crap we ignore. Continue (commented else, as it spams the logs)
+                        #logger.fdebug('this starts with FOR : ' + str(subs) + '. This is not present in the series - ignoring.')
+                        subcnt += 1
+                        continue
 
-                    if searchYear not in subs and ComicYearFix not in subs:
-                        noYear = 'True'
-                        noYearline = subs
+                p = re.compile(r'\d{4}\-(0?[1-9]|1[012])\-(0?[1-9]|[12][0-9]|3[01])*')
+                d = p.match(subs)
+                if d:
+                    dtchk = d.group()
+                    if any(['2019' in dtchk, '2020' in dtchk, '2021' in dtchk]) and subcnt == 0:
+                        subcnt += 1
+                        continue
 
-                    if (searchYear in subs or ComicYearFix in subs) and noYear == 'True':
-                        #this would occur on the next check in the line, if year exists and
-                        #the noYear check in the first check came back valid append it
-                        subs = noYearline + ' (' + searchYear + ')'
-                        noYear = 'False'
+                #logger.fdebug('match.')
+                if IssDateFix != "no":
+                    if IssDateFix == "01" or IssDateFix == "02": ComicYearFix = str(int(searchYear) - 1)
+                    else: ComicYearFix = str(int(searchYear) + 1)
+                else:
+                    ComicYearFix = searchYear
 
-                    if noYear == 'False':
+                if searchYear not in subs and ComicYearFix not in subs:
+                    noYear = 'True'
+                    noYearline = subs
 
-                        entries.append({
-                                  'title':     subs,
-                                  'link':      entry['link'],
-                                  'pubdate':   entry['pubdate'],
-                                  'length':    entry['length']
-                                  })
-                        break  # break out so we don't write more shit.
-                subcnt +=1
-#    if len(entries) >= 1:
-    if tallycount >= 1:
+                if (searchYear in subs or ComicYearFix in subs) and noYear == 'True':
+                    #this would occur on the next check in the line, if year exists and
+                    #the noYear check in the first check came back valid append it
+                    subs = noYearline + ' (' + searchYear + ')'
+                    noYear = 'False'
+
+                if noYear == 'False':
+                    entries.append({
+                              'title':     subs,
+                              'link':      entry['link'],
+                              'pubdate':   entry['pubdate'],
+                              'length':    entry['length']
+                              })
+                    break
+            subcnt +=1
+
+    if len(entries) >= 1:
         mres['entries'] = entries
         return mres
     else:

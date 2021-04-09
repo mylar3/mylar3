@@ -1267,6 +1267,10 @@ def NZB_SEARCH(
                 bb = findcomicfeed.Startit(
                     findcomic, isssearch, comyear, ComicVersion, IssDateFix, booktype
                 )
+                if bb == 'disable':
+                    helpers.disable_provider('experimental', 'unresponsive / down')
+                    foundc['status'] = False
+                    done = True
                 # since the regexs in findcomicfeed do the 3 loops,
                 # lets force the exit after
                 cmloopit == 1
