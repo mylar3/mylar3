@@ -374,20 +374,23 @@ class PostProcessor(object):
                     else:
                         # if the SAB Directory option is enabled, let's use that folder name and append the jobname.
                         if all([mylar.CONFIG.SAB_TO_MYLAR, mylar.CONFIG.SAB_DIRECTORY is not None, mylar.CONFIG.SAB_DIRECTORY != 'None']):
-                            tmpchk = os.path.join(mylar.CONFIG.SAB_DIRECTORY, self.nzb_name) # .encode(mylar.SYS_ENCODING)
-                            if os.path.exists(tmpchk):
-                                self.nzb_folder = tmpchk
-                                logger.fdebug('%s SABnzbd Download folder option enabled. Directory set to : %s' % (module, self.nzb_folder))
+                            if os.path.exists(os.path.join(self.nzb_folder, self.nzb_name)):
+                                logger.fdebug('%s SABnzbd Download folder option enabled. Using directory of : %s' % (module, self.nzb_folder))
                             else:
-                                tmpchk2 = os.path.join(mylar.CONFIG.SAB_DIRECTORY, os.path.basename(self.nzb_folder))
-                                if os.path.exists(tmpchk2):
-                                    self.nzb_folder = tmpchk2
+                                tmpchk = os.path.join(mylar.CONFIG.SAB_DIRECTORY, self.nzb_name) # .encode(mylar.SYS_ENCODING)
+                                if os.path.exists(tmpchk):
+                                    self.nzb_folder = tmpchk
                                     logger.fdebug('%s SABnzbd Download folder option enabled. Directory set to : %s' % (module, self.nzb_folder))
                                 else:
-                                    logger.warn('Unable to locate directory within %s location. I have unsucessfully attempted to locate the following paths: %s & %s' % (mylar.CONFIG.SAB_DIRECTORY, tmpchk, tmpchk2))
-                                    self.valreturn.append({"self.log": self.log,
-                                                           "mode": 'stop'})
-                                    return self.queue.put(self.valreturn)
+                                    tmpchk2 = os.path.join(mylar.CONFIG.SAB_DIRECTORY, os.path.basename(self.nzb_folder))
+                                    if os.path.exists(tmpchk2):
+                                        self.nzb_folder = tmpchk2
+                                        logger.fdebug('%s SABnzbd Download folder option enabled. Directory set to : %s' % (module, self.nzb_folder))
+                                    else:
+                                        logger.warn('Unable to locate directory within %s location. I have unsucessfully attempted to locate the following paths: %s & %s' % (mylar.CONFIG.SAB_DIRECTORY, tmpchk, tmpchk2))
+                                        self.valreturn.append({"self.log": self.log,
+                                                               "mode": 'stop'})
+                                        return self.queue.put(self.valreturn)
 
                 if mylar.USE_NZBGET==1:
                     if self.nzb_name != 'Manual Run':
