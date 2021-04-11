@@ -165,7 +165,14 @@ def getVersion():
 
     else:
 
-        mylar.INSTALL_TYPE = 'source'
+        d_path = '/proc/self/cgroup'
+        if os.path.exists('/.dockerenv') or os.path.isfile(d_path) and any('docker' in line for line in open(d_path)):
+            logger.info('[DOCKER-AWARE] Docker installation detected.')
+            mylar.INSTALL_TYPE = 'docker'
+        else:
+            logger.info('Not a Docker installation.')
+            mylar.INSTALL_TYPE = 'source'
+
         #current_version = None
         branch = None
 
@@ -284,12 +291,10 @@ def checkGithub(current_version=None):
 
 def update():
 
-
     if mylar.INSTALL_TYPE == 'win':
 
         logger.info('Windows .exe updating not supported yet.')
         pass
-
 
     elif mylar.INSTALL_TYPE == 'git':
 
@@ -307,6 +312,9 @@ def update():
             elif line.endswith('Aborting.'):
                 logger.error('Unable to update from git: ' +line)
                 logger.info('Output: ' + str(output))
+
+    elif mylar.INSTALL_TYPE == 'docker':
+        logger.info('Docker updates via it\'s own mechanics. Updating docker via Mylar GUI not supported at this time.')
 
     else:
 
@@ -384,7 +392,7 @@ def versionload():
 
     logger.info('Version information: %s [%s]' % (mylar.CONFIG.GIT_BRANCH, mylar.CURRENT_VERSION))
 
-    if mylar.CONFIG.CHECK_GITHUB_ON_STARTUP:
+    if mylar.CONFIG.CHECK_GITHUB_ON_STARTUP and mylar.INSTALL_TYPE != 'docker':
         try:
             mylar.LATEST_VERSION = checkGithub() #(CURRENT_VERSION)
         except:

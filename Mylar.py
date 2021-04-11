@@ -348,12 +348,12 @@ def main():
         'opds_pagesize': mylar.CONFIG.OPDS_PAGESIZE,
     }
 
-    # Try to start the server.
-    webstart.initialize(web_config)
-
     #check for version here after web server initialized so it doesn't try to repeatidly hit github
     #for version info if it's already running
     versioncheck.versionload()
+
+    # Try to start the server.
+    webstart.initialize(web_config)
 
     if mylar.CONFIG.LAUNCH_BROWSER and not args.nolaunch:
         mylar.launch_browser(mylar.CONFIG.HTTP_HOST, http_port, mylar.CONFIG.HTTP_ROOT)
