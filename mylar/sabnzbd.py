@@ -188,6 +188,38 @@ class SABnzbd(object):
                                  'apicall':  True,
                                  'ddl':      False}
                         break
+
+                    elif all([mylar.CONFIG.SAB_TO_MYLAR, mylar.CONFIG.SAB_DIRECTORY is not None, mylar.CONFIG.SAB_DIRECTORY != 'None']):
+                        tmpfile = ntpath.basename(hq['storage'])
+                        tmp_path = os.path.abspath(os.path.join(hq['storage'], os.pardir))
+                        tmp_path_b = tmp_path.split(os.path.sep)[:-1]
+                        sub_dir = tmp_path.split(os.path.sep)[-1]
+                        rep_tmp_path_b = re.sub(os.path.sep.join(tmp_path_b), mylar.CONFIG.SAB_DIRECTORY, tmp_path).strip()
+
+                        try:
+                            if os.path.exists(os.path.join( rep_tmp_path_b, os.path.sep.join(sub_dir), tmpfile )):
+                                new_path = os.path.join( rep_tmp_path_b, os.path.sep.join(sub_dir), tmpfile )
+                            elif os.path.exists(os.path.join( rep_tmp_path_b, tmpfile )):
+                                new_path = os.path.join( rep_tmp_path_b, tmpfile )
+                            else:
+                                logger.error('[SAB-DIRECTORY ENABLED] No file found where it should be @ %s - sabnzbd passed this: %s' % (rep_tmp_path_b, hq['storage']))
+                                return {'status': 'file not found', 'failed': False}
+
+                        except Exception as e:
+                            logger.warn('[ERROR] %s' % e)
+                            return {'status': 'file not found', 'failed': False}
+
+                        logger.fdebug('location found @ %s' % new_path)
+                        found = {'status':   True,
+                                 'name':     ntpath.basename(new_path),
+                                 'location': os.path.abspath(os.path.join(new_path, os.pardir)),
+                                 'failed':   False,
+                                 'issueid':  nzbinfo['issueid'],
+                                 'comicid':  nzbinfo['comicid'],
+                                 'apicall':  True,
+                                 'ddl':      False}
+                        break
+
                     else:
                         logger.error('no file found where it should be @ %s - is there another script that moves things after completion ?' % hq['storage'])
                         return {'status': 'file not found', 'failed': False}
