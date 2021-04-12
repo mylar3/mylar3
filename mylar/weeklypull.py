@@ -905,6 +905,7 @@ def new_pullcheck(weeknumber, pullyear, comic1off_name=None, comic1off_id=None, 
                               "ComicPublished":     weekly['ComicPublished'],
                               "LatestDate":         weekly['LatestDate'],
                               "LatestIssue":        weekly['LatestIssue'],
+                              "BookType":           weekly['Type'],
                               "ForceContinuing":    weekly['ForceContinuing'],
                               "AlternateSearch":    weekly['AlternateSearch'],
                               "DynamicName":        weekly['DynamicComicName']})
@@ -976,6 +977,7 @@ def new_pullcheck(weeknumber, pullyear, comic1off_name=None, comic1off_id=None, 
                                        'SeriesYear':      watch['ComicYear'],
                                        'ComicID':         watch['ComicID'],
                                        'Pubdate':         watch['ComicPublished'],
+                                       'Booktype':        watch['BookType'],
                                        'latestIssue':     watch['LatestIssue'],
                                        'DynamicName':     watch['DynamicName'],
                                        'AnnDynamicName':  re.sub('annual', '', watch['DynamicName'].lower()).strip(),
@@ -993,7 +995,7 @@ def new_pullcheck(weeknumber, pullyear, comic1off_name=None, comic1off_id=None, 
         if not comic1off_id:
             logger.fdebug("[WALKSOFTLY] You are watching for: " + str(len(weeklylist)) + " comics")
 
-        weekly = myDB.select('SELECT * from(SELECT a.comicid,IFNULL(a.Comic, b.ComicName) as ComicName,a.rowid,a.issue,a.issueid,NULL as ComicPublisher,a.weeknumber,a.shipdate,a.dynamicname,a.annuallink FROM weekly as a INNER JOIN annuals as b ON b.releasecomicid = a.comicid WHERE weeknumber = ? AND year = ? UNION SELECT a.comicid,IFNULL(a.Comic, c.ComicName) as ComicName,a.rowid,a.issue,a.issueid,c.ComicPublisher,a.weeknumber,a.shipdate,a.dynamicname,a.annuallink FROM weekly as a INNER JOIN comics as c ON c.comicid = a.comicid OR c.DynamicComicName = a.dynamicname OR a.annuallink = c.comicid WHERE weeknumber = ? AND year = ?  ) GROUP BY dynamicname', [int(weeknumber),pullyear,int(weeknumber),pullyear]) 
+        weekly = myDB.select('SELECT * from(SELECT a.comicid,IFNULL(a.Comic, b.ComicName) as ComicName,a.rowid,a.issue,a.issueid,NULL as ComicPublisher,a.weeknumber,a.shipdate,a.dynamicname,a.annuallink,a.format FROM weekly as a INNER JOIN annuals as b ON b.releasecomicid = a.comicid WHERE weeknumber = ? AND year = ? UNION SELECT a.comicid,IFNULL(a.Comic, c.ComicName) as ComicName,a.rowid,a.issue,a.issueid,c.ComicPublisher,a.weeknumber,a.shipdate,a.dynamicname,a.annuallink,a.format FROM weekly as a INNER JOIN comics as c ON c.comicid = a.comicid OR c.DynamicComicName = a.dynamicname OR a.annuallink = c.comicid WHERE weeknumber = ? AND year = ?  ) GROUP BY dynamicname', [int(weeknumber),pullyear,int(weeknumber),pullyear])
         if mylar.CONFIG.ANNUALS_ON is True:
             #Need to loop over the weekly section and check the name of the title against the ComicName in the annuals table
             # this is to pick up new #1 annuals that don't exist in the db yet, and won't until a refresh of the series happens.
@@ -1019,6 +1021,9 @@ def new_pullcheck(weeknumber, pullyear, comic1off_name=None, comic1off_id=None, 
                 #logger.fdebug('namematch: ' + str(namematch))
                 if any([idmatch,namematch,annualidmatch]):
                     if idmatch and not annualidmatch:
+                        if all([any([idmatch[0]['Booktype'] is None, idmatch[0]['Booktype'] == 'Print']), week['format'] is not None]) and (idmatch[0]['Booktype'] != week['format']):
+                            logger.info('[WEEKLY-PULL] You have %s (%s) on your watchlist, however the pull is showing %s as being released. Not matching.' % (week['ComicName'], idmatch[0]['Booktype'], week['format']))
+                            continue
                         comicname = idmatch[0]['ComicName'].strip()
                         latestiss = idmatch[0]['latestIssue'].strip()
                         comicid = idmatch[0]['ComicID'].strip()
@@ -1118,19 +1123,29 @@ def new_pullcheck(weeknumber, pullyear, comic1off_name=None, comic1off_id=None, 
                         mylar.CURRENT_WEEKNUMBER = todaydate.strftime("%U")
 
 #                   if int(mylar.CURRENT_WEEKNUMBER) == int(weeknumber):
-                    # here we add to comics.latest
-                    updater.latest_update(ComicID=comicid, LatestIssue=week['issue'], LatestDate=ComicDate)
                     # here we add to upcoming table...
                     statusupdate = updater.upcoming_update(ComicID=comicid, ComicName=comicname, IssueNumber=week['issue'], IssueDate=ComicDate, forcecheck=forcecheck, weekinfo={'weeknumber':weeknumber,'year':pullyear})
                     logger.fdebug('statusupdate: ' + str(statusupdate))
 
+                    if all([statusupdate is not None, statusupdate != 'incorrect_match']):
+                        # here we add to comics.latest
+                        updater.latest_update(ComicID=comicid, LatestIssue=week['issue'], LatestDate=ComicDate)
+
                     # here we update status of weekly table...
+                    mismatched = False
                     try:
                         if statusupdate is not None:
-                            cstatusid = []
-                            cstatus = statusupdate['Status']
-                            cstatusid = {"ComicID": statusupdate['ComicID'],
-                                         "IssueID": statusupdate['IssueID']}
+                            if statusupdate == 'incorrect_match':
+                                mismatched = True
+                                cstatusid = None
+                                cstatus = None
+                                issueid = None
+                                comicid = None
+                            else:
+                                cstatusid = []
+                                cstatus = statusupdate['Status']
+                                cstatusid = {"ComicID": statusupdate['ComicID'],
+                                             "IssueID": statusupdate['IssueID']}
                         else:
                             cstatus = None
                             cstatusid = None
@@ -1140,7 +1155,7 @@ def new_pullcheck(weeknumber, pullyear, comic1off_name=None, comic1off_id=None, 
 
                     logger.fdebug('date_downloaded: ' + str(date_downloaded))
                     controlValue = {"rowid": int(week['rowid'])}
-                    if any([(idmatch and not namematch),(idmatch and annualidmatch and namematch),(annualidmatch and not namematch),(annualidmatch or idmatch and not namematch)]):
+                    if mismatched is False and any([(idmatch and not namematch),(idmatch and annualidmatch and namematch),(annualidmatch and not namematch),(annualidmatch or idmatch and not namematch)]):
                         if annualidmatch:
                             newValue = {"ComicID":       annualidmatch[0]['ComicID']}
                         else:
@@ -1174,13 +1189,14 @@ def new_pullcheck(weeknumber, pullyear, comic1off_name=None, comic1off_id=None, 
                             cidissueid = None
 
 
-                    #logger.fdebug('cstatus:' + str(cstatus))
                     if any([date_downloaded, cstatus]):
                         if date_downloaded:
                             cst = date_downloaded
                         else:
                             cst = cstatus
                         newValue['Status'] = cst
+                    elif mismatched is True:
+                        newValue['Status'] = 'Mismatched'
                     else:
                         if mylar.CONFIG.AUTOWANT_UPCOMING:
                             newValue['Status'] = 'Wanted'
@@ -1189,11 +1205,10 @@ def new_pullcheck(weeknumber, pullyear, comic1off_name=None, comic1off_id=None, 
 
 
                     #setting this here regardless, as it will be a match for a watchlist hit at this point anyways - so link it here what's availalbe.
-                    #logger.fdebug('newValue:' + str(newValue))
                     myDB.upsert("weekly", newValue, controlValue)
 
                     #if the issueid exists on the pull, but not in the series issue list, we need to forcibly refresh the series so it's in line
-                    if issueid:
+                    if mismatched is False and issueid:
                         #logger.info('issue id check passed.')
                         if annualidmatch:
                             isschk = myDB.selectone('SELECT * FROM annuals where IssueID=?', [issueid]).fetchone()

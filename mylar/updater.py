@@ -435,6 +435,95 @@ def upcoming_update(ComicID, ComicName, IssueNumber, IssueDate, forcecheck=None,
     if issuechk is None and altissuenumber is not None:
         logger.info('altissuenumber is : ' + str(altissuenumber))
         issuechk = myDB.selectone("SELECT * FROM issues WHERE ComicID=? AND Int_IssueNumber=?", [ComicID, helpers.issuedigits(altissuenumber)]).fetchone()
+
+    if issuechk is not None:
+        if issuechk['Issue_Number'] == IssueNumber or issuechk['Issue_Number'] == altissuenumber:
+            og_status = issuechk['Status']
+            #safety check - make sure the date for the issue in the db matches or is close to the one being polled against (ie. pull date)
+            wk_info = helpers.weekly_info(weekinfo['weeknumber'], weekinfo['year'])
+            if all([issuechk['ReleaseDate'] is not None, issuechk['ReleaseDate'] != '0000-00-00']):
+               issue_checkdate = issuechk['ReleaseDate']
+            elif all([issuechk['DigitalDate'] is not None, issuechk['DigitalDate'] != '0000-00-00']):
+               issue_checkdate = issuechk['DigitalDate']
+            else:
+               issue_checkdate = issuechk['IssueDate']
+
+            wkds = datetime.datetime.strptime(wk_info['startweek'], '%B %d, %Y')
+            wkstr = wkds - datetime.timedelta(days = 2)
+            wk_start = wkstr.strftime('%Y-%m-%d')
+
+            wkde = datetime.datetime.strptime(wk_info['endweek'], '%B %d, %Y')
+            wkend = wkde + datetime.timedelta(days = 2)
+            wk_end = wkend.strftime('%Y-%m-%d')
+
+            if not ( re.sub('-', '', wk_end) >= re.sub('-', '', issue_checkdate) >= re.sub('-', '', wk_start) ):
+                logger.info('[IssueDate:%s] is not within the range of [Pulldate:%s - %s]. Incorrect match being imposed by WS - please log an issue if this has not fixed itself within a few hours' %(issue_checkdate, wk_info['startweek'], wk_info['endweek']))
+                if IssueNumber is not None:
+                    presentline = '%s #%s' % (ComicName, IssueNumber)
+                else:
+                    presentline = '%s' % (ComicName)
+                logger.info('[%s][comicid: %s][issueid: %s] ' % (presentline, ComicID, issuechk['IssueID'])
+)
+                # if it was previously marked as Wanted (prior to this patch) - let's revert so we don't download the wrong thing repeatidly
+                if issuechk['Status'] == 'Wanted':
+                    control = {"IssueID":   issuechk['IssueID']}
+                    newchk = {'Status': 'Skipped'}
+                    myDB.upsert("issues", newchk, control)
+                return 'incorrect_match'
+            else:
+                #check for 'out-of-whack' series here.
+                whackness = dbUpdate([ComicID], calledfrom='weekly', sched=False)
+                if any([whackness == True, og_status is None]):
+                    if any([issuechk['Status'] == 'Downloaded', issuechk['Status'] == 'Archived', issuechk['Status'] == 'Snatched']):
+                        logger.fdebug('Forcibly maintaining status of : ' + og_status + ' for #' + issuechk['Issue_Number'] + ' to ensure integrity.')
+                    logger.fdebug('Comic series has an incorrect total count. Forcily refreshing series to ensure data is current.')
+                    dbUpdate([ComicID])
+                    issuechk = myDB.selectone("SELECT * FROM issues WHERE ComicID=? AND Int_IssueNumber=?", [ComicID, helpers.issuedigits(IssueNumber)]).fetchone()
+                    if issuechk['Status'] != og_status and (issuechk['Status'] != 'Downloaded' or issuechk['Status'] != 'Archived' or issuechk['Status'] != 'Snatched'):
+                        logger.fdebug('Forcibly changing status of %s back to %s for #%s to stop repeated downloads.' % (issuechk['Status'], og_status, issuechk['Issue_Number']))
+                    else:
+                        logger.fdebug('[%s] / [%s] Status has not changed during refresh or is marked as being Wanted/Skipped correctly.' % (issuechk['Status'], og_status))
+                        og_status = issuechk['Status']
+                else:
+                    logger.fdebug('Comic series already up-to-date ... no need to refresh at this time.')
+
+                logger.fdebug('Available to be marked for download - checking...' + adjComicName + ' Issue: ' + str(issuechk['Issue_Number']))
+                logger.fdebug('...Existing status: ' + og_status)
+                control = {"IssueID":   issuechk['IssueID']}
+                newValue['IssueID'] = issuechk['IssueID']
+                if og_status == "Snatched":
+                    values = {"Status":   "Snatched"}
+                    newValue['Status'] = "Snatched"
+                elif og_status == "Downloaded":
+                    values = {"Status":    "Downloaded"}
+                    newValue['Status'] = "Downloaded"
+                    #if the status is Downloaded and it's on the pullist - let's mark it so everyone can bask in the glory
+
+                elif og_status == "Wanted":
+                    values = {"Status":    "Wanted"}
+                    newValue['Status'] = "Wanted"
+                elif og_status == "Archived":
+                    values = {"Status":    "Archived"}
+                    newValue['Status'] = "Archived"
+                elif og_status == 'Failed':
+                    if mylar.CONFIG.FAILED_DOWNLOAD_HANDLING:
+                        if mylar.CONFIG.FAILED_AUTO:
+                            values = {"Status":   "Wanted"}
+                            newValue['Status'] = "Wanted"
+                        else:
+                            values = {"Status":   "Failed"}
+                            newValue['Status'] = "Failed"
+                    else:
+                        values = {"Status":   "Skipped"}
+                        newValue['Status'] = "Skipped"
+                else:
+                    values = {"Status":    "Skipped"}
+                    newValue['Status'] = "Skipped"
+                #was in wrong place :(
+        else:
+            logger.fdebug('Issues do not match for some reason...weekly new issue: %s' % IssueNumber)
+            return
+
     if issuechk is None:
         if futurepull is None:
             og_status = None
@@ -458,9 +547,9 @@ def upcoming_update(ComicID, ComicName, IssueNumber, IssueDate, forcecheck=None,
                 if hours > 5 or forcecheck == 'yes':
                     pullupd = "yes"
                     logger.fdebug('Now Refreshing comic ' + ComicName + ' to make sure it is up-to-date')
-                    if ComicID[:1] == "G": 
+                    if ComicID[:1] == "G":
                         mylar.importer.GCDimport(ComicID, pullupd)
-                    else: 
+                    else:
                         cchk = mylar.importer.updateissuedata(ComicID, ComicName, calledfrom='weeklycheck') #mylar.importer.addComictoDB(ComicID,mismatch,pullupd)
                 else:
                     logger.fdebug('It has not been longer than 5 hours since we last did this...we will wait so we do not hammer things.')
@@ -485,61 +574,6 @@ def upcoming_update(ComicID, ComicName, IssueNumber, IssueDate, forcecheck=None,
             nKey = {"ComicID": ComicID}
             nVal = {"Status": "Wanted"}
             myDB.upsert("future", nVal, nKey)
-            return
-    if issuechk is not None:
-        if issuechk['Issue_Number'] == IssueNumber or issuechk['Issue_Number'] == altissuenumber:
-            og_status = issuechk['Status']
-            #check for 'out-of-whack' series here.
-            whackness = dbUpdate([ComicID], calledfrom='weekly', sched=False)
-            if any([whackness == True, og_status is None]):
-                if any([issuechk['Status'] == 'Downloaded', issuechk['Status'] == 'Archived', issuechk['Status'] == 'Snatched']):
-                    logger.fdebug('Forcibly maintaining status of : ' + og_status + ' for #' + issuechk['Issue_Number'] + ' to ensure integrity.')
-                logger.fdebug('Comic series has an incorrect total count. Forcily refreshing series to ensure data is current.')
-                dbUpdate([ComicID])
-                issuechk = myDB.selectone("SELECT * FROM issues WHERE ComicID=? AND Int_IssueNumber=?", [ComicID, helpers.issuedigits(IssueNumber)]).fetchone()
-                if issuechk['Status'] != og_status and (issuechk['Status'] != 'Downloaded' or issuechk['Status'] != 'Archived' or issuechk['Status'] != 'Snatched'):
-                    logger.fdebug('Forcibly changing status of %s back to %s for #%s to stop repeated downloads.' % (issuechk['Status'], og_status, issuechk['Issue_Number']))
-                else:
-                    logger.fdebug('[%s] / [%s] Status has not changed during refresh or is marked as being Wanted/Skipped correctly.' % (issuechk['Status'], og_status))
-                    og_status = issuechk['Status']
-            else:
-                logger.fdebug('Comic series already up-to-date ... no need to refresh at this time.')
-
-            logger.fdebug('Available to be marked for download - checking...' + adjComicName + ' Issue: ' + str(issuechk['Issue_Number']))
-            logger.fdebug('...Existing status: ' + og_status)
-            control = {"IssueID":   issuechk['IssueID']}
-            newValue['IssueID'] = issuechk['IssueID']
-            if og_status == "Snatched":
-                values = {"Status":   "Snatched"}
-                newValue['Status'] = "Snatched"
-            elif og_status == "Downloaded":
-                values = {"Status":    "Downloaded"}
-                newValue['Status'] = "Downloaded"
-                #if the status is Downloaded and it's on the pullist - let's mark it so everyone can bask in the glory
-
-            elif og_status == "Wanted":
-                values = {"Status":    "Wanted"}
-                newValue['Status'] = "Wanted"
-            elif og_status == "Archived":
-                values = {"Status":    "Archived"}
-                newValue['Status'] = "Archived"
-            elif og_status == 'Failed':
-                if mylar.CONFIG.FAILED_DOWNLOAD_HANDLING:
-                    if mylar.CONFIG.FAILED_AUTO:
-                        values = {"Status":   "Wanted"}
-                        newValue['Status'] = "Wanted"
-                    else:
-                        values = {"Status":   "Failed"}
-                        newValue['Status'] = "Failed"
-                else:
-                    values = {"Status":   "Skipped"}
-                    newValue['Status'] = "Skipped"
-            else:
-                values = {"Status":    "Skipped"}
-                newValue['Status'] = "Skipped"
-            #was in wrong place :(
-        else:
-            logger.fdebug('Issues do not match for some reason...weekly new issue: %s' % IssueNumber)
             return
 
     if mylar.CONFIG.AUTOWANT_UPCOMING:
