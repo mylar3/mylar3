@@ -1146,11 +1146,6 @@ div#artistheader h2 a {
   text-align: left;
   vertical-align: middle;
 }
-#pull_table th#publishdate {
-  min-width: 50px;
-  text-align: left;
-  vertical-align: middle;
-}
 #pull_table th#publisher {
   min-width: 100px;
   text-align: left;
@@ -1176,11 +1171,6 @@ div#artistheader h2 a {
   text-align: left;
   vertical-align: middle;
 }
-#pull_table td#publishdate {
-  max-width: 50px;
-  text-align: left;
-  vertical-align: middle;
-}
 #pull_table td#publisher {
   min-width: 100px;
   text-align: left;
@@ -1193,12 +1183,12 @@ div#artistheader h2 a {
 }
 #pull_table td#comicnumber {
   max-width: 25px;
-  text-align: left;
+  text-align: right;
   vertical-align: middle;
 }
 #pull_table td#status {
   min-width: 30px;
-  text-align: left;
+  text-align: center;
   vertical-align: middle;
 }
 #pull_table td#options {
