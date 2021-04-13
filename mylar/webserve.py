@@ -394,9 +394,9 @@ class WebInterface(object):
         return serve_template(templatename="comicdetails.html", title=comic['ComicName'], comic=comic, issues=issues, comicConfig=comicConfig, isCounts=isCounts, series=series, annuals=annuals_list, annualinfo=aName)
     comicDetails.exposed = True
 
-    def searchit(self, name, issue=None, mode=None, type=None, serinfo=None):
-        if type is None: type = 'comic'  # let's default this to comic search only for the time being (will add story arc, characters, etc later)
-        else: logger.fdebug(str(type) + " mode enabled.")
+    def searchit(self, name, issue=None, mode=None, search_type=None, serinfo=None):
+        if search_type is None: search_type = 'comic'  # let's default this to comic search only for the time being (will add story arc, characters, etc later)
+        else: logger.fdebug(str(search_type) + " mode enabled.")
         #mode dictates type of search:
         # --series     ...  search for comicname displaying all results
         # --pullseries ...  search for comicname displaying a limited # of results based on issue
@@ -404,7 +404,7 @@ class WebInterface(object):
         if mode is None: mode = 'series'
         if len(name) == 0:
             raise cherrypy.HTTPRedirect("home")
-        if type == 'comic' and mode == 'pullseries':
+        if search_type == 'comic' and mode == 'pullseries':
             if issue == 0:
                 #if it's an issue 0, CV doesn't have any data populated yet - so bump it up one to at least get the current results.
                 issue = 1
@@ -413,7 +413,7 @@ class WebInterface(object):
             except TypeError:
                 logger.error('Unable to perform required pull-list search for : [name: ' + name + '][issue: ' + issue + '][mode: ' + mode + ']')
                 return
-        elif type == 'comic' and mode == 'series':
+        elif search_type == 'comic' and mode == 'series':
             if name.startswith('4050-'):
                 mismatch = "no"
                 comicid = re.sub('4050-', '', name)
@@ -425,13 +425,13 @@ class WebInterface(object):
             except TypeError:
                 logger.error('Unable to perform required search for : [name: ' + name + '][mode: ' + mode + ']')
                 return
-        elif type == 'comic' and mode == 'want':
+        elif search_type == 'comic' and mode == 'want':
             try:
                 searchresults = mb.findComic(name, mode, issue)
             except TypeError:
                 logger.error('Unable to perform required one-off pull-list search for : [name: ' + name + '][issue: ' + issue + '][mode: ' + mode + ']')
                 return
-        elif type == 'story_arc':
+        elif search_type == 'story_arc':
             try:
                 searchresults = mb.findComic(name, mode=None, issue=None, type='story_arc')
             except TypeError:
@@ -445,7 +445,7 @@ class WebInterface(object):
             if mylar.CONFIG.COMICVINE_API is None:
                 logger.error('You NEED to set a ComicVine API key prior to adding anything. It\'s Free - Go get one!')
                 return
-        return serve_template(templatename="searchresults.html", title='Search Results for: "' + name + '"', searchresults=searchresults, type=type, imported=None, ogcname=None, name=name, serinfo=serinfo)
+        return serve_template(templatename="searchresults.html", title='Search Results for: "' + name + '"', searchresults=searchresults, type=search_type, imported=None, ogcname=None, name=name, serinfo=serinfo)
     searchit.exposed = True
 
     def addComic(self, comicid, comicname=None, comicyear=None, comicimage=None, comicissues=None, comicpublisher=None, imported=None, ogcname=None, serinfo=None):
@@ -4288,15 +4288,15 @@ class WebInterface(object):
         })
     getConfig.exposed = True
 
-    def clearhistory(self, type=None):
+    def clearhistory(self, status_type=None):
         myDB = db.DBConnection()
-        if type == 'all':
+        if status_type == 'all':
             logger.info("Clearing all history")
             myDB.action('DELETE from snatched')
         else:
-            logger.info("Clearing history where status is %s" % type)
-            myDB.action('DELETE from snatched WHERE Status=?', [type])
-            if type == 'Processed':
+            logger.info("Clearing history where status is %s" % status_type)
+            myDB.action('DELETE from snatched WHERE Status=?', [status_type])
+            if status_type == 'Processed':
                 myDB.action("DELETE from snatched WHERE Status='Post-Processed'")
         raise cherrypy.HTTPRedirect("history")
     clearhistory.exposed = True
@@ -4785,8 +4785,6 @@ class WebInterface(object):
                 else:
                     if sresults is False:
                         sresults = []
-
-                type='comic'
 
                 #we now need to cycle through the results until we get a hit on both dynamicname AND year (~count of issues possibly).
                 logger.fdebug('[IMPORT] [%s] search results' % len(sresults))
