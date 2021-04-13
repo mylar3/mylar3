@@ -948,6 +948,12 @@ class WebInterface(object):
             else:
                 logger.info('ComicRN.py version: ' + str(comicrn_version) + ' -- autoProcessComics.py version: ' + str(apc_version))
 
+        else:
+             if not os.path.exists(nzb_folder):
+                 yield json.dumps({'status': 'fail', 'message': '%s does not exist - please verify!' % (nzb_folder)})
+             else:
+                 yield json.dumps({'status': 'success', 'message': 'Successfully submitted %s for manual post-processing...' % (nzb_folder)})
+
         import queue
         logger.info('Starting postprocessing for : ' + nzb_name)
         if failed == '0':
@@ -957,12 +963,10 @@ class WebInterface(object):
 
         queue = queue.Queue()
         retry_outside = False
-
         if not failed:
             PostProcess = PostProcessor.PostProcessor(nzb_name, nzb_folder, queue=queue)
             if nzb_name == 'Manual Run' or nzb_name == 'Manual+Run':
                 threading.Thread(target=PostProcess.Process).start()
-                #raise cherrypy.HTTPRedirect("home")
             else:
                 thread_ = threading.Thread(target=PostProcess.Process, name="Post-Processing")
                 thread_.start()

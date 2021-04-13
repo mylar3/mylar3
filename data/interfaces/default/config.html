@@ -1685,6 +1685,7 @@
 
         function unblocktheProvider(i){
                 site = blocklist[i].provider;
+                $('#ajaxMsg').removeClass();
                 $.get("unblock_provider",
                        { site: site },
                        function(data) {
@@ -2172,6 +2173,7 @@
                                 return;
                             }
                             var obj = JSON.parse(data);
+                            $('#ajaxMsg').removeClass();
                             $('#ajaxMsg').html("<div class='msg'><span class='ui-icon ui-icon-check'></span>"+obj['status']+"</div>");
                             if ( obj['status'].indexOf("Successfully") > -1){
                                 imagechk.style.visibility = "hidden";
@@ -2197,6 +2199,7 @@
                             inkd = toNumber(numberWithCommas(inkd));
                             $('#status32p').val(obj['status']);
                             $('#inkdrops32p span').text('Inkdrops Available: '+inkd);
+                            $('#ajaxMsg').removeClass();
                             $('#ajaxMsg').html("<div class='msg'><span class='ui-icon ui-icon-check'></span>"+obj['status']+"</div>");
                             if ( data.indexOf("Successfully") > -1){
                                 imagechk.src = "";
@@ -2204,7 +2207,7 @@
                                 imagechk.style.visibility = "visible";
                             } else {
                                 imagechk.src = "";
-                                imagechk.src = "images/fail.png";
+                                imagechk.src = "images/x_red.png";
                                 imagechk.style.visibility = "visible";
                             }
                     });
@@ -2242,18 +2245,20 @@
                                 nocdh = document.getElementById("sab_nocdh");
                                 nocdh.style.display = "none";
                             }
+                            $('#ajaxMsg').removeClass();
                             $('#ajaxMsg').html("<div class='msg'><span class='ui-icon ui-icon-check'></span>"+obj['message']+"</div>");
                             if (obj['status']){
                                 imagechk.src = "";
                                 imagechk.src = "images/success.png";
                                 imagechk.style.visibility = "visible";
+                                $('#ajaxMsg').addClass('success').fadeIn().delay(3000).fadeOut();
                             } else {
                                 imagechk.src = "";
-                                imagechk.src = "images/fail.png";
+                                imagechk.src = "images/x_red.png";
                                 imagechk.style.visibility = "visible";
+                                $('#ajaxMsg').addClass('error').fadeIn().delay(3000).fadeOut();
                             }
                     });
-                    $('#ajaxMsg').addClass('success').fadeIn().delay(3000).fadeOut();
                 });
 
                 $('#test_nzbget').click(function () {
@@ -2270,6 +2275,7 @@
                                 return;
                             }
                             $('#nzbgetstatus').val(data);
+                            $('#ajaxMsg').removeClass();
                             $('#ajaxMsg').html("<div class='msg'><span class='ui-icon ui-icon-check'></span>"+data+"</div>");
                             if ( data.indexOf("Successfully") > -1){
                                 imagechk.src = "";
@@ -2277,7 +2283,7 @@
                                 imagechk.style.visibility = "visible";
                             } else {
                                 imagechk.src = "";
-                                imagechk.src = "images/fail.png";
+                                imagechk.src = "images/x_red.png";
                                 imagechk.style.visibility = "visible";
                             }
                     });
@@ -2377,6 +2383,7 @@
                                 alert(data.error);
                                 return;
                             }
+                            $('#ajaxMsg').removeClass();
                             $('#ajaxMsg').html("<div class='msg'><span class='ui-icon ui-icon-check'></span>"+data+"</div>");
                             if ( data.indexOf("Successfully") > -1){
                                 imagechk.src = "";
@@ -2384,7 +2391,7 @@
                                 imagechk.style.visibility = "visible";
                             } else {
                                 imagechk.src = "";
-                                imagechk.src = "images/fail.png";
+                                imagechk.src = "images/x_red.png";
                                 imagechk.style.visibility = "visible";
                             }
                     });
@@ -2411,6 +2418,7 @@
                                 return;
                             }
                             //$('#rtorrentstatus').val(data);
+                            $('#ajaxMsg').removeClass();
                             $('#ajaxMsg').html("<div class='msg'><span class='ui-icon ui-icon-check'></span>"+data+"</div>");
                             if ( data.indexOf("Successfully") > -1){
                                 imagechk.src = "";
@@ -2418,7 +2426,7 @@
                                 imagechk.style.visibility = "visible";
                             } else {
                                 imagechk.src = "";
-                                imagechk.src = "images/fail.png";
+                                imagechk.src = "images/x_red.png";
                                 imagechk.style.visibility = "visible";
                             }
                     });
@@ -2437,6 +2445,7 @@
                                 alert(data.error);
                                 return;
                             }
+                            $('#ajaxMsg').removeClass();
                             $('#ajaxMsg').html("<div class='msg'><span class='ui-icon ui-icon-check'></span>"+data+"</div>");
                             if ( data.indexOf("Successfully") > -1){
                                 imagechk.src = "";
@@ -2444,7 +2453,7 @@
                                 imagechk.style.visibility = "visible";
                             } else {
                                 imagechk.src = "";
-                                imagechk.src = "images/fail.png";
+                                imagechk.src = "images/x_red.png";
                                 imagechk.style.visibility = "visible";
                             }
                     });
@@ -2479,18 +2488,20 @@
                                 alert(data.error);
                                 return;
                             }
+                            $('#ajaxMsg').removeClass();
                             $('#ajaxMsg').html("<div class='msg'><span class='ui-icon ui-icon-check'></span>"+data+"</div>");
                             if ( data.indexOf("Successfully") > -1){
                                 imagechk.src = "";
                                 imagechk.src = "images/success.png";
                                 imagechk.style.visibility = "visible";
+                                $('#ajaxMsg').addClass('success').fadeIn().delay(3000).fadeOut();
                             } else {
                                 imagechk.src = "";
-                                imagechk.src = "images/fail.png";
+                                imagechk.src = "images/x_red.png";
                                 imagechk.style.visibility = "visible";
+                                $('#ajaxMsg').addClass('error').fadeIn().delay(3000).fadeOut();
                             }
                     });
-                    $('#ajaxMsg').addClass('success').fadeIn().delay(3000).fadeOut();
                 });
 
                 $(".torznabtest").click(function () {
@@ -2507,6 +2518,7 @@
                                 alert(data.error);
                                 return;
                             }
+                            $('#ajaxMsg').removeClass();
                             $('#ajaxMsg').html("<div class='msg'><span class='ui-icon ui-icon-check'></span>"+data+"</div>");
                             if ( data.indexOf("Successfully") > -1){
                                 imagechk.src = "";
@@ -2514,7 +2526,7 @@
                                 imagechk.style.visibility = "visible";
                             } else {
                                 imagechk.src = "";
-                                imagechk.src = "images/fail.png";
+                                imagechk.src = "images/x_red.png";
                                 imagechk.style.visibility = "visible";
                             }
                     });
@@ -2531,6 +2543,7 @@
                                 alert(data.error);
                                 return;
                             }
+                            $('#ajaxMsg').removeClass();
                             $('#ajaxMsg').html("<div class='msg'><span class='ui-icon ui-icon-check'></span>"+data+"</div>");
                             if ( data.indexOf("Successfully") > -1){
                                 imagechk.src = "";
@@ -2538,7 +2551,7 @@
                                 imagechk.style.visibility = "visible";
                             } else {
                                 imagechk.src = "";
-                                imagechk.src = "images/fail.png";
+                                imagechk.src = "images/x_red.png";
                                 imagechk.style.visibility = "visible";
                             }
                     });
@@ -2558,18 +2571,20 @@
                                 return;
                             }
                             $('#pushoverstatus').val(data);
+                            $('#ajaxMsg').removeClass();
                             $('#ajaxMsg').html("<div class='msg'><span class='ui-icon ui-icon-check'></span>"+data+"</div>");
                             if ( data.indexOf("Successfully") > -1){
-                               imagechk.src = "";
+                                imagechk.src = "";
                                 imagechk.src = "images/success.png";
                                 imagechk.style.visibility = "visible";
+                                $('#ajaxMsg').addClass('success').fadeIn().delay(3000).fadeOut();
                             } else {
                                 imagechk.src = "";
-                                imagechk.src = "images/fail.png";
+                                imagechk.src = "images/x_red.png";
                                 imagechk.style.visibility = "visible";
+                                $('#ajaxMsg').addClass('error').fadeIn().delay(3000).fadeOut();
                             }
                     });
-                    $('#ajaxMsg').addClass('success').fadeIn().delay(3000).fadeOut();
                 });
 
                 $('#boxcar_test').click(function () {
@@ -2583,6 +2598,7 @@
                                 return;
                             }
                             $('#pushoverstatus').val(data);
+                            $('#ajaxMsg').removeClass();
                             $('#ajaxMsg').html("<div class='msg'><span class='ui-icon ui-icon-check'></span>"+data+"</div>");
                             if ( data.indexOf("Successfully") > -1){
                                imagechk.src = "";
@@ -2590,7 +2606,7 @@
                                 imagechk.style.visibility = "visible";
                             } else {
                                 imagechk.src = "";
-                                imagechk.src = "images/fail.png";
+                                imagechk.src = "images/x_red.png";
                                 imagechk.style.visibility = "visible";
                             }
                     });
@@ -2609,6 +2625,7 @@
                                 return;
                             }
                             $('#pbstatus').val(data);
+                            $('#ajaxMsg').removeClass();
                             $('#ajaxMsg').html("<div class='msg'><span class='ui-icon ui-icon-check'></span>"+data+"</div>");
                             if ( data.indexOf("Successfully") > -1){
                                imagechk.src = "";
@@ -2616,7 +2633,7 @@
                                 imagechk.style.visibility = "visible";
                             } else {
                                 imagechk.src = "";
-                                imagechk.src = "images/fail.png";
+                                imagechk.src = "images/x_red.png";
                                 imagechk.style.visibility = "visible";
                             }
                     });
@@ -2635,6 +2652,7 @@
                                 return;
                             }
                             $('#telegramstatus').val(data);
+                            $('#ajaxMsg').removeClass();
                             $('#ajaxMsg').html("<div class='msg'><span class='ui-icon ui-icon-check'></span>"+data+"</div>");
                             if ( data.indexOf("Successfully") > -1){
                                imagechk.src = "";
@@ -2642,7 +2660,7 @@
                                 imagechk.style.visibility = "visible";
                             } else {
                                 imagechk.src = "";
-                                imagechk.src = "images/fail.png";
+                                imagechk.src = "images/x_red.png";
                                 imagechk.style.visibility = "visible";
                             }
                     });
@@ -2660,6 +2678,7 @@
                                 return;
                             }
                             $('#slackstatus').val(data);
+                            $('#ajaxMsg').removeClass();
                             $('#ajaxMsg').html("<div class='msg'><span class='ui-icon ui-icon-check'></span>"+data+"</div>");
                             if ( data.indexOf("Successfully") > -1){
                                imagechk.src = "";
@@ -2667,7 +2686,7 @@
                                 imagechk.style.visibility = "visible";
                             } else {
                                 imagechk.src = "";
-                                imagechk.src = "images/fail.png";
+                                imagechk.src = "images/x_red.png";
                                 imagechk.style.visibility = "visible";
                             }
                     });
@@ -2685,6 +2704,7 @@
                                 return;
                             }
                             $('#discordstatus').val(data);
+                            $('#ajaxMsg').removeClass();
                             $('#ajaxMsg').html("<div class='msg'><span class='ui-icon ui-icon-check'></span>"+data+"</div>");
                             if ( data.indexOf("Successfully") > -1){
                                imagechk.src = "";
@@ -2692,7 +2712,7 @@
                                 imagechk.style.visibility = "visible";
                             } else {
                                 imagechk.src = "";
-                                imagechk.src = "images/fail.png";
+                                imagechk.src = "images/x_red.png";
                                 imagechk.style.visibility = "visible";
                             }
                     });
@@ -2716,6 +2736,7 @@
                                 return;
                             }
                             $('#emailstatus').val(data);
+                            $('#ajaxMsg').removeClass();
                             $('#ajaxMsg').html("<div class='msg'><span class='ui-icon ui-icon-check'></span>"+data+"</div>");
                             if ( data.indexOf("Successfully") > -1){
                                imagechk.src = "";
@@ -2723,7 +2744,7 @@
                                 imagechk.style.visibility = "visible";
                             } else {
                                 imagechk.src = "";
-                                imagechk.src = "images/fail.png";
+                                imagechk.src = "images/x_red.png";
                                 imagechk.style.visibility = "visible";
                             }
                     });
