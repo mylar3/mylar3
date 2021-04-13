@@ -27,6 +27,9 @@ import json
 import copy
 import ntpath
 
+# Because Type has been overwritten.
+import builtins
+
 from mako.template import Template
 from mako.lookup import TemplateLookup
 from mako import exceptions
@@ -2418,7 +2421,7 @@ class WebInterface(object):
                                    'updated_date': si['updated_date'],
                                    'progress':     si_status})
         if o_info:
-            if type(resultlist) is str:
+            if builtins.type(resultlist) is str:
                 resultlist = []
 
             for oi in o_info:
@@ -2501,7 +2504,7 @@ class WebInterface(object):
                                    'updated_date': si['updated_date'],
                                    'progress':     si_status})
         if o_info:
-            if type(resultlist) is str:
+            if builtins.type(resultlist) is str:
                 resultlist = []
 
             for oi in o_info:
@@ -2575,14 +2578,14 @@ class WebInterface(object):
             elif 'file_format' in k:
                 file_format = str(v)
             elif 'comicid' in k:
-                if type(v) is list:
+                if builtins.type(v) is list:
                     comicid = str(' '.join(v))
-                elif type(v) is str:
+                elif builtins.type(v) is str:
                     comicid = re.sub('[\]\[\']', '', v) #v.decode('utf-8').encode('ascii')).strip()
                 else:
                     comicid = v
 
-        if comicid is not None and type(comicid) is not list:
+        if comicid is not None and builtins.type(comicid) is not list:
             comicidlist = []
             comicidlist.append(comicid)
         for cid in comicidlist:
@@ -2615,7 +2618,7 @@ class WebInterface(object):
             logger.error("Cannot rename files.")
             return
 
-        if type(comicid) is not str:
+        if builtins.type(comicid) is not str:
             comiclist = comicid
         else:
             comiclist = []
@@ -4873,7 +4876,7 @@ class WebInterface(object):
                        # if we matched on more than one series above, just save those results instead of the entire search result set.
                         for sres in search_matches:
                             try:
-                                if type(sres['haveit']) is dict:
+                                if builtins.type(sres['haveit']) is dict:
                                     imp_cid = sres['haveit']['comicid']
                                 else:
                                     imp_cid = sres['haveit']
@@ -4908,7 +4911,7 @@ class WebInterface(object):
                         # should probably assign some random numeric for an id to reference back at some point.
                         for sres in sresults:
                             try:
-                                if type(sres['haveit']) == dict:
+                                if builtins.type(sres['haveit']) == dict:
                                     imp_cid = sres['haveit']['comicid']
                                 else:
                                     imp_cid = sres['haveit']
