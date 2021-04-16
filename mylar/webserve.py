@@ -5017,8 +5017,8 @@ class WebInterface(object):
             results = myDB.select("SELECT * FROM importresults WHERE (WatchMatch is Null OR WatchMatch LIKE 'C%') AND DynamicName=? AND Volume=?",[DynamicName,volume])
         files = []
         for result in results:
-            files.append({'comicfilename': result['ComicFilename'],
-                          'comiclocation': result['ComicLocation'],
+            files.append({'comicfilename': urllib.parse.quote(result['ComicFilename']),
+                          'comiclocation': urllib.parse.quote(result['ComicLocation']),
                           'issuenumber':   result['IssueNumber'],
                           'import_id':     result['impID']})
 

@@ -296,7 +296,7 @@ def rename_param(comicid, comicname, issue, ofilename, comicyear=None, issueid=N
 #            issue = iss
 
 #            print ("converted issue#: " + str(issue))
-            logger.fdebug('issueid:' + str(issueid))
+#            logger.fdebug('issueid:' + str(issueid))
 
             if issueid is None:
                 logger.fdebug('annualize is ' + str(annualize))
