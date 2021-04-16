@@ -1151,7 +1151,8 @@ def forceRescan(ComicID, archive=None, module=None, recheck=False):
             else:
                 temploc = None
                 logger.warn('The filename [%s] does not have a valid issue number, and the Edition of the series is %s. You might need to Forcibly Mark the Series as TPB/GN and try this again.' % (tmpfc['ComicFilename'], rescan['Type']))
-                return
+                fn += 1
+                continue
 
         if all(['annual' not in temploc.lower(), 'special' not in temploc.lower()]):
             #remove the extension here
