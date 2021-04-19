@@ -42,7 +42,13 @@ function initConfigCheckbox(elem) {
 	});
 }
 function initActions() {
+    $("#subhead_menu #menu_link_searchmissing").button({ icons: { primary: "ui-icon-circle-zoomout" }  });
+    $("#subhead_menu #menu_link_recheck").button({ icons: { primary: "ui-icon-circle-check" }  });
+    $("#subhead_menu #menu_link_manualmeta").button({ icons: { primary: "ui-icon-info" }  });
+    $("#subhead_menu #menu_link_prevrename").button({ icons: { primary: "ui-icon-image" }  });
+    $("#subhead_menu #menu_link_rename").button({ icons: { primary: "ui-icon-transfer-e-w" }  });
     $("#subhead_menu #menu_link_refresh").button({ icons: { primary: "ui-icon-refresh" }  });
+    $("#pub_button").button({ icons: { primary: "ui-icon-refresh" }  });
     $("#btn_menu #menu_link_refresh").button({ icons: { primary: "ui-icon-pencil" }  });
     $("#subhead_menu #menu_link_edit").button({ icons: { primary: "ui-icon-pencil" }  });
     $("#btn_menu #menu_link_edit").button({ icons: { primary: "ui-icon-refesh" }  });

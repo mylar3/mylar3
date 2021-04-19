@@ -13,7 +13,27 @@
 <!--
                         <a href="#" id="menu_link_retry" onclick="doAjaxCall('create_readlist?weeknumber=${weekinfo['weeknumber']}&year=${weekinfo['year']}',$(this),'table')" data-success="Submitted request for reading-list generation for this week">Generate Reading-List</a>
 -->
-                        <a href="#" id="menu_link_retry" title="Add all series to your watchlist for week ${weekinfo['weeknumber']}" onclick="doAjaxCall('dump_that_shizzle?weeknumber=${weekinfo['weeknumber']}&year=${weekinfo['year']}',$(this),true)" data-success="Queueing adding of entire Pullist into your watchlist for week ${weekinfo['weeknumber']}, ${weekinfo['year']}" data-failure="Could not queue items for mass add. Check logs">Add it all.</a>
+                        <a href="#" id="menu_link_delete" title="Add all series to your watchlist for week ${weekinfo['weeknumber']}">Mass.Add.it.All.NOW</a>
+                           <div id="publisher_dialog" title="Mass publisher selection" style="display:none">
+                            <div name="publishers_choice" id="publishers_choice" style="vertical-align: middle; text-align: center">
+                              <div>
+                                   <label><big>Choose.Your.Publishers</big></label></br>
+                                   <small><center>to select every publisher, do not select anything</small></br></br>
+                                   <select id="publishers" name="publishers[]" multiple style="width:50%;" placeholder="Select a publisher...">
+                                   </select>
+                                   </center>
+                                   </br>
+                                   <div class="row checkbox left clearfix">
+                                      <input type="checkbox" style="vertical-align: middle; margin: 3px; margin-top: -1px;" name="auto_mass_add" id="auto_mass_add" value="1" ${auto_mass_add} /><label>Run automatically when the pull updates?</label>
+                                   </div>
+                              </div>
+                              </br>
+                              <input type="button" id="pub_button" style="text-align:center;" value="Submit" class="button" />
+                              <input id="year" type="hidden" name="year" value="${weekinfo['year']}">
+                              <input id="weeknumber" type="hidden" name="weeknumber" value="${weekinfo['weeknumber']}">
+                            </div>
+                           </div>
+
                         %if mylar.CONFIG.WEEKFOLDER:
                             <a id="menu_link_scan" title="copy weekly snatched items into weekly folder of ${weekfold}" class="button">Download</a>
                         %endif
@@ -60,8 +80,8 @@
                        <input type="checkbox" name="weekfolder" id="weekfolder" value="1" ${checked(mylar.CONFIG.WEEKFOLDER)} /><label>Store in Weekly Directory (${weekfold})</label> 
                  </div>
 
-               <input type="hidden" name="year" value="${weekinfo['year']}">
-               <input type="hidden" name="weeknumber" value="${weekinfo['weeknumber']}">
+               <input id="massyear" type="hidden" name="year" value="${weekinfo['year']}">
+               <input id="massnumber" type="hidden" name="weeknumber" value="${weekinfo['weeknumber']}">
                <input type="hidden" name="midweek" value="${weekinfo['midweek']}">
                <input type="submit" style="display:none" />
              </fieldset>
@@ -259,10 +279,13 @@
 <%def name="headIncludes()">
         <meta name="referrer" content="no-referrer" />
 	<link rel="stylesheet" href="interfaces/${interface}/css/data_table.css">
+        <link rel="stylesheet" type="text/css" href="css/selectize.default.css">
 </%def>
 
 <%def name="javascriptIncludes()">
 	<script src="js/libs/jquery.dataTables.min.js"></script>
+        <script src="js/libs/selectize.js"></script>
+        <script src="js/libs/circular-json.js"></script>
         <script type="text/javascript">
         function addAction() {
                 $('#weekfolder').append('<input type="hidden" name="filename" value=True />');
@@ -345,6 +368,47 @@
         var loadingtext_active = false;
         var refreshInterval;
 
+        function openMassAdd() {
+            $("#publisher_dialog").dialog({
+                        width: "50%",
+                        height: "300",
+                        open: function(event, ui){
+                            $(this).css("height", "300");
+                        }
+            });
+        };
+
+        function run_them() {
+            var pubs = document.getElementsByName("publishers[]");
+            // because there are circular references, we need to clean it first...
+            var publishers = CircularJSON.stringify(pubs);
+            if ($("#auto_mass_add").is(":checked")){
+                mass_auto = true;
+            } else {
+                mass_auto = false;
+            }
+            var weeknumber = document.getElementById("weeknumber").value;
+            var year = document.getElementById("year").value;
+            $.ajax({
+                type: "POST",
+                url: "dump_that_shizzle",
+                data: { publishers: publishers, weeknumber: weeknumber, year: year , mass_auto: mass_auto },
+                dataType: "json",
+                aysnc: false,
+                success: function ( response ) {
+                   setTimeout('$("#publisher_dialog").dialog("close")', 3000);
+                   var obj = response;
+                   var p_msg = "Successfully submitted Mass Add for "+obj['series_count']+" series across "+obj['publisher_count']+" publishers";
+                   $('#ajaxMsg').removeClass();
+                   $('#ajaxMsg').html("<div class='msg'><span class='ui-icon ui-icon-check'></span>"+p_msg+"</div>");
+                   $('#ajaxMsg').addClass('success').fadeIn().delay(3000).fadeOut();
+                },
+                error: function (data) {
+                   alert('error:'+data.responseText);
+                },
+            });
+        };
+
         function initThisPage() {
                 $("#weekfolder").click(function(){
                         if ($("#weekfolder").is(":checked"))
@@ -358,7 +422,79 @@
                             return true;
                         }
                 });
+                $("#menu_link_delete").click(openMassAdd);
+                $("#pub_button").click(run_them);
                 initActions();
+
+                $(function selector() {
+                        weeknumber = document.getElementById("massnumber").value;
+                        weekyear = document.getElementById("massyear").value;
+                        $.when($.ajax({
+                                type: "GET",
+                                url: "get_the_pubs",
+                                dataType: 'json',
+                                success: function ( response ) {
+                                    results = response;
+                                },
+                                error: function (data) {
+                                    var options = [];
+                                },
+                        })).done(function(data) {
+                            var options = [];
+                            $.each(results, function() {
+                                options.push({
+                                    name : this.name
+                                });
+                            })
+                            //options = [{"name":"publisher name here"}];
+                            try {
+                                items = options.map(x => x.name);
+                            } catch(e) {
+                                const options = [];
+                                items = [];
+                            }
+                            $( "#publishers" ).selectize({
+                                 valueField: 'name',
+                                 labelField: 'name',
+                                 searchField: ['name'],
+                                 createOnBlur: true,
+                                 options: options,
+                                 items: items,
+                                 create: function (input, callback) {
+                                     $.ajax({
+                                         type: "GET",
+                                         url: "weekly_publisherlisting",
+                                         data: { weeknumber: weeknumber, year: weekyear },
+                                         dataType: 'json',
+                                         success: function ( response ){
+                                              return callback(response);
+                                         }
+                                     });
+                                 },
+                                 render: {
+                                     option: function (item, escape) {
+                                        return '<div>' + escape(item.name) + '</div>';
+                                     }
+                                 },
+                                 load: function (query, callback) {
+                                     $.ajax({
+                                         type: "GET",
+                                         url: "weekly_publisherlisting",
+                                         contentType: "application/json; charset=utf-8",
+                                         data: { weeknumber: weeknumber, year: weekyear },
+                                         dataType: 'json',
+                                         error: function () {
+                                             callback();
+                                         },
+                                         success: function (res) {
+                                             var rspns = eval(res)
+                                             callback(rspns);
+                                        }
+                                     });
+                                 },
+                            });
+                        });
+                })
                 $('#pull_table').dataTable (
                         {
                                 "bDestroy": true,

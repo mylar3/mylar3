@@ -29,6 +29,7 @@ import imghdr
 import sqlite3
 import cherrypy
 import requests
+import threading
 
 import mylar
 from mylar import logger, filers, helpers, db, mb, cv, parseit, filechecker, search, updater, moveit, comicbookdb
@@ -1806,3 +1807,24 @@ def image_it(comicid, latestissueid, comlocation, ComicImage):
 
     myDB = db.DBConnection()
     myDB.upsert('comics', {'ComicImage': ComicImage}, {'ComicID': comicid})
+
+def importer_thread(serieslist):
+    # importer thread to queue up series to be added to the watchlist
+    # serieslist = [{'comicid': '2828991', 'series': 'Some Comic'}]
+
+    if type(serieslist) != list:
+        serieslist  = [(serieslist)]
+
+    try:
+        if mylar.MASS_ADD.is_alive():
+            mylar.ADD_LIST += serieslist
+            logger.info('[MASS-ADD] MASS_ADD thread already running. Adding an additional %s items to existing queue' % len(serieslist))
+            return
+    except Exception:
+        pass
+
+    logger.info('[MASS-ADD] MASS_ADD thread not started. Started & submitting.')
+    mylar.ADD_LIST += serieslist
+    mylar.MASS_ADD = threading.Thread(target=addvialist, name="mass-add")
+    mylar.MASS_ADD.start()
+

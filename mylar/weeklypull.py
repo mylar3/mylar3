@@ -28,9 +28,10 @@ import re
 import datetime
 import shutil
 import traceback
+import json
 
 import mylar
-from mylar import db, updater, helpers, logger, newpull, importer, mb, locg
+from mylar import db, updater, helpers, logger, newpull, importer, mb, locg, webserve
 
 def pullit(forcecheck=None, weeknumber=None, year=None):
     myDB = db.DBConnection()
@@ -941,7 +942,7 @@ def new_pullcheck(weeknumber, pullyear, comic1off_name=None, comic1off_id=None, 
                 except ValueError:
                     logger.error('Invalid Latest Date returned for ' + watch['ComicName'] + '. Series needs to be refreshed so that is what I am going to do.')
                     #refresh series here and then continue.
- 
+
                 n_date = datetime.date.today()
                 #logger.fdebug("c_date : " + str(c_date) + " ... n_date : " + str(n_date))
                 recentchk = (n_date - c_date).days
@@ -1285,7 +1286,50 @@ def new_pullcheck(weeknumber, pullyear, comic1off_name=None, comic1off_id=None, 
                 # log it regardless..
                 logger.exception(tracebackline)
 
+    if mylar.CONFIG.AUTO_MASS_ADD is True:
+       logger.info('[AUTO-MASS-ADD] Auto Mass-Add enabled and triggered for current week %s, %s..' % (weeknumber, pullyear))
+       mass_publishers(publishers=mylar.CONFIG.MASS_PUBLISHERS, weeknumber=weeknumber, year=pullyear, mass_auto=True)
 
+def mass_publishers(publishers, weeknumber, year, mass_auto=False):
+
+    watchlibrary = helpers.listLibrary()
+    watch = []
+
+    myDB = db.DBConnection()
+    pub_listing = []
+    if type(publishers) == list and len(publishers) == 0:
+        publishers = None
+
+    if publishers is None:
+        watchlist = myDB.select('SELECT * FROM weekly WHERE weeknumber=? and year=?', [weeknumber, year])
+    else:
+        cnt = 0
+        pblist = 'AND (publisher="%s"' % publishers[cnt]
+        for pb in publishers:
+             if cnt > 0:
+                pblist += ' OR publisher="%s"' % pb
+             pub_listing.append(pb)
+             cnt += 1
+        pblist += ')'
+        mylar.CONFIG.MASS_PUBLISHERS = json.loads(json.dumps(pub_listing))
+        mylar.CONFIG.writeconfig(values={'mass_publishers': json.dumps(mylar.CONFIG.MASS_PUBLISHERS), 'auto_mass_add': mylar.CONFIG.AUTO_MASS_ADD})
+        query_line = 'SELECT * FROM WEEKLY WHERE weeknumber=%s AND year=%s %s' % (weeknumber, year, pblist)
+        watchlist = myDB.select(query_line)
+
+    if watchlist:
+        for wt in watchlist:
+            if wt['comicid'] not in watchlibrary and wt['comicid'] is not None:
+                if not any(ext['comicid'] == wt['comicid'] for ext in mylar.ADD_LIST):
+                    watch.append({'comicid': wt['comicid'], 'series': wt['comic']})
+
+    if len(watch) > 0:
+         logger.info('[SHIZZLE-WHIZZLE] Now queueing to mass add %s new series to your watchlist' % len(watch))
+         try:
+             importer.importer_thread(watch)
+         except Exception:
+             pass
+
+    return {'series_count': len(watch), 'publisher_count': len(pub_listing)}
 
 def check(fname, txt):
     try:

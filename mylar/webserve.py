@@ -1781,7 +1781,21 @@ class WebInterface(object):
             return
     pullSearch.exposed = True
 
-    def pullist(self, week=None, year=None, generateonly=False, current=None):
+    def pullist(self, **args): #week=None, year=None, generateonly=False, current=None):
+        week = None
+        year = None
+        generateonly = False
+        current = None
+        for k,v in list(args.items()):
+            if k == 'week':
+                week = v
+            elif k == 'year':
+                year = v
+            elif k == 'generateonly':
+                generateonly = v
+            elif k == 'current':
+                current = v
+
         myDB = db.DBConnection()
         autowant = []
         if generateonly is False:
@@ -1951,9 +1965,9 @@ class WebInterface(object):
                         weeklyresults = endresults
 
             if week:
-                return serve_template(templatename="weeklypull.html", title="Weekly Pull", weeklyresults=weeklyresults, pullfilter=True, weekfold=weekinfo['week_folder'], wantedcount=wantedcount, weekinfo=weekinfo)
+                return serve_template(templatename="weeklypull.html", title="Weekly Pull", weeklyresults=weeklyresults, pullfilter=True, weekfold=weekinfo['week_folder'], wantedcount=wantedcount, weekinfo=weekinfo, auto_mass_add=helpers.checked(mylar.CONFIG.AUTO_MASS_ADD))
             else:
-                return serve_template(templatename="weeklypull.html", title="Weekly Pull", weeklyresults=weeklyresults, pullfilter=True, weekfold=weekinfo['week_folder'], wantedcount=wantedcount, weekinfo=weekinfo)
+                return serve_template(templatename="weeklypull.html", title="Weekly Pull", weeklyresults=weeklyresults, pullfilter=True, weekfold=weekinfo['week_folder'], wantedcount=wantedcount, weekinfo=weekinfo, auto_mass_add=helpers.checked(mylar.CONFIG.AUTO_MASS_ADD))
     pullist.exposed = True
 
     def removeautowant(self, comicname, release):
@@ -6983,35 +6997,80 @@ class WebInterface(object):
         updater.watchlist_updater()
     dbupdater_watchlist.exposed = True
 
-    def dump_that_shizzle(self, weeknumber,  year):
+    def dump_that_shizzle(self, **kwargs):
         # if any([user == 'Offspring', user == 'SCSi']):
         #     print('now leave me alone.')
-        watchlibrary = helpers.listLibrary()
-        watch = []
 
-        myDB = db.DBConnection()
-        watchlist = myDB.select('SELECT * FROM weekly WHERE weeknumber=? and year=?', [weeknumber, year])
+        mass_auto = False
 
-        if watchlist:
-            for wt in watchlist:
-                if wt['comicid'] not in watchlibrary and wt['comicid'] is not None:
-                    if not any(ext['comicid'] == wt['comicid'] for ext in mylar.ADD_LIST):
-                        watch.append({'comicid': wt['comicid'], 'series': wt['comic']})
+        for k, v in kwargs.items():
+            if 'publishers' in k:
+                selectize = json.loads(v)
+                try:
+                    publishers = selectize['0']['selectize']['items']
+                except Exception as e:
+                    logger.info('unable to parse selectize: %s' % (selectize,))
+                    continue
+                else:
+                    if type(publishers) == str:
+                        # if it's only one selection, force it to a list.
+                         publishers = [publishers]
+            elif 'weeknumber' in k:
+                weeknumber = v
+            elif 'year' in k:
+                year = v
+            elif 'mass_auto' in k:
+                if v == 'true':
+                    mass_auto = True
 
-        if len(watch) > 0:
-            logger.info('[SHIZZLE-WHIZZLE] Now queueing to mass add %s new series to your watchlist' % len(watch))
-            try:
-                if mylar.MASS_ADD.is_alive():
-                    mylar.ADD_LIST += watch
-                    logger.info('[MASS-ADD] MASS_ADD thread already running. Adding an additional %s items to existing queue' % len(watch))
-                    return
-            except Exception:
-                pass
 
-            logger.info('[MASS-ADD] MASS_ADD thread not started. Started & submitting.')
-            mylar.ADD_LIST += watch
-            mylar.MASS_ADD = threading.Thread(target=importer.addvialist, name="mass-add")
-            mylar.MASS_ADD.start()
+        mylar.CONFIG.AUTO_MASS_ADD = mass_auto
+
+        if len(publishers) == 0:
+            publishers = None
+
+        #watchlibrary = helpers.listLibrary()
+        #watch = []
+
+        #myDB = db.DBConnection()
+        #pub_listing = []
+        #if publishers is None:
+        #    watchlist = myDB.select('SELECT * FROM weekly WHERE weeknumber=? and year=?', [weeknumber, year])
+        #else:
+        #    cnt = 0
+        #    pblist = 'AND (publisher="%s"' % publishers[cnt]
+        #    for pb in publishers:
+        #        if cnt > 0:
+        #            pblist += ' OR publisher="%s"' % pb
+
+        #        pub_listing.append(pb)
+        #        cnt += 1
+        #    pblist += ')'
+        #    mylar.CONFIG.MASS_PUBLISHERS = json.loads(json.dumps(pub_listing))
+        #    mylar.CONFIG.writeconfig(values={'mass_publishers': json.dumps(mylar.CONFIG.MASS_PUBLISHERS)})
+        #    query_line = 'SELECT * FROM WEEKLY WHERE weeknumber=%s AND year=%s %s' % (weeknumber, year, pblist)
+        #    watchlist = myDB.select(query_line)
+
+        #if watchlist:
+        #    for wt in watchlist:
+        #        if wt['comicid'] not in watchlibrary and wt['comicid'] is not None:
+        #            if not any(ext['comicid'] == wt['comicid'] for ext in mylar.ADD_LIST):
+        #                watch.append({'comicid': wt['comicid'], 'series': wt['comic']})
+
+        pub_info = weeklypull.mass_publishers(publishers, weeknumber, year, mass_auto)
+
+        pub_count = pub_info['publisher_count']
+        if pub_count == 0:
+            pub_count = 'all'
+        return json.dumps({"status": "success", "publisher_count": pub_count, "series_count": pub_info['series_count']})
+
+
+        #if len(watch) > 0:
+        #    logger.info('[SHIZZLE-WHIZZLE] Now queueing to mass add %s new series to your watchlist' % len(watch))
+        #    try:
+        #        importer.importer_thread(watch)
+        #    except Exception:
+        #        pass
 
     dump_that_shizzle.exposed = True
 
@@ -7154,3 +7213,21 @@ class WebInterface(object):
             else:
                 logger.fdebug('Successfully written series.json file to %s' % comic['ComicLocation'])
     update_metadata.exposed = True
+
+    def weekly_publisherlisting(self, weeknumber, year):
+        comiclist = []
+        myDB = db.DBConnection()
+        thelist = myDB.select("SELECT Publisher FROM weekly WHERE weeknumber=? AND year=? GROUP BY Publisher ORDER BY Publisher ASC", [weeknumber, year])
+        for ts in thelist:
+            comiclist.append({"name": ts['publisher']})
+        return json.dumps(comiclist)
+    weekly_publisherlisting.exposed=True
+
+    def get_the_pubs(self):
+        x = []
+        if mylar.CONFIG.MASS_PUBLISHERS:
+            for i in mylar.CONFIG.MASS_PUBLISHERS:
+                x.append({'name': i})
+        return json.dumps(x)
+    get_the_pubs.exposed = True
+
