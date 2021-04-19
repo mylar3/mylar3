@@ -5,6 +5,7 @@ from operator import itemgetter
 import os
 import errno
 import glob
+import json
 import codecs
 import shutil
 import threading
@@ -102,6 +103,8 @@ _CONFIG_DEFINITIONS = OrderedDict({
     'BIGGIE_PUB': (int, 'Weekly', 55),
     'PACK_0DAY_WATCHLIST_ONLY': (bool, 'Weekly', True),
     'RESET_PULLIST_PAGINATION': (bool, 'Weekly', True),
+    'MASS_PUBLISHERS': (str, 'Weekly', []),
+    'AUTO_MASS_ADD': (bool, 'Weekly', False),
 
     'HTTP_PORT' : (int, 'Interface', 8090),
     'HTTP_HOST' : (str, 'Interface', '0.0.0.0'),
@@ -1044,6 +1047,14 @@ class Config(object):
             self.IGNORE_TOTAL = False
             self.IGNORE_HAVETOTAL = False
             logger.warn('You cannot have both ignore_total and ignore_havetotal enabled in the config.ini at the same time. Set only ONE to true - disabling both until this is resolved.')
+
+        if len(self.MASS_PUBLISHERS) > 0:
+            if type(self.MASS_PUBLISHERS) != list:
+                try:
+                    self.MASS_PUBLISHERS = json.loads(self.MASS_PUBLISHERS)
+                except Exception as e:
+                    logger.warn('[MASS_PUBLISHERS] Unable to convert publishers [%s]. Error returned: %s' % (self.MASS_PUBLISHERS, e))
+        logger.info('[MASS_PUBLISHERS] Auto-add for weekly publishers set to: %s' % (self.MASS_PUBLISHERS,))
 
         #comictagger - force to use included version if option is enabled.
         import comictaggerlib.ctversion as ctversion
