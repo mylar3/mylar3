@@ -1119,7 +1119,14 @@ def issuedigits(issnum):
                             logger.fdebug('this does not have an issue # that I can parse properly.')
                             return 999999999999999
                     else:
-                        if issnum == '9-5':
+                        match = re.match(r"(?P<first>\d+)\s?[-&/\\]\s?(?P<last>\d+)", issnum)
+                        if match:
+                            first_num, last_num = map(int, match.groups())
+                            if last_num > first_num:
+                                int_issnum = (first_num * 1000) + int(((last_num - first_num) * .5) * 1000)
+                            else:
+                                int_issnum = (first_num * 1000) + (.5 * 1000)
+                        elif issnum == '9-5':
                             issnum = '9\xbd'
                             logger.fdebug('issue: 9-5 is an invalid entry. Correcting to : ' + issnum)
                             int_issnum = (9 * 1000) + (.5 * 1000)

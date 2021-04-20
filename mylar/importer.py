@@ -1393,8 +1393,16 @@ def updateissuedata(comicid, comicname=None, issued=None, comicIssues=None, call
                                 logger.fdebug('this does not have an issue # that I can parse properly.')
                                 return
                         else:
+                            # Matches "number -&/\ number"
+                            match = re.match(r"(?P<first>\d+)\s?[-&/\\]\s?(?P<last>\d+)", issnum)
                             if int_issnum is not None:
                                 pass
+                            elif match:
+                                first_num, last_num = map(int, match.groups())
+                                if last_num > first_num:
+                                    int_issnum = (first_num * 1000) + int(((last_num - first_num) * .5) * 1000)
+                                else:
+                                    int_issnum = (first_num * 1000) + (.5 * 1000)
                             elif issnum == '9-5':
                                 issnum = '9\xbd'
                                 logger.fdebug('issue: 9-5 is an invalid entry. Correcting to : ' + issnum)
