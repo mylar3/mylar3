@@ -164,7 +164,7 @@ def dbUpdate(ComicIDList=None, calledfrom=None, sched=False):
                 if mylar.CONFIG.ANNUALS_ON:
                     #now we load the annuals into memory to pass through to importer when refreshing so that it can
                     #refresh even the manually added annuals.
-                    annual_load = myDB.select('SELECT * FROM annuals WHERE ComicID=?', [ComicID])
+                    annual_load = myDB.select('SELECT * FROM annuals WHERE ComicID=? AND NOT Deleted', [ComicID])
                     logger.fdebug('checking annual db')
                     for annthis in annual_load:
                         if not any(d['ReleaseComicID'] == annthis['ReleaseComicID'] for d in annload):
@@ -173,7 +173,8 @@ def dbUpdate(ComicIDList=None, calledfrom=None, sched=False):
                                   'ReleaseComicID':   annthis['ReleaseComicID'],
                                   'ReleaseComicName': annthis['ReleaseComicName'],
                                   'ComicID':          annthis['ComicID'],
-                                  'ComicName':        annthis['ComicName']
+                                  'ComicName':        annthis['ComicName'],
+                                  'Deleted':          bool(annthis['Deleted'])
                                   })
                             #print 'added annual'
                     issues += annual_load #myDB.select('SELECT * FROM annuals WHERE ComicID=?', [ComicID])
@@ -983,7 +984,7 @@ def forceRescan(ComicID, archive=None, module=None, recheck=False):
     else:
         booktype = None
 
-    annscan = myDB.select('SELECT * FROM annuals WHERE ComicID=?', [ComicID])
+    annscan = myDB.select('SELECT * FROM annuals WHERE ComicID=? AND NOT Deleted', [ComicID])
     if annscan is None:
         pass
     else:
@@ -1059,7 +1060,7 @@ def forceRescan(ComicID, archive=None, module=None, recheck=False):
 
     havefiles = 0
     if mylar.CONFIG.ANNUALS_ON:
-        an_cnt = myDB.select("SELECT COUNT(*) FROM annuals WHERE ComicID=?", [ComicID])
+        an_cnt = myDB.select("SELECT COUNT(*) FROM annuals WHERE ComicID=? AND NOT Deleted", [ComicID])
         anncnt = an_cnt[0][0]
     else:
         anncnt = 0
@@ -1094,7 +1095,7 @@ def forceRescan(ComicID, archive=None, module=None, recheck=False):
     mc_annualnumber = []
 
     if mylar.CONFIG.ANNUALS_ON:
-        mult_ann_check = myDB.select('SELECT * FROM annuals WHERE ComicID=? GROUP BY Int_IssueNumber HAVING (COUNT(Int_IssueNumber) > 1)', [ComicID])
+        mult_ann_check = myDB.select('SELECT * FROM annuals WHERE ComicID=? AND NOT Deleted GROUP BY Int_IssueNumber HAVING (COUNT(Int_IssueNumber) > 1)', [ComicID])
 
         if len(mult_ann_check) == 0:
             logger.fdebug('[ANNUAL-CHK] No annuals with identical issue numbering across annual volumes were detected for this series')
@@ -1106,7 +1107,7 @@ def forceRescan(ComicID, archive=None, module=None, recheck=False):
 
         if not mc_annualnumber is None:
             for mcann in mc_annualnumber:
-                achk = myDB.select('SELECT * FROM annuals WHERE ComicID=? AND Int_IssueNumber=?', [ComicID, mcann['Int_IssueNumber']])
+                achk = myDB.select('SELECT * FROM annuals WHERE ComicID=? AND Int_IssueNumber=? AND NOT Deleted', [ComicID, mcann['Int_IssueNumber']])
                 for ack in achk:
                     mc_annual.append({"Int_IssueNumber":   ack['Int_IssueNumber'],
                                       "IssueYear":         ack['IssueDate'][:4],
@@ -1303,9 +1304,9 @@ def forceRescan(ComicID, archive=None, module=None, recheck=False):
             if tmpfc['AnnualComicID']:
                 ANNComicID = tmpfc['AnnualComicID']
                 logger.fdebug(module + ' Forcing ComicID to ' + str(ANNComicID) + ' in case of duplicate numbering across volumes.')
-                reannuals = myDB.select('SELECT * FROM annuals WHERE ComicID=? AND ReleaseComicID=?', [ComicID, ANNComicID])
+                reannuals = myDB.select('SELECT * FROM annuals WHERE ComicID=? AND ReleaseComicID=? AND NOT Deleted', [ComicID, ANNComicID])
             else:
-                reannuals = myDB.select('SELECT * FROM annuals WHERE ComicID=?', [ComicID])
+                reannuals = myDB.select('SELECT * FROM annuals WHERE ComicID=? AND NOT Deleted', [ComicID])
                 ANNComicID = ComicID
 
             if len(reannuals) == 0:
@@ -1567,7 +1568,7 @@ def forceRescan(ComicID, archive=None, module=None, recheck=False):
     arcissues = myDB.select("SELECT count(*) FROM issues WHERE ComicID=? and Status='Archived'", [ComicID])
     if int(arcissues[0][0]) > 0:
         arcfiles = arcissues[0][0]
-    arcannuals = myDB.select("SELECT count(*) FROM annuals WHERE ComicID=? and Status='Archived'", [ComicID])
+    arcannuals = myDB.select("SELECT count(*) FROM annuals WHERE ComicID=? and Status='Archived' AND NOT Deleted", [ComicID])
     if int(arcannuals[0][0]) > 0:
         arcanns = arcannuals[0][0]
 
@@ -1592,7 +1593,7 @@ def forceRescan(ComicID, archive=None, module=None, recheck=False):
     ignorecount = 0
     if mylar.CONFIG.IGNORE_HAVETOTAL:   # if this is enabled, will increase Have total as if in Archived Status
         ignoresi = myDB.select("SELECT count(*) FROM issues WHERE ComicID=? AND Status='Ignored'", [ComicID])
-        ignoresa = myDB.select("SELECT count(*) FROM annuals WHERE ComicID=? AND Status='Ignored'", [ComicID])
+        ignoresa = myDB.select("SELECT count(*) FROM annuals WHERE ComicID=? AND Status='Ignored' AND NOT Deleted", [ComicID])
         ignorecount = int(ignoresi[0][0]) + int(ignoresa[0][0])
         if ignorecount > 0:
             havefiles = havefiles + ignorecount
@@ -1617,7 +1618,7 @@ def forceRescan(ComicID, archive=None, module=None, recheck=False):
     #do it here, because above loop only cycles though found comics using filechecker.
     downissues = "SELECT *, 0 as type FROM issues WHERE Status='Downloaded' and ComicID=? AND IssueID not in ({seq})".format(seq=','.join(['?'] *(len(issID_to_ignore) -1)))
     downchk = myDB.select(downissues, issID_to_ignore)
-    downannuals = "SELECT *, 1 as type FROM annuals WHERE Status='Downloaded' and ComicID=? AND IssueID not in ({seq})".format(seq=','.join(['?'] *(len(issID_to_ignore) -1)))
+    downannuals = "SELECT *, 1 as type FROM annuals WHERE Status='Downloaded' and ComicID=? AND NOT Deleted AND IssueID not in ({seq})".format(seq=','.join(['?'] *(len(issID_to_ignore) -1)))
     downchk += myDB.select(downannuals, issID_to_ignore)
     if downchk is None:
         pass
@@ -1664,7 +1665,7 @@ def forceRescan(ComicID, archive=None, module=None, recheck=False):
     if mylar.CONFIG.IGNORE_TOTAL:
         # if this is enabled, will increase Have total as if in Archived Status
         ignoresa = myDB.select("SELECT count(*) FROM issues WHERE ComicID=? AND Status='Ignored'", [ComicID])
-        ignoresb = myDB.select("SELECT count(*) FROM annuals WHERE ComicID=? AND Status='Ignored'", [ComicID])
+        ignoresb = myDB.select("SELECT count(*) FROM annuals WHERE ComicID=? AND Status='Ignored' AND NOT Deleted", [ComicID])
         ignorecnt = ignoresa[0][0] + ignoresb[0][0]
 
         if ignorecnt > 0:
@@ -1698,7 +1699,7 @@ def totals(ComicID, havefiles=None, totalfiles=None, module=None, issueid=None, 
         else:
             hf = myDB.selectone("SELECT a.Have, a.Total, b.Status as IssStatus FROM comics AS a INNER JOIN issues as b ON a.ComicID=b.ComicID WHERE b.IssueID=?", [issueid]).fetchone()
             if hf is None:
-                hf = myDB.selectone("SELECT a.Have, a.Total, b.Status as IssStatus FROM comics AS a INNER JOIN annuals as b ON a.ComicID=b.ComicID WHERE b.IssueID=?", [issueid]).fetchone()
+                hf = myDB.selectone("SELECT a.Have, a.Total, b.Status as IssStatus FROM comics AS a INNER JOIN annuals as b ON a.ComicID=b.ComicID WHERE b.IssueID=? AND NOT b.Deleted", [issueid]).fetchone()
                 filetable = 'annuals'
             totalfiles = int(hf['Total'])
             logger.fdebug('totalfiles: %s' % totalfiles)
@@ -1849,7 +1850,7 @@ def watchlist_updater(calledfrom=None, sched=False):
     library = {}
 
     if mylar.CONFIG.ANNUALS_ON is True:
-        list = myDB.select("SELECT a.comicid, b.releasecomicid, a.status, a.LastUpdated, a.Total FROM Comics AS a LEFT JOIN annuals AS b on a.comicid=b.comicid group by a.comicid")
+        list = myDB.select("SELECT a.comicid, b.releasecomicid, a.status, a.LastUpdated, a.Total FROM Comics AS a LEFT JOIN annuals AS b on a.comicid=b.comicid WHERE NOT b.Deleted group by a.comicid")
     else:
         list = myDB.select("SELECT comicid, status, LastUpdated, Total FROM Comics group by comicid")
 

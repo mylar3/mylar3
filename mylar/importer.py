@@ -572,7 +572,7 @@ def addComictoDB(comicid, mismatch=None, pullupd=None, imported=None, ogcname=No
             chkstats = myDB.selectone("SELECT * FROM issues WHERE ComicID=? AND Int_IssueNumber=?", [comicid, helpers.issuedigits(latestiss)]).fetchone()
             if chkstats is None:
                 if mylar.CONFIG.ANNUALS_ON:
-                    chkstats = myDB.selectone("SELECT * FROM annuals WHERE ComicID=? AND Int_IssueNumber=?", [comicid, helpers.issuedigits(latestiss)]).fetchone()
+                    chkstats = myDB.selectone("SELECT * FROM annuals WHERE ComicID=? AND Int_IssueNumber=? AND NOT Deleted", [comicid, helpers.issuedigits(latestiss)]).fetchone()
 
             if chkstats:
                 logger.fdebug('latestissue status: ' + chkstats['Status'])
@@ -595,7 +595,7 @@ def addComictoDB(comicid, mismatch=None, pullupd=None, imported=None, ogcname=No
                                             'Status':        issr['Status']
                                            })
                     if mylar.CONFIG.ANNUALS_ON:
-                        an_results = myDB.select("SELECT * FROM annuals WHERE ComicID=? AND Status='Wanted'", [comicid])
+                        an_results = myDB.select("SELECT * FROM annuals WHERE ComicID=? AND Status='Wanted' AND NOT Deleted", [comicid])
                         if an_results:
                             for ar in an_results:
                                 results.append({'IssueID':       ar['IssueID'],
@@ -1106,7 +1106,7 @@ def issue_collection(issuedata, nostatus, serieslast_updated=None):
                 return
 
 
-def manualAnnual(manual_comicid=None, comicname=None, comicyear=None, comicid=None, annchk=None, manualupd=False):
+def manualAnnual(manual_comicid=None, comicname=None, comicyear=None, comicid=None, annchk=None, manualupd=False, deleted=False):
         #called when importing/refreshing an annual that was manually added.
         myDB = db.DBConnection()
 
@@ -1170,7 +1170,8 @@ def manualAnnual(manual_comicid=None, comicname=None, comicyear=None, comicid=No
                                    'ReleaseDate':      str(firstval['Store_Date']),
                                    'DigitalDate':      str(firstval['Digital_Date']),
                                    'Status':           astatus,
-                                   'ReleaseComicName': sr['ComicName']})
+                                   'ReleaseComicName': sr['ComicName'],
+                                   'Deleted':          deleted})
                     n+=1
 
             if manualupd is True:
@@ -1188,7 +1189,8 @@ def manualAnnual(manual_comicid=None, comicname=None, comicyear=None, comicid=No
                        "ReleaseComicID":   ann['ReleaseComicID'],  #this is the series ID for the annual(s)
                        "ComicName":        ann['ComicName'], #series ComicName
                        "ReleaseComicName": ann['ReleaseComicName'], #series ComicName for the manual_comicid
-                       "Status":           ann['Status']}
+                       "Status":           ann['Status'],
+                       "Deleted":          ann['Deleted']}
                        #need to add in the values for the new series to be added.
                        #"M_ComicName":    sr['ComicName'],
                        #"M_ComicID":      manual_comicid}
@@ -1627,7 +1629,8 @@ def annual_check(ComicName, SeriesYear, comicid, issuetype, issuechk, annualslis
                      'ReleaseComicID':   annthis['ReleaseComicID'],
                      'ReleaseComicName': annthis['ReleaseComicName'],
                      'ComicID':          annthis['ComicID'],
-                     'ComicName':        annthis['ComicName']
+                     'ComicName':        annthis['ComicName'],
+                     'Deleted':          bool(annthis['Deleted'])
                      })
 
         if annload is None:
@@ -1636,7 +1639,7 @@ def annual_check(ComicName, SeriesYear, comicid, issuetype, issuechk, annualslis
             for manchk in annload:
                 if manchk['ReleaseComicID'] is not None or manchk['ReleaseComicID'] is not None:  #if it exists, then it's a pre-existing add
                     #print str(manchk['ReleaseComicID']), comic['ComicName'], str(SeriesYear), str(comicid)
-                    annualslist += manualAnnual(manchk['ReleaseComicID'], ComicName, SeriesYear, comicid, manualupd=True)
+                    annualslist += manualAnnual(manchk['ReleaseComicID'], ComicName, SeriesYear, comicid, manualupd=True, deleted=manchk['Deleted'])
                 annualids.append(manchk['ReleaseComicID'])
 
         annualcomicname = re.sub('[\,\:]', '', ComicName)
@@ -1653,7 +1656,7 @@ def annual_check(ComicName, SeriesYear, comicid, issuetype, issuechk, annualslis
         if not sresults:
             return
 
-        annual_types_ignore = {'paperback', 'collecting', 'reprints', 'collected edition', 'print edition', 'tpb', 'available in print', 'collects'}
+        annual_types_ignore = {'paperback', 'collecting', 'reprinting', 'reprints', 'collected edition', 'print edition', 'tpb', 'available in print', 'collects'}
 
         if len(sresults) > 0:
             logger.fdebug('[IMPORTER-ANNUAL] - there are ' + str(len(sresults)) + ' results.')
@@ -1739,6 +1742,7 @@ def annual_check(ComicName, SeriesYear, comicid, issuetype, issuechk, annualslis
                                                 "ComicName":        ComicName,
                                                 "ReleaseComicID":   re.sub('4050-', '', firstval['Comic_ID']).strip(),
                                                 "ReleaseComicName": sr['name'],
+                                                "Deleted":          False,
                                                 "Status":           astatus})
 
                             #myDB.upsert("annuals", newVals, newCtrl)

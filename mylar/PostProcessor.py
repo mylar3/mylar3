@@ -512,7 +512,7 @@ class PostProcessor(object):
                             logger.info('issueid detected in filename: %s' % fl['issueid'])
                             csi = myDB.selectone('SELECT i.ComicID, i.IssueID, i.Issue_Number, c.ComicName FROM comics as c JOIN issues as i ON c.ComicID = i.ComicID WHERE i.IssueID=?', [fl['issueid']]).fetchone()
                             if csi is None:
-                                csi = myDB.selectone('SELECT i.ComicID as comicid, i.IssueID, i.Issue_Number, a.ReleaseComicName, c.ComicName FROM comics as c JOIN annuals as a ON c.ComicID = a.ComicID WHERE a.IssueID=?', [fl['issueid']]).fetchone()
+                                csi = myDB.selectone('SELECT i.ComicID as comicid, i.IssueID, i.Issue_Number, a.ReleaseComicName, c.ComicName FROM comics as c JOIN annuals as a ON c.ComicID = a.ComicID WHERE a.IssueID=? AND NOT a.Deleted', [fl['issueid']]).fetchone()
                                 if csi is not None:
                                     annchk = 'yes'
                                 else:
@@ -688,7 +688,7 @@ class PostProcessor(object):
                                         fcdigit = helpers.issuedigits(re.sub('special', '', str(temploc.lower())).strip())
                                     logger.fdebug('%s Annual/Special detected [%s]. ComicID assigned as %s' % (module, fcdigit, cs['ComicID']))
                                 annchk = "yes"
-                                issuechk = myDB.select("SELECT * from annuals WHERE ComicID=? AND Int_IssueNumber=?", [cs['ComicID'], fcdigit])
+                                issuechk = myDB.select("SELECT * from annuals WHERE ComicID=? AND Int_IssueNumber=? AND NOT Deleted", [cs['ComicID'], fcdigit])
                             else:
                                 annchk = "no"
                                 if temploc is not None:
@@ -724,7 +724,7 @@ class PostProcessor(object):
                                     continue
 
                                 if annchk == 'yes':
-                                    issuechk = myDB.select("SELECT * from annuals WHERE ComicID=? AND Int_IssueNumber=?", [cs['ComicID'], fcdigit])
+                                    issuechk = myDB.select("SELECT * from annuals WHERE ComicID=? AND Int_IssueNumber=? AND NOT Deleted", [cs['ComicID'], fcdigit])
                                 else:
                                     issuechk = myDB.select("SELECT * from issues WHERE ComicID=? AND Int_IssueNumber=?", [cs['ComicID'], fcdigit])
                                 if not issuechk:
@@ -1606,7 +1606,7 @@ class PostProcessor(object):
                     self.oneoff = nzbiss['OneOff']
                     tmpiss = myDB.selectone('SELECT * FROM issues WHERE IssueID=?', [issueid]).fetchone()
                     if tmpiss is None:
-                        tmpiss = myDB.selectone('SELECT * FROM annuals WHERE IssueID=?', [issueid]).fetchone()
+                        tmpiss = myDB.selectone('SELECT * FROM annuals WHERE IssueID=? AND NOT Deleted', [issueid]).fetchone()
                     comicid = None
                     comicname = None
                     issuenumber = None
@@ -1796,7 +1796,7 @@ class PostProcessor(object):
             issuenzb = myDB.selectone("SELECT * from issues WHERE IssueID=? AND ComicName NOT NULL", [issueid]).fetchone()
             if issuenzb is None:
                 logger.info('%s Could not detect as a standard issue - checking against annuals.' % module)
-                issuenzb = myDB.selectone("SELECT * from annuals WHERE IssueID=? AND ComicName NOT NULL", [issueid]).fetchone()
+                issuenzb = myDB.selectone("SELECT * from annuals WHERE IssueID=? AND ComicName NOT NULL AND NOT Deleted", [issueid]).fetchone()
                 if issuenzb is None:
                     logger.info('%s issuenzb not found.' % module)
                     #if it's non-numeric, it contains a 'G' at the beginning indicating it's a multi-volume
@@ -1809,7 +1809,7 @@ class PostProcessor(object):
                                 issuearcid = onechk['IssueArcID']
                                 issuenzb = myDB.selectone('SELECT * FROM issues WHERE IssueID=? AND ComicName NOT NULL', [onechk['IssueID']]).fetchone()
                                 if issuenzb is None:
-                                    issuenzb = myDB.selectone("SELECT * from annuals WHERE IssueID=? AND ComicName NOT NULL", [onechk['IssueID']]).fetchone()
+                                    issuenzb = myDB.selectone("SELECT * from annuals WHERE IssueID=? AND ComicName NOT NULL AND NOT Deleted", [onechk['IssueID']]).fetchone()
                             if issuenzb is not None:
                                 issueid = issuenzb['IssueID']
                                 logger.fdebug('Reverse lookup discovered watchlisted series [issueid: %s] - adjusting so we can PP both properly.' % issueid)
@@ -2191,7 +2191,7 @@ class PostProcessor(object):
                 else:
                     logger.fdebug('%s Was downloaded from %s. Enabling torrent manual post-processing completion notification.' % (module, snatchnzb['Provider']))
             if issuenzb is None:
-                issuenzb = myDB.selectone("SELECT * from annuals WHERE issueid=? and comicid=?", [issueid, comicid]).fetchone()
+                issuenzb = myDB.selectone("SELECT * from annuals WHERE issueid=? and comicid=? AND NOT Deleted", [issueid, comicid]).fetchone()
                 annchk = "yes"
             if annchk == "no":
                 logger.info('%s %s Starting Post-Processing for %s issue: %s' % (module, stat, issuenzb['ComicName'], issuenzb['Issue_Number']))
