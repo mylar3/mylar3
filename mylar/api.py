@@ -628,7 +628,17 @@ class Api(object):
         else:
             self.id = kwargs['id']
 
-        self.data = cache.getInfo(ComicID=self.id)
+        query = '{select} WHERE ComicID = {comic_id}'.format(
+            select=self._selectForComics(),
+            comic_id=self.id
+        )
+        results = self._resultsFromQuery(query)
+        if len(results) == 1:
+            self.data = self._successResponse(
+                results
+            )
+        else:
+            self.data = self._failureResponse('No comic found with that ID')
 
     def _getIssueInfo(self, **kwargs):
         if 'id' not in kwargs:
@@ -637,7 +647,17 @@ class Api(object):
         else:
             self.id = kwargs['id']
 
-        self.data = cache.getInfo(IssueID=self.id)
+        query = '{select} WHERE IssueID = {issue_id}'.format(
+            select=self._selectForIssues(),
+            issue_id=self.id
+        )
+        results = self._resultsFromQuery(query)
+        if len(results) == 1:
+            self.data = self._successResponse(
+                results
+            )
+        else:
+            self.data = self._failureResponse('No issue found with that ID')
 
     def _getArt(self, **kwargs):
         if 'id' not in kwargs:
