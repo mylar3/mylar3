@@ -2754,11 +2754,11 @@ def searchforissue(issueid=None, new=False, rsscheck=None, manual=False):
                     ):
                         issues_3 = myDB.select(
                             'SELECT * from annuals WHERE Status="Wanted" OR'
-                            ' Status="Failed"'
+                            ' Status="Failed AND NOT Deleted"'
                         )
                     else:
                         issues_3 = myDB.select(
-                            'SELECT * from annuals WHERE Status="Wanted"'
+                            'SELECT * from annuals WHERE Status="Wanted AND NOT Deleted"'
                         )
                     for iss in issues_3:
                         results.append(
@@ -3027,7 +3027,7 @@ def searchforissue(issueid=None, new=False, rsscheck=None, manual=False):
                 oneoff = False
                 if result is None:
                     result = myDB.selectone(
-                        'SELECT * FROM annuals where IssueID=?', [issueid]
+                        'SELECT * FROM annuals where IssueID=? AND NOT Deleted', [issueid]
                     ).fetchone()
                     mode = 'want_ann'
                     if result is None:
@@ -3257,7 +3257,7 @@ def searchIssueIDList(issuelist):
             ).fetchone()
             if issue is None:
                 issue = myDB.selectone(
-                    'SELECT * from annuals WHERE IssueID=?', [issueid]
+                    'SELECT * from annuals WHERE IssueID=? AND NOT Deleted', [issueid]
                 ).fetchone()
                 if issue is None:
                     logger.warn(

@@ -350,7 +350,7 @@ class WebInterface(object):
                }
 
         if mylar.CONFIG.ANNUALS_ON:
-            annuals = myDB.select("SELECT * FROM annuals WHERE ComicID=? ORDER BY ComicID, Int_IssueNumber DESC", [ComicID])
+            annuals = myDB.select("SELECT * FROM annuals WHERE ComicID=? AND NOT Deleted ORDER BY ComicID, Int_IssueNumber DESC", [ComicID])
             #we need to load in the annual['ReleaseComicName'] and annual['ReleaseComicID']
             #then group by ReleaseComicID, in an attempt to create seperate tables for each different annual series.
             #this should allow for annuals, specials, one-shots, etc all to be included if desired.
@@ -1205,7 +1205,7 @@ class WebInterface(object):
                 annchk = 'no'
                 if mi is None:
                     if mylar.CONFIG.ANNUALS_ON:
-                        mi = myDB.selectone("SELECT * FROM annuals WHERE IssueID=?", [IssueID]).fetchone()
+                        mi = myDB.selectone("SELECT * FROM annuals WHERE IssueID=? AND NOT Deleted", [IssueID]).fetchone()
                         comicname = mi['ReleaseComicName']
                         annchk = 'yes'
                 else:
@@ -1405,7 +1405,7 @@ class WebInterface(object):
                 break
             else:
                 oneoff = False
-                chkthis = myDB.selectone('SELECT a.ComicID, a.ComicName, a.ComicVersion, a.ComicYear, b.IssueID, b.Issue_Number, b.IssueDate FROM comics as a INNER JOIN annuals as b ON a.ComicID = b.ComicID WHERE IssueID=?', [IssueID]).fetchone()
+                chkthis = myDB.selectone('SELECT a.ComicID, a.ComicName, a.ComicVersion, a.ComicYear, b.IssueID, b.Issue_Number, b.IssueDate FROM comics as a INNER JOIN annuals as b ON a.ComicID = b.ComicID WHERE IssueID=? AND NOT b.Deleted', [IssueID]).fetchone()
                 if chkthis is None:
                     chkthis = myDB.selectone('SELECT a.ComicID, a.ComicName, a.ComicVersion, a.ComicYear, b.IssueID, b.Issue_Number, b.IssueDate FROM comics as a INNER JOIN issues as b ON a.ComicID = b.ComicID WHERE IssueID=?', [IssueID]).fetchone()
                     if chkthis is None:
@@ -1598,7 +1598,7 @@ class WebInterface(object):
                     logger.info('Marking %s issue: %s as wanted...' % (ComicName, ComicIssue))
                     myDB.upsert("issues", newStatus, controlValueDict)
             else:
-                annual_name = myDB.selectone("SELECT * FROM annuals WHERE ComicID=? and IssueID=?", [ComicID, IssueID]).fetchone()
+                annual_name = myDB.selectone("SELECT * FROM annuals WHERE ComicID=? and IssueID=? AND NOT Deleted", [ComicID, IssueID]).fetchone()
                 if annual_name is None:
                     logger.fdebug('Unable to locate.')
                 else:
@@ -1621,7 +1621,7 @@ class WebInterface(object):
             if mode == 'want':
                 issues = myDB.selectone("SELECT IssueDate, ReleaseDate FROM issues WHERE IssueID=?", [IssueID]).fetchone()
             elif mode == 'want_ann':
-                issues = myDB.selectone("SELECT IssueDate, ReleaseDate FROM annuals WHERE IssueID=?", [IssueID]).fetchone()
+                issues = myDB.selectone("SELECT IssueDate, ReleaseDate FROM annuals WHERE IssueID=? AND NOT Deleted", [IssueID]).fetchone()
             if ComicYear == None:
                 ComicYear = str(issues['IssueDate'])[:4]
             if issues['ReleaseDate'] is None or issues['ReleaseDate'] == '0000-00-00':
@@ -1661,9 +1661,9 @@ class WebInterface(object):
             if issue is None:
                 if mylar.CONFIG.ANNUALS_ON:
                     if ReleaseComicID is None:
-                        issann = myDB.selectone('SELECT * FROM annuals WHERE IssueID=?', [IssueID]).fetchone()
+                        issann = myDB.selectone('SELECT * FROM annuals WHERE IssueID=? AND NOT Deleted', [IssueID]).fetchone()
                     else:
-                        issann = myDB.selectone('SELECT * FROM annuals WHERE IssueID=? AND ReleaseComicID=?', [IssueID, ReleaseComicID]).fetchone()
+                        issann = myDB.selectone('SELECT * FROM annuals WHERE IssueID=? AND ReleaseComicID=? AND NOT Deleted', [IssueID, ReleaseComicID]).fetchone()
                     ComicName = issann['ReleaseComicName']
                     IssueNumber = issann['Issue_Number']
                     annchk = 'yes'
@@ -1743,7 +1743,7 @@ class WebInterface(object):
         annchk = 'no'
         if issue is None:
             if mylar.CONFIG.ANNUALS_ON:
-                issann = myDB.selectone('SELECT * FROM annuals WHERE IssueID=?', [IssueID]).fetchone()
+                issann = myDB.selectone('SELECT * FROM annuals WHERE IssueID=? AND NOT Deleted', [IssueID]).fetchone()
                 comicname = issann['ReleaseComicName']
                 issue = issann['Issue_Number']
                 annchk = 'yes'
@@ -2269,11 +2269,11 @@ class WebInterface(object):
         if mylar.CONFIG.ANNUALS_ON:
             #let's add the annuals to the wanted table so people can see them
             #ComicName wasn't present in db initially - added on startup chk now.
-            annuals_list = myDB.select("SELECT * FROM annuals WHERE Status='Wanted'")
+            annuals_list = myDB.select("SELECT * FROM annuals WHERE Status='Wanted' AND NOT Deleted")
             if mylar.CONFIG.UPCOMING_SNATCHED:
-                annuals_list += myDB.select("SELECT * FROM annuals WHERE Status='Snatched'")
+                annuals_list += myDB.select("SELECT * FROM annuals WHERE Status='Snatched' AND NOT Deleted")
             if mylar.CONFIG.FAILED_DOWNLOAD_HANDLING:
-                annuals_list += myDB.select("SELECT * FROM annuals WHERE Status='Failed'")
+                annuals_list += myDB.select("SELECT * FROM annuals WHERE Status='Failed' AND NOT Deleted")
 #           anncnt = myDB.select("SELECT COUNT(*) FROM annuals WHERE Status='Wanted' OR Status='Snatched'")
 #           ann_cnt = anncnt[0][0]
             ann_list += annuals_list
@@ -2361,10 +2361,10 @@ class WebInterface(object):
     def annualDelete(self, comicid, ReleaseComicID=None):
         myDB = db.DBConnection()
         if ReleaseComicID is None:
-            myDB.action("DELETE FROM annuals WHERE ComicID=?", [comicid])
+            myDB.action("UPDATE annuals set Deleted=1 WHERE ComicID=?", [comicid])
             logger.fdebug("Deleted all annuals from DB for ComicID of " + str(comicid))
         else:
-            myDB.action("DELETE FROM annuals WHERE ReleaseComicID=?", [ReleaseComicID])
+            myDB.action("UPDATE annuals set Deleted=1 WHERE ReleaseComicID=?", [ReleaseComicID])
             logger.fdebug("Deleted selected annual from DB with a ComicID of " + str(ReleaseComicID))
         raise cherrypy.HTTPRedirect("comicDetails?ComicID=%s" % [comicid])
 
@@ -2672,7 +2672,7 @@ class WebInterface(object):
             extensions = ('.cbr', '.cbz', '.cb7')
             issues = myDB.select("SELECT * FROM issues WHERE ComicID=?", [cid])
             if mylar.CONFIG.ANNUALS_ON:
-                issues += myDB.select("SELECT * FROM annuals WHERE ComicID=?", [cid])
+                issues += myDB.select("SELECT * FROM annuals WHERE ComicID=? AND NOT Deleted", [cid])
             try:
                 if mylar.CONFIG.MULTIPLE_DEST_DIRS is not None and mylar.CONFIG.MULTIPLE_DEST_DIRS != 'None' and os.path.join(mylar.CONFIG.MULTIPLE_DEST_DIRS, os.path.basename(comicdir)) != comicdir:
                     logger.fdebug('multiple_dest_dirs:' + mylar.CONFIG.MULTIPLE_DEST_DIRS)
@@ -2850,7 +2850,7 @@ class WebInterface(object):
         myDB = db.DBConnection()
         if mylar.CONFIG.ANNUALS_ON:
             issues = myDB.select("SELECT * from issues WHERE Status=? AND ComicName NOT LIKE '%Annual%'", [status])
-            annuals = myDB.select("SELECT * from annuals WHERE Status=?", [status])
+            annuals = myDB.select("SELECT * from annuals WHERE Status=? AND NOT Deleted", [status])
         else:
             issues = myDB.select("SELECT * from issues WHERE Status=?", [status])
             annuals = []
@@ -6020,7 +6020,7 @@ class WebInterface(object):
             myDB = db.DBConnection()
             meta_data = myDB.selectone('SELECT * FROM issues where IssueID=?', [issueid]).fetchone()
             if meta_data is None:
-                meta_data = myDB.selectone('SELECT * FROM annuals where IssueID=?', [issueid]).fetchone()
+                meta_data = myDB.selectone('SELECT * FROM annuals where IssueID=? AND NOT Deleted', [issueid]).fetchone()
             seriestitle = meta_data['ComicName']
             issuenumber = meta_data['Issue_Number']
             try:
@@ -6039,7 +6039,7 @@ class WebInterface(object):
             myDB = db.DBConnection()
             metadata_db = myDB.selectone('SELECT * FROM issues where IssueID=?', [issueid]).fetchone()
             if metadata_db is None:
-                metadata_db = myDB.selectone('SELECT * FROM annuals where IssueID=?', [issueid]).fetchone()
+                metadata_db = myDB.selectone('SELECT * FROM annuals where IssueID=? AND NOT Deleted', [issueid]).fetchone()
             seriestitle = meta_data['series']
             if any([seriestitle == 'None', seriestitle is None]):
                 seriestitle = metadata_db['ComicName']
