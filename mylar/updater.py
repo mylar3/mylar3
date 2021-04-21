@@ -1850,7 +1850,7 @@ def watchlist_updater(calledfrom=None, sched=False):
     library = {}
 
     if mylar.CONFIG.ANNUALS_ON is True:
-        list = myDB.select("SELECT a.comicid, b.releasecomicid, a.status, a.LastUpdated, a.Total FROM Comics AS a LEFT JOIN annuals AS b on a.comicid=b.comicid WHERE NOT b.Deleted group by a.comicid")
+        list = myDB.select("SELECT a.comicid, b.releasecomicid, a.status, a.LastUpdated, a.Total FROM Comics AS a LEFT JOIN annuals AS b on a.comicid=b.comicid group by a.comicid")
     else:
         list = myDB.select("SELECT comicid, status, LastUpdated, Total FROM Comics group by comicid")
 

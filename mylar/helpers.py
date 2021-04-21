@@ -1373,12 +1373,12 @@ def havetotals(refreshit=None):
 
         if refreshit is None:
             if mylar.CONFIG.ANNUALS_ON:
-                comiclist = myDB.select('SELECT comics.*, COUNT(totalAnnuals.IssueID) AS TotalAnnuals FROM comics LEFT JOIN annuals as totalAnnuals on totalAnnuals.ComicID = comics.ComicID WHERE NOT totalAnnuals.Deleted GROUP BY comics.ComicID order by comics.ComicSortName COLLATE NOCASE')
+                comiclist = myDB.select('SELECT comics.*, COUNT(totalAnnuals.IssueID) AS TotalAnnuals FROM comics LEFT JOIN annuals as totalAnnuals on totalAnnuals.ComicID = comics.ComicID GROUP BY comics.ComicID order by comics.ComicSortName COLLATE NOCASE')
             else:
                 comiclist = myDB.select('SELECT * FROM comics GROUP BY ComicID order by ComicSortName COLLATE NOCASE')
         else:
             comiclist = []
-            comicref = myDB.selectone('SELECT comics.ComicID AS ComicID, comics.Have AS Have, comics.Total as Total, COUNT(totalAnnuals.IssueID) AS TotalAnnuals FROM comics LEFT JOIN annuals as totalAnnuals on totalAnnuals.ComicID = comics.ComicID WHERE comics.ComicID=? AND NOT totalAnnuals.Deleted GROUP BY comics.ComicID', [refreshit]).fetchone()
+            comicref = myDB.selectone('SELECT comics.ComicID AS ComicID, comics.Have AS Have, comics.Total as Total, COUNT(totalAnnuals.IssueID) AS TotalAnnuals FROM comics LEFT JOIN annuals as totalAnnuals on totalAnnuals.ComicID = comics.ComicID WHERE comics.ComicID=? GROUP BY comics.ComicID', [refreshit]).fetchone()
             #refreshit is the ComicID passed from the Refresh Series to force/check numerical have totals
             comiclist.append({"ComicID":      comicref['ComicID'],
                               "Have":         comicref['Have'],
@@ -1869,12 +1869,12 @@ def listLibrary(comicid=None):
     myDB = db.DBConnection()
     if comicid is None:
         if mylar.CONFIG.ANNUALS_ON is True:
-            list = myDB.select("SELECT a.comicid, b.releasecomicid, a.status FROM Comics AS a LEFT JOIN annuals AS b on a.comicid=b.comicid WHERE NOT b.Deleted group by a.comicid")
+            list = myDB.select("SELECT a.comicid, b.releasecomicid, a.status FROM Comics AS a LEFT JOIN annuals AS b on a.comicid=b.comicid group by a.comicid")
         else:
             list = myDB.select("SELECT comicid, status FROM Comics group by comicid")
     else:
         if mylar.CONFIG.ANNUALS_ON is True:
-            list = myDB.select("SELECT a.comicid, b.releasecomicid, a.status FROM Comics AS a LEFT JOIN annuals AS b on a.comicid=b.comicid WHERE a.comicid=? AND NOT b.Deleted group by a.comicid", [re.sub('4050-', '', comicid).strip()])
+            list = myDB.select("SELECT a.comicid, b.releasecomicid, a.status FROM Comics AS a LEFT JOIN annuals AS b on a.comicid=b.comicid WHERE a.comicid=? group by a.comicid", [re.sub('4050-', '', comicid).strip()])
         else:
             list = myDB.select("SELECT comicid, status FROM Comics WHERE comicid=? group by comicid", [re.sub('4050-', '', comicid).strip()])
 
@@ -2077,7 +2077,7 @@ def listIssues(weeknumber, year):
 
     # Add the annuals
     if mylar.CONFIG.ANNUALS_ON:
-        list = myDB.select("SELECT annuals.Status, annuals.ComicID, annuals.ReleaseComicID, annuals.IssueID, annuals.ComicName, annuals.ReleaseDate, annuals.IssueDate, weekly.publisher, annuals.Issue_Number from weekly, annuals where weekly.IssueID = annuals.IssueID and not annuals.Deleted and weeknumber = ? and year = ?", [int(weeknumber), year])
+        list = myDB.select("SELECT annuals.Status, annuals.ComicID, annuals.ReleaseComicID, annuals.IssueID, annuals.ComicName, annuals.ReleaseDate, annuals.IssueDate, weekly.publisher, annuals.Issue_Number from weekly, annuals where weekly.IssueID = annuals.IssueID and weeknumber = ? and year = ?", [int(weeknumber), year])
         for row in list:
             if row['ReleaseDate'] is None:
                 tmpdate = row['IssueDate']
