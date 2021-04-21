@@ -1146,11 +1146,6 @@ div#artistheader h2 a {
   text-align: left;
   vertical-align: middle;
 }
-#pull_table th#publishdate {
-  min-width: 50px;
-  text-align: left;
-  vertical-align: middle;
-}
 #pull_table th#publisher {
   min-width: 100px;
   text-align: left;
@@ -1176,11 +1171,6 @@ div#artistheader h2 a {
   text-align: left;
   vertical-align: middle;
 }
-#pull_table td#publishdate {
-  max-width: 50px;
-  text-align: left;
-  vertical-align: middle;
-}
 #pull_table td#publisher {
   min-width: 100px;
   text-align: left;
@@ -1193,12 +1183,12 @@ div#artistheader h2 a {
 }
 #pull_table td#comicnumber {
   max-width: 25px;
-  text-align: left;
+  text-align: right;
   vertical-align: middle;
 }
 #pull_table td#status {
   min-width: 30px;
-  text-align: left;
+  text-align: center;
   vertical-align: middle;
 }
 #pull_table td#options {
@@ -2251,3 +2241,22 @@ input[type="checkbox"] + label.series_metadata_local::before {
   -webkit-text-fill-color: transparent;
   -webkit-background-clip: text;
 }
+fieldset.fieldset_header {
+  margin: 5px;
+  padding: 0px 5px 5px;
+  border: 1px solid #c4c4c4;
+  border-radius: 8px;
+  box-shadow: 0px 0px 10px #c4c4c4;
+  padding-top: 5px;
+}
+figure.item{
+  vertical-align: top;
+  display: inline-block;
+  text-align: center;
+  width: 100px;
+}
+.caption.caption {
+  display: block;
+  line-height: .5em;
+}
+

@@ -30,7 +30,7 @@
               <form action="searchit" method="get">
                <fieldset>
                 <legend>Add StoryArc</legend>
-                    <input type="hidden" name="type" value="story_arc">
+                    <input type="hidden" name="search_type" value="story_arc">
                     <input type="text" value="" placeholder="Search for Story Arc" onfocus="if(this.value==this.defaultValue)  this.value='';" name="name" />
                     <span class="mini-icon"></span>
                     <input type="submit" value="Search"/>
@@ -59,7 +59,7 @@
                          <div id="arc_options">
                            <div class="row">
                                <label>Arc Folder Format</label>
-                               <input type="text" title="$publisher, $spanyears, $arc" name="arc_folderformat" value="${mylar.CONFIG.ARC_FOLDERFORMAT}" size="25">
+                               <input type="text" title="$publisher, $spanyears, $arc" name="arc_folderformat" value="${mylar.CONFIG.ARC_FOLDERFORMAT}" size="25" />
                            </div>
                            <input type="checkbox" style="vertical-align: middle; margin: 3px; margin-top: -1px;" name="read2filename" id="read2filename" value="1" ${checked(mylar.CONFIG.READ2FILENAME)} /><label>Prepend Reading # to filename</label></br>
                          </div>
@@ -81,7 +81,11 @@
                                               <option value=${x} ${outputselect}>${x}</option>
                                          %endfor
                                         </select><label> watchlisted issues to <span id="arcopts"></span> Directory</label>
-                     </div>
+                             <div id="arc_fileops_options">
+                                 <input type="checkbox" style="vertical-align: middle; margin: 3px; margin-top: -1px;" name="arc_fileops_softlink_relative" id="arc_fileops_softlink_relative" value="1" ${checked(mylar.CONFIG.ARC_FILEOPS_SOFTLINK_RELATIVE)} /><label>Create relative softlink <span style="font-size:10px;color:#999;">(default: absolute)</span></label>
+                                 </div>
+                             </div>
+                         </div>
                    </fieldset>
                    <div>
                         <input type="submit" value="Update"/>
@@ -178,6 +182,14 @@
                             $("#arc_options").hide();
                             document.getElementById('arcopts').innerHTML = 'GrabBag';
                         }
+                if (document.getElementById("arc_fileops").value == 'softlink')
+                        {
+                            $("#arc_fileops_options").show();
+                        }
+                else
+                        {
+                            $("#arc_fileops_options").hide();
+                        }
                 $("#storyarcdir").click(function(){
                         if ($("#storyarcdir").is(":checked"))
                         {
@@ -186,6 +198,16 @@
                         else
                         {
                             $("#arc_options").slideUp();
+                        }
+                });
+                $("#arc_fileops").change(function(){
+                        if (document.getElementById("arc_fileops").value == 'softlink')
+                        {
+                            $("#arc_fileops_options").slideDown();
+                        }
+                        else
+                        {
+                            $("#arc_fileops_options").slideUp();
                         }
                 });
                 $(function() {

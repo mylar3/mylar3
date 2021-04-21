@@ -51,27 +51,34 @@
         <table class="configtable" summary="Information">
             <tr>
                 <td>
-                  <fieldset>
-                  <legend>Configuration Options</legend>
-                       <div>
-                            <label><strong>Mylar Version: </strong> ${config['branch']}
+                  <fieldset class="fieldset_header">
+                      <legend>Version</legend>
+                            <center>
                             %if config['br_version_name'] and config['br_release_name']:
-                                [${config['br_version_name']} - ${config['br_release_name']}]
+                                <span style="font-weight:bold;">[${config['br_version_name']}]</span><br/>
+                                <span style="font-style:italic;">${config['br_release_name']}</span>
                             %elif config['br_version_name']:
-                                [${config['br_version_name']}]
+                                <span style="font-weight:bold;">[${config['br_version_name']}]</span>
+                            %else:
+                                <span style="font-weight:bold;">[${config['br_version']}]</span>
                             %endif
-                            </br> -- ${config['br_type']} (build ${config['br_version']})</label></br>
+                            </center>
+                            </br><span style="float:left;vertical-align:top;" title="${config['br_type']} installation detected.">${config['br_type']}</span>
+                            <span style="float:right;vertical-align:top;">${config['branch']}</span>
+                  </fieldset>
+                  <fieldset>
+                       <div>
+                            <br/>
+                            <legend>MYLAR PROGRAM OPTIONS</legend>
                             <label><strong>Python Version :</strong> ${config['py_version']}</label></br>
                             <label><strong>Language :</strong> ${config['lang']}</label></br></br>
-                            <legend>MYLAR PROGRAM OPTIONS</legend>
                             <label><strong>Mylar Data Directory :</strong>  ${config['data_dir']}</label></br>
                             <label><strong>Mylar Program Directory :</strong> ${config['prog_dir']}</label></br>
                             <label><strong>Mylar Cache Directory :</strong> ${config['cache_dir']}</label></br>
                             <a href="config_dump"><label><strong>Mylar Config File :</strong>${config['config_file']}</label></a></br>
-
-                       </div>                       
-                   </fieldset>
-                   <fieldset>
+                       </div>
+                  </fieldset>
+                  <fieldset class="fieldset_header">
                        <legend>DONATIONS</legend>
                          <a name="donate"></a>
                          <div align="center">
@@ -86,7 +93,7 @@
                    </fieldset>
                   </td>
                   <td>
-                   <fieldset>
+                   <fieldset class="fieldset_header">
                       <legend>Bragging Rights</legend>
                         <div>
                            <label><strong># of Series you're watching: </strong> ${comicinfo['COUNT_COMICS']}</br></label>
@@ -96,24 +103,25 @@
                            <label><strong> ... total HD-space being used: </strong> ${comicinfo['COUNT_SIZE']}</br></label>
                         </div>
                    </fieldset>
+                </br>
                 <fieldset>
-                     <legend>Useful Information</legend>
-                        <div class="row">
-                          <label><strong>Forums</strong></label>
-                            <div><a href="https://forum.mylarcomics.com/" target="_blank">https://forum.mylarcomics.com</a></div>
-                        </div>
-                        <div class="row">
-                          <label><strong>Source</strong></label>
-                            <div><a href="https://github.com/mylar3/mylar3" target="_blank">https://github.com/mylar3/mylar3</a></div>
-                        </div>
-                        <div class="row">
-                          <label><strong>Issues</strong></label>
-                            <div><a href="https://github.com/mylar3/mylar3/issues" target="_blank">https://github.com/mylar3/mylar3/issues/</a></div>
-                        </div>
-                        <div class="row">
-                          <label><strong>Internet Relay Chat</strong></label>
-                              <div><a href="irc://irc.freenode.net/#mylar" target="_blank">#mylar on irc.freenode.net</a></div>
-                        </div>
+                     <legend>Need help?</legend>
+                        <figure class="item">
+                          <a href="https://forum.mylarcomics.com/" target="_blank"><img src="${icons['forum-icon']}" height="64" width="64" title="https://forums.mylarcomics.com" /></a>
+                          <figcaption class="caption">Forums</caption>
+                        </figure>
+                        <figure class="item">
+                          <a href="https://github.com/mylar3/mylar3" target="_blank"><img src="${icons['github-icon']}" title="https://github.com/mylar3/mylar3" /></a>
+                          <figcaption class="caption">GitHub</caption>
+                        </figure>
+                        <figure class="item">
+                          <a href="https://discord.gg/6UG94R7E8T" target="_blank"><img src="${icons['discord-icon']}" height="64" width="64" title="https://discord.gg/6UG94R7E8T" /></a>
+                          <figcaption class="caption">Discord</caption>
+                        </figure>
+                        <figure class="item">
+                          <a href="https://webchat.freenode.net?channels=#mylar" target="_blank"><img src="images/irc-icon.png" height="64" width="64" title="#mylar on irc.freenode.net" /></a>
+                          <figcaption class="caption">IRC</caption>
+                        </figure>
                 </fieldset>
                 <fieldset>
                     <legend>Branch history</legend>
@@ -1677,6 +1685,7 @@
 
         function unblocktheProvider(i){
                 site = blocklist[i].provider;
+                $('#ajaxMsg').removeClass();
                 $.get("unblock_provider",
                        { site: site },
                        function(data) {
@@ -2164,6 +2173,7 @@
                                 return;
                             }
                             var obj = JSON.parse(data);
+                            $('#ajaxMsg').removeClass();
                             $('#ajaxMsg').html("<div class='msg'><span class='ui-icon ui-icon-check'></span>"+obj['status']+"</div>");
                             if ( obj['status'].indexOf("Successfully") > -1){
                                 imagechk.style.visibility = "hidden";
@@ -2189,6 +2199,7 @@
                             inkd = toNumber(numberWithCommas(inkd));
                             $('#status32p').val(obj['status']);
                             $('#inkdrops32p span').text('Inkdrops Available: '+inkd);
+                            $('#ajaxMsg').removeClass();
                             $('#ajaxMsg').html("<div class='msg'><span class='ui-icon ui-icon-check'></span>"+obj['status']+"</div>");
                             if ( data.indexOf("Successfully") > -1){
                                 imagechk.src = "";
@@ -2196,7 +2207,7 @@
                                 imagechk.style.visibility = "visible";
                             } else {
                                 imagechk.src = "";
-                                imagechk.src = "images/fail.png";
+                                imagechk.src = "images/x_red.png";
                                 imagechk.style.visibility = "visible";
                             }
                     });
@@ -2234,18 +2245,20 @@
                                 nocdh = document.getElementById("sab_nocdh");
                                 nocdh.style.display = "none";
                             }
+                            $('#ajaxMsg').removeClass();
                             $('#ajaxMsg').html("<div class='msg'><span class='ui-icon ui-icon-check'></span>"+obj['message']+"</div>");
                             if (obj['status']){
                                 imagechk.src = "";
                                 imagechk.src = "images/success.png";
                                 imagechk.style.visibility = "visible";
+                                $('#ajaxMsg').addClass('success').fadeIn().delay(3000).fadeOut();
                             } else {
                                 imagechk.src = "";
-                                imagechk.src = "images/fail.png";
+                                imagechk.src = "images/x_red.png";
                                 imagechk.style.visibility = "visible";
+                                $('#ajaxMsg').addClass('error').fadeIn().delay(3000).fadeOut();
                             }
                     });
-                    $('#ajaxMsg').addClass('success').fadeIn().delay(3000).fadeOut();
                 });
 
                 $('#test_nzbget').click(function () {
@@ -2262,6 +2275,7 @@
                                 return;
                             }
                             $('#nzbgetstatus').val(data);
+                            $('#ajaxMsg').removeClass();
                             $('#ajaxMsg').html("<div class='msg'><span class='ui-icon ui-icon-check'></span>"+data+"</div>");
                             if ( data.indexOf("Successfully") > -1){
                                 imagechk.src = "";
@@ -2269,7 +2283,7 @@
                                 imagechk.style.visibility = "visible";
                             } else {
                                 imagechk.src = "";
-                                imagechk.src = "images/fail.png";
+                                imagechk.src = "images/x_red.png";
                                 imagechk.style.visibility = "visible";
                             }
                     });
@@ -2369,6 +2383,7 @@
                                 alert(data.error);
                                 return;
                             }
+                            $('#ajaxMsg').removeClass();
                             $('#ajaxMsg').html("<div class='msg'><span class='ui-icon ui-icon-check'></span>"+data+"</div>");
                             if ( data.indexOf("Successfully") > -1){
                                 imagechk.src = "";
@@ -2376,7 +2391,7 @@
                                 imagechk.style.visibility = "visible";
                             } else {
                                 imagechk.src = "";
-                                imagechk.src = "images/fail.png";
+                                imagechk.src = "images/x_red.png";
                                 imagechk.style.visibility = "visible";
                             }
                     });
@@ -2403,6 +2418,7 @@
                                 return;
                             }
                             //$('#rtorrentstatus').val(data);
+                            $('#ajaxMsg').removeClass();
                             $('#ajaxMsg').html("<div class='msg'><span class='ui-icon ui-icon-check'></span>"+data+"</div>");
                             if ( data.indexOf("Successfully") > -1){
                                 imagechk.src = "";
@@ -2410,7 +2426,7 @@
                                 imagechk.style.visibility = "visible";
                             } else {
                                 imagechk.src = "";
-                                imagechk.src = "images/fail.png";
+                                imagechk.src = "images/x_red.png";
                                 imagechk.style.visibility = "visible";
                             }
                     });
@@ -2429,6 +2445,7 @@
                                 alert(data.error);
                                 return;
                             }
+                            $('#ajaxMsg').removeClass();
                             $('#ajaxMsg').html("<div class='msg'><span class='ui-icon ui-icon-check'></span>"+data+"</div>");
                             if ( data.indexOf("Successfully") > -1){
                                 imagechk.src = "";
@@ -2436,7 +2453,7 @@
                                 imagechk.style.visibility = "visible";
                             } else {
                                 imagechk.src = "";
-                                imagechk.src = "images/fail.png";
+                                imagechk.src = "images/x_red.png";
                                 imagechk.style.visibility = "visible";
                             }
                     });
@@ -2471,18 +2488,20 @@
                                 alert(data.error);
                                 return;
                             }
+                            $('#ajaxMsg').removeClass();
                             $('#ajaxMsg').html("<div class='msg'><span class='ui-icon ui-icon-check'></span>"+data+"</div>");
                             if ( data.indexOf("Successfully") > -1){
                                 imagechk.src = "";
                                 imagechk.src = "images/success.png";
                                 imagechk.style.visibility = "visible";
+                                $('#ajaxMsg').addClass('success').fadeIn().delay(3000).fadeOut();
                             } else {
                                 imagechk.src = "";
-                                imagechk.src = "images/fail.png";
+                                imagechk.src = "images/x_red.png";
                                 imagechk.style.visibility = "visible";
+                                $('#ajaxMsg').addClass('error').fadeIn().delay(3000).fadeOut();
                             }
                     });
-                    $('#ajaxMsg').addClass('success').fadeIn().delay(3000).fadeOut();
                 });
 
                 $(".torznabtest").click(function () {
@@ -2499,6 +2518,7 @@
                                 alert(data.error);
                                 return;
                             }
+                            $('#ajaxMsg').removeClass();
                             $('#ajaxMsg').html("<div class='msg'><span class='ui-icon ui-icon-check'></span>"+data+"</div>");
                             if ( data.indexOf("Successfully") > -1){
                                 imagechk.src = "";
@@ -2506,7 +2526,7 @@
                                 imagechk.style.visibility = "visible";
                             } else {
                                 imagechk.src = "";
-                                imagechk.src = "images/fail.png";
+                                imagechk.src = "images/x_red.png";
                                 imagechk.style.visibility = "visible";
                             }
                     });
@@ -2523,6 +2543,7 @@
                                 alert(data.error);
                                 return;
                             }
+                            $('#ajaxMsg').removeClass();
                             $('#ajaxMsg').html("<div class='msg'><span class='ui-icon ui-icon-check'></span>"+data+"</div>");
                             if ( data.indexOf("Successfully") > -1){
                                 imagechk.src = "";
@@ -2530,7 +2551,7 @@
                                 imagechk.style.visibility = "visible";
                             } else {
                                 imagechk.src = "";
-                                imagechk.src = "images/fail.png";
+                                imagechk.src = "images/x_red.png";
                                 imagechk.style.visibility = "visible";
                             }
                     });
@@ -2550,18 +2571,20 @@
                                 return;
                             }
                             $('#pushoverstatus').val(data);
+                            $('#ajaxMsg').removeClass();
                             $('#ajaxMsg').html("<div class='msg'><span class='ui-icon ui-icon-check'></span>"+data+"</div>");
                             if ( data.indexOf("Successfully") > -1){
-                               imagechk.src = "";
+                                imagechk.src = "";
                                 imagechk.src = "images/success.png";
                                 imagechk.style.visibility = "visible";
+                                $('#ajaxMsg').addClass('success').fadeIn().delay(3000).fadeOut();
                             } else {
                                 imagechk.src = "";
-                                imagechk.src = "images/fail.png";
+                                imagechk.src = "images/x_red.png";
                                 imagechk.style.visibility = "visible";
+                                $('#ajaxMsg').addClass('error').fadeIn().delay(3000).fadeOut();
                             }
                     });
-                    $('#ajaxMsg').addClass('success').fadeIn().delay(3000).fadeOut();
                 });
 
                 $('#boxcar_test').click(function () {
@@ -2575,6 +2598,7 @@
                                 return;
                             }
                             $('#pushoverstatus').val(data);
+                            $('#ajaxMsg').removeClass();
                             $('#ajaxMsg').html("<div class='msg'><span class='ui-icon ui-icon-check'></span>"+data+"</div>");
                             if ( data.indexOf("Successfully") > -1){
                                imagechk.src = "";
@@ -2582,7 +2606,7 @@
                                 imagechk.style.visibility = "visible";
                             } else {
                                 imagechk.src = "";
-                                imagechk.src = "images/fail.png";
+                                imagechk.src = "images/x_red.png";
                                 imagechk.style.visibility = "visible";
                             }
                     });
@@ -2601,6 +2625,7 @@
                                 return;
                             }
                             $('#pbstatus').val(data);
+                            $('#ajaxMsg').removeClass();
                             $('#ajaxMsg').html("<div class='msg'><span class='ui-icon ui-icon-check'></span>"+data+"</div>");
                             if ( data.indexOf("Successfully") > -1){
                                imagechk.src = "";
@@ -2608,7 +2633,7 @@
                                 imagechk.style.visibility = "visible";
                             } else {
                                 imagechk.src = "";
-                                imagechk.src = "images/fail.png";
+                                imagechk.src = "images/x_red.png";
                                 imagechk.style.visibility = "visible";
                             }
                     });
@@ -2627,6 +2652,7 @@
                                 return;
                             }
                             $('#telegramstatus').val(data);
+                            $('#ajaxMsg').removeClass();
                             $('#ajaxMsg').html("<div class='msg'><span class='ui-icon ui-icon-check'></span>"+data+"</div>");
                             if ( data.indexOf("Successfully") > -1){
                                imagechk.src = "";
@@ -2634,7 +2660,7 @@
                                 imagechk.style.visibility = "visible";
                             } else {
                                 imagechk.src = "";
-                                imagechk.src = "images/fail.png";
+                                imagechk.src = "images/x_red.png";
                                 imagechk.style.visibility = "visible";
                             }
                     });
@@ -2652,6 +2678,7 @@
                                 return;
                             }
                             $('#slackstatus').val(data);
+                            $('#ajaxMsg').removeClass();
                             $('#ajaxMsg').html("<div class='msg'><span class='ui-icon ui-icon-check'></span>"+data+"</div>");
                             if ( data.indexOf("Successfully") > -1){
                                imagechk.src = "";
@@ -2659,7 +2686,7 @@
                                 imagechk.style.visibility = "visible";
                             } else {
                                 imagechk.src = "";
-                                imagechk.src = "images/fail.png";
+                                imagechk.src = "images/x_red.png";
                                 imagechk.style.visibility = "visible";
                             }
                     });
@@ -2677,6 +2704,7 @@
                                 return;
                             }
                             $('#discordstatus').val(data);
+                            $('#ajaxMsg').removeClass();
                             $('#ajaxMsg').html("<div class='msg'><span class='ui-icon ui-icon-check'></span>"+data+"</div>");
                             if ( data.indexOf("Successfully") > -1){
                                imagechk.src = "";
@@ -2684,7 +2712,7 @@
                                 imagechk.style.visibility = "visible";
                             } else {
                                 imagechk.src = "";
-                                imagechk.src = "images/fail.png";
+                                imagechk.src = "images/x_red.png";
                                 imagechk.style.visibility = "visible";
                             }
                     });
@@ -2708,6 +2736,7 @@
                                 return;
                             }
                             $('#emailstatus').val(data);
+                            $('#ajaxMsg').removeClass();
                             $('#ajaxMsg').html("<div class='msg'><span class='ui-icon ui-icon-check'></span>"+data+"</div>");
                             if ( data.indexOf("Successfully") > -1){
                                imagechk.src = "";
@@ -2715,7 +2744,7 @@
                                 imagechk.style.visibility = "visible";
                             } else {
                                 imagechk.src = "";
-                                imagechk.src = "images/fail.png";
+                                imagechk.src = "images/x_red.png";
                                 imagechk.style.visibility = "visible";
                             }
                     });

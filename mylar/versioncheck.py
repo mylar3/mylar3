@@ -105,7 +105,7 @@ def getVersion():
         if cur_commit_hash.startswith('v'):
             url2 = 'https://api.github.com/repos/%s/mylar3/tags' % (mylar.CONFIG.GIT_USER)
             try:
-                response = requests.get(url2, verify=True)
+                response = requests.get(url2, verify=True, auth=mylar.CONFIG.GIT_TOKEN)
                 git = response.json()
             except Exception as e:
                 logger.warn('[ERROR] %s' % e)
@@ -121,7 +121,7 @@ def getVersion():
                     url3 = 'https://api.github.com/repos/%s/mylar3/releases/tags/%s' % (mylar.CONFIG.GIT_USER, current_version_name)
                     logger.info('url3: %s' % url3)
                     try:
-                        repochk = requests.get(url3, verify=True)
+                        repochk = requests.get(url3, verify=True, auth=mylar.CONFIG.GIT_TOKEN)
                         repo_resp = repochk.json()
                         logger.info('repo_resp: %s' % repo_resp)
                         current_release_name = repo_resp['name']
@@ -165,7 +165,14 @@ def getVersion():
 
     else:
 
-        mylar.INSTALL_TYPE = 'source'
+        d_path = '/proc/self/cgroup'
+        if os.path.exists('/.dockerenv') or os.path.isfile(d_path) and any('docker' in line for line in open(d_path)):
+            logger.info('[DOCKER-AWARE] Docker installation detected.')
+            mylar.INSTALL_TYPE = 'docker'
+        else:
+            logger.info('Not a Docker installation.')
+            mylar.INSTALL_TYPE = 'source'
+
         #current_version = None
         branch = None
 
@@ -205,7 +212,7 @@ def getVersion():
         if current_version_name is not None:
             url2 = 'https://api.github.com/repos/%s/mylar3/releases/tags/%s' % (mylar.CONFIG.GIT_USER, current_version_name)
             try:
-                response = requests.get(url2, verify=True)
+                response = requests.get(url2, verify=True, auth=mylar.CONFIG.GIT_TOKEN)
                 git = response.json()
                 current_release_name = git['name']
             except Exception as e:
@@ -246,7 +253,7 @@ def checkGithub(current_version=None):
     # Get the latest commit available from github
     url = 'https://api.github.com/repos/%s/mylar3/commits/%s' % (mylar.CONFIG.GIT_USER, mylar.CONFIG.GIT_BRANCH)
     try:
-        response = requests.get(url, verify=True)
+        response = requests.get(url, verify=True, auth=mylar.CONFIG.GIT_TOKEN)
         git = response.json()
         mylar.LATEST_VERSION = git['sha']
     except Exception as e:
@@ -260,7 +267,7 @@ def checkGithub(current_version=None):
         url = 'https://api.github.com/repos/%s/mylar3/compare/%s...%s' % (mylar.CONFIG.GIT_USER, current_version, mylar.LATEST_VERSION)
 
         try:
-            response = requests.get(url, verify=True)
+            response = requests.get(url, verify=True, auth=mylar.CONFIG.GIT_TOKEN)
             git = response.json()
             mylar.COMMITS_BEHIND = git['total_commits']
         except Exception as e:
@@ -284,12 +291,10 @@ def checkGithub(current_version=None):
 
 def update():
 
-
     if mylar.INSTALL_TYPE == 'win':
 
         logger.info('Windows .exe updating not supported yet.')
         pass
-
 
     elif mylar.INSTALL_TYPE == 'git':
 
@@ -307,6 +312,9 @@ def update():
             elif line.endswith('Aborting.'):
                 logger.error('Unable to update from git: ' +line)
                 logger.info('Output: ' + str(output))
+
+    elif mylar.INSTALL_TYPE == 'docker':
+        logger.info('Docker updates via it\'s own mechanics. Updating docker via Mylar GUI not supported at this time.')
 
     else:
 
@@ -384,7 +392,7 @@ def versionload():
 
     logger.info('Version information: %s [%s]' % (mylar.CONFIG.GIT_BRANCH, mylar.CURRENT_VERSION))
 
-    if mylar.CONFIG.CHECK_GITHUB_ON_STARTUP:
+    if mylar.CONFIG.CHECK_GITHUB_ON_STARTUP and mylar.INSTALL_TYPE != 'docker':
         try:
             mylar.LATEST_VERSION = checkGithub() #(CURRENT_VERSION)
         except:

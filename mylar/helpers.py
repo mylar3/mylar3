@@ -296,7 +296,7 @@ def rename_param(comicid, comicname, issue, ofilename, comicyear=None, issueid=N
 #            issue = iss
 
 #            print ("converted issue#: " + str(issue))
-            logger.fdebug('issueid:' + str(issueid))
+#            logger.fdebug('issueid:' + str(issueid))
 
             if issueid is None:
                 logger.fdebug('annualize is ' + str(annualize))
@@ -306,7 +306,7 @@ def rename_param(comicid, comicname, issue, ofilename, comicyear=None, issueid=N
                 else:
                     chkissue = myDB.selectone("SELECT * from issues WHERE ComicID=? AND Issue_Number=?", [comicid, issue]).fetchone()
                     if all([chkissue is None, annualize is None, not mylar.CONFIG.ANNUALS_ON]):
-                        chkissue = myDB.selectone("SELECT * from annuals WHERE ComicID=? AND Issue_Number=?", [comicid, issue]).fetchone()
+                        chkissue = myDB.selectone("SELECT * from annuals WHERE ComicID=? AND Issue_Number=? AND NOT Deleted", [comicid, issue]).fetchone()
 
                 if chkissue is None:
                     #rechk chkissue against int value of issue #
@@ -315,7 +315,7 @@ def rename_param(comicid, comicname, issue, ofilename, comicyear=None, issueid=N
                     else:
                         chkissue = myDB.selectone("SELECT * from issues WHERE ComicID=? AND Int_IssueNumber=?", [comicid, issuedigits(issue)]).fetchone()
                         if all([chkissue is None, annualize == 'yes', mylar.CONFIG.ANNUALS_ON]):
-                            chkissue = myDB.selectone("SELECT * from annuals WHERE ComicID=? AND Int_IssueNumber=?", [comicid, issuedigits(issue)]).fetchone()
+                            chkissue = myDB.selectone("SELECT * from annuals WHERE ComicID=? AND Int_IssueNumber=? AND NOT Deleted", [comicid, issuedigits(issue)]).fetchone()
 
                     if chkissue is None:
                         logger.error('Invalid Issue_Number - please validate.')
@@ -334,7 +334,7 @@ def rename_param(comicid, comicname, issue, ofilename, comicyear=None, issueid=N
                 issuenzb = myDB.selectone("SELECT * from issues WHERE ComicID=? AND IssueID=?", [comicid, issueid]).fetchone()
                 if issuenzb is None:
                     logger.fdebug('not an issue, checking against annuals')
-                    issuenzb = myDB.selectone("SELECT * from annuals WHERE ComicID=? AND IssueID=?", [comicid, issueid]).fetchone()
+                    issuenzb = myDB.selectone("SELECT * from annuals WHERE ComicID=? AND IssueID=? AND NOT Deleted", [comicid, issueid]).fetchone()
                     if issuenzb is None:
                         logger.fdebug('Unable to rename - cannot locate issue id within db')
                         return
@@ -1119,7 +1119,14 @@ def issuedigits(issnum):
                             logger.fdebug('this does not have an issue # that I can parse properly.')
                             return 999999999999999
                     else:
-                        if issnum == '9-5':
+                        match = re.match(r"(?P<first>\d+)\s?[-&/\\]\s?(?P<last>\d+)", issnum)
+                        if match:
+                            first_num, last_num = map(int, match.groups())
+                            if last_num > first_num:
+                                int_issnum = (first_num * 1000) + int(((last_num - first_num) * .5) * 1000)
+                            else:
+                                int_issnum = (first_num * 1000) + (.5 * 1000)
+                        elif issnum == '9-5':
                             issnum = '9\xbd'
                             logger.fdebug('issue: 9-5 is an invalid entry. Correcting to : ' + issnum)
                             int_issnum = (9 * 1000) + (.5 * 1000)
@@ -1133,6 +1140,8 @@ def issuedigits(issnum):
                             int_issnum = (112 * 1000) + (.5 * 1000)
                         elif issnum == '14-16':
                             int_issnum = (15 * 1000) + (.5 * 1000)
+                        elif issnum == '380/381':
+                            int_issnum = (380 * 1000) + (.5 * 1000)
                         elif issnum.lower() == 'preview':
                             inu = 0
                             ordtot = 0
@@ -1167,7 +1176,7 @@ def checkthepub(ComicID):
 def annual_update():
     #import db
     myDB = db.DBConnection()
-    annuallist = myDB.select('SELECT * FROM annuals')
+    annuallist = myDB.select('SELECT * FROM annuals WHERE NOT Deleted')
     if annuallist is None:
         logger.info('no annuals to update.')
         return
@@ -2123,7 +2132,7 @@ def duplicate_filecheck(filename, ComicID=None, IssueID=None, StoryArcID=None, r
     if IssueID:
         dupchk = myDB.selectone("SELECT * FROM issues WHERE IssueID=?", [IssueID]).fetchone()
     if dupchk is None:
-        dupchk = myDB.selectone("SELECT * FROM annuals WHERE IssueID=?", [IssueID]).fetchone()
+        dupchk = myDB.selectone("SELECT * FROM annuals WHERE IssueID=? AND NOT Deleted", [IssueID]).fetchone()
         if dupchk is None:
             logger.info('[DUPECHECK] Unable to find corresponding Issue within the DB. Do you still have the series on your watchlist?')
             return {'action': None}
@@ -2396,7 +2405,7 @@ def issue_status(IssueID):
 
     isschk = myDB.selectone("SELECT * FROM issues WHERE IssueID=?", [IssueID]).fetchone()
     if isschk is None:
-        isschk = myDB.selectone("SELECT * FROM annuals WHERE IssueID=?", [IssueID]).fetchone()
+        isschk = myDB.selectone("SELECT * FROM annuals WHERE IssueID=? AND NOT Deleted", [IssueID]).fetchone()
         if isschk is None:
             isschk = myDB.selectone("SELECT * FROM storyarcs WHERE IssueArcID=?", [IssueID]).fetchone()
             if isschk is None:
@@ -4178,7 +4187,7 @@ def DateAddedFix():
     issues = myDB.select("SELECT IssueID FROM issues WHERE Status='Wanted' and DateAdded is NULL")
     for da in issues:
         myDB.upsert("issues", {'DateAdded': DateAdded}, {'IssueID': da[0]})
-    annuals = myDB.select("SELECT IssueID FROM annuals WHERE Status='Wanted' and DateAdded is NULL")
+    annuals = myDB.select("SELECT IssueID FROM annuals WHERE Status='Wanted' and DateAdded is NULL and not Deleted")
     for an in annuals:
         myDB.upsert("annuals", {'DateAdded': DateAdded}, {'IssueID': an[0]})
 
@@ -4232,8 +4241,12 @@ def file_ops(path,dst,arc=False,one_off=False):
 #    crc_check = mylar.filechecker.crc(path)
 #    #will be either copy / move
 
+    softlink_type = 'absolute'
+
     if any([one_off, arc]):
         action_op = mylar.CONFIG.ARC_FILEOPS
+        if mylar.CONFIG.ARC_FILEOPS_SOFTLINK_RELATIVE is True:
+            softlink_type = 'relative'
     else:
         action_op = mylar.CONFIG.FILE_OPTS
 
@@ -4291,18 +4304,27 @@ def file_ops(path,dst,arc=False,one_off=False):
 
                 return True
 
-            elif action_op ==  'softlink':
+            elif action_op == 'softlink':
                 try:
                     #first we need to copy the file to the new location, then create the symlink pointing from new -> original
                     if not arc:
-                        shutil.move( path, dst )            
+                        shutil.move( path, dst )
                         if os.path.lexists( path ):
                             os.remove( path )
-                        os.symlink( dst, path )
-                        logger.fdebug('Successfully created softlink [' + dst + ' --> ' + path + ']')
+                        if softlink_type == 'absolute':
+                            os.symlink( dst, path )
+                            logger.fdebug('Successfully created softlink [' + dst + ' --> ' + path + ']')
+                        else:
+                            os.symlink(os.path.relpath(dst, os.path.dirname(path)), path)
+                            logger.fdebug('Successfully created (relative) softlink [' + os.path.relpath(dst, os.path.dirname(path)) + ' --> ' + path + ']')
+
                     else:
-                        os.symlink ( path, dst )
-                        logger.fdebug('Successfully created softlink [' + path + ' --> ' + dst + ']')
+                        if softlink_type == 'absolute':
+                            os.symlink( path, dst )
+                            logger.fdebug('Successfully created softlink [' + path + ' --> ' + dst + ']')
+                        else:
+                            os.symlink(os.path.relpath(path, os.path.dirname(dst)), dst)
+                            logger.fdebug('Successfully created (relative) softlink [' + os.path.relpath(path, os.path.dirname(dst)) + ' --> ' + dst + ']')
                 except OSError as e:
                     #if e.errno == errno.EEXIST:
                     #    os.remove(dst)
