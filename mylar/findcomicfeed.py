@@ -135,9 +135,9 @@ def Startit(searchName, searchIssue, searchYear, ComicVersion, IssDateFix, bookt
         if r.status_code == 403:
            return "no results"
         else:
-            logger.warn('[%s] Status code returned: %s' % (site, r.status_code))
+            logger.warn('[EXPERIMENTAL] Status code returned: %s' % (r.status_code))
             if r.status_code == 503:
-                logger.warn('[%s] Site appears unresponsive/down. Disabling...' % (site))
+                logger.warn('[EXPERIMENTAL] Site appears unresponsive/down. Disabling...')
                 return 'disable'
             else:
                 return "no results"
