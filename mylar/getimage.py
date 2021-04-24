@@ -69,7 +69,12 @@ def scale_image(img, iformat, new_width, algorithm=Image.LANCZOS):
     # algorithm = scaling algorithm used
     scale = (new_width / float(img.size[0]))
     new_height = int(scale * img.size[1])
-    img = img.resize((new_width, new_height), algorithm)
+    if img.mode in ("RGBA", "P"):
+        im = img.convert("RGB")
+        img = im.resize((new_width, new_height), algorithm)
+    else:
+        img = img.resize((new_width, new_height), algorithm)
+
     with BytesIO() as output:
         img.save(output, format=iformat)
         return output.getvalue()
