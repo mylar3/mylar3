@@ -304,8 +304,8 @@ input[type="radio"] {
   color: #fff;
   text-shadow: none;
 }
-input[type=submit],
-input[type=button] {
+input[type="submit"],
+input[type="button"] {
   -moz-border-radius: 5px;
   -webkit-border-radius: 5px;
   border-radius: 5px;
@@ -2242,9 +2242,23 @@ table#annual_table td#aissuename { vertical-align: middle; text-align: center; m
   float: right;
   margin-top: 5px;
   position: relative;
+  text-align: right;
   z-index: 99;
 }
-#btn_container #btn_menu a {
+#btn_container_center {
+  float: center;
+  height: 30px;
+  list-style-type: none;
+  width: 100%;
+  z-index: 998;
+}
+#btn_container_center #btn_menu {
+  float: center;
+  margin-top: 5px;
+  position: relative;
+  z-index: 99;
+}
+#btn_menu a {
   background-image: -moz-linear-gradient(#616161, #4e4e4e) !important;
   background-image: linear-gradient(#616161, #4e4e4e) !important;
   background-image: -webkit-linear-gradient(#616161, #4e4e4e) !important;
@@ -2254,7 +2268,8 @@ table#annual_table td#aissuename { vertical-align: middle; text-align: center; m
   font-size: 12px;
   font-weight: normal;
 }
-#btn_container #btn_menu a:hover {
+#btn_container #btn_menu a:hover,
+#btn_container_center #btn_menu a:hover {
   background-image: -moz-linear-gradient(#599bdc, #3072b3) !important;
   background-image: linear-gradient(#599bdc, #3072b3) !important;
   background-image: -webkit-linear-gradient(#599bdc, #3072b3) !important;
