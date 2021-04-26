@@ -3405,17 +3405,22 @@ def nzbname_create(provider, title=None, info=None):
             # pretty this biatch up.
             BComicName = re.sub(r'[\:\,\/\?\']', '', str(ComicName))
             Bl_ComicName = re.sub(r'[\&]', 'and', str(BComicName))
-            if '\xbd' in IssueNumber:
-                str_IssueNumber = '0.5'
-            elif '\xbc' in IssueNumber:
-                str_IssueNumber = '0.25'
-            elif '\xbe' in IssueNumber:
-                str_IssueNumber = '0.75'
-            elif '\u221e' in IssueNumber:
-                str_IssueNumber = 'infinity'
+            if IssueNumber is not None:
+                if '\xbd' in IssueNumber:
+                    str_IssueNumber = '0.5'
+                elif '\xbc' in IssueNumber:
+                    str_IssueNumber = '0.25'
+                elif '\xbe' in IssueNumber:
+                    str_IssueNumber = '0.75'
+                elif '\u221e' in IssueNumber:
+                    str_IssueNumber = 'infinity'
+                else:
+                    str_IssueNumber = IssueNumber
+                nzbline = '%s.%s.(%s)'
             else:
-                str_IssueNumber = IssueNumber
-            nzbname = '%s.%s.(%s)' % (
+                str_IssueNumber = ''
+                nzbline = '%s%s(%s)'
+            nzbname = nzbline % (
                 re.sub(" ", ".", str(Bl_ComicName)),
                 str_IssueNumber,
                 comyear,
