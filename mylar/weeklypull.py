@@ -70,12 +70,18 @@ def pullit(forcecheck=None, weeknumber=None, year=None):
         newpull.newpull()
     elif mylar.CONFIG.ALT_PULL == 2:
         logger.info('[PULL-LIST] Populating & Loading pull-list data directly from alternate website')
+        today_date = datetime.datetime.today().replace(second=0,microsecond=0)
+        current_weeknumber = today_date.strftime('%U')
+        current_year = today_date.strftime("%Y")
         for x in [1, 2]:
+            # for now we'll query WS twice - once for the previous week & once for the current week
+            # but only when requesting data for the current week. This is done in order to make sure that
+            # the previous weeks info is complete, as CV has started updating certain publishers after the
+            # week roll-over which leaves some stragglers if the updater doesn't catch it (which it mostly should).
             if x == 1:
                 if pulldate is not None:
-                    todaydate = datetime.datetime.today().replace(second=0,microsecond=0)
-                    weeknumber = todaydate.strftime('%U')
-                    year = todaydate.strftime("%Y")
+                    weeknumber = today_date.strftime('%U')
+                    year = today_date.strftime("%Y")
 
                 weeknumber_mod = int(weeknumber) - 1
                 year_mod = year
@@ -83,10 +89,13 @@ def pullit(forcecheck=None, weeknumber=None, year=None):
                     weeknumber_mod = 52
                     year_mod = int(year) - 1
             else:
+               time.sleep(2)
                weeknumber_mod = weeknumber
                year_mod = year
 
-            if forcecheck == 'yes' and x == 1:
+            if all([forcecheck == 'yes', x == 1, current_weeknumber != weeknumber]):
+               # if it's not the current week being requested during a recreate pull,
+               # ignore it since it's checking for the previous week at this point
                continue
 
             logger.info('[PULL-LIST] Populating & Loading pull-list data directly from alternate website for specific week of %s, %s' % (weeknumber_mod, year_mod))
