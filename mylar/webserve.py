@@ -7000,6 +7000,7 @@ class WebInterface(object):
         #     print('now leave me alone.')
 
         mass_auto = False
+        publishers = []
 
         for k, v in kwargs.items():
             if 'publishers' in k:
@@ -7224,6 +7225,11 @@ class WebInterface(object):
     def get_the_pubs(self):
         x = []
         if mylar.CONFIG.MASS_PUBLISHERS:
+            if type(mylar.CONFIG.MASS_PUBLISHERS) != list:
+                try:
+                    mylar.CONFIG.MASS_PUBLISHERS = json.loads(mylar.CONFIG.MASS_PUBLISHERS)
+                except Exception:
+                    pass
             for i in mylar.CONFIG.MASS_PUBLISHERS:
                 x.append({'name': i})
         return json.dumps(x)
