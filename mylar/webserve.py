@@ -433,7 +433,7 @@ class WebInterface(object):
                 return
         elif search_type == 'story_arc':
             try:
-                searchresults = mb.findComic(name, mode=None, issue=None, type='story_arc')
+                searchresults = mb.findComic(name, mode=None, issue=None, search_type='story_arc')
             except TypeError:
                 logger.error('Unable to perform required story-arc search for : [arc: ' + name + '][mode: ' + mode + ']')
                 return
@@ -445,7 +445,7 @@ class WebInterface(object):
             if mylar.CONFIG.COMICVINE_API is None:
                 logger.error('You NEED to set a ComicVine API key prior to adding anything. It\'s Free - Go get one!')
                 return
-        return serve_template(templatename="searchresults.html", title='Search Results for: "' + name + '"', searchresults=searchresults, type=search_type, imported=None, ogcname=None, name=name, serinfo=serinfo)
+        return serve_template(templatename="searchresults.html", title='Search Results for: "' + name + '"', searchresults=searchresults, search_type=search_type, imported=None, ogcname=None, name=name, serinfo=serinfo)
     searchit.exposed = True
 
     def addComic(self, comicid, comicname=None, comicyear=None, comicimage=None, comicissues=None, comicpublisher=None, imported=None, ogcname=None, serinfo=None):

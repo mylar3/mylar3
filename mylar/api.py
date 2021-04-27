@@ -719,7 +719,7 @@ class Api(object):
         elif type_ == 'comic' and mode == 'want':
             searchresults, explisit = mb.findComic(name, mode, issue)
         elif type_ == 'story_arc':
-            searchresults, explisit = mb.findComic(name, mode, issue=None, explisit='explisit', type='story_arc')
+            searchresults, explisit = mb.findComic(name, mode, issue=None, explisit='explisit', search_type='story_arc')
 
         searchresults = sorted(searchresults, key=itemgetter('comicyear', 'issues'), reverse=True)
         self.data = searchresults
