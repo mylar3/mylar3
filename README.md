@@ -1,133 +1,50 @@
 ## ![Mylar Logo](https://github.com/evilhero/mylar/blob/master/data/images/mylarlogo.png) Mylar3
 
-## This fork is a Work-In-Progress, but should still be stable enough for daily use. 
+Mylar is an automated Comic Book (cbr/cbz) downloader program for use with NZB and torrents.
 
-Mylar is an automated Comic Book (cbr/cbz) downloader program for use with NZB and torrents written in python. It supports SABnzbd, NZBGET, and many torrent clients in addition to DDL.
+Mylar allows you to create a watchlist of series that it monitors for various things (new issues, updated information, etc). It will grab, sort, and rename downloaded issues.
+It will also allow you to monitor weekly pull-lists for items belonging to said watchlisted series to download, as well as being able to monitor and maintain story-arcs.
 
-It will allow you to monitor weekly pull-lists for items belonging to user-specific series to download, as well as being able to monitor story-arcs. Support for TPB's and GN's is also available.
-
-
-This program is considered an "Alpha release" but is in active development. It is not bug-free, but it does work!
+## Getting Started
+- [Installation](https://github.com/mylar3/mylar3/wiki/Installation-Instructions)
+- [Upgrading from evilhero/mylar](https://github.com/mylar3/mylar3/wiki/Upgrading-from-the-evilhero-version)
+- [IMPORTANT INFORMATION ABOUT ComicVine Data](https://github.com/mylar3/mylar3/wiki/Where-Mylar-gets-the-metadata-from)
+- [Wiki](https://github.com/mylar3/mylar3/wiki)
+- [FAQ](https://github.com/mylar3/mylar3/wiki/FAQ)
+- [API Documentation](https://github.com/mylar3/mylar3/wiki/API-Documentation)
 
 ## Support & Discussion
-You are free to join the Mylar support community on IRC where you can ask questions, hang around and discuss anything related to Mylar.
+Please limit Github issues to bugs & enhancement requests ONLY
+- [Github](https://github.com/mylar3/mylar3/issues) (Bug & Feature requests only)
+- [Forums](https://forum.mylarcomics.com)
 
-1. Use any IRC client and connect to the Freenode server, `irc.freenode.net`.
-2. Join the `#mylar` channel.
-3. Say hello!
+## Live Support / Conversation
+- [Discord](https://discord.gg/6UG94R7E8T)
+- [IRC](http://webchat.freenode.net/?channels=#mylar)
 
-The Mylar Forums are also online @ https://forum.mylarcomics.com
+## Features
+- Abliity to be run on various OS' (windows, linux, macOS, Raspberry Pi, etc)
+- Support for SABnzbd, NZBGet and various torrent clients (as well as Blackhole)
+- Multiple newznabs support, as well including a raw indexer and direct download being available
+- Ability to see upcoming new releases for a particular week and take action on them if required
+- View pullists up to 4 weeks in advance, or several months prior
+- TPB's and GN's are both supported as far as monitoring and post-processing (not import atm)
+- Can scan your existing library and download any missing issues
+- Failed download handling will download a new issue if one fails
+- Configurable file and folder renaming
+- Metatagging of issues via modified version of the awesome ComicTagger 
+- Will automatically meta-tag downloaded issues either during (post-processing) or after (manual post-processing)
+- Generation of series.json files which contain series information for 3rd party applications
+- Notification on snatches / downloads using various notif applications
+- Ability to track story arc issues belonging to specific arcs, as well as various options pertaining to the arc
 
-**Issues** can be reported on the Github issue tracker, provided that you:
-- Search existing recent OPEN issues. If an issue is open from a year ago, please don't add to it.
-- Always follow the issue template! Use the CarePackage button on the config page if you need help collecting information.
-- Close your issue when it's solved!
+...
+AND SO MUCH MORE!
 
-## Requirements
-- At least Python version 3.7.2 - most heavily tested with 3.8.1 (2.x is not supported)
-- Python version 3.8+ of Mylar will not work on Windows due to some dependency issues
-- Unrar is required to be on the system for ComicTagger integration to work (or RaR will work as well on Windows systems). If Unrar/RaR is not in the system path, the full path to the binary must be specified in the rar_exe_path field in .ComicTagger/settings located in either the root of Mylar or the user's home directory.
-- ComicVine API key (found [here](https://comicvine.gamespot.com/api/) - program will have limited to no functionality without it
+## Contributing
 
-## Installation
-- run `pip3 install -r requirements.txt` to install all required dependencies not included. 
-- Note Windows users may need to run `py -m pip install -r requirements.txt` if the above fails.
-- Prefer Docker? Take a look over [here](https://docs.linuxserver.io/images/docker-mylar3)! 
-
-## Upgrading from evilhero/mylar
-- `git clone https://github.com/mylar3/mylar3`
-- copy over your config.ini, mylar.db, and cache directory
-- edit config.ini and change `log_dir` and `cache_dir` to the new path; also set `git_user` to mylar3
-- from the root of the new Mylar directory, run `pip3 install -r requirements.txt`
-- Start it up!
-
-## Usage
-To start the program, type `python3 Mylar.py` inside the root of the Mylar directory. Typing `python3 Mylar.py --help` will give a list of available options.
-
-Once it's started, navigate to http://localhost:8090 in your web browser (or whatever IP the machine that has Mylar is on).
-
-Helpful hints:
-- Ensure `Comic Location` is specified in the configuration (_Configuration --> Web Interface --> Comic Location_)
-  - Mylar auto-creates the Comic Series directories under the Comic Location. The directory is displayed on the Comic Detail page).
-  - If you do not want directories to be created until there are issues present, set `create_folders = False` in the config.ini.
-- A search provider needs to be specified to perform any search-related functions
-- Enabling `Automatically Mark Upcoming Issues as Wanted` in settings will mark any **NEW** comic from the Pullist that is on your 'watchlist' as wanted
-- Add a comic (series) using the Search button or via the Pullist. 
-- If you know the CV comicid, enter the full id into the search box (ie. `4050-XXXXX`)
-- If adding a comic fails with "Error", submit a bug and it will be checked out (usually an easy fix)
-- Post-Processing is for adding new issues into existing series on your watchlist, Import is for adding files for series that don't exist on your watchlist into your watchlist
-- For the most up-to-date build, use the Development build
-  - Master doesn't get updated as frequently (> month), and Development is more-or-less stable
-
-## Post-processing
-It is imperative that you enable the post-processing option if you require post-processing (_Configuration --> Quality & Post-Processing --> Enable Post-Processing_)
-
-### Newsgroups
-There are 2 ways to perform post-processing within Mylar, however you cannot use both options simultaneously. 
-
-**Completed Download Handling (CDH) - Preferred**
-- For the given download client (SABnzbd / NZBGet) simply click on the Enable Completed Download Handling option.
-- For SABnzbd to work, you need to make sure you have a version > 0.8.0 (use the Test Connection button for verification)
-
-**ComicRN**
-- You need to enable the Mylar APIKey for this to work (_Configuration --> Web Interface --> API --> Enable API --> Generate --> Save Configuration_).
-- Within the post-processing/ folder of Mylar there are 2 files (autoProcessComics.py and autoProcessComics.cfg.sample)
-- Within the post-processing/ folder of Mylar there are 2 directories (nzbget, sabnzbd) and within each of these client folders is a ComicRN.py script that is to be used with the respective download client.
-- Edit (put in your Mylar host, port, apikey (generated from above), and ssl(0 for no, 1 for yes) and rename the autoProcessComics.cfg.sample to autoProcessComics.cfg. 
-- Copy autoProcessComics.py, autoProcessComics.cfg and the respective ComicRN.py into your SABnzbd/NZBGet scripts directory (or wherever your download client stores its scripts).
-- Make sure SABnzbd/NZBGet is setup to have a 'comic-related' category that points it to the ComicRN.py script that was just moved. 
-- Ensure in Mylar that the category is named exactly the same.
-
-### Torrents
-There is no completed processing for torrents. There are methods available however:
-
-**Torrent client on same machine as Mylar installation**
-- _Configuration tab --> Quality & Post-Processing --> Post-Processing_
-- set the post-processing action to copy if you want to seed your torrents, otherwise move
-  - Enable Folder Monitoring
-  - Folder location to monitor: set to the full location where your finished torrents are downloaded to.
-  - Folder Monitor Scan Interval: do NOT set this to < 1 minute. Anywhere from 3-5 minutes should be ample.
-
-**Torrent client on different machine than Mylar**
-- Use [harpoon](https://github.com/evilhero/harpoon/) to retrieve items back to your local install as soon as they are completed and have post-processing occur immediately (also works with other automated solutions).
-- Any other method that involves having the files localized and then have Folder Monitor monitor the location for files.
-
-**Torrent client (rtorrent/deluge) on different machine than Mylar**
-- a built-in option for these clients that will monitor for completion and then perform post-processing on the given items.
-- files are located in the `post-processing/torrent-auto-snatch` location within the mylar directory.
-- read the read.me therein for configuration / setup.
-
-### DDL
-When using DDL, post-processing will be initiated immediately upon successful completion. By default the items are downloaded to the cache directory location and removed after post-processing. However, if you wish to change the default directory location, specify the full directory location in the config.ini `ddl_location` field.
-
-## Renaming files and folders
-You can specify how Mylar renames files during post-processing / import in addition to the folders.
-
-### Folder Format
-- If left blank or as the default value of `ComicName-(Year)`, it will create subdirectories in the format `ComicName-(Year)`
-- You can do multiple directory hiearchies as well - so you could do $Publisher/$Series/$Year to have it setup like DC Comics/Wildman/2011 (as an example)
-- Folder Format **is** used on every Add Series / Refresh Series request
-  - Enabling `Renaming` has no bearing on this, so make sure if you're not using the default, that it's what you want.
-
-### File Format
-- To enable renaming for files, you need to enable the Rename Files option, otherwise, Mylar will use the original file and not rename at all
-  - This includes replacing spaces, lowercasing and zero suppression (all renaming features)
-  
-## Moving to a new filesystem?
-- Make sure that the Comic Location path in the Mylar GUI is pointing to the original location where the comics were previously stored
-- Shutdown Mylar and edit the config.ini file
-- In the config.ini, and find the [Update] section (if you're running an up-to-date version of Mylar). If you're not up-to-date on either branch, either update prior to doing this, or just search for the variables as they're mentioned
-- Set the variables to the following:
-  - locmove = True
-  - new_comdir to the location of where the new comics will be located
-  - fftonewcom_dir = True if you have special folder formatting that involves subdirectories (ie. your folder format is set to $Publisher/$Series kinda thing...)
-- Now when you start up Mylar it will convert all the database locations from the original path to the new_comdir path. Once it's finished, you can verify it worked by just going into a few series and making sure they're pointing to the correct location.
-- Change the Comic Location path in the GUI to the new location path. Save the config.
-- Once it's converted, the locmove value will be automatically set back to a False value so that the process doesn't run on every startup sequence thereafter.
-
-- Just keep in mind that at this stage, it's just changing the location in the database - it's not creating/moving directories at all. If however, the directories don't exist in the new location, when Mylar attempts to update the series via either a Refresh or via automated scheduling, it will create the directory in the new location. If the creation of directories is something that you don't really want/need - Mylar will only create them when it needs to put an issue in the given series directory if you have the create_folders option in the config.ini set to a value of False. Otherwise, by default it's set to True, it will create if they don't exist (when Refreshing/Adding).
-
-
+### Development
+This project exists thanks to all the people who contribute - whether by code, assisting others or financial backing. 
 
 _<p align="center">You can contribute by sending in your bug reports / enhancement requests via <a href="https://github.com/mylar3/mylar3">Github</a>.</br> 
 Telling us what's working helps too!</p>__
