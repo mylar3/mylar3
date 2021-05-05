@@ -1724,7 +1724,8 @@ def totals(ComicID, havefiles=None, totalfiles=None, module=None, issueid=None, 
     #store just the total of issues, since annuals gets tracked seperately.
     controlValueStat = {"ComicID":     ComicID}
     newValueStat = {"Have":            havefiles,
-                    "Total":           totalfiles}
+                    "Total":           totalfiles,
+                    "FilesUpdated":    helpers.now()}
 
     myDB.upsert("comics", newValueStat, controlValueStat)
     if file is not None:
