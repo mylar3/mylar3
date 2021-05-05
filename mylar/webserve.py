@@ -180,6 +180,45 @@ class WebInterface(object):
         if comic is None:
             raise cherrypy.HTTPRedirect("home")
 
+        if ComicID is not None:
+            comic_ext = ('.cbr','.cbz','.cb7')
+            filesupdated = 0
+            if comic['FilesUpdated']:
+                filesupdated = time.mktime(datetime.datetime.strptime(comic['FilesUpdated'], '%Y-%m-%d %H:%M:%S').timetuple())
+
+            run_them_down = False
+
+            for dirname, subs, files in os.walk(comic['ComicLocation']):
+                if run_them_down is True:
+                    break
+
+                if dirname == dir:
+                    direc = None
+                else:
+                    direc = dirname
+
+                for fname in files:
+                    filename = fname
+                    if os.path.splitext(filename)[1].lower().endswith(comic_ext):
+                        if direc is None:
+                            try:
+                                ctime = os.path.getmtime(dirname)
+                            except Exception as e:
+                                continue
+                        else:
+                            try:
+                                ctime = os.path.getmtime(dirname)
+                            except Exception as e:
+                                continue
+
+                        if ctime > filesupdated:
+                           run_them_down = True
+                           break
+
+            if run_them_down is True:
+                updater.forceRescan(ComicID)
+                comic = myDB.selectone('SELECT * FROM comics WHERE ComicID=?', [ComicID]).fetchone()
+
         totalissues = comic['Total']
         haveissues = comic['Have']
         if not haveissues:
