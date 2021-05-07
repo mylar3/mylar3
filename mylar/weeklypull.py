@@ -1297,9 +1297,9 @@ def new_pullcheck(weeknumber, pullyear, comic1off_name=None, comic1off_id=None, 
 
     if mylar.CONFIG.AUTO_MASS_ADD is True:
        logger.info('[AUTO-MASS-ADD] Auto Mass-Add enabled and triggered for current week %s, %s..' % (weeknumber, pullyear))
-       mass_publishers(publishers=mylar.CONFIG.MASS_PUBLISHERS, weeknumber=weeknumber, year=pullyear, mass_auto=True)
+       mass_publishers(publishers=mylar.CONFIG.MASS_PUBLISHERS, weeknumber=weeknumber, year=pullyear)
 
-def mass_publishers(publishers, weeknumber, year, mass_auto=False):
+def mass_publishers(publishers, weeknumber, year):
 
     watchlibrary = helpers.listLibrary()
     watch = []
@@ -1309,8 +1309,14 @@ def mass_publishers(publishers, weeknumber, year, mass_auto=False):
     if type(publishers) == list and len(publishers) == 0:
         publishers = None
 
+    if type(publishers) == str:
+        publishers = json.loads(publishers)
+        if len(publishers) == 0:
+            publishers = None
+
     if publishers is None:
         watchlist = myDB.select('SELECT * FROM weekly WHERE weeknumber=? and year=?', [weeknumber, year])
+        mylar.CONFIG.MASS_PUBLISHERS = []
     else:
         cnt = 0
         pblist = 'AND (publisher="%s"' % publishers[cnt]
@@ -1321,9 +1327,10 @@ def mass_publishers(publishers, weeknumber, year, mass_auto=False):
              cnt += 1
         pblist += ')'
         mylar.CONFIG.MASS_PUBLISHERS = json.loads(json.dumps(pub_listing))
-        mylar.CONFIG.writeconfig(values={'mass_publishers': json.dumps(mylar.CONFIG.MASS_PUBLISHERS), 'auto_mass_add': mylar.CONFIG.AUTO_MASS_ADD})
         query_line = 'SELECT * FROM WEEKLY WHERE weeknumber=%s AND year=%s %s' % (weeknumber, year, pblist)
         watchlist = myDB.select(query_line)
+
+    mylar.CONFIG.writeconfig(values={'mass_publishers': json.dumps(mylar.CONFIG.MASS_PUBLISHERS), 'auto_mass_add': mylar.CONFIG.AUTO_MASS_ADD})
 
     if watchlist:
         for wt in watchlist:

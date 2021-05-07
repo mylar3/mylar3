@@ -2250,13 +2250,13 @@ table#annual_table td#aissuename { vertical-align: middle; text-align: center; m
   height: 30px;
   list-style-type: none;
   width: 100%;
-  z-index: 998;
+  z-index: 1;
 }
 #btn_container_center #btn_menu {
   float: center;
   margin-top: 5px;
   position: relative;
-  z-index: 99;
+  z-index: 1;
 }
 #btn_menu a {
   background-image: -moz-linear-gradient(#616161, #4e4e4e) !important;

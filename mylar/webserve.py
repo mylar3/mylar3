@@ -7095,7 +7095,7 @@ class WebInterface(object):
         #            if not any(ext['comicid'] == wt['comicid'] for ext in mylar.ADD_LIST):
         #                watch.append({'comicid': wt['comicid'], 'series': wt['comic']})
 
-        pub_info = weeklypull.mass_publishers(publishers, weeknumber, year, mass_auto)
+        pub_info = weeklypull.mass_publishers(publishers, weeknumber, year)
 
         pub_count = pub_info['publisher_count']
         if pub_count == 0:
