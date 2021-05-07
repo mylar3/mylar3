@@ -2194,13 +2194,13 @@ img.highqual {
   height: 30px;
   list-style-type: none;
   width: 100%;
-  z-index: 998;
+  z-index: 1;
 }
 #btn_container_center #btn_menu {
   float: center;
   margin-top: 5px;
   position: relative;
-  z-index: 99;
+  z-index: 1;
 }
 #btn_menu a {
   background-image: -moz-linear-gradient(#f4f4f4, #e7e7e7) !important;
