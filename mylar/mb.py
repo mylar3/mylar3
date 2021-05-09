@@ -46,7 +46,7 @@ if platform.python_version() == '2.7.6':
     http.client.HTTPConnection._http_vsn = 10
     http.client.HTTPConnection._http_vsn_str = 'HTTP/1.0'
 
-def pullsearch(comicapi, comicquery, offset, type):
+def pullsearch(comicapi, comicquery, offset, search_type):
 
     cnt = 1
     for x in comicquery:
@@ -56,7 +56,7 @@ def pullsearch(comicapi, comicquery, offset, type):
            filterline+= ',name:%s' % x
        cnt+=1
 
-    PULLURL = mylar.CVURL + str(type) + 's?api_key=' + str(comicapi) + '&filter=name:' + filterline + '&field_list=id,name,start_year,site_detail_url,count_of_issues,image,publisher,deck,description,first_issue,last_issue&format=xml&sort=date_last_updated:desc&offset=' + str(offset) # 2012/22/02 - CVAPI flipped back to offset instead of page
+    PULLURL = mylar.CVURL + str(search_type) + 's?api_key=' + str(comicapi) + '&filter=name:' + filterline + '&field_list=id,name,start_year,site_detail_url,count_of_issues,image,publisher,deck,description,first_issue,last_issue&format=xml&sort=date_last_updated:desc&offset=' + str(offset) # 2012/22/02 - CVAPI flipped back to offset instead of page
 
     #all these imports are standard on most modern python implementations
     #logger.info('MB.PULLURL:' + PULLURL)
@@ -90,7 +90,7 @@ def pullsearch(comicapi, comicquery, offset, type):
     else:
         return dom
 
-def findComic(name, mode, issue, limityear=None, type=None):
+def findComic(name, mode, issue, limityear=None, search_type=None):
 
     #with mb_lock:
     comicResults = None
@@ -136,11 +136,11 @@ def findComic(name, mode, issue, limityear=None, type=None):
     else:
         comicapi = mylar.CONFIG.COMICVINE_API
 
-    if type is None:
-        type = 'volume'
+    if search_type is None:
+        search_type = 'volume'
 
     #let's find out how many results we get from the query...
-    searched = pullsearch(comicapi, comicquery, 0, type)
+    searched = pullsearch(comicapi, comicquery, 0, search_type)
     if searched is None:
         return False
     totalResults = searched.getElementsByTagName('number_of_total_results')[0].firstChild.wholeText
@@ -156,8 +156,8 @@ def findComic(name, mode, issue, limityear=None, type=None):
         if countResults > 0:
             offsetcount = countResults
 
-            searched = pullsearch(comicapi, comicquery, offsetcount, type)
-        comicResults = searched.getElementsByTagName(type)
+            searched = pullsearch(comicapi, comicquery, offsetcount, search_type)
+        comicResults = searched.getElementsByTagName(search_type)
         body = ''
         n = 0
         if not comicResults:
@@ -166,7 +166,7 @@ def findComic(name, mode, issue, limityear=None, type=None):
                 #retrieve the first xml tag (<tag>data</tag>)
                 #that the parser finds with name tagName:
                 arclist = []
-                if type == 'story_arc':
+                if search_type == 'story_arc':
                     #call cv.py here to find out issue count in story arc
                     try:
                         logger.fdebug('story_arc ascension')

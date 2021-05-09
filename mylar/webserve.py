@@ -180,6 +180,45 @@ class WebInterface(object):
         if comic is None:
             raise cherrypy.HTTPRedirect("home")
 
+        if ComicID is not None:
+            comic_ext = ('.cbr','.cbz','.cb7')
+            filesupdated = 0
+            if comic['FilesUpdated']:
+                filesupdated = time.mktime(datetime.datetime.strptime(comic['FilesUpdated'], '%Y-%m-%d %H:%M:%S').timetuple())
+
+            run_them_down = False
+
+            for dirname, subs, files in os.walk(comic['ComicLocation']):
+                if run_them_down is True:
+                    break
+
+                if dirname == dir:
+                    direc = None
+                else:
+                    direc = dirname
+
+                for fname in files:
+                    filename = fname
+                    if os.path.splitext(filename)[1].lower().endswith(comic_ext):
+                        if direc is None:
+                            try:
+                                ctime = os.path.getmtime(dirname)
+                            except Exception as e:
+                                continue
+                        else:
+                            try:
+                                ctime = os.path.getmtime(dirname)
+                            except Exception as e:
+                                continue
+
+                        if ctime > filesupdated:
+                           run_them_down = True
+                           break
+
+            if run_them_down is True:
+                updater.forceRescan(ComicID)
+                comic = myDB.selectone('SELECT * FROM comics WHERE ComicID=?', [ComicID]).fetchone()
+
         totalissues = comic['Total']
         haveissues = comic['Have']
         if not haveissues:
@@ -433,7 +472,7 @@ class WebInterface(object):
                 return
         elif search_type == 'story_arc':
             try:
-                searchresults = mb.findComic(name, mode=None, issue=None, type='story_arc')
+                searchresults = mb.findComic(name, mode=None, issue=None, search_type='story_arc')
             except TypeError:
                 logger.error('Unable to perform required story-arc search for : [arc: ' + name + '][mode: ' + mode + ']')
                 return
@@ -445,7 +484,7 @@ class WebInterface(object):
             if mylar.CONFIG.COMICVINE_API is None:
                 logger.error('You NEED to set a ComicVine API key prior to adding anything. It\'s Free - Go get one!')
                 return
-        return serve_template(templatename="searchresults.html", title='Search Results for: "' + name + '"', searchresults=searchresults, type=search_type, imported=None, ogcname=None, name=name, serinfo=serinfo)
+        return serve_template(templatename="searchresults.html", title='Search Results for: "' + name + '"', searchresults=searchresults, search_type=search_type, imported=None, ogcname=None, name=name, serinfo=serinfo)
     searchit.exposed = True
 
     def addComic(self, comicid, comicname=None, comicyear=None, comicimage=None, comicissues=None, comicpublisher=None, imported=None, ogcname=None, serinfo=None):
@@ -7000,6 +7039,7 @@ class WebInterface(object):
         #     print('now leave me alone.')
 
         mass_auto = False
+        publishers = []
 
         for k, v in kwargs.items():
             if 'publishers' in k:
@@ -7055,7 +7095,7 @@ class WebInterface(object):
         #            if not any(ext['comicid'] == wt['comicid'] for ext in mylar.ADD_LIST):
         #                watch.append({'comicid': wt['comicid'], 'series': wt['comic']})
 
-        pub_info = weeklypull.mass_publishers(publishers, weeknumber, year, mass_auto)
+        pub_info = weeklypull.mass_publishers(publishers, weeknumber, year)
 
         pub_count = pub_info['publisher_count']
         if pub_count == 0:
@@ -7224,6 +7264,11 @@ class WebInterface(object):
     def get_the_pubs(self):
         x = []
         if mylar.CONFIG.MASS_PUBLISHERS:
+            if type(mylar.CONFIG.MASS_PUBLISHERS) != list:
+                try:
+                    mylar.CONFIG.MASS_PUBLISHERS = json.loads(mylar.CONFIG.MASS_PUBLISHERS)
+                except Exception:
+                    pass
             for i in mylar.CONFIG.MASS_PUBLISHERS:
                 x.append({'name': i})
         return json.dumps(x)

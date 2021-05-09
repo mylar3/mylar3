@@ -279,6 +279,14 @@ table.display tr.even.gradeA {
 	background-color: #0d4a0b;
 }
 
+table.display tr.odd.gradeB {
+        background-color: #61925f;
+}
+
+table.display tr.even.gradeB {
+        background-color: #61925f;
+}
+
 table.display tr.odd.gradeC {
 	background-color: #1a4977;
 }
@@ -300,7 +308,7 @@ table.display tr.even.gradeH {
 }
 
 table.display tr.odd.gradeH {
-        background-color: #957e1f;
+        background-color: #ae3431;
 }
 
 table.display tr.even.gradeL {
@@ -383,6 +391,7 @@ table.display tr.gradeL #status {
 	text-indent: -3000px;
 }
 table.display tr.gradeA td,
+table.display tr.gradeB td,
 table.display tr.gradeC td,
 table.display tr.gradeE td,
 table.display tr.gradeH td,
@@ -413,6 +422,14 @@ table.display_no_select tr.even.gradeA {
         background-color: #ddffdd;
 }
 
+table.display_no_select tr.odd.gradeB {
+        background-color: #61925f;
+}
+
+table.display_no_select tr.even.gradeB {
+        background-color: #61925f;
+}
+
 table.display_no_select tr.odd.gradeC {
         background-color: #ebf5ff;
 }
@@ -430,11 +447,11 @@ table.display_no_select tr.odd.gradeE {
 }
 
 table.display_no_select tr.even.gradeH{
-        background-color: #FFF5CC;
+        background-color: #ae3431;
 }
 
 table.display_no_select tr.odd.gradeH {
-        background-color: #FFF5CC;
+        background-color: #ae3431;
 }
 
 table.display_no_select tr.even.gradeL {

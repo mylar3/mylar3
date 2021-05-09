@@ -28,7 +28,11 @@
                                    </div>
                               </div>
                               </br>
-                              <input type="button" id="pub_button" style="text-align:center;" value="Submit" class="button" />
+                              <div id="btn_container_center">
+                                  <div id="btn_menu" style="padding-bottom:5px;">
+                                      <a id="pub_button" onclick="runthem();return false;" href="#">Submit</a>
+                                  </div>
+                              </div>
                               <input id="year" type="hidden" name="year" value="${weekinfo['year']}">
                               <input id="weeknumber" type="hidden" name="weeknumber" value="${weekinfo['weeknumber']}">
                             </div>

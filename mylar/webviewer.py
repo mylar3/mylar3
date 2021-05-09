@@ -153,7 +153,7 @@ class ComicScanner(object):
         logger.debug("Image List Requested")
         image_list = []
         image_src = os.path.join(mylar.CONFIG.CACHE_DIR, "webviewer", ish_id)
-        image_loc = os.path.join(mylar.CONFIG.HTTP_ROOT, 'cache', "webviewer", ish_id)
+        image_loc = mylar.CONFIG.HTTP_ROOT + '/'.join(['cache', "webviewer", ish_id])
         for root, dirs, files in os.walk(image_src):
             for f in files:
                 if f.endswith((".png", ".gif", ".bmp", ".dib", ".jpg", ".jpeg", ".jpe", ".jif", ".jfif", ".jfi", ".tiff", ".tif")):

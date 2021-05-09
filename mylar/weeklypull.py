@@ -70,12 +70,18 @@ def pullit(forcecheck=None, weeknumber=None, year=None):
         newpull.newpull()
     elif mylar.CONFIG.ALT_PULL == 2:
         logger.info('[PULL-LIST] Populating & Loading pull-list data directly from alternate website')
+        today_date = datetime.datetime.today().replace(second=0,microsecond=0)
+        current_weeknumber = today_date.strftime('%U')
+        current_year = today_date.strftime("%Y")
         for x in [1, 2]:
+            # for now we'll query WS twice - once for the previous week & once for the current week
+            # but only when requesting data for the current week. This is done in order to make sure that
+            # the previous weeks info is complete, as CV has started updating certain publishers after the
+            # week roll-over which leaves some stragglers if the updater doesn't catch it (which it mostly should).
             if x == 1:
                 if pulldate is not None:
-                    todaydate = datetime.datetime.today().replace(second=0,microsecond=0)
-                    weeknumber = todaydate.strftime('%U')
-                    year = todaydate.strftime("%Y")
+                    weeknumber = today_date.strftime('%U')
+                    year = today_date.strftime("%Y")
 
                 weeknumber_mod = int(weeknumber) - 1
                 year_mod = year
@@ -83,10 +89,13 @@ def pullit(forcecheck=None, weeknumber=None, year=None):
                     weeknumber_mod = 52
                     year_mod = int(year) - 1
             else:
+               time.sleep(2)
                weeknumber_mod = weeknumber
                year_mod = year
 
-            if forcecheck == 'yes' and x == 1:
+            if all([forcecheck == 'yes', x == 1, current_weeknumber != weeknumber]):
+               # if it's not the current week being requested during a recreate pull,
+               # ignore it since it's checking for the previous week at this point
                continue
 
             logger.info('[PULL-LIST] Populating & Loading pull-list data directly from alternate website for specific week of %s, %s' % (weeknumber_mod, year_mod))
@@ -1288,9 +1297,9 @@ def new_pullcheck(weeknumber, pullyear, comic1off_name=None, comic1off_id=None, 
 
     if mylar.CONFIG.AUTO_MASS_ADD is True:
        logger.info('[AUTO-MASS-ADD] Auto Mass-Add enabled and triggered for current week %s, %s..' % (weeknumber, pullyear))
-       mass_publishers(publishers=mylar.CONFIG.MASS_PUBLISHERS, weeknumber=weeknumber, year=pullyear, mass_auto=True)
+       mass_publishers(publishers=mylar.CONFIG.MASS_PUBLISHERS, weeknumber=weeknumber, year=pullyear)
 
-def mass_publishers(publishers, weeknumber, year, mass_auto=False):
+def mass_publishers(publishers, weeknumber, year):
 
     watchlibrary = helpers.listLibrary()
     watch = []
@@ -1300,8 +1309,14 @@ def mass_publishers(publishers, weeknumber, year, mass_auto=False):
     if type(publishers) == list and len(publishers) == 0:
         publishers = None
 
+    if type(publishers) == str:
+        publishers = json.loads(publishers)
+        if len(publishers) == 0:
+            publishers = None
+
     if publishers is None:
         watchlist = myDB.select('SELECT * FROM weekly WHERE weeknumber=? and year=?', [weeknumber, year])
+        mylar.CONFIG.MASS_PUBLISHERS = []
     else:
         cnt = 0
         pblist = 'AND (publisher="%s"' % publishers[cnt]
@@ -1312,9 +1327,10 @@ def mass_publishers(publishers, weeknumber, year, mass_auto=False):
              cnt += 1
         pblist += ')'
         mylar.CONFIG.MASS_PUBLISHERS = json.loads(json.dumps(pub_listing))
-        mylar.CONFIG.writeconfig(values={'mass_publishers': json.dumps(mylar.CONFIG.MASS_PUBLISHERS), 'auto_mass_add': mylar.CONFIG.AUTO_MASS_ADD})
         query_line = 'SELECT * FROM WEEKLY WHERE weeknumber=%s AND year=%s %s' % (weeknumber, year, pblist)
         watchlist = myDB.select(query_line)
+
+    mylar.CONFIG.writeconfig(values={'mass_publishers': json.dumps(mylar.CONFIG.MASS_PUBLISHERS), 'auto_mass_add': mylar.CONFIG.AUTO_MASS_ADD})
 
     if watchlist:
         for wt in watchlist:

@@ -302,8 +302,8 @@ input[type="radio"] {
   color: #fff;
   text-shadow: none;
 }
-input[type=submit],
-input[type=button] {
+input[type="submit"],
+input[type="button"] {
   -moz-border-radius: 5px;
   -webkit-border-radius: 5px;
   border-radius: 5px;
@@ -2186,9 +2186,23 @@ img.highqual {
   float: right;
   margin-top: 5px;
   position: relative;
+  text-align: right;
   z-index: 99;
 }
-#btn_container #btn_menu a {
+#btn_container_center {
+  float: center;
+  height: 30px;
+  list-style-type: none;
+  width: 100%;
+  z-index: 1;
+}
+#btn_container_center #btn_menu {
+  float: center;
+  margin-top: 5px;
+  position: relative;
+  z-index: 1;
+}
+#btn_menu a {
   background-image: -moz-linear-gradient(#f4f4f4, #e7e7e7) !important;
   background-image: linear-gradient(#f4f4f4, #e7e7e7) !important;
   background-image: -webkit-linear-gradient(#f4f4f4, #e7e7e7) !important;
@@ -2199,7 +2213,8 @@ img.highqual {
   font-size: 12px;
   font-weight: normal;
 }
-#btn_container #btn_menu a:hover {
+#btn_container #btn_menu a:hover,
+#btn_container_center #btn_menu a:hover {
   background-image: -moz-linear-gradient(#599bdc, #3072b3) !important;
   background-image: linear-gradient(#599bdc, #3072b3) !important;
   background-image: -webkit-linear-gradient(#599bdc, #3072b3) !important;
