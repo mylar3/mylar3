@@ -187,33 +187,33 @@ class WebInterface(object):
                 filesupdated = time.mktime(datetime.datetime.strptime(comic['FilesUpdated'], '%Y-%m-%d %H:%M:%S').timetuple())
 
             run_them_down = False
+            if comic['ComicLocation']:
+                for dirname, subs, files in os.walk(comic['ComicLocation']):
+                    if run_them_down is True:
+                        break
 
-            for dirname, subs, files in os.walk(comic['ComicLocation']):
-                if run_them_down is True:
-                    break
+                    if dirname == dir:
+                        direc = None
+                    else:
+                        direc = dirname
 
-                if dirname == dir:
-                    direc = None
-                else:
-                    direc = dirname
+                    for fname in files:
+                        filename = fname
+                        if os.path.splitext(filename)[1].lower().endswith(comic_ext):
+                            if direc is None:
+                                try:
+                                    ctime = os.path.getmtime(dirname)
+                                except Exception as e:
+                                    continue
+                            else:
+                                try:
+                                    ctime = os.path.getmtime(dirname)
+                                except Exception as e:
+                                    continue
 
-                for fname in files:
-                    filename = fname
-                    if os.path.splitext(filename)[1].lower().endswith(comic_ext):
-                        if direc is None:
-                            try:
-                                ctime = os.path.getmtime(dirname)
-                            except Exception as e:
-                                continue
-                        else:
-                            try:
-                                ctime = os.path.getmtime(dirname)
-                            except Exception as e:
-                                continue
-
-                        if ctime > filesupdated:
-                           run_them_down = True
-                           break
+                            if ctime > filesupdated:
+                               run_them_down = True
+                               break
 
             if run_them_down is True:
                 updater.forceRescan(ComicID)
@@ -7148,6 +7148,17 @@ class WebInterface(object):
         comic = myDB.selectone('SELECT * FROM comics WHERE ComicID=?', [comicid]).fetchone()
         if comic:
             description_load = None
+            if not os.path.exists(comic['ComicLocation']) and mylar.CONFIG.CREATE_FOLDERS is False:
+                try:
+                    checkdirectory = filechecker.validateAndCreateDirectory(comic['ComicLocation'], True)
+                except Exception as e:
+                    logger.warn('[%s] Unable to create series directory @ %s. Aborting updating of series.json' % (e, comic['ComicLocation']))
+                    return
+                else:
+                    if checkdirectory is False:
+                        logger.warn('Unable to create series directory @ %s. Aborting updating of series.json' % (comic['ComicLocation']))
+                        return
+
             if os.path.exists(os.path.join(comic['ComicLocation'], 'series.json')):
                 try:
                     with open(os.path.join(comic['ComicLocation'], 'series.json')) as j_file:
