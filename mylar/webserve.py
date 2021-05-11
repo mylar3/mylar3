@@ -1880,7 +1880,7 @@ class WebInterface(object):
             for weekly in w_results:
                 xfound = False
                 tmp_status = weekly['Status']
-                if weekly['ComicID'] in watchlibrary:
+                if weekly['ComicID'] in watchlibrary and tmp_status != 'Mismatched':
                     haveit = watchlibrary[weekly['ComicID']]['comicid']
 
                     if weekinfo['weeknumber']:
@@ -1907,8 +1907,13 @@ class WebInterface(object):
                 if all([weekly['ComicID'] is not None, weekly['ComicID'] != '', haveit == 'No']) or haveit == 'OneOff':
                     linkit = 'http://comicvine.gamespot.com/volume/4050-' + str(weekly['ComicID'])
                 else:
+                    if all([weekly['Status'] == 'Mismatched', haveit == 'No', weekly['IssueID'] is not None]):
+                        linkit = 'http://comicvine.gamespot.com/volume/4000-' + str(weekly['IssueID'])
+                    elif all([weekly['Status'] == 'Mismatched', haveit == 'Yes', weekly['ComicID'] is not None]):
+                        linkit = 'http://comicvine.gamespot.com/volume/4050-' + str(weekly['ComicID'])
+                    else:
                     #setting it here will force it to set the link to the right comicid regardless of annuals or not
-                    linkit = haveit
+                        linkit = haveit
 
                 x = None
                 try:

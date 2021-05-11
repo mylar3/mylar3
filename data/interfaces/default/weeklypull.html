@@ -138,7 +138,11 @@
                                              %if all([weekly['COMICID'] != '', weekly['COMICID'] is not None]):
                                                  <a href="${weekly['LINK']}" target="_blank">${weekly['COMIC']}</a>
                                              %else:
-                                                 ${weekly['COMIC']}
+                                                 %if all([weekly['STATUS'] == 'Mismatched', weekly['LINK'] is not None]):
+                                                     <a href="${weekly['LINK']}" target="_blank">${weekly['COMIC']}</a>
+                                                 %else:
+                                                   ${weekly['COMIC']}
+                                                 %endif
                                              %endif
                                         %else:
                                              %if weekly['HAVEIT'] == 'OneOff':
