@@ -1137,7 +1137,7 @@ def new_pullcheck(weeknumber, pullyear, comic1off_name=None, comic1off_id=None, 
                     statusupdate = updater.upcoming_update(ComicID=comicid, ComicName=comicname, IssueNumber=week['issue'], IssueDate=ComicDate, forcecheck=forcecheck, weekinfo={'weeknumber':weeknumber,'year':pullyear})
                     logger.fdebug('statusupdate: ' + str(statusupdate))
 
-                    if all([statusupdate is not None, statusupdate != 'incorrect_match']):
+                    if all([statusupdate is not None, statusupdate['Status'] != 'incorrect_match']):
                         # here we add to comics.latest
                         updater.latest_update(ComicID=comicid, LatestIssue=week['issue'], LatestDate=ComicDate)
 
@@ -1145,12 +1145,12 @@ def new_pullcheck(weeknumber, pullyear, comic1off_name=None, comic1off_id=None, 
                     mismatched = False
                     try:
                         if statusupdate is not None:
-                            if statusupdate == 'incorrect_match':
+                            if statusupdate['Status'] == 'incorrect_match':
                                 mismatched = True
                                 cstatusid = None
                                 cstatus = None
-                                issueid = None
-                                comicid = None
+                                issueid = statusupdate['IssueID'] #None
+                                comicid = statusupdate['ComicID'] #None
                             else:
                                 cstatusid = []
                                 cstatus = statusupdate['Status']
@@ -1206,6 +1206,10 @@ def new_pullcheck(weeknumber, pullyear, comic1off_name=None, comic1off_id=None, 
                             cst = cstatus
                         newValue['Status'] = cst
                     elif mismatched is True:
+                        if issueid is not None:
+                            newValue['IssueID'] = issueid
+                        if comicid is not None:
+                            newValue['ComicID'] = comicid
                         newValue['Status'] = 'Mismatched'
                     else:
                         if mylar.CONFIG.AUTOWANT_UPCOMING:
