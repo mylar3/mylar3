@@ -61,9 +61,13 @@ class GC(object):
         resultset = []
         try:
             with cfscrape.create_scraper() as s:
-                cf_cookievalue, cf_user_agent = s.get_tokens(
-                    self.url, headers=self.headers
-                )
+                try:
+                    cf_cookievalue, cf_user_agent = s.get_tokens(
+                        self.url, headers=self.headers
+                   )
+                except Exception as e:
+                    cf_cookievalue = None
+                    cf_user_agent = None
 
                 for sf in self.search_format:
                     sf_issue = self.query['issue']
@@ -190,9 +194,13 @@ class GC(object):
     def loadsite(self, id, link):
         title = os.path.join(mylar.CONFIG.CACHE_DIR, 'getcomics-' + id)
         with cfscrape.create_scraper() as s:
-            self.cf_cookievalue, cf_user_agent = s.get_tokens(
-                link, headers=self.headers
-            )
+            try:
+                self.cf_cookievalue, cf_user_agent = s.get_tokens(
+                    link, headers=self.headers
+                )
+            except Exception as e:
+                self.cf_cookievalue = None
+                self.cf_user_agent = None
 
             t = s.get(
                 link,
@@ -600,9 +608,14 @@ class GC(object):
                         '[DDL-RESUME] Attempting to resume from: %s bytes' % resume
                     )
                     self.headers['Range'] = 'bytes=%d-' % resume
-                cf_cookievalue, cf_user_agent = s.get_tokens(
-                    mainlink, headers=self.headers, timeout=30
-                )
+                try:
+                    cf_cookievalue, cf_user_agent = s.get_tokens(
+                        mainlink, headers=self.headers, timeout=30
+                    )
+                except Exception as e:
+                    cf_cookievalue = None
+                    cf_user_agent = None
+
                 t = s.get(
                     link,
                     verify=True,
