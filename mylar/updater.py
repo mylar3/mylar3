@@ -457,7 +457,7 @@ def upcoming_update(ComicID, ComicName, IssueNumber, IssueDate, forcecheck=None,
             wkend = wkde + datetime.timedelta(days = 2)
             wk_end = wkend.strftime('%Y-%m-%d')
 
-            if not ( re.sub('-', '', wk_end) >= re.sub('-', '', issue_checkdate) >= re.sub('-', '', wk_start) ):
+            if issue_checkdate != '0000-00-00' and not ( re.sub('-', '', wk_end) >= re.sub('-', '', issue_checkdate) >= re.sub('-', '', wk_start) ):
                 logger.info('[IssueDate:%s] is not within the range of [Pulldate:%s - %s]. Incorrect match being imposed by WS - please log an issue if this has not fixed itself within a few hours' %(issue_checkdate, wk_info['startweek'], wk_info['endweek']))
                 if IssueNumber is not None:
                     presentline = '%s #%s' % (ComicName, IssueNumber)
@@ -470,7 +470,10 @@ def upcoming_update(ComicID, ComicName, IssueNumber, IssueDate, forcecheck=None,
                     control = {"IssueID":   issuechk['IssueID']}
                     newchk = {'Status': 'Skipped'}
                     myDB.upsert("issues", newchk, control)
-                return 'incorrect_match'
+                return {"Status":  'incorrect_match',
+                        "ComicID": ComicID,
+                        "IssueID": issuechk['IssueID']}
+                #return 'incorrect_match'
             else:
                 #check for 'out-of-whack' series here.
                 whackness = dbUpdate([ComicID], calledfrom='weekly', sched=False)
