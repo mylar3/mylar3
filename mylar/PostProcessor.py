@@ -83,7 +83,7 @@ class PostProcessor(object):
             self.fileop = shutil.move
 
         self.valreturn = []
-        self.extensions = ('.cbr', '.cbz', '.pdf')
+        self.extensions = ('.cbr', '.cbz', '.pdf', '.cb7')
         self.failed_files = 0
         self.log = ''
         if issueid is not None:
@@ -571,6 +571,7 @@ class PostProcessor(object):
                             logger.warn('%s [%s] is either Paused or in an Ended status with 100%s completion. Ignoring for match.' % (wv['ComicName'], wv['ComicYear'], '%'))
                             continue
                         wv_comicname = wv['ComicName']
+                        wv_dynamicname = wv['DynamicComicName']
                         wv_comicpublisher = wv['ComicPublisher']
                         wv_alternatesearch = wv['AlternateSearch']
                         wv_comicid = wv['ComicID']
@@ -583,53 +584,90 @@ class PostProcessor(object):
                         wv_publisher = wv['ComicPublisher']
                         wv_total = int(wv['Total'])
                         wv_agerating = wv['AgeRating']
+                        wv_latestissue = wv['LatestIssue']
+                        wv_intlatestissue = wv['intLatestIssue']
                         if mylar.CONFIG.FOLDER_SCAN_LOG_VERBOSE:
                             logger.fdebug('Queuing to Check: %s [%s] -- %s' % (wv['ComicName'], wv['ComicYear'], wv['ComicID']))
 
                         #force it to use the Publication Date of the latest issue instead of the Latest Date (which could be anything)
-                        latestdate = myDB.select('SELECT IssueDate from issues WHERE ComicID=? order by ReleaseDate DESC', [wv['ComicID']])
-                        if latestdate:
-                            tmplatestdate = latestdate[0][0]
-                            if tmplatestdate[:4] != wv['LatestDate'][:4]:
-                                if tmplatestdate[:4] > wv['LatestDate'][:4]:
-                                    latestdate = tmplatestdate
+                        ld_check = myDB.selectone('SELECT ReleaseDate, Issue_Number, Int_IssueNumber from issues WHERE ComicID=? order by ReleaseDate DESC', [wv['ComicID']]).fetchone()
+                        if ld_check:
+                            #tmplatestdate = latestdate[0]
+                            if ld_check[0][:4] != wv['LatestDate'][:4]:
+                                if ld_check[0][:4] > wv['LatestDate'][:4]:
+                                    latestdate = ld_check[0]
                                 else:
                                     latestdate = wv['LatestDate']
                             else:
-                                latestdate = tmplatestdate
+                                latestdate = ld_check[0]
+                            tmplatestissue = ld_check[1]
+                            tmplatestissueint = ld_check[2]
+                            logger.fdebug('tmplatestissue: %s' %(tmplatestissue))
+                            logger.fdebug('tmplatestissueint: %s' %(tmplatestissueint))
+                            try:
+                                if tmplatestissueint >= wv_intlatestissue:
+                                    latestissue_int = tmplatestissueint
+                                    latestissue = tmplatestissue
+                                else:
+                                    latestissue_int = wv_intlatestissue
+                                    latestissue = wv_latestissue
+                            except Exception as e:
+                                latestissue_int = tmplatestissueint
+                                latestissue = tmplatestissue
                         else:
                             latestdate = wv['LatestDate']
+                            latestissue = wv_latestissue
+                            latestissue_int = wv_intlatestissue
 
                         if latestdate == '0000-00-00' or latestdate == 'None' or latestdate is None:
                             logger.fdebug('Forcing a refresh of series: %s as it appears to have incomplete issue dates.' % wv_comicname)
                             updater.dbUpdate([wv_comicid])
                             logger.fdebug('Refresh complete for %s. Rechecking issue dates for completion.' % wv_comicname)
-                            latestdate = myDB.select('SELECT IssueDate from issues WHERE ComicID=? order by ReleaseDate DESC', [wv['ComicID']])
-                            if latestdate:
-                                tmplatestdate = latestdate[0][0]
-                                if tmplatestdate[:4] != wv['LatestDate'][:4]:
-                                    if tmplatestdate[:4] > wv['LatestDate'][:4]:
-                                        latestdate = tmplatestdate
+                            ld_check = myDB.selectone('SELECT ReleaseDate, Issue_Number, Int_IssueNumber from issues WHERE ComicID=? order by ReleaseDate DESC', [wv['ComicID']]).fetchone()
+                            if ld_check:
+                                #tmplatestdate = latestdate[0]
+                                if ld_check[0][:4] != wv['LatestDate'][:4]:
+                                    if ld_check[0][:4] > wv['LatestDate'][:4]:
+                                        latestdate = ld_check[0]
                                     else:
                                         latestdate = wv['LatestDate']
                                 else:
-                                    latestdate = tmplatestdate
+                                    latestdate = ld_check[0]
+                                tmplatestissue = ld_check[1]
+                                tmplatestissueint = ld_check[2]
+                                logger.fdebug('tmplatestissue: %s' %(tmplatestissue))
+                                logger.fdebug('tmplatestissueint: %s' %(tmplatestissueint))
+                                try:
+                                    if tmplatestissueint >= wv_intlatestissue:
+                                        latestissue_int = tmplatestissueint
+                                        latestissue = tmplatestissue
+                                    else:
+                                        latestissue_int = wv_intlatestissue
+                                        latestissue = wv_latestissue
+                                except Exception as e:
+                                    latestissue_int = tmplatestissueint
+                                    latestissue = tmplatestissue
                             else:
                                 latestdate = wv['LatestDate']
+                                latestissue = wv_latestissue
+                                latestissue_int = wv_intlatestissue
 
                             logger.fdebug('Latest Date (after forced refresh) set to :' + str(latestdate))
 
                             if latestdate == '0000-00-00' or latestdate == 'None' or latestdate is None:
                                 logger.fdebug('Unable to properly attain the Latest Date for series: %s. Cannot check against this series for post-processing.' % wv_comicname)
-                                continue 
+                                continue
 
                         watchvals.append({"ComicName":       wv_comicname,
+                                          "DynamicName":     wv_dynamicname,
                                           "ComicPublisher":  wv_comicpublisher,
                                           "AlternateSearch": wv_alternatesearch,
                                           "ComicID":         wv_comicid,
                                           "LastUpdated":     wv['LastUpdated'],
                                           "WatchValues": {"SeriesYear":   wv_seriesyear,
                                                           "LatestDate":   latestdate,
+                                                          "LatestIssue":  latestissue,
+                                                          "LatestIssueInt":  latestissue_int,
                                                           "ComicVersion": wv_comicversion,
                                                           "AgeRating":    wv_agerating,
                                                           "Type":         wv_type,
@@ -819,7 +857,41 @@ class PostProcessor(object):
                                     # if the above both don't exist, and there's more than one series on the watchlist (or the series is > v1)
                                     # then spit out the error message and don't post-process it.
                                     watch_values = cs['WatchValues']
-                                    #logger.fdebug('WATCH_VALUES:' + str(watch_values))
+                                    second_check = False
+                                    if watch_values['LatestIssueInt'] >= fcdigit:
+                                        logger.info('possible match - issue in dB (%s) is greater than issue in file (%s)' % (watch_values['LatestIssueInt'], fcdigit))
+
+                                        #dynamic-name generation here.
+                                        as_d = filechecker.FileChecker(watchcomic=watchmatch['series_name'])
+                                        as_dinfo = as_d.dynamic_replace(watchmatch['series_name'])
+                                        tmpseriesname = as_dinfo['mod_seriesname']
+                                        dynamic_seriesname = re.sub('[\|\s]','', tmpseriesname.lower()).strip()
+                                        if cs['DynamicName'] == dynamic_seriesname:
+                                            logger.fdebug('name match exact : %s - %s' % (cs['DynamicName'], dynamic_seriesname))
+                                            test = myDB.selectone('SELECT Comic, DynamicName, Issue FROM weekly WHERE ComicID = ? ORDER BY year DESC, CAST(weeknumber AS INTEGER) DESC', [cs['ComicID']]).fetchone()
+                                            if test:
+                                                logger.fdebug('test matched to ComicID: %s' % (cs['ComicID']))
+                                                week_comic = test[0]
+                                                week_dynamicname = test[1]
+                                                week_issue = test[2]
+                                                week_intissue = helpers.issuedigits(week_issue)
+                                                if week_dynamicname == dynamic_seriesname and week_intissue == fcdigit:
+                                                    logger.fdebug('Matched exactly on Series Title, IssueNumber, present on the pull.')
+                                                    second_check = True
+                                                else:
+                                                    logger.fdebug('%s %s in filename don\'t match up to what\'s in the dB %s %s [%s]' % (watchmatch['series_name'], watchmatch['justthedigits'], week_comic, week_issue, cs['ComicID']))
+                                            else:
+                                                second_check = False
+                                        else:
+                                            pass
+                                            #logger.info('name in dB (%s) does not match name in file (%s)' % (cs['ComicName'], watchmatch['series_name']))
+                                    else:
+                                        logger.fdebug('not a match')
+
+                                    if second_check is False:
+                                        logger.fdebug('%s %s in filename don\'t match up to what\'s in the dB for %s [%s]. This is a wrong match. Continuing...' % (watchmatch['series_name'], watchmatch['justthedigits'], cs['ComicName'], cs['ComicID']))
+                                        continue
+
                                     if any([watch_values['ComicVersion'] is None, watch_values['ComicVersion'] == 'None']):
                                         tmp_watchlist_vol = '1'
                                     else:
