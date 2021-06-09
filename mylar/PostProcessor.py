@@ -573,6 +573,7 @@ class PostProcessor(object):
                         wv_comicname = wv['ComicName']
                         wv_dynamicname = wv['DynamicComicName']
                         wv_comicpublisher = wv['ComicPublisher']
+                        wv_comicpublished = wv['ComicPublished']
                         wv_alternatesearch = wv['AlternateSearch']
                         wv_comicid = wv['ComicID']
                         if wv['Corrected_Type'] is None:
@@ -661,6 +662,7 @@ class PostProcessor(object):
                         watchvals.append({"ComicName":       wv_comicname,
                                           "DynamicName":     wv_dynamicname,
                                           "ComicPublisher":  wv_comicpublisher,
+                                          "ComicPublished":  wv_comicpublished,
                                           "AlternateSearch": wv_alternatesearch,
                                           "ComicID":         wv_comicid,
                                           "LastUpdated":     wv['LastUpdated'],
@@ -859,7 +861,7 @@ class PostProcessor(object):
                                     watch_values = cs['WatchValues']
                                     second_check = False
                                     if watch_values['LatestIssueInt'] >= fcdigit:
-                                        logger.info('possible match - issue in dB (%s) is greater than issue in file (%s)' % (watch_values['LatestIssueInt'], fcdigit))
+                                        logger.fdebug('possible match - issue in dB (%s) is greater than issue in file (%s)' % (watch_values['LatestIssueInt'], fcdigit))
 
                                         #dynamic-name generation here.
                                         as_d = filechecker.FileChecker(watchcomic=watchmatch['series_name'])
@@ -881,7 +883,11 @@ class PostProcessor(object):
                                                 else:
                                                     logger.fdebug('%s %s in filename don\'t match up to what\'s in the dB %s %s [%s]' % (watchmatch['series_name'], watchmatch['justthedigits'], week_comic, week_issue, cs['ComicID']))
                                             else:
-                                                second_check = False
+                                                if any(['Present' not in cs['ComicPublished'], helpers.now()[:4] not in cs['ComicPublished']]):
+                                                    logger.fdebug('%s %s is not part of an ongoing publication. Bypassing this check and letting the dates verify below' % (watchmatch['series_name'],watchmatch['justthedigits']))
+                                                    second_check = True
+                                                else:
+                                                    second_check = False
                                         else:
                                             pass
                                             #logger.info('name in dB (%s) does not match name in file (%s)' % (cs['ComicName'], watchmatch['series_name']))
