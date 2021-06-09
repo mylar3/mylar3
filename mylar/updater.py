@@ -374,7 +374,8 @@ def latest_update(ComicID, LatestIssue, LatestDate):
     myDB = db.DBConnection()
     latestCTRLValueDict = {"ComicID":      ComicID}
     newlatestDict = {"LatestIssue":      str(LatestIssue),
-                    "LatestDate":       str(LatestDate)}
+                     "intLatestIssue":   helpers.issuedigits(LatestIssue),
+                     "LatestDate":       str(LatestDate)}
     myDB.upsert("comics", newlatestDict, latestCTRLValueDict)
 
 def upcoming_update(ComicID, ComicName, IssueNumber, IssueDate, forcecheck=None, futurepull=None, altissuenumber=None, weekinfo=None):

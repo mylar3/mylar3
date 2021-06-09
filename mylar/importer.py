@@ -1574,6 +1574,7 @@ def updateissuedata(comicid, comicname=None, issued=None, comicIssues=None, call
                     "ComicPublished":  publishfigure,
                     "NewPublish":      newpublish,
                     "LatestIssue":     latestiss,
+                    "intLatestIssue":  helpers.issuedigits(latestiss),
                     "LatestIssueID":   latestissueid,
                     "LatestDate":      latestdate,
                     "LastUpdated":     helpers.now()
