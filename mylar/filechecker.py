@@ -479,12 +479,27 @@ class FileChecker(object):
                                           'mod_position': self.char_file_position(modfilename, sf, lastmod_position)})
 
             #this handles the exceptions list in the match for alpha-numerics
-            test_exception = ''.join([i for i in sf if not i.isdigit()])
+            if re.sub('g11', "\'", sf.lower()) == "director's":
+                try:
+                    tmp_test = split_file.index(sf)+1
+                except Exeption as e:
+                    logger.warn('failure to match to Director\'s Cut - ignoring as an issue match')
+                else:
+                    if all([split_file[tmp_test].lower() == 'cut', split_file.index("Directorg11s")+1 <= len(split_file), split_file.index("Cut") == split_file.index("Directorg11s")+1]):
+                        logger.fdebug('director\'s match!')
+                        test_exception = "Director's Cut"
+            else:
+                test_exception = ''.join([i for i in sf if not i.isdigit()])
+
             if any(ext == test_exception.upper() for ext in mylar.ISSUE_EXCEPTIONS):
                 logger.fdebug('Exception match: %s' % test_exception)
                 if lastissue_label is not None:
                     if lastissue_position == (split_file.index(sf) -1):
-                        logger.fdebug('alphanumeric issue number detected as : %s %s' % (lastissue_label,sf))
+                        if any([test_exception == "Director's Cut", test_exception == '(DC)']):
+                            num_label = '%s %s' % (lastissue_label, "Director's Cut")
+                        else:
+                            num_label = '%s %s' % (lastissue_label, sf)
+                        logger.fdebug('alphanumeric issue number detected as : %s' % num_label)
                         for x in possible_issuenumbers:
                             possible_issuenumbers = []
                             if int(x['position']) != int(lastissue_position):
@@ -493,7 +508,7 @@ class FileChecker(object):
                                                               'mod_position':  x['mod_position'],
                                                               'validcountchk': x['validcountchk']})
 
-                        possible_issuenumbers.append({'number':       '%s %s' % (lastissue_label, sf),
+                        possible_issuenumbers.append({'number':       num_label,
                                                       'position':     lastissue_position,
                                                       'mod_position': self.char_file_position(modfilename, sf, lastmod_position),
                                                       'validcountchk': validcountchk})
