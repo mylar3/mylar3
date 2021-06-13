@@ -877,9 +877,13 @@ class PostProcessor(object):
                                                 week_dynamicname = test[1]
                                                 week_issue = test[2]
                                                 week_intissue = helpers.issuedigits(week_issue)
-                                                if week_dynamicname == dynamic_seriesname and week_intissue == fcdigit:
-                                                    logger.fdebug('Matched exactly on Series Title, IssueNumber, present on the pull.')
-                                                    second_check = True
+                                                if all([week_dynamicname == dynamic_seriesname, 'Present' in cs['ComicPublished']]):
+                                                    if week_intissue == fcdigit:
+                                                        logger.fdebug('Matched exactly on Series Title, IssueNumber, present on the pull.')
+                                                        second_check = True
+                                                    else:
+                                                        logger.fdebug('Matched to Series Title - but Issue Number is not on pull and series is ongoing. Bypassing this check to let the dates verify.')
+                                                        second_check = True
                                                 else:
                                                     logger.fdebug('%s %s in filename don\'t match up to what\'s in the dB %s %s [%s]' % (watchmatch['series_name'], watchmatch['justthedigits'], week_comic, week_issue, cs['ComicID']))
                                             else:
