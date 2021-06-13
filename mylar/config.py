@@ -785,7 +785,11 @@ class Config(object):
         logger.fdebug("Writing configuration to file")
         self.provider_sequence()
         config.set('Newznab', 'extra_newznabs', ', '.join(self.write_extras(self.EXTRA_NEWZNABS)))
-        config.set('Torznab', 'extra_torznabs', ', '.join(self.write_extras(self.EXTRA_TORZNABS)))
+        tmp_torz = self.write_extras(self.EXTRA_TORZNABS)
+        config.set('Torznab', 'extra_torznabs', ', '.join(tmp_torz))
+
+        # this needs to revert from , to # so that it is stored properly (multiple categories)
+        setattr(self, 'EXTRA_TORZNABS', self.get_extra_torznabs())
 
         ###this should be moved elsewhere...
         if type(self.IGNORED_PUBLISHERS) != list:
@@ -811,6 +815,7 @@ class Config(object):
             logger.fdebug('Configuration written to disk.')
         except IOError as e:
             logger.warn("Error writing configuration file: %s", e)
+
 
     def encrypt_items(self, mode='encrypt', updateconfig=False):
         encryption_list = OrderedDict({
@@ -1218,7 +1223,17 @@ class Config(object):
         return extra_newznabs
 
     def get_extra_torznabs(self):
-        extra_torznabs = list(zip(*[iter(self.EXTRA_TORZNABS.split(', '))]*6))
+        extra_torznabs = self.EXTRA_TORZNABS
+        if type(extra_torznabs) != list:
+            extra_torznabs = list(zip(*[iter(extra_torznabs.split(', '))]*6))
+        x_torcat = []
+        for x in extra_torznabs:
+            x_cat = x[4]
+            if '#' in x_cat:
+                x_t = x[4].split('#')
+                x_cat = ','.join(x_t)
+            x_torcat.append((x[0],x[1],x[2],x[3],x_cat,x[5]))
+        extra_torznabs = x_torcat
         return extra_torznabs
 
     def get_ignored_pubs(self):
@@ -1385,7 +1400,11 @@ class Config(object):
         for item in value:
             for i in item:
                 try:
-                    if "\"" in i and " \"" in i:
+                    if value.index(i) == 4:
+                        ib = i
+                        if ',' in ib:
+                            ib = re.sub(',', '#', ib).strip()
+                    elif "\"" in i and " \"" in i:
                         ib = str(i).replace("\"", "").strip()
                     else:
                         ib = i

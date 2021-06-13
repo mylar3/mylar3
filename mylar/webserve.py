@@ -5766,6 +5766,9 @@ class WebInterface(object):
                     torznab_verify = 0
                 torznab_api = kwargs['torznab_apikey' + torznab_number]
                 torznab_category = kwargs['torznab_category' + torznab_number]
+                if ',' in torznab_category:
+                    torznab_category = re.sub(',', '#', torznab_category).strip()
+
                 try:
                     torznab_enabled = str(kwargs['torznab_enabled' + torznab_number])
                 except KeyError:
