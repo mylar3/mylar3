@@ -1354,7 +1354,7 @@ div#artistheader h2 a {
   text-align: center;
 }
 #series_table th#name {
-  min-width: 300px;
+  min-width: 290px;
   text-align: center;
 }
 #series_table th#year {
@@ -1373,11 +1373,11 @@ div#artistheader h2 a {
   display: none;
 }
 #series_table th#active {
-  max-width: 25px;
+  max-width: 35px;
   text-align: center;
 }
 #series_table th#issue{
-  max-width: 20px;
+  max-width: 30px;
   text-align: center;
 }
 #series_table th#status {
@@ -1385,10 +1385,11 @@ div#artistheader h2 a {
   text-align: center;
 }
 #series_table th#published {
-  max-width: 50px;
+  max-width: 55px;
   text-align: center;
 }
 #series_table th#have {
+  max-width: 80px;
   text-align: center;
   vertical-align: middle;
 }
@@ -1400,7 +1401,7 @@ div#artistheader h2 a {
   background-color: #353a41;
 }
 #series_table td#name {
-  min-width: 300px;
+  min-width: 290px;
   text-align: center;
   vertical-align: middle;
   background-color: #353a41;
@@ -1425,13 +1426,13 @@ div#artistheader h2 a {
   display: none;
 }
 #series_table td#active {
-  max-width: 25px;
+  max-width: 35px;
   text-align: center;
   vertical-align: middle;
   background-color: #353a41;
 }
 #series_table td#issue {
-  max-width: 20px;
+  max-width: 30px;
   text-align: center;
   vertical-align: middle;
   background-color: #353a41;
@@ -1443,12 +1444,13 @@ div#artistheader h2 a {
   background-color: #353a41;
 }
 #series_table td#published {
-  max-width: 50px;
+  max-width: 55px;
   text-align: center;
   vertical-align: middle;
   background-color: #353a41;
 }
 #series_table td#have {
+  max-width: 80px;
   text-align: center;
   vertical-align: middle;
   background-color: #353a41;
@@ -1800,8 +1802,7 @@ DIV.progress-container
 	position: relative;
 	width: 100px;
 	height: 18px;
-	margin: 2px 5px 2px 0;
-	float: right;
+	margin: 2px 5px 2px 2px;
         -border:1px solid #ccc;
 	background-color: #272b30;
 	background-image: -moz-linear-gradient(top, whiteSmoke, #F9F9F9);
@@ -1865,7 +1866,7 @@ DIV.progress-container > DIV
 {
 	background-color: #4BB1CF;
 	color: #000;
-  background-image: -moz-linear-gradient(top, #5BC0DE, #339BB9);
+        background-image: -moz-linear-gradient(top, #5BC0DE, #339BB9);
 	background-image: -webkit-gradient(linear, 0 0, 0 100%, from(#5BC0DE), to(#339BB9));
 	background-image: -webkit-linear-gradient(top, #5BC0DE, #339BB9);
 	background-image: -o-linear-gradient(top, #5BC0DE, #339BB9);
@@ -1883,7 +1884,7 @@ DIV.progress-container > DIV
 .progressbar-back-text
 {
 	font-size: 12px;
-	vertical-align: middle;
+	vertical-align: text-bottom;
 	background-color: transparent;
 	position: absolute;
 	text-align: center;
@@ -1894,7 +1895,7 @@ DIV.progress-container > DIV
 .progressbar-front-text
 {
 	font-size: 12px;
-	vertical-align: text-top;
+	vertical-align: text-bottom;
 	background-color: transparent;
         display: block;
 	width: 100%;
@@ -2198,27 +2199,27 @@ img.highqual {
 table#issue_table { width: 100%; padding: 10px; }
 
 table#issue_table th#select { vertical-align: middle; text-align: center; max-width: 5px; }
-table#issue_table th#int_issuenumber { text-align: left; max-width: 50px }
+table#issue_table th#int_issuenumber { text-align: left; max-width: 10px }
 table#issue_table th#issuenumber { text-align: center; max-width: 20px; }
-table#issue_table th#issuename { text-align: center; min-width: 200px; }
-table#issue_table th#reldate { text-align: center; max-width: 75px; }
-table#issue_table th#status { text-align: center; max-width: 75px; }
-table#issue_table th#options { text-align: center; max-width: 100px; }
+table#issue_table th#issuename { text-align: center; max-width: 200px; }
+table#issue_table th#reldate { text-align: center; max-width: 45px; }
+table#issue_table th#status { text-align: center; max-width: 55px; }
+table#issue_table th#options { text-align: center; max-width: 120px; }
 
 table#issue_table td#select { vertical-align: middle; text-align: center; max-width: 5px; }
-table#issue_table td#int_issuenumber { vertical-align: middle; text-align: left; max-width: 50px; }
+table#issue_table td#int_issuenumber { vertical-align: middle; text-align: left; max-width: 10px; }
 table#issue_table td#issuenumber { vertical-align: middle; text-align: center; max-width: 20px; }
-table#issue_table td#issuename { vertical-align: middle; text-align: center; min-width: 200px; }
-table#issue_table td#reldate { vertical-align: middle; text-align: center; max-width: 75px; }
-table#issue_table td#status { vertical-align: middle; text-align: center; max-width: 75px; }
-table#issue_table td#options { vertical-align: middle; text-align: center; max-width: 100px; }
+table#issue_table td#issuename { vertical-align: middle; text-align: center; max-width: 250px; }
+table#issue_table td#reldate { vertical-align: middle; text-align: center; max-width: 45px; }
+table#issue_table td#status { vertical-align: middle; text-align: center; max-width: 55px; }
+table#issue_table td#options { vertical-align: middle; text-align: center; max-width: 120px; }
 
 table#annual_table { width: 100%; padding: 10px; }
 
 table#annual_table th#select { vertical-align: middle; text-align: center; max-width: 5px; }
 table#annual_table th#aint_issuenumber { text-align: left; max-width: 1px }
 table#annual_table th#aissuenumber { text-align: center; max-width: 20px; }
-table#annual_table th#aissuename { text-align: center; min-width: 200px; }
+table#annual_table th#aissuename { text-align: center; min-width: 250px; }
 table#annual_table th#areldate { text-align: center; max-width: 75px; }
 table#annual_table th#astatus { text-align: center; max-width: 75px; }
 table#annual_table th#aoptions { text-align: center; max-width: 100px; }
