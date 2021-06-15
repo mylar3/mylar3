@@ -15,7 +15,7 @@
 #  along with Mylar.  If not, see <http://www.gnu.org/licenses/>.
 
 import mylar
-from mylar import db, mb, importer, search, process, versioncheck, logger, webserve, helpers, encrypted
+from mylar import db, mb, importer, search, process, versioncheck, logger, webserve, helpers, encrypted, series_metadata
 import json
 import cherrypy
 import random
@@ -33,6 +33,7 @@ cmd_list = ['getIndex', 'getComic', 'getUpcoming', 'getWanted', 'getHistory',
             'queueIssue', 'unqueueIssue', 'forceSearch', 'forceProcess', 'changeStatus',
             'getVersion', 'checkGithub','shutdown', 'restart', 'update',
             'getComicInfo', 'getIssueInfo', 'getArt', 'downloadIssue',
+            'refreshSeriesjson', 'seriesjsonListing',
             'downloadNZB', 'getReadList', 'getStoryArc', 'addStoryArc']
 
 class Api(object):
@@ -491,6 +492,67 @@ class Api(object):
         controlValueDict = {'IssueID': self.id}
         newValueDict = {'Status': 'Skipped'}
         myDB.upsert("issues", newValueDict, controlValueDict)
+
+    def _seriesjsonListing(self, **kwargs):
+        if 'missing' in kwargs:
+            json_present = "WHERE seriesjsonPresent = 0 OR seriesjsonPresent is NULL"
+        else:
+            json_present = None
+        myDB = db.DBConnection()
+        msj_query = 'SELECT comicid, ComicLocation FROM comics {json_present}'.format(
+            json_present=json_present
+        )
+        results = self._resultsFromQuery(msj_query)
+        if len(results) > 0:
+            self.data = self._successResponse(
+                results
+            )
+        else:
+            self.data = self._failureResponse('no data returned from seriesjson query')
+
+    def _refreshSeriesjson(self, **kwargs):
+        # comicid = [list, comicid, 'missing', 'all', 'refresh-missing']
+        if 'comicid' not in kwargs:
+            self.data = self._failureResponse('Missing comicid')
+            return
+        else:
+            missing = False
+            refresh_missing = False
+            self.id = kwargs['comicid']
+            if any([self.id == 'missing', self.id == 'all', self.id == 'refresh-missing']):
+                bulk = True
+                if any([self.id == 'missing', self.id == 'refresh-missing']):
+                    if self.id == 'refresh-missing':
+                        refresh_missing = True
+                    missing = True
+                    self._seriesjsonListing(missing=True)
+                else:
+                    self._seriesjsonListing()
+                toqy = json.loads(self.data)
+                if toqy['success'] is True:
+                    toquery = []
+                    for x in toqy['data']:
+                        toquery.append(x['ComicID'])
+                else:
+                    self.data = self._failureResponse('No seriesjson data returned from query.')
+                    return
+            else:
+                bulk = False
+                if type(self.id) is list:
+                    bulk = True
+                toquery = self.id
+
+        logger.info('[API][Refresh-Series.json][BULK:%s][Only_Missing:%s] ComicIDs to refresh series.json files: %s' % (bulk, missing, len(toquery)))
+
+        try:
+            sm = series_metadata.metadata_Series(comicidlist=toquery, bulk=bulk, api=True, refreshSeries=refresh_series)
+            sm.update_metadata_thread()
+        except Exception as e:
+            logger.error('[ERROR] %s' % e)
+            self.data = e
+
+        return
+
 
     def _forceSearch(self, **kwargs):
         search.searchforissue()
