@@ -545,7 +545,7 @@ class Api(object):
         logger.info('[API][Refresh-Series.json][BULK:%s][Only_Missing:%s] ComicIDs to refresh series.json files: %s' % (bulk, missing, len(toquery)))
 
         try:
-            sm = series_metadata.metadata_Series(comicidlist=toquery, bulk=bulk, api=True, refreshSeries=refresh_series)
+            sm = series_metadata.metadata_Series(comicidlist=toquery, bulk=bulk, api=True, refreshSeries=refresh_missing)
             sm.update_metadata_thread()
         except Exception as e:
             logger.error('[ERROR] %s' % e)
