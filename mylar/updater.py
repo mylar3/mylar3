@@ -343,6 +343,11 @@ def dbUpdate(ComicIDList=None, calledfrom=None, sched=False):
                     logger.info('I have added ' + str(len(newiss)) + ' new issues for this series that were not present before.')
                     forceRescan(ComicID)
 
+                    #series.json updater here (after all data written out)
+                    if not calledfrom == 'json_api':
+                        sm = mylar.series_metadata.metadata_Series(ComicID, bulk=False, api=False)
+                        sm.update_metadata()
+
                 else:
                     chkstatus = mylar.importer.addComictoDB(ComicID, mismatch, annload=annload, csyear=csyear)
                     #if cchk:

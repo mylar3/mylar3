@@ -40,7 +40,7 @@ import shutil
 
 import mylar
 
-from mylar import logger, db, importer, mb, search, filechecker, helpers, updater, parseit, weeklypull, PostProcessor, librarysync, moveit, Failed, readinglist, notifiers, sabparse, config
+from mylar import logger, db, importer, mb, search, filechecker, helpers, updater, parseit, weeklypull, PostProcessor, librarysync, moveit, Failed, readinglist, notifiers, sabparse, config, series_metadata
 from mylar.auth import AuthController, require
 
 import simplejson as simplejson
@@ -326,19 +326,40 @@ class WebInterface(object):
                 try:
                     with open(os.path.join(comic['ComicLocation'], 'series.json')) as j_file:
                         metainfo = json.load(j_file)
-                    description_load = metainfo['metadata'][0]['description']
+                    try:
+                        # series.json 1.0.1
+                        description_load = metainfo['metadata']['description_text']
+                    except Exception as e:
+                        try:
+                            # series.json 1.0
+                            description_load = metainfo['metadata'][0]['description_text']
+                        except Exception as e:
+                            description_load = metainfo['metadata'][0]['description']
                 except Exception as e:
                     try:
-                        description_load = metainfo['metadata'][0]['description_formatted']
+                       # series.json 1.0.1
+                        description_load = metainfo['metadata']['description_formatted']
                     except Exception as e:
-                        logger.info('No description found within series.json. Reloading from dB if available.[error: %s]' % e)
+                        try:
+                            # series.json 1.0
+                            description_load = metainfo['metadata'][0]['description_formatted']
+                        except Exception as e:
+                            logger.info('No description found within series.json. Reloading from dB if available.[error: %s]' % e)
 
-        if description_load is not None:
-            description = description_load
-        elif comic['DescriptionEdit'] is not None:
-            description = comic['DescriptionEdit']
+        if mylar.CONFIG.SERIESJSON_FILE_PRIORITY is True:
+            if description_load is not None:
+                description = description_load
+            elif comic['DescriptionEdit'] is not None:
+                description = comic['DescriptionEdit']
+            else:
+                description = comic['Description']
         else:
-            description = comic['Description']
+            if comic['DescriptionEdit'] is not None:
+                description = comic['DescriptionEdit']
+            elif description_load is not None:
+                description = description_load
+            else:
+                description = comic['Description']
 
         if comic['Collects'] is not None:
             issues_list = json.loads(comic['Collects'])
@@ -7133,142 +7154,45 @@ class WebInterface(object):
             try:
                 with open(os.path.join(desc['ComicLocation'], 'series.json')) as j_file:
                     metainfo = json.load(j_file)
-                description_load = metainfo['metadata'][0]['description']
-            except Exception as e:
                 try:
-                    description_load = metainfo['metadata'][0]['description_formatted']
+                    # series.json version 1.0.1
+                    description_load = metainfo['metadata']['description_text']
                 except Exception as e:
-                    logger.info('No description found in metadata. Reloading from dB if available.[error: %s]' % e)
-
-        if description_load is not None:
-            return description_load
-        elif desc:
+                    try:
+                        # series.json version 1.0
+                        description_load = metainfo['metadata'][0]['description_text']
+                    except Exception as e:
+                        description_load = metainfo['metadata'][0]['description']
+            except Exception as e:
+                 try:
+                    # series.json version 1.0.1
+                    description_load = metainfo['metadata']['description_formatted']
+                 except Exception as e:
+                    try:
+                        # series.json version 1.0
+                        description_load = metainfo['metadata'][0]['description_formatted']
+                    except Exception as e:
+                        logger.info('No description found in metadata. Reloading from dB if available.[error: %s]' % e)
+        if desc:
             if desc['DescriptionEdit']:
                 return desc['DescriptionEdit']
             else:
                 return desc['Description']
+        elif description_load is not None:
+            return description_load
         else:
             return 'No description available.'
     get_description.exposed = True
 
-    def update_metadata(self, comicid):
-        myDB = db.DBConnection()
-        comic = myDB.selectone('SELECT * FROM comics WHERE ComicID=?', [comicid]).fetchone()
-        if comic:
-            description_load = None
-            if not os.path.exists(comic['ComicLocation']) and mylar.CONFIG.CREATE_FOLDERS is False:
-                try:
-                    checkdirectory = filechecker.validateAndCreateDirectory(comic['ComicLocation'], True)
-                except Exception as e:
-                    logger.warn('[%s] Unable to create series directory @ %s. Aborting updating of series.json' % (e, comic['ComicLocation']))
-                    return
-                else:
-                    if checkdirectory is False:
-                        logger.warn('Unable to create series directory @ %s. Aborting updating of series.json' % (comic['ComicLocation']))
-                        return
+    def update_metadata_thread(self, **kwargs):
+        sm = series_metadata.metadata_Series(kwargs=kwargs)
+        threading.Thread(target=sm.update_metadata).start()
+    update_metadata_thread.exposed = True
 
-            if os.path.exists(os.path.join(comic['ComicLocation'], 'series.json')):
-                try:
-                    with open(os.path.join(comic['ComicLocation'], 'series.json')) as j_file:
-                        metainfo = json.load(j_file)
-                        logger.info('metainfo_loaded: %s' % (metainfo,))
-                    description_load = metainfo['metadata'][0]['description']
-                except Exception as e:
-                    try:
-                        description_load = metainfo['metadata'][0]['description_formatted']
-                    except Exception as e:
-                        logger.info('No description found in metadata. Reloading from dB if available.[error: %s]' % e)
-
-            c_date = datetime.date(int(comic['LatestDate'][:4]), int(comic['LatestDate'][5:7]), 1)
-            n_date = datetime.date.today()
-            recentchk = (n_date - c_date).days
-            if comic['NewPublish'] is True:
-                seriesStatus = 'Continuing'
-            else:
-                #do this just incase and as an extra measure of accuracy hopefully.
-                if recentchk < 55:
-                    seriesStatus = 'Continuing'
-                else:
-                    seriesStatus = 'Ended'
-
-            clean_issue_list = None
-            if comic['Collects'] != 'None':
-                clean_issue_list = comic['Collects']
-
-            if description_load is not None:
-                cdes_removed = re.sub(r'\n', '', description_load).strip()
-                cdes_formatted = description_load
-            elif comic['DescriptionEdit'] is not None:
-                cdes_removed = re.sub(r'\n', ' ', comic['DescriptionEdit']).strip()
-                cdes_formatted = comic['DescriptionEdit']
-            else:
-                if comic['Description'] is not None:
-                    cdes_removed = re.sub(r'\n', '', comic['Description']).strip()
-                else:
-                    cdes_removed = comic['Description']
-                    logger.warn('Series does not have a description. Not populating, but you might need to do a Refresh Series to fix this')
-                cdes_formatted = comic['Description']
-
-            comicVol = comic['ComicVersion']
-            if all([mylar.CONFIG.SETDEFAULTVOLUME is True, comicVol is None]):
-                comicVol = 'v1'
-            if comicVol is not None:
-                if comicVol.isdigit():
-                    comicVol = 'v' + comic['ComicVersion']
-                    logger.info('Updated version to :' + str(comicVol))
-                    if all([mylar.CONFIG.SETDEFAULTVOLUME is False, comicVol == 'v1']):
-                       comicVol = None
-            else:
-                if mylar.CONFIG.SETDEFAULTVOLUME is True:
-                    comicVol = 'v1'
-
-            if any([comic['ComicYear'] is None, comic['ComicYear'] == '0000', comic['ComicYear'][-1:] == '-']):
-                SeriesYear = issued['firstdate'][:4]
-            else:
-                SeriesYear = comic['ComicYear']
-
-            csyear = comic['Corrected_SeriesYear']
-
-            if any([int(SeriesYear) > int(datetime.datetime.now().year) + 1, int(SeriesYear) == 2099]) and csyear is not None:
-                logger.info('Corrected year of ' + str(SeriesYear) + ' to corrected year for series that was manually entered previously of ' + str(csyear))
-                SeriesYear = csyear
-
-            if all([int(comic['Total']) == 1, SeriesYear < helpers.today()[:4], comic['Type'] != 'One-Shot', comic['Type'] != 'TPB']):
-                logger.info('Determined to be a one-shot issue. Forcing Edition to One-Shot')
-                booktype = 'One-Shot'
-            else:
-                booktype = comic['Type']
-
-            if comic['Corrected_Type'] and comic['Corrected_Type'] != booktype:
-                booktype = comic['Corrected_Type']
-
-            c_image = comic
-            metadata = {}
-            metadata['metadata'] = [(
-                                        {'type': 'comicSeries',
-                                         'publisher': comic['ComicPublisher'],
-                                         'imprint': comic['PublisherImprint'],
-                                         'name': comic['ComicName'],
-                                         'comicid': comicid,
-                                         'year': SeriesYear,
-                                         'description_text': cdes_removed,
-                                         'description_formatted': cdes_formatted,
-                                         'volume': comicVol,
-                                         'booktype': booktype,
-                                         'collects': clean_issue_list,
-                                         'ComicImage': comic['ComicImageURL'],
-                                         'total_issues': comic['Total'],
-                                         'publication_run': comic['ComicPublished'],
-                                         'status': seriesStatus}
-            )]
-
-            try:
-                with open(os.path.join(comic['ComicLocation'], 'series.json'), 'w', encoding='utf-8') as outfile:
-                    json.dump(metadata, outfile, indent=4, ensure_ascii=False)
-            except Exception as e:
-                logger.error('Unable to write series.json to %s. Error returned: %s' % (comic['ComicLocation'], e))
-            else:
-                logger.fdebug('Successfully written series.json file to %s' % comic['ComicLocation'])
+    def update_metadata(self, comicid, bulk=False, api=False):
+        sm = series_metadata.metadata_Series(comicidlist=comicid, bulk=bulk, api=api)
+        sm.update_metadata()
+        return
     update_metadata.exposed = True
 
     def weekly_publisherlisting(self, weeknumber, year):
