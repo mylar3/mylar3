@@ -867,6 +867,9 @@ class PostProcessor(object):
                                         as_d = filechecker.FileChecker(watchcomic=watchmatch['series_name'])
                                         as_dinfo = as_d.dynamic_replace(watchmatch['series_name'])
                                         tmpseriesname = as_dinfo['mod_seriesname']
+                                        if all([mylar.CONFIG.ANNUALS_ON, 'annual' in tmpseriesname.lower()]) or all([mylar.CONFIG.ANNUALS_ON, 'special' in tmpseriesname.lower()]):
+                                            tmpseriesname = re.sub('annual', '', tmpseriesname, flags=re.I).strip()
+                                            tmpseriesname = re.sub('special', '', tmpseriesname, flags=re.I).strip()
                                         dynamic_seriesname = re.sub('[\|\s]','', tmpseriesname.lower()).strip()
                                         if cs['DynamicName'] == dynamic_seriesname:
                                             logger.fdebug('name match exact : %s - %s' % (cs['DynamicName'], dynamic_seriesname))
@@ -877,6 +880,8 @@ class PostProcessor(object):
                                                 week_dynamicname = test[1]
                                                 week_issue = test[2]
                                                 week_intissue = helpers.issuedigits(week_issue)
+                                                logger.fdebug('week_dynamicname: %s / dynamic_seriesname: %s' % (week_dynamicname,dynamic_seriesname))
+                                                logger.fdebug('week_intissue: %s / fcdigit: %s' % (week_intissue, fcdigit))
                                                 if all([week_dynamicname == dynamic_seriesname, 'Present' in cs['ComicPublished']]):
                                                     if week_intissue == fcdigit:
                                                         logger.fdebug('Matched exactly on Series Title, IssueNumber, present on the pull.')
