@@ -108,8 +108,8 @@ def locg(pulldate=None,weeknumber=None,year=None):
                     comicid = x['comicid']
                 if x['issueid'] is not None:
                     issueid= x['issueid']
-                if x['alias'] is not None:
-                    comicname = x['alias']
+                #if x['alias'] is not None:
+                #    comicname = x['alias']
 
                 cl_d = mylar.filechecker.FileChecker()
                 cl_dyninfo = cl_d.dynamic_replace(comicname)
