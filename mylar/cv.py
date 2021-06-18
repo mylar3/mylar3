@@ -1046,6 +1046,7 @@ def GetSeriesYears(dom):
         else:
             tempseries['Issue_List'] = 'None'
 
+        volume_found = None
         while (desdeck > 0):
             if desdeck == 1:
                 if comic_desc == 'None':
@@ -1060,10 +1061,23 @@ def GetSeriesYears(dom):
                 break
 
             i = 0
+            looped_once = False
             while (i < 2):
                 if 'volume' in comicDes.lower():
                     #found volume - let's grab it.
                     v_find = comicDes.lower().find('volume')
+
+                    if all([comicDes.lower().find('annual issue from') > 0, volume_found is not None, looped_once is False]):
+                        logger.fdebug('wrong annual declaration found previously. Attempting to correct')
+                        cd_find = comic_desc.lower().find('annual issue from') + 17
+                        comicDes = comic_desc[cd_find:cd_find+30]
+                        if 'volume' in comicDes.lower():
+                            v_find = comicDes.lower().find('volume') #_desc[cd_find:cd_find+45].lower().find('volume')
+                            if i == 1:
+                                i = 0
+                            looped_once = True
+                            volume_found = None
+
                     #arbitrarily grab the next 10 chars (6 for volume + 1 for space + 3 for the actual vol #)
                     #increased to 10 to allow for text numbering (+5 max)
                     #sometimes it's volume 5 and ocassionally it's fifth volume.
@@ -1081,7 +1095,6 @@ def GetSeriesYears(dom):
                             sconv = basenums[nums]
                             vfind = re.sub(nums, sconv, vfind.lower())
                             break
-                    #logger.info('volconv: ' + str(volconv))
 
                     #now we attempt to find the character position after the word 'volume'
                     if i == 0:
@@ -1099,16 +1112,17 @@ def GetSeriesYears(dom):
                     vf = re.findall('[^<>]+', vfind)
                     try:
                         ledigit = re.sub("[^0-9]", "", vf[0])
-                        if ledigit != '':
-                            tempseries['Volume'] = ledigit
-                            logger.fdebug("Volume information found! Adding to series record : volume %s" % tempseries['Volume'])
-                            break
+                        if ledigit != '' and volume_found is None:
+                            volume_found = ledigit
+                            #tempseries['Volume'] = ledigit
+                            logger.fdebug("Volume information found! Adding to series record : volume %s" % volume_found)
                     except:
                         pass
 
                     i += 1
                 else:
                     i += 1
+            tempseries['Volume'] = volume_found
 
             if tempseries['Volume'] == 'None':
                 logger.fdebug('tempseries[Volume]: %s' % tempseries['Volume'])

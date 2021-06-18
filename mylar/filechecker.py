@@ -473,6 +473,11 @@ class FileChecker(object):
                     logger.fdebug('checking date : %s' % dtcheck)
                     checkdate_response = self.checkthedate(dtcheck)
                     if checkdate_response:
+                        if dtcheck.endswith('-') and int(dtcheck[:-1]) == int(checkdate_response):
+                            volume_found['volume'] = dtcheck[:-1]
+                            volume_found['position'] = split_file.index(sf,current_pos)
+                            logger.fdebug('volume detected as : %s' % dtcheck)
+                            continue
                         logger.fdebug('date: %s' % checkdate_response)
                         datecheck.append({'date':         dtcheck,
                                           'position':     split_file.index(sf),
@@ -1657,7 +1662,7 @@ class FileChecker(object):
     #    Jan 1990
     #    January1990'''
 
-        fmts = ('%Y','%b %d, %Y','%B %d, %Y','%B %d %Y','%m/%d/%Y','%m/%d/%y','(%m/%d/%Y)','%b %Y','%B%Y','%b %d,%Y','%m-%Y','%B %Y','%Y-%m-%d','%Y-%m','%Y%m','%Y-%m-00')
+        fmts = ('%Y','%Y-', '%b %d, %Y','%B %d, %Y','%B %d %Y','%m/%d/%Y','%m/%d/%y','(%m/%d/%Y)','%b %Y','%B%Y','%b %d,%Y','%m-%Y','%B %Y','%Y-%m-%d','%Y-%m','%Y%m','%Y-%m-00')
         mnths = ('Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec')
         parsed=[]
 

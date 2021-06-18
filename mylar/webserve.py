@@ -3864,12 +3864,18 @@ class WebInterface(object):
                 #modi_names = fc.dynamic_replace(arc['ComicName'])
                 #mod_arc = re.sub('[\|\s]', '', modi_names['mod_watchcomic'].lower()).strip()   #is from the arc db
 
-                comics = myDB.select("SELECT * FROM comics WHERE DynamicComicName IN (?) COLLATE NOCASE", [arc['DynamicComicName']])
+                dyn_name = arc['DynamicComicName']
+                if mylar.CONFIG.ANNUALS_ON:
+                    dyn_name = re.sub('[\|\s]', '', re.sub('annual', '', arc['DynamicComicName'].lower())).strip()
+                comics = myDB.select("SELECT * FROM comics WHERE DynamicComicName IN (?) COLLATE NOCASE", [dyn_name])
 
                 for comic in comics:
                     mod_watch = comic['DynamicComicName'] #is from the comics db
 
-                    if re.sub('[\|\s]','', mod_watch.lower()).strip() == re.sub('[\|\s]', '', arc['DynamicComicName'].lower()).strip():
+                    tmp_chkr = re.sub('[\|\s]', '', re.sub('annual', '', arc['DynamicComicName'].lower())).strip()
+                    logger.fdebug('tmp_chkr: %s' % tmp_chkr)
+                    logger.fdebug('mod_watch: %s' % re.sub('[\|\s]', '', mod_watch.lower()).strip())
+                    if re.sub('[\|\s]','', mod_watch.lower()).strip() == tmp_chkr: #re.sub('[\|\s]', '', arc['DynamicComicName'].lower()).strip():
                         logger.fdebug("initial name match - confirming issue # is present in series")
                         if comic['ComicID'][:1] == 'G':
                             # if it's a multi-volume series, it's decimalized - let's get rid of the decimal.
@@ -3882,43 +3888,66 @@ class WebInterface(object):
                         else:
                             issue_int = helpers.issuedigits(arc['IssueNumber'])
                             logger.fdebug('int_issue = %s' % issue_int)
-                            isschk = myDB.selectone("SELECT * FROM issues WHERE Int_IssueNumber=? AND ComicID=?", [issue_int, comic['ComicID']]).fetchone() #AND STATUS !='Snatched'", [issue_int, comic['ComicID']]).fetchone()
+                            if mylar.CONFIG.ANNUALS_ON and 'annual' in arc['ComicName'].lower():
+                                logger.fdebug('annual checking: %s -- %s' % (issue_int, comic['ComicID']))
+                                isschk = myDB.select("SELECT ComicID, IssueID, IssueDate, ReleaseDate, ReleaseComicName FROM annuals WHERE Int_IssueNumber=? AND ComicID=?", [issue_int, comic['ComicID']])
+                                match_annual = True
+                            else:
+                                isschk = myDB.select("SELECT ComicID, IssueID, IssueDate, ReleaseDate, ComicName FROM issues WHERE Int_IssueNumber=? AND ComicID=?", [issue_int, comic['ComicID']]) #AND STATUS !='Snatched'", [issue_int, comic['ComicID']]).fetchone()
+                                match_annual = False
                         if isschk is None:
                             logger.fdebug('We matched on name, but issue %s doesn\'t exist for %s' % (arc['IssueNumber'], comic['ComicName']))
                         else:
-                            #this gets ugly - if the name matches and the issue, it could still be wrong series
-                            #use series year to break it down further.
-                            logger.fdebug('COMIC-comicyear: %s' % comic['ComicYear'])
-                            logger.fdebug('B4-ARC-seriesyear: %s' % arc['SeriesYear'])
-                            if any([arc['SeriesYear'] is None, arc['SeriesYear'] == 'None']):
-                                vy = '2099-00-00'
-                                for x in isschk:
-                                    if any([x['IssueDate'] is None, x['IssueDate'] == '0000-00-00']):
-                                        sy = x['StoreDate']
+                            for isk in isschk:
+                                #this gets ugly - if the name matches and the issue, it could still be wrong series
+                                #use series year to break it down further.
+                                logger.fdebug('COMIC-comicyear: %s' % comic['ComicYear'])
+                                logger.fdebug('B4-ARC-seriesyear: %s' % arc['SeriesYear'])
+                                if any([arc['SeriesYear'] is None, arc['SeriesYear'] == 'None']):
+                                    vy = '2099-00-00'
+                                    if any([isk['IssueDate'] is None, isk['IssueDate'] == '0000-00-00']):
+                                        sy = isk['ReleaseDate']
                                         if any([sy is None, sy == '0000-00-00']):
                                             continue
                                     else:
-                                        sy = x['IssueDate']
+                                        sy = isk['IssueDate']
                                     if sy < vy:
                                         v_seriesyear = sy
-                                seriesyear = v_seriesyear
-                                logger.info('No Series year set. Discovered & set to %s' % seriesyear)
-                            else:
-                                seriesyear = arc['SeriesYear']
-                            logger.fdebug('ARC-seriesyear: %s' % seriesyear)
-                            if int(comic['ComicYear']) != int(seriesyear):
-                                logger.fdebug('Series years are different - discarding match. %s != %s' % (comic['ComicYear'], seriesyear))
-                            else:
+                                    seriesyear = v_seriesyear
+                                    logger.fdebug('No Series year set. Discovered & set to %s' % seriesyear)
+                                else:
+                                    seriesyear = arc['SeriesYear']
+                                logger.fdebug('ARC-seriesyear: %s' % seriesyear)
+                                logger.fdebug('[SAFETY-CHECK] Checking issue dates between arc & series to make sure we match the right volume')
+                                if all([arc['IssueDate'] is not None, arc['IssueDate'] != '0000-00-00']):
+                                    tmpdate_chk = arc['IssueDate']
+                                elif all([arc['ReleaseDate'] is not None, arc['ReleaseDate'] != '0000-00-00']):
+                                    tmpdate_chk = arc['ReleaseDate']
+                                if any([isk['IssueDate'] is None, isk['IssueDate'] == '0000-00-00']):
+                                    sy = isk['ReleaseDate']
+                                    if any([sy is None, sy == '0000-00-00']):
+                                        logger.fdebug('No valid dates present for %s %s [%s]' % (arc['ComicName'], arc['IssueNumber'], isk['ComicID']))
+                                        continue
+                                    else:
+                                        iss_tmpchk = sy
+                                else:
+                                    iss_tmpchk = isk['IssueDate']
+
+                                if re.sub('-', '', tmpdate_chk).strip() != re.sub('-', '', iss_tmpchk).strip():
+                                    logger.fdebug('Issue Dates are different (issue:%s / arc:%s) - this is probably attempting to hit the wrong volume of the series. Ignoring this result.' % (tmpdate_chk, iss_tmpchk))
+                                    continue
                                 logger.fdebug('issue #: %s is present!' % arc['IssueNumber'])
                                 logger.fdebug('Comicname: %s' % arc['ComicName'])
-                                logger.fdebug('ComicID: %s' % isschk['ComicID'])
+                                logger.fdebug('ComicID: %s [IssueID: %s]' % (isk['ComicID'], isk['IssueID']))
                                 logger.fdebug('Issue: %s' % arc['IssueNumber'])
                                 logger.fdebug('IssueArcID: %s' % arc['IssueArcID'])
                                 #gather the matches now.
                                 arc_match.append({
                                     "match_storyarc":          arc['StoryArc'],
+                                    "match_annual":            match_annual,
                                     "match_name":              arc['ComicName'],
-                                    "match_id":                isschk['ComicID'],
+                                    "match_id":                isk['ComicID'],
+                                    "match_issueid":           isk['IssueID'],
                                     "match_issue":             arc['IssueNumber'],
                                     "match_issuearcid":        arc['IssueArcID'],
                                     "match_seriesyear":        comic['ComicYear'],
@@ -3995,12 +4024,13 @@ class WebInterface(object):
             logger.fdebug('%s issues currently exist on your watchlist that are within this arc. Analyzing...' % len(arc_match))
             for m_arc in arc_match:
                 #now we cycle through the issues looking for a match.
-                #issue = myDB.selectone("SELECT * FROM issues where ComicID=? and Issue_Number=?", [m_arc['match_id'], m_arc['match_issue']]).fetchone()
-                issue = myDB.selectone("SELECT a.Issue_Number, a.Status, a.IssueID, a.ComicName, a.IssueDate, a.Location, b.readingorder FROM issues AS a INNER JOIN storyarcs AS b ON a.comicid = b.comicid where a.comicid=? and a.issue_number=?", [m_arc['match_id'], m_arc['match_issue']]).fetchone()
-
+                if m_arc['match_annual']:
+                    issue = myDB.selectone("SELECT a.Issue_Number, a.Status, a.IssueID, a.ComicName, a.IssueDate, a.Location, b.readingorder FROM annuals AS a INNER JOIN storyarcs AS b ON a.comicid = b.comicid where a.comicid=? and a.issue_number=? and a.issueid=?", [m_arc['match_id'], m_arc['match_issue'], m_arc['match_issueid']]).fetchone()
+                else:
+                    issue = myDB.selectone("SELECT a.Issue_Number, a.Status, a.IssueID, a.ComicName, a.IssueDate, a.Location, b.readingorder FROM issues AS a INNER JOIN storyarcs AS b ON a.comicid = b.comicid where a.comicid=? and a.issue_number=?", [m_arc['match_id'], m_arc['match_issue']]).fetchone()
                 if issue is None: pass
                 else:
-                    logger.fdebug('issue: %s ... %s' % (issue['Issue_Number'], m_arc['match_issue']))
+                    logger.fdebug('[m_arc:%s][%s]issue: %s ... %s' % (m_arc['match_id'], issue['IssueID'], issue['Issue_Number'], m_arc['match_issue']))
                     if issue['Issue_Number'] == m_arc['match_issue']:
                         logger.fdebug('We matched on %s for %s' % (issue['Issue_Number'], m_arc['match_name']))
                         if issue['Status'] == 'Downloaded' or issue['Status'] == 'Archived' or issue['Status'] == 'Snatched':
