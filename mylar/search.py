@@ -771,7 +771,7 @@ def NZB_SEARCH(
         verify = bool(newznab_host[2])
         if '#' in newznab_host[4].rstrip():
             catstart = newznab_host[4].find('#')
-            category_newznab = newznab_host[4][catstart + 1 :]
+            category_newznab = re.sub('#', ',', newznab_host[4][catstart + 1 :]).strip()
             logger.fdebug('Non-default Newznab category set to : %s' % category_newznab)
         else:
             category_newznab = '7030'

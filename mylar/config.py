@@ -790,6 +790,7 @@ class Config(object):
         config.set('Torznab', 'extra_torznabs', ', '.join(tmp_torz))
 
         # this needs to revert from , to # so that it is stored properly (multiple categories)
+        setattr(self, 'EXTRA_NEWZNABS', self.get_extra_newznabs())
         setattr(self, 'EXTRA_TORZNABS', self.get_extra_torznabs())
 
         ###this should be moved elsewhere...
@@ -1220,7 +1221,19 @@ class Config(object):
         return KEYS_32P
 
     def get_extra_newznabs(self):
-        extra_newznabs = list(zip(*[iter(self.EXTRA_NEWZNABS.split(', '))]*6))
+        extra_newznabs = self.EXTRA_NEWZNABS
+        if type(extra_newznabs) != list:
+            extra_newznabs = list(zip(*[iter(extra_newznabs.split(', '))]*6))
+        x_newzcat = []
+        for x in extra_newznabs:
+            x_cat = x[4]
+            if '#' in x_cat:
+                x_t = x[4].split('#')
+                x_cat = ','.join(x_t)
+                if x_cat[0] == ',':
+                    x_cat = re.sub(',', '#', x_cat, 1)
+            x_newzcat.append((x[0],x[1],x[2],x[3],x_cat,x[5]))
+        extra_newznabs = x_newzcat
         return extra_newznabs
 
     def get_extra_torznabs(self):
