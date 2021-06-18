@@ -961,9 +961,8 @@
                                                         <label>Torznab Host</label>
                                                         <input type="text" name="torznab_host${torznab_number}" id="torznab_host${torznab_number}" value="${torznab[1]}" size="30">
                                                     </div>
-                                                    <div class="row">
-                                                        <label>Verify SSL</label>
-                                                        <input type="checkbox" name="torznab_verify${torznab_number}" id="torznab_verify${torznab_number}" value="${torznab[2]}">
+                                                    <div class="row checkbox">
+                                                        <input type="checkbox" name="torznab_verify${torznab_number}" id="torznab_verify${torznab_number}" value="1" ${torznab_verify} /><label>Verify SSL</label>
                                                     </div>
                                                     <div class="row">
                                                         <label>Torznab API</label>
