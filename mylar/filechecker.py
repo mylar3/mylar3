@@ -490,9 +490,12 @@ class FileChecker(object):
                 except Exeption as e:
                     logger.warn('failure to match to Director\'s Cut - ignoring as an issue match')
                 else:
-                    if all([split_file[tmp_test].lower() == 'cut', split_file.index("Directorg11s")+1 <= len(split_file), split_file.index("Cut") == split_file.index("Directorg11s")+1]):
-                        logger.fdebug('director\'s match!')
-                        test_exception = "Director's Cut"
+                    try:
+                        if all([split_file[tmp_test].lower() == 'cut', split_file.index("Directorg11s")+1 <= len(split_file), split_file.index("Cut") == split_file.index("Directorg11s")+1]):
+                            logger.fdebug('director\'s match!')
+                            test_exception = "Director's Cut"
+                    except Exception as e:
+                        pass
             else:
                 test_exception = ''.join([i for i in sf if not i.isdigit()])
 
