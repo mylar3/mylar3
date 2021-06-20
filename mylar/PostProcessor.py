@@ -878,6 +878,9 @@ class PostProcessor(object):
                                                 logger.fdebug('test matched to ComicID: %s' % (cs['ComicID']))
                                                 week_comic = test[0]
                                                 week_dynamicname = test[1]
+                                                if all([mylar.CONFIG.ANNUALS_ON, 'annual' in week_dynamicname.lower()]) or all([mylar.CONFIG.ANNUALS_ON, 'special' in week_dynamicname.lower()]):
+                                                    week_dynamicname = re.sub('annual', '', week_dynamicname, flags=re.I).strip()
+                                                    week_dynamicname = re.sub('special', '', week_dynamicname, flags=re.I).strip()
                                                 week_issue = test[2]
                                                 week_intissue = helpers.issuedigits(week_issue)
                                                 logger.fdebug('week_dynamicname: %s / dynamic_seriesname: %s' % (week_dynamicname,dynamic_seriesname))
