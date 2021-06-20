@@ -1048,7 +1048,12 @@ def new_pullcheck(weeknumber, pullyear, comic1off_name=None, comic1off_id=None, 
                             comicname = week['ComicName']
                         latestiss = annualidmatch[0]['latestIssue'].strip()
                         if mylar.CONFIG.ANNUALS_ON:
-                            comicid = annualidmatch[0]['ComicID'].strip()
+                            comicid = None
+                            for x in annualidmatch[0]['AnnualIDs']:
+                                if week['comicid'] == x['ComicID'] and week['annuallink'] is not None:
+                                    comicid = x['ComicID'].strip()
+                            if not comicid:
+                                pass
                         else:
                             comicid = annualidmatch[0]['AnnualIDs'][0]['ComicID'].strip()
                         logger.fdebug('[WEEKLY-PULL-ANNUAL] Series Match to ID --- ' + comicname + ' [' + comicid + ']')

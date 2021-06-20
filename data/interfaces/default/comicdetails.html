@@ -488,9 +488,11 @@
                                 <td id="issuenumber">${issue['Issue_Number']}</td>
 
                                 <%
+                                    titledisplay = False
                                     if issue['IssueName'] is not None:
                                         if len(issue['IssueName']) > 70:
-                                            issuename = "%s..." % issue['IssueName'][:70]
+                                            issuename = "%s..." % issue['IssueName'][:67]
+                                            titledisplay = True
                                         else:
                                             issuename = issue['IssueName']
                                         try:
@@ -500,7 +502,11 @@
                                     else:
                                         issuename = None
                                 %>
-                                <td id="issuename">${issuename}</td>
+                                %if titledisplay:
+                                    <td id="issuename" title="${issue['IssueName']}">${issuename}</td>
+                                %else:
+                                    <td id="issuename">${issuename}</td>
+                                %endif
                                 <%
                                     issdate = issue['IssueDate']
                                     dateline = "Publication Date (click to edit)"
@@ -639,7 +645,7 @@
                         <tr>
                                 <th id="select" align="left"><input type="checkbox" onClick="toggle(this)" name="annuals" class="checkbox" /></th>
                                 <th id="aint_issuenumber">Int_IssNumber</th>
-                                <th id="aissuenumber">Number</th>
+                                <th id="aissuenumber">#</th>
                                 <th id="aissuename">Name</th>
                                 <th id="areldate">Date</th>
                                 <th id="astatus">Status</th>
