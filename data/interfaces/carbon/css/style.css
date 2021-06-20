@@ -2219,18 +2219,18 @@ table#annual_table { width: 100%; padding: 10px; }
 table#annual_table th#select { vertical-align: middle; text-align: center; max-width: 5px; }
 table#annual_table th#aint_issuenumber { text-align: left; max-width: 1px }
 table#annual_table th#aissuenumber { text-align: center; max-width: 20px; }
-table#annual_table th#aissuename { text-align: center; min-width: 250px; }
-table#annual_table th#areldate { text-align: center; max-width: 75px; }
-table#annual_table th#astatus { text-align: center; max-width: 75px; }
-table#annual_table th#aoptions { text-align: center; max-width: 100px; }
+table#annual_table th#aissuename { text-align: center; max-width: 200px; }
+table#annual_table th#areldate { text-align: center; max-width: 45px; }
+table#annual_table th#astatus { text-align: center; max-width: 55px; }
+table#annual_table th#aoptions { text-align: center; max-width: 120px; }
 
 table#annual_table td#select { vertical-align: middle; text-align: center; max-width: 5px; }
 table#annual_table td#aint_issuenumber { vertical-align: middle; text-align: left; max-width: 1 px; }
 table#annual_table td#aissuenumber { vertical-align: middle; text-align: center; max-width: 20px; }
-table#annual_table td#areldate { vertical-align: middle; text-align: center; max-width: 75px; }
-table#annual_table td#astatus { vertical-align: middle; text-align: center; max-width: 75px; }
-table#annual_table td#aoptions { vertical-align: middle; text-align: center; max-width: 100px; }
-table#annual_table td#aissuename { vertical-align: middle; text-align: center; min-width: 200px; }
+table#annual_table td#aissuename { vertical-align: middle; text-align: center; max-width: 200px; }
+table#annual_table td#areldate { vertical-align: middle; text-align: center; max-width: 45px; }
+table#annual_table td#astatus { vertical-align: middle; text-align: center; max-width: 55px; }
+table#annual_table td#aoptions { vertical-align: middle; text-align: center; max-width: 120px; }
 
 #btn_container {
   float: right;
