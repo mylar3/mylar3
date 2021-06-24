@@ -469,9 +469,11 @@ class PostProcessor(object):
                 oneoff_issuelist = []
                 manual_list = []
                 for fl in filelist['comiclist']:
-                    #if mylar.CONFIG.IGNORE_COVERS is True and 'coveronly' in re.sub('[\s\s+\_\.]', '', fl['series_name'].lower(), re.UNICODE):
-                    #    logger.febug('Cover only detected. Ignoring result.')
-                    #    continue
+                    if all([fl['series_name'] is not None, fl['series_name'] != '']) and mylar.CONFIG.IGNORE_COVERS is True:
+                        cvchk = re.sub('[\s\s+\_\.]', '', fl['series_name']).lower()
+                        if any(['coveronly' in cvchk, 'coversonly' in cvchk]):
+                            logger.febug('Cover only detected. Ignoring result.')
+                            continue
                     self.matched = False
                     as_d = filechecker.FileChecker()
                     as_dinfo = as_d.dynamic_replace(fl['series_name']) #helpers.conversion(fl['series_name']))
@@ -568,8 +570,18 @@ class PostProcessor(object):
                         #check for Paused status /
                         #check for Ended status and 100% completion of issues.
                         if wv['Status'] == 'Paused' or (wv['Have'] == wv['Total'] and not any(['Present' in wv['ComicPublished'], helpers.now()[:4] in wv['ComicPublished']])):
-                            logger.warn('%s [%s] is either Paused or in an Ended status with 100%s completion. Ignoring for match.' % (wv['ComicName'], wv['ComicYear'], '%'))
-                            continue
+                            dbcheck = myDB.selectone('SELECT Status FROM issues WHERE ComicID=? and Int_IssueNumber=?', [wv['ComicID'], helpers.issuedigits(fl['issue_number'])]).fetchone()
+                            if not dbcheck and mylar.CONFIG.ANNUALS_ON:
+                                dbcheck = myDB.selectone('SELECT Status FROM annuals WHERE ComicID=? and Int_IssueNumber=?', [wv['ComicID'], helpers.issuedigits(fl['issue_number'])]).fetchone()
+                            if dbcheck:
+                                if any([dbcheck[0] == 'Wanted', dbcheck[0] == 'Snatched']):
+                                    logger.fdebug('Series is 100%s complete, but specific issue %s matched up to a %s status. Let\'s Go!' % ('%', fl['issue_number'], dbcheck[0]))
+                                else:
+                                    logger.fdebug('Series is 100%s complete, however status is not Wanted (or Snatche), but %s. Set to Wanted for this to post-process on the next run.' % ('%', dbcheck[0]))
+                                    continue
+                            else:
+                                logger.warn('%s [%s] is either Paused or in an Ended status with 100%s completion. Ignoring for match.' % (wv['ComicName'], wv['ComicYear'], '%'))
+                                continue
                         wv_comicname = wv['ComicName']
                         wv_dynamicname = wv['DynamicComicName']
                         wv_comicpublisher = wv['ComicPublisher']
