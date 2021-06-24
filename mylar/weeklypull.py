@@ -1144,7 +1144,10 @@ def new_pullcheck(weeknumber, pullyear, comic1off_name=None, comic1off_id=None, 
 
                     if all([statusupdate is not None, statusupdate['Status'] != 'incorrect_match']):
                         # here we add to comics.latest
-                        updater.latest_update(ComicID=comicid, LatestIssue=week['issue'], LatestDate=ComicDate)
+                        if mylar.CONFIG.ANNUALS_ON:
+                            updater.latest_update(ComicID=statusupdate['ComicID'], LatestIssue=week['issue'], LatestDate=ComicDate, ReleaseComicID=comicid)
+                        else:
+                            updater.latest_update(ComicID=comicid, LatestIssue=week['issue'], LatestDate=ComicDate)
 
                     # here we update status of weekly table...
                     mismatched = False
