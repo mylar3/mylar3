@@ -784,7 +784,6 @@ class Config(object):
 
     def writeconfig(self, values=None):
         logger.fdebug("Writing configuration to file")
-        self.provider_sequence()
         config.set('Newznab', 'extra_newznabs', ', '.join(self.write_extras(self.EXTRA_NEWZNABS)))
         tmp_torz = self.write_extras(self.EXTRA_TORZNABS)
         config.set('Torznab', 'extra_torznabs', ', '.join(tmp_torz))
@@ -792,6 +791,8 @@ class Config(object):
         # this needs to revert from , to # so that it is stored properly (multiple categories)
         setattr(self, 'EXTRA_NEWZNABS', self.get_extra_newznabs())
         setattr(self, 'EXTRA_TORZNABS', self.get_extra_torznabs())
+
+        self.provider_sequence()
 
         ###this should be moved elsewhere...
         if type(self.IGNORED_PUBLISHERS) != list:
@@ -1298,7 +1299,7 @@ class Config(object):
                     PPR.append(en_name)
                     PR_NUM +=1
 
-        if self.ENABLE_TORZNAB:
+        if self.ENABLE_TORZNAB and self.ENABLE_TORRENT_SEARCH:
             for ets in self.EXTRA_TORZNABS:
                 if str(ets[5]) == '1': # if torznabs are enabled
                     if ets[0] == "":
