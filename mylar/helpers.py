@@ -850,7 +850,6 @@ def updateComicLocation():
                           '$publisher':     publisher.lower(),
                           '$VolumeY':       'V' + str(year),
                           '$VolumeN':       comversion,
-                          '$Annual':        'Annual',
                           '$Type':          booktype
                           }
 

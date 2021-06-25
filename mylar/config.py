@@ -1128,6 +1128,16 @@ class Config(object):
             elif self.ENABLE_DDL is False:
                 mylar.queue_schedule('ddl_queue', 'stop')
 
+        if self.FOLDER_FORMAT is None:
+            setattr(self, 'FOLDER_FORMAT', '$Series ($Year)')
+
+        if '$Annual' in self.FOLDER_FORMAT:
+            logger.fdebug('$Annual has been depreciated as a folder format option. Auto-removing from your folder format scheme.')
+            ann_removed = re.sub(r'\$annual', '', self.FOLDER_FORMAT, flags=re.I).strip()
+            ann_remove = re.sub(r'\s+', ' ', ann_removed).strip()
+            setattr(self, 'FOLDER_FORMAT', ann_remove)
+            config.set('General', 'folder_format', ann_remove)
+
         if not self.DDL_LOCATION:
             self.DDL_LOCATION = self.CACHE_DIR
             if self.ENABLE_DDL is True:
