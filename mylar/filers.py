@@ -132,7 +132,6 @@ class FileHandlers(object):
                   '$publisher':     publisher.lower(),
                   '$VolumeY':       'V' + self.comic['ComicYear'],
                   '$VolumeN':       comicVol.upper(),
-                  '$Annual':        'Annual',
                   '$Type':          booktype
                   }
 
