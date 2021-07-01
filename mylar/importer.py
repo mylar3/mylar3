@@ -1471,7 +1471,7 @@ def updateissuedata(comicid, comicname=None, issued=None, comicIssues=None, call
         n_date = datetime.date.today()
         recentchk = (n_date - c_date).days
 
-        if recentchk <= 55:
+        if recentchk <= helpers.checkthepub(comicid):
             lastpubdate = 'Present'
         else:
             if ltmonth == '?':
