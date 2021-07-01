@@ -885,7 +885,7 @@ class PostProcessor(object):
                                         dynamic_seriesname = re.sub('[\|\s]','', tmpseriesname.lower()).strip()
                                         if cs['DynamicName'] == dynamic_seriesname:
                                             logger.fdebug('name match exact : %s - %s' % (cs['DynamicName'], dynamic_seriesname))
-                                            test = myDB.selectone('SELECT Comic, DynamicName, Issue FROM weekly WHERE ComicID = ? ORDER BY year DESC, CAST(weeknumber AS INTEGER) DESC', [cs['ComicID']]).fetchone()
+                                            test = myDB.selectone('SELECT Comic, DynamicName, Issue, weeknumber, year FROM weekly WHERE ComicID = ? ORDER BY year DESC, CAST(weeknumber AS INTEGER) DESC', [cs['ComicID']]).fetchone()
                                             if test:
                                                 logger.fdebug('test matched to ComicID: %s' % (cs['ComicID']))
                                                 week_comic = test[0]
@@ -897,13 +897,23 @@ class PostProcessor(object):
                                                 week_intissue = helpers.issuedigits(week_issue)
                                                 logger.fdebug('week_dynamicname: %s / dynamic_seriesname: %s' % (week_dynamicname,dynamic_seriesname))
                                                 logger.fdebug('week_intissue: %s / fcdigit: %s' % (week_intissue, fcdigit))
-                                                if all([week_dynamicname == dynamic_seriesname, 'Present' in cs['ComicPublished']]):
-                                                    if week_intissue == fcdigit:
-                                                        logger.fdebug('Matched exactly on Series Title, IssueNumber, present on the pull.')
-                                                        second_check = True
+                                                if week_dynamicname == dynamic_seriesname:
+                                                    if 'Present' in cs['ComicPublished']:
+                                                        if week_intissue == fcdigit:
+                                                            logger.fdebug('Matched exactly on Series Title, IssueNumber, present on the pull.')
+                                                            second_check = True
+                                                        else:
+                                                            logger.fdebug('Matched to Series Title - but Issue Number is not on pull and series is ongoing. Bypassing this check to let the dates verify.')
+                                                            second_check = True
                                                     else:
-                                                        logger.fdebug('Matched to Series Title - but Issue Number is not on pull and series is ongoing. Bypassing this check to let the dates verify.')
-                                                        second_check = True
+                                                        # only worry about the last 2 weeks of the pull (basically where the data might be available due to CV being late / not updatin$
+                                                        tmp_weeknumber = int(test[3])
+                                                        tmp_weekyear = int(test[4])
+                                                        if (tmp_weekyear != int(mylar.CURRENT_YEAR)) and tmp_weeknumber + 2 >= int(mylar.CURRENT_WEEKNUMBER):
+                                                            logger.fdebug('%s %s should have current weekly data if this was an ongoing publication.' % (watchmatch['series_name'], watchmatch['justthedigits']))
+                                                            second_check = False
+                                                        else:
+                                                            second_check = True
                                                 else:
                                                     logger.fdebug('%s %s in filename don\'t match up to what\'s in the dB %s %s [%s]' % (watchmatch['series_name'], watchmatch['justthedigits'], week_comic, week_issue, cs['ComicID']))
                                             else:
