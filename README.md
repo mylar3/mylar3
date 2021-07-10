@@ -20,7 +20,7 @@ Please try to limit Github issues to bugs & enhancement requests ONLY
 
 ## Live Support / Conversation
 - [Discord](https://discord.gg/6UG94R7E8T)
-- [IRC](http://webchat.freenode.net/?channels=#mylar)
+- [IRC](https://web.libera.chat/?channels=#mylar)
 
 ## Features
 - Abliity to be run on various OS' (windows, linux, macOS, Raspberry Pi, etc)

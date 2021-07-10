@@ -119,7 +119,7 @@
                           <figcaption class="caption">Discord</caption>
                         </figure>
                         <figure class="item">
-                          <a href="https://webchat.freenode.net?channels=#mylar" target="_blank"><img src="images/irc-icon.png" height="64" width="64" title="#mylar on irc.freenode.net" /></a>
+                          <a href="https://web.libera.chat?channels=#mylar" target="_blank"><img src="${icons['irc-icon']}" height="64" width="64" title="#mylar on irc.libera.chat" /></a>
                           <figcaption class="caption">IRC</caption>
                         </figure>
                 </fieldset>
@@ -961,9 +961,8 @@
                                                         <label>Torznab Host</label>
                                                         <input type="text" name="torznab_host${torznab_number}" id="torznab_host${torznab_number}" value="${torznab[1]}" size="30">
                                                     </div>
-                                                    <div class="row">
-                                                        <label>Verify SSL</label>
-                                                        <input type="checkbox" name="torznab_verify${torznab_number}" id="torznab_verify${torznab_number}" value="${torznab[2]}">
+                                                    <div class="row checkbox">
+                                                        <input type="checkbox" name="torznab_verify${torznab_number}" id="torznab_verify${torznab_number}" value="1" ${torznab_verify} /><label>Verify SSL</label>
                                                     </div>
                                                     <div class="row">
                                                         <label>Torznab API</label>
@@ -1272,7 +1271,7 @@
                                      <label>Folder Format</label>
                                      <input type="text" name="folder_format" value="${config['folder_format']}" size="43">
                                      <%
-                                          folder_options = "$Series = SeriesName\n$Year = SeriesYear\n$Annual = Annual (word)\n$VolumeY = V{SeriesYear}\n$VolumeN = V{Volume#}\n$Type = BookType (TPB/GN)"
+                                          folder_options = "$Series = SeriesName\n$Year = SeriesYear\n$VolumeY = V{SeriesYear}\n$VolumeN = V{Volume#}\n$Type = BookType (TPB/GN)"
                                      %>
                                      <a href="#" title="${folder_options}"><img src="images/info32.png" height="16" alt="" /></a>
                                      <small>Use: $Publisher, $Series, $Year<br />

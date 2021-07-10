@@ -32,7 +32,7 @@ import requests
 import threading
 
 import mylar
-from mylar import logger, filers, helpers, db, mb, cv, parseit, filechecker, search, updater, moveit, comicbookdb
+from mylar import logger, filers, helpers, db, mb, cv, parseit, filechecker, search, updater, moveit, comicbookdb, series_metadata
 
 
 def is_exists(comicid):
@@ -422,75 +422,6 @@ def addComictoDB(comicid, mismatch=None, pullupd=None, imported=None, ogcname=No
     if issuedata is None:
         logger.warn('Unable to complete Refreshing / Adding issue data - this WILL create future problems if not addressed.')
         return {'status': 'incomplete'}
-    else:
-
-        #write out series.json here if enabled.
-        if mylar.CONFIG.SERIES_METADATA_LOCAL is True:
-            description_load = None
-            if os.path.exists(os.path.join(comlocation, 'series.json')):
-                try:
-                    with open(os.path.join(comlocation, 'series.json')) as j_file:
-                        metainfo = json.load(j_file)
-                        logger.info('metainfo_loaded: %s' % (metainfo,))
-                    description_load = metainfo['metadata'][0]['description']
-                except Exception as e:
-                    try:
-                        description_load = metainfo['metadata'][0]['description_formatted']
-                    except Exception as e:
-                        logger.info('No description found in metadata. Reloading from dB if available.[error: %s]' % e)
-
-            c_date = datetime.date(int(importantdates['LatestDate'][:4]), int(importantdates['LatestDate'][5:7]), 1)
-            n_date = datetime.date.today()
-            recentchk = (n_date - c_date).days
-            if importantdates['NewPublish'] is True:
-                seriesStatus = 'Continuing'
-            else:
-                #do this just incase and as an extra measure of accuracy hopefully.
-                if recentchk < 55:
-                    seriesStatus = 'Continuing'
-                else:
-                    seriesStatus = 'Ended'
-
-            clean_issue_list = None
-            if comic['Issue_List'] != 'None':
-                clean_issue_list = comic['Issue_List']
-
-            if description_load is not None:
-                cdes_removed = re.sub(r'\n', '', description_load).strip()
-                cdes_formatted = description_load
-            elif old_description is not None:
-                cdes_removed = re.sub(r'\n', ' ', old_description).strip()
-                cdes_formatted = old_description
-            else:
-                cdes_formatted = None # CV doesn't format their descriptions.
-
-            c_image = comic
-            metadata = {}
-            metadata['metadata'] = [(
-                                        {'type': 'comicSeries',
-                                         'publisher': comic['ComicPublisher'],
-                                         'imprint': comic['PublisherImprint'],
-                                         'name': comic['ComicName'],
-                                         'comicid': comicid,
-                                         'year': SeriesYear,
-                                         'description_text': cdes_removed,
-                                         'description_formatted': cdes_formatted,
-                                         'volume': comicVol,
-                                         'booktype': booktype,
-                                         'collects': clean_issue_list,
-                                         'ComicImage': comic.get('ComicImage', None),
-                                         'total_issues': comicIssues,
-                                         'publication_run': importantdates['ComicPublished'],
-                                         'status': seriesStatus}
-            )]
-
-            try:
-                with open(os.path.join(comlocation, 'series.json'), 'w', encoding='utf-8') as outfile:
-                    json.dump(metadata, outfile, indent=4, ensure_ascii=False)
-            except Exception as e:
-                logger.error('Unable to write series.json to %s. Error returned: %s' % (comlocation, e))
-            else:
-                logger.fdebug('Successfully written series.json file to %s' % comlocation)
 
     if any([calledfrom is None, calledfrom == 'maintenance']):
         issue_collection(issuedata, nostatus='False', serieslast_updated=serieslast_updated)
@@ -558,6 +489,11 @@ def addComictoDB(comicid, mismatch=None, pullupd=None, imported=None, ogcname=No
     statbefore = myDB.selectone("SELECT Status FROM issues WHERE ComicID=? AND Int_IssueNumber=?", [comicid, helpers.issuedigits(latestiss)]).fetchone()
     logger.fdebug('issue: ' + latestiss + ' status before chk :' + str(statbefore['Status']))
     updater.forceRescan(comicid)
+
+    #series.json updater here (after all data written out)
+    sm = series_metadata.metadata_Series(comicid, bulk=False, api=False)
+    sm.update_metadata()
+
     statafter = myDB.selectone("SELECT Status FROM issues WHERE ComicID=? AND Int_IssueNumber=?", [comicid, helpers.issuedigits(latestiss)]).fetchone()
     logger.fdebug('issue: ' + latestiss + ' status after chk :' + str(statafter['Status']))
 
@@ -1535,7 +1471,7 @@ def updateissuedata(comicid, comicname=None, issued=None, comicIssues=None, call
         n_date = datetime.date.today()
         recentchk = (n_date - c_date).days
 
-        if recentchk <= 55:
+        if recentchk <= helpers.checkthepub(comicid):
             lastpubdate = 'Present'
         else:
             if ltmonth == '?':
@@ -1574,6 +1510,7 @@ def updateissuedata(comicid, comicname=None, issued=None, comicIssues=None, call
                     "ComicPublished":  publishfigure,
                     "NewPublish":      newpublish,
                     "LatestIssue":     latestiss,
+                    "intLatestIssue":  helpers.issuedigits(latestiss),
                     "LatestIssueID":   latestissueid,
                     "LatestDate":      latestdate,
                     "LastUpdated":     helpers.now()

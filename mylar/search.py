@@ -752,6 +752,9 @@ def NZB_SEARCH(
         category_torznab = torznab_host[4]
         if any([category_torznab is None, category_torznab == 'None']):
             category_torznab = '8020'
+        if '#' in category_torznab:
+            t_cats = category_torznab.split('#')
+            category_torznab = ','.join(t_cats)
         logger.fdebug('Using Torznab host of : %s' % name_torznab)
     elif nzbprov == 'newznab':
         # updated to include Newznab Name now
@@ -768,7 +771,7 @@ def NZB_SEARCH(
         verify = bool(newznab_host[2])
         if '#' in newznab_host[4].rstrip():
             catstart = newznab_host[4].find('#')
-            category_newznab = newznab_host[4][catstart + 1 :]
+            category_newznab = re.sub('#', ',', newznab_host[4][catstart + 1 :]).strip()
             logger.fdebug('Non-default Newznab category set to : %s' % category_newznab)
         else:
             category_newznab = '7030'

@@ -99,7 +99,7 @@ class FileChecker(object):
             self.pp_mode = False
 
         self.failed_files = []
-        self.dynamic_handlers = ['/','-',':',';','\'',',','&','?','!','+','(',')','\\u2014','\\u2013','\\u2019']
+        self.dynamic_handlers = ['/','-',':',';','\'',',','&','?','!','+','*','(',')','\\u2014','\\u2013','\\u2019']
         self.dynamic_replacements = ['and','the']
         self.rippers = ['-empire','-empire-hd','minutemen-','-dcp','Glorith-HD']
 
@@ -473,18 +473,41 @@ class FileChecker(object):
                     logger.fdebug('checking date : %s' % dtcheck)
                     checkdate_response = self.checkthedate(dtcheck)
                     if checkdate_response:
+                        if dtcheck.endswith('-') and int(dtcheck[:-1]) == int(checkdate_response):
+                            volume_found['volume'] = dtcheck[:-1]
+                            volume_found['position'] = split_file.index(sf,current_pos)
+                            logger.fdebug('volume detected as : %s' % dtcheck)
+                            continue
                         logger.fdebug('date: %s' % checkdate_response)
                         datecheck.append({'date':         dtcheck,
                                           'position':     split_file.index(sf),
                                           'mod_position': self.char_file_position(modfilename, sf, lastmod_position)})
 
             #this handles the exceptions list in the match for alpha-numerics
-            test_exception = ''.join([i for i in sf if not i.isdigit()])
+            if re.sub('g11', "\'", sf.lower()) == "director's":
+                try:
+                    tmp_test = split_file.index(sf)+1
+                except Exeption as e:
+                    logger.warn('failure to match to Director\'s Cut - ignoring as an issue match')
+                else:
+                    try:
+                        if all([split_file[tmp_test].lower() == 'cut', split_file.index("Directorg11s")+1 <= len(split_file), split_file.index("Cut") == split_file.index("Directorg11s")+1]):
+                            logger.fdebug('director\'s match!')
+                            test_exception = "Director's Cut"
+                    except Exception as e:
+                        pass
+            else:
+                test_exception = ''.join([i for i in sf if not i.isdigit()])
+
             if any(ext == test_exception.upper() for ext in mylar.ISSUE_EXCEPTIONS):
                 logger.fdebug('Exception match: %s' % test_exception)
                 if lastissue_label is not None:
                     if lastissue_position == (split_file.index(sf) -1):
-                        logger.fdebug('alphanumeric issue number detected as : %s %s' % (lastissue_label,sf))
+                        if any([test_exception == "Director's Cut", test_exception == '(DC)']):
+                            num_label = '%s %s' % (lastissue_label, "Director's Cut")
+                        else:
+                            num_label = '%s %s' % (lastissue_label, sf)
+                        logger.fdebug('alphanumeric issue number detected as : %s' % num_label)
                         for x in possible_issuenumbers:
                             possible_issuenumbers = []
                             if int(x['position']) != int(lastissue_position):
@@ -493,7 +516,7 @@ class FileChecker(object):
                                                               'mod_position':  x['mod_position'],
                                                               'validcountchk': x['validcountchk']})
 
-                        possible_issuenumbers.append({'number':       '%s %s' % (lastissue_label, sf),
+                        possible_issuenumbers.append({'number':       num_label,
                                                       'position':     lastissue_position,
                                                       'mod_position': self.char_file_position(modfilename, sf, lastmod_position),
                                                       'validcountchk': validcountchk})
@@ -1642,7 +1665,7 @@ class FileChecker(object):
     #    Jan 1990
     #    January1990'''
 
-        fmts = ('%Y','%b %d, %Y','%B %d, %Y','%B %d %Y','%m/%d/%Y','%m/%d/%y','(%m/%d/%Y)','%b %Y','%B%Y','%b %d,%Y','%m-%Y','%B %Y','%Y-%m-%d','%Y-%m','%Y%m','%Y-%m-00')
+        fmts = ('%Y','%Y-', '%b %d, %Y','%B %d, %Y','%B %d %Y','%m/%d/%Y','%m/%d/%y','(%m/%d/%Y)','%b %Y','%B%Y','%b %d,%Y','%m-%Y','%B %Y','%Y-%m-%d','%Y-%m','%Y%m','%Y-%m-00')
         mnths = ('Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec')
         parsed=[]
 

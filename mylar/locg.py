@@ -96,9 +96,10 @@ def locg(pulldate=None,weeknumber=None,year=None):
             myDB.action("CREATE TABLE IF NOT EXISTS weekly (SHIPDATE, PUBLISHER text, ISSUE text, COMIC VARCHAR(150), EXTRA text, STATUS text, ComicID text, IssueID text, CV_Last_Update text, DynamicName text, weeknumber text, year text, volume text, seriesyear text, annuallink text, format text, rowid INTEGER PRIMARY KEY)")
 
             #clear out the upcoming table here so they show the new values properly.
-            if pulldate == '00000000':
-                logger.info('Re-creating pullist to ensure everything\'s fresh.')
-                myDB.action('DELETE FROM weekly WHERE weeknumber=? AND year=?',[int(weeknumber), int(year)])
+            #if pulldate == '00000000':
+            # 2021-07-03 -> we should always clear out the table to ensure we don't have old data mixed with fresh.
+            logger.info('Re-creating pullist to ensure everything\'s fresh.')
+            myDB.action('DELETE FROM weekly WHERE weeknumber=? AND year=?',[int(weeknumber), int(year)])
 
             for x in pull:
                 comicid = None
@@ -108,8 +109,8 @@ def locg(pulldate=None,weeknumber=None,year=None):
                     comicid = x['comicid']
                 if x['issueid'] is not None:
                     issueid= x['issueid']
-                if x['alias'] is not None:
-                    comicname = x['alias']
+                #if x['alias'] is not None:
+                #    comicname = x['alias']
 
                 cl_d = mylar.filechecker.FileChecker()
                 cl_dyninfo = cl_d.dynamic_replace(comicname)

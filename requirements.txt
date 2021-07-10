@@ -13,7 +13,7 @@ configparser>=4.0.2
 feedparser>=5.2.1
 Mako>=1.1.0
 natsort>=3.5.2
-Pillow>=4.2.1,~=6.2.2
+Pillow>=8
 portend>=2.6
 pystun>=0.1.0
 pytz>=2019.3

@@ -15,11 +15,12 @@
 #  along with Mylar.  If not, see <http://www.gnu.org/licenses/>.
 
 import mylar
-from mylar import db, mb, importer, search, process, versioncheck, logger, webserve, helpers, encrypted
+from mylar import db, mb, importer, search, process, versioncheck, logger, webserve, helpers, encrypted, series_metadata
 import json
 import cherrypy
 import random
 import os
+import re
 import urllib.request, urllib.error, urllib.parse
 from . import cache
 import imghdr
@@ -33,6 +34,8 @@ cmd_list = ['getIndex', 'getComic', 'getUpcoming', 'getWanted', 'getHistory',
             'queueIssue', 'unqueueIssue', 'forceSearch', 'forceProcess', 'changeStatus',
             'getVersion', 'checkGithub','shutdown', 'restart', 'update',
             'getComicInfo', 'getIssueInfo', 'getArt', 'downloadIssue',
+            'refreshSeriesjson', 'seriesjsonListing',
+            'listProviders', 'changeProvider', 'addProvider', 'delProvider',
             'downloadNZB', 'getReadList', 'getStoryArc', 'addStoryArc']
 
 class Api(object):
@@ -492,6 +495,67 @@ class Api(object):
         newValueDict = {'Status': 'Skipped'}
         myDB.upsert("issues", newValueDict, controlValueDict)
 
+    def _seriesjsonListing(self, **kwargs):
+        if 'missing' in kwargs:
+            json_present = "WHERE seriesjsonPresent = 0 OR seriesjsonPresent is NULL"
+        else:
+            json_present = None
+        myDB = db.DBConnection()
+        msj_query = 'SELECT comicid, ComicLocation FROM comics {json_present}'.format(
+            json_present=json_present
+        )
+        results = self._resultsFromQuery(msj_query)
+        if len(results) > 0:
+            self.data = self._successResponse(
+                results
+            )
+        else:
+            self.data = self._failureResponse('no data returned from seriesjson query')
+
+    def _refreshSeriesjson(self, **kwargs):
+        # comicid = [list, comicid, 'missing', 'all', 'refresh-missing']
+        if 'comicid' not in kwargs:
+            self.data = self._failureResponse('Missing comicid')
+            return
+        else:
+            missing = False
+            refresh_missing = False
+            self.id = kwargs['comicid']
+            if any([self.id == 'missing', self.id == 'all', self.id == 'refresh-missing']):
+                bulk = True
+                if any([self.id == 'missing', self.id == 'refresh-missing']):
+                    if self.id == 'refresh-missing':
+                        refresh_missing = True
+                    missing = True
+                    self._seriesjsonListing(missing=True)
+                else:
+                    self._seriesjsonListing()
+                toqy = json.loads(self.data)
+                if toqy['success'] is True:
+                    toquery = []
+                    for x in toqy['data']:
+                        toquery.append(x['ComicID'])
+                else:
+                    self.data = self._failureResponse('No seriesjson data returned from query.')
+                    return
+            else:
+                bulk = False
+                if type(self.id) is list:
+                    bulk = True
+                toquery = self.id
+
+        logger.info('[API][Refresh-Series.json][BULK:%s][Only_Missing:%s] ComicIDs to refresh series.json files: %s' % (bulk, missing, len(toquery)))
+
+        try:
+            sm = series_metadata.metadata_Series(comicidlist=toquery, bulk=bulk, api=True, refreshSeries=refresh_missing)
+            sm.update_metadata_thread()
+        except Exception as e:
+            logger.error('[ERROR] %s' % e)
+            self.data = e
+
+        return
+
+
     def _forceSearch(self, **kwargs):
         search.searchforissue()
 
@@ -828,6 +892,405 @@ class Api(object):
         wi = webserve.WebInterface()
         logger.info("arclist: %s - arcid: %s - storyarcname: %s - storyarcissues: %s" % (arclist, self.id, storyarcname, issuecount))
         wi.addStoryArc_thread(arcid=self.id, storyarcname=storyarcname, storyarcissues=issuecount, arclist=arclist, **kwargs)
+        return
+
+    def _listProviders(self, **kwargs):
+        try:
+            newznabs = []
+            for nz in mylar.CONFIG.EXTRA_NEWZNABS:
+                uid = nz[4]
+                if '#' in nz[4]:
+                    cats = re.sub('#', ',', nz[4][nz[4].find('#')+1:].strip()).strip()
+                    uid = nz[4][:nz[4].find('#')].strip()
+                else:
+                    cats = None
+                newznabs.append({'name': nz[0],
+                                 'host': nz[1],
+                                 'apikey': nz[3],
+                                 'categories': cats,
+                                 'uid': uid,
+                                 'enabled': bool(int(nz[5]))})
+            torznabs= []
+            for nz in mylar.CONFIG.EXTRA_TORZNABS:
+                cats = nz[4]
+                if '#' in nz[4]:
+                    cats = re.sub('#', ',', nz[4]).strip()
+                torznabs.append({'name': nz[0],
+                                 'host': nz[1],
+                                 'apikey': nz[3],
+                                 'categories': nz[4],
+                                 'enabled': bool(int(nz[5]))})
+
+            providers = {'newznabs': newznabs, 'torznabs': torznabs}
+        except Exception as e:
+            self.data = self._failureResponse(e)
+        else:
+            self.data = self._successResponse(providers)
+        return
+
+    def _addProvider(self, **kwargs):
+        if 'providertype' not in kwargs:
+            self.data = self._failureResponse('No provider type provided')
+            logger.fdebug('[API][addProvider] %s' % (self.data,))
+            return
+        else:
+            providertype = kwargs['providertype']
+            if all([providertype != 'newznab', providertype != 'torznab']):
+                self.data = self._failureResponse('providertype indicated %s is not a valid option. Options are `newznab` or `torznab`.' % providertype)
+                logger.fdebug('[API][addProvider] %s' % (self.data,))
+                return
+
+        if any(['host' not in kwargs, 'name' not in kwargs, 'prov_apikey' not in kwargs, 'enabled' not in kwargs]):
+            if providertype == 'newznab':
+                self.data = self._failureResponse('Missing arguement. Required arguements are: `name`, `host`, `prov_apikey`, `enabled`. `categories` & `uid` is optional but `uid` is required for RSS.')
+            elif providertype == 'torznab':
+                self.data = self._failureResponse('Missing arguement. Required arguements are: `name`, `host`, `prov_apikey`, `categories`, `enabled.`')
+                logger.fdebug('[API][addProvider] %s' % (self.data,))
+            return
+
+        if providertype == 'newznab':
+            if 'name' in kwargs:
+                newznab_name = kwargs['name']
+                if any([newznab_name is None, newznab_name.strip() == '']):
+                    self.data = self._failureResponse('name given for provider cannot be None or blank')
+                    logger.fdebug('[API][addProvider] %s' % (self.data,))
+                    return
+                for x in mylar.CONFIG.EXTRA_NEWZNABS:
+                    if x[0].lower() == newznab_name.lower():
+                        self.data = self._failureResponse('%s already exists as a provider.' % newznab_name)
+                        logger.fdebug('[API][addProvider] %s' % (self.data,))
+                        return
+
+            if 'host' in kwargs:
+                newznab_host = kwargs['host']
+                if not newznab_host.startswith('http'):
+                    self.data = self._failureResponse('protocol is required for % host entry' % providertype)
+                    logger.fdebug('[API][addProvider] %s' % (self.data,))
+                    return
+                if newznab_host.startswith('https'):
+                    newznab_verify = '1'
+                else:
+                    newznab_verify = '0'
+            if 'prov_apikey' in kwargs:
+                newznab_apikey = kwargs['prov_apikey']
+
+            newznab_enabled = '0' # set the default to disabled.
+            if 'enabled' in kwargs:
+                newznab_enabled = '1'
+            if 'uid' in kwargs:
+                newznab_uid = kwargs['uid']
+            else:
+                newznab_uid = None
+
+            if 'categories' in kwargs:
+                newznab_categories = kwargs['categories']
+                if newznab_uid is not None:
+                    newznab_uid += '%s%s'.strip() % ('#', re.sub(',', '#', newznab_categories))
+                else:
+                    newznab_uid = '%s%s'.strip() % ('#', re.sub(',', '#', newznab_categories))
+
+            mylar.CONFIG.EXTRA_NEWZNABS.append((newznab_name, newznab_host, newznab_verify, newznab_apikey, newznab_uid, newznab_enabled))
+            p_name = newznab_name
+
+        elif providertype == 'torznab':
+            if 'name' in kwargs:
+                torznab_name = kwargs['name']
+                if any([torznab_name is None, torznab_name.strip() == '']):
+                    self.data = self._failureResponse('name given for provider cannot be None or blank')
+                    logger.fdebug('[API][addProvider] %s' % (self.data,))
+                    return
+                for x in mylar.CONFIG.EXTRA_TORZNABS:
+                    if x[0].lower() == torznab_name.lower():
+                        self.data = self._failureResponse('%s already exists as a provider.' % torznab_name)
+                        logger.fdebug('[API][addProvider] %s' % (self.data,))
+                        return
+
+            if 'host' in kwargs:
+                torznab_host = kwargs['host']
+                if not torznab_host.startswith('http'):
+                    self.data = self._failureResponse('protocol is required for % host entry' % providertype)
+                    logger.fdebug('[API][addProvider] %s' % (self.data,))
+                    return
+                if torznab_host.startswith('https'):
+                    torznab_verify = '1'
+                else:
+                    torznab_verify = '0'
+            if 'prov_apikey' in kwargs:
+                torznab_apikey = kwargs['prov_apikey']
+            torznab_enabled = '0'
+            if 'enabled' in kwargs:
+                torznab_enabled = '1'
+            if 'categories' in kwargs:
+                torznab_categories = kwargs['categories']
+                if ',' in torznab_categories:
+                    tc = torznab_categories.split(',')
+                    torznab_categories = '#'.join(tc).strip()
+
+            mylar.CONFIG.EXTRA_TORZNABS.append((torznab_name, torznab_host, torznab_verify, torznab_apikey, torznab_categories, torznab_enabled))
+            p_name = torznab_name
+
+        try:
+            mylar.CONFIG.writeconfig()
+        except Exception as e:
+            logger.error('[API][ADD_PROVIDER][%s] error returned : %s' % (providertype, e))
+            self.data = self._failureResponse('Unable to add %s provider %s to the provider list. Check the logs.' % (providertype, p_name))
+        else:
+            self.data = self._successResponse('Successfully added %s provider %s to the provider list' % (providertype, p_name))
+        return
+
+    def _delProvider(self, **kwargs):
+        providername = None
+        if 'name' in kwargs:
+            providername = kwargs['name'].strip()
+
+        if any([providername is None, providername == '']):
+            self.data = self._failureResponse('name given for provider cannot be None or blank')
+            logger.fdebug('[API][delProvider] %s' % (self.data,))
+            return
+
+        providertype = None
+        if 'providertype' in kwargs:
+            providertype = kwargs['providertype'].strip()
+        else:
+            self.data = self._failureResponse('No provider type provided')
+            logger.fdebug('[API][addProvider] %s' % (self.data,))
+            return
+
+        if any([providertype is None, providertype == '']) or all([providertype != 'torznab', providertype != 'newznab']):
+            if any([providertype is None, providertype == '']):
+                self.data = self._failureResponse('`providertype` cannot be None or blank (either `torznab` or `newznab`)')
+            elif all([providertype != 'torznab', providertype != 'newznab']):
+                self.data = self._failureResponse('`providertype` provided not recognized. Must be either `torznab` or `newznab`)')
+            logger.fdebug('[API][delProvider] %s' % (self.data,))
+            return
+
+        del_match = False
+        newznabs = []
+        if providertype == 'newznab':
+            for nz in mylar.CONFIG.EXTRA_NEWZNABS:
+                if providername.lower() == nz[0]:
+                    del_match = True
+                    continue
+                else:
+                    newznabs.append(nz)
+
+            if del_match is True:
+                mylar.CONFIG.EXTRA_NEWZNABS = ((newznabs))
+        else:
+            torznabs= []
+            for nz in mylar.CONFIG.EXTRA_TORZNABS:
+                if providername.lower() == nz[0]:
+                    del_match = True
+                    continue
+                else:
+                    torznabs.append(nz)
+            if del_match is True:
+                mylar.CONFIG.EXTRA_TORZNABS = ((torznabs))
+
+        if del_match is False:
+            self.data = self._failureResponse('Cannot remove %s as a provider, as it does not exist as a %s provider' % (providername, providertype))
+            logger.fdebug('[API][delProvider] %s' % self.data)
+            return
+        else:
+            try:
+                mylar.CONFIG.writeconfig()
+            except Exception as e:
+                logger.error('[API][ADD_PROVIDER][%s] error returned : %s' % (providertype, e))
+                self.data = self._failureResponse('Unable to save config of deleted %s provider %s. Check the logs.' % (providertype, providername))
+            else:
+                self.data = self._successResponse('Successfully removed %s provider %s' % (providertype, providername))
+                logger.fdebug('[API][delProvider] %s' % self.data)
+        return
+
+    def _changeProvider(self, **kwargs):
+        providername = None
+        changename = None
+        if 'altername' in kwargs:
+            changename = kwargs.pop('altername').strip()
+            if any([changename is None, changename == '']):
+                self.data = self._failureResponse('altered name given for provider cannot be None or blank')
+                logger.fdebug('[API][changeProvider] %s' % (self.data,))
+                return
+
+        if 'name' not in kwargs:
+            self.data = self._failureResponse('provider name (`name`) not given')
+            logger.fdebug('[API][changeProvider] %s' % (self.data,))
+            return
+        else:
+            providername = kwargs['name'].strip()
+            if all([providername is None, providername == '']):
+                self.data = self._failureResponse('name given for provider cannot be None or blank')
+                logger.fdebug('[API][changeProvider] %s' % (self.data,))
+                return
+
+        providertype = None
+        if 'providertype' not in kwargs:
+            self.data = self._failureResponse('No provider type provided')
+            logger.fdebug('[API][changeProvider] %s' % (self.data,))
+            return
+        else:
+            providertype = kwargs['providertype'].strip()
+            if all([providertype != 'newznab', providertype != 'torznab']):
+                self.data = self._failureResponse('providertype indicated %s is not a valid option. Options are `newznab` or `torznab`.' % providertype)
+                logger.fdebug('[API][changerovider] %s' % (self.data,))
+                return
+
+        # find the values to change.
+        if 'host' in kwargs:
+            providerhost = kwargs['host']
+            if providerhost.startswith('http'):
+                if providerhost.startswith('https'):
+                    prov_verify = '1'
+                else:
+                    prov_verify = '0'
+            else:
+                self.data = self._failureResponse('protocol is required for % host entry' % providertype)
+                logger.fdebug('[API][changeProvider] %s' % (self.data,))
+                return
+        else:
+            providerhost = None
+            prov_verify = None
+
+        if 'prov_apikey' in kwargs:
+            prov_apikey = kwargs['prov_apikey']
+        else:
+            prov_apikey = None
+
+        if 'enabled' in kwargs:
+            tmp_enable = kwargs['enabled']
+            prov_enabled = '1'
+            if tmp_enable == 'true':
+                prov_enabled = '1'
+            elif any([tmp_enable == 'false', tmp_enable is None, tmp_enable == '']):
+                prov_enabled = '0'
+            else:
+                self.data = self._failureResponse('`enabled` value must be `true`, `false` or not declared')
+                logger.fdebug('[API][changeProvider] %s' % (self.data,))
+                return
+
+        elif 'disabled' in kwargs:
+            tmp_enable = kwargs['disabled']
+            prov_enabled = '0'
+            if tmp_enable == 'true':
+                prov_enabled = '0'
+            elif any([tmp_enable == 'false', tmp_enable is None, tmp_enable == '']):
+                prov_enabled = '1'
+            else:
+                self.data = self._failureResponse('`disabled` value must be `true`, `false` or not declared')
+                logger.fdebug('[API][changeProvider] %s' % (self.data,))
+                return
+        else:
+            prov_enabled = None
+
+        torznab_categories = None
+        if 'categories' in kwargs and providertype == 'torznab':
+            torznab_categories = kwargs['categories']
+            if ',' in torznab_categories:
+                tc = torznab_categories.split(',')
+                torznab_categories = '#'.join(tc).strip()
+
+        if 'uid' in kwargs and providertype == 'newznab':
+            newznab_uid = kwargs['uid']
+        else:
+            newznab_uid = None
+
+        newznab_categories = None
+        if 'categories' in kwargs and providertype == 'newznab':
+            newznab_categories = kwargs['categories']
+            if newznab_uid is not None:
+                newznab_uid += '%s%s'.strip() % ('#', re.sub(',', '#', newznab_categories))
+            else:
+                newznab_uid = '%s%s'.strip() % ('#', re.sub(',', '#', newznab_categories))
+
+        newznabs = []
+        change_match = []
+        if providertype == 'newznab':
+            for nz in mylar.CONFIG.EXTRA_NEWZNABS:
+                if providername.lower() == nz[0].lower():
+                    if changename is not None:
+                        if providername.lower() != changename.lower():
+                            providername = changename
+                            change_match.append('name')
+                    p_host = nz[1]
+                    if providerhost is not None:
+                        if p_host.lower() != providerhost.lower():
+                            p_host = providerhost
+                            change_match.append('host')
+                    p_verify = nz[2]
+                    if prov_verify is not None:
+                        if p_verify != prov_verify:
+                            p_verify = prov_verify
+                            change_match.append('verify')
+                    p_apikey = nz[3]
+                    if prov_apikey is not None:
+                        if p_apikey != prov_apikey:
+                            p_apikey = prov_apikey
+                            change_match.append('apikey')
+                    p_uid = nz[4]
+                    if newznab_uid is not None:
+                        if p_uid != newznab_uid:
+                            p_uid = newznab_uid
+                            change_match.append('uid')
+                    p_enabled = nz[5]
+                    if p_enabled != prov_enabled and prov_enabled is not None:
+                        p_enabled = prov_enabled
+                        change_match.append('enabled')
+                    newznabs.append((providername, p_host, p_verify, p_apikey, p_uid, p_enabled))
+                else:
+                    newznabs.append(nz)
+
+            if len(change_match) > 0:
+                mylar.CONFIG.EXTRA_NEWZNABS = ((newznabs))
+        else:
+            torznabs= []
+            for nt in mylar.CONFIG.EXTRA_TORZNABS:
+                if providername.lower() == nt[0].lower():
+                    if changename is not None:
+                        if providername.lower() != changename.lower():
+                            providername = changename
+                            change_match.append('name')
+                    p_host = nt[1]
+                    if providerhost is not None:
+                        if p_host.lower() != providerhost.lower():
+                            p_host = providerhost
+                            change_match.append('host')
+                    p_verify = nt[2]
+                    if p_verify != prov_verify and prov_verify is not None:
+                        p_verify = prov_verify
+                        change_match.append('verify')
+                    p_apikey = nt[3]
+                    if prov_apikey is not None:
+                        if p_apikey != prov_apikey:
+                            p_apikey = prov_apikey
+                            change_match.append('apikey')
+                    p_categories = nt[4]
+                    if torznab_categories is not None:
+                        if p_categories != torznab_categories:
+                            p_categories = torznab_categories
+                            change_match.append('categories')
+                    p_enabled = nt[5]
+                    if p_enabled != prov_enabled and prov_enabled is not None:
+                        p_enabled = prov_enabled
+                        change_match.append('enabled')
+                    torznabs.append((providername, p_host, p_verify, p_apikey, p_categories, p_enabled))
+                else:
+                    torznabs.append(nt)
+
+            if len(change_match) > 0:
+                mylar.CONFIG.EXTRA_TORZNABS = ((torznabs))
+
+        if len(change_match) == 0:
+            self.data = self._failureResponse('Nothing to change for %s provider %s. It does not exist as a %s provider or nothing to change' % (providertype, providername, providertype))
+            logger.fdebug('[API][changeProvider] %s' % self.data)
+            return
+        else:
+            try:
+                mylar.CONFIG.writeconfig()
+            except Exception as e:
+                logger.error('[API][ADD_PROVIDER][%s] error returned : %s' % (providertype, e))
+            else:
+                self.data = self._successResponse('Successfully changed %s for %s provider %s ' % (change_match, providertype, providername))
+                logger.fdebug('[API][changeProvider] %s' % self.data)
         return
 
 class REST(object):

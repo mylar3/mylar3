@@ -850,7 +850,6 @@ def updateComicLocation():
                           '$publisher':     publisher.lower(),
                           '$VolumeY':       'V' + str(year),
                           '$VolumeN':       comversion,
-                          '$Annual':        'Annual',
                           '$Type':          booktype
                           }
 
@@ -3072,6 +3071,27 @@ def latestdate_update():
         ctrlVal = {'ComicID':           a['ComicID']}
         logger.info('updating latest date for : ' + a['ComicID'] + ' to ' + a['LatestDate'] + ' #' + a['LatestIssue'])
         myDB.upsert("comics", newVal, ctrlVal)
+
+def latestissue_update():
+    myDB = db.DBConnection()
+    cck = myDB.select('SELECT ComicID, LatestIssue FROM comics WHERE intLatestIssue is NULL')
+
+    if cck:
+        c_list = []
+        for ck in cck:
+            c_list.append({'ComicID': ck['ComicID'],
+                           'intLatestIssue': issuedigits(ck['LatestIssue'])})
+
+        logger.info('[LATEST_ISSUE_TO_INT] Updating the latestIssue field for %s series' % (len(c_list)))
+
+        for ct in c_list:
+            try:
+                newVal = {'intLatestIssue': ct['intLatestIssue']}
+                ctrlVal = {'ComicID': ct['ComicID']}
+                myDB.upsert("comics", newVal, ctrlVal)
+            except Exception as e:
+                logger.fdebug('exception encountered: %s' % e)
+                continue
 
 def ddl_downloader(queue):
     myDB = db.DBConnection()

@@ -1,6 +1,7 @@
 <%inherit file="base.html"/>
 <%!
         import os
+        import re
         import mylar
 	from mylar.helpers import checked, listLibrary
 %>
@@ -161,15 +162,26 @@
                 else:
                         volume = ''
 
+                if all([item['Volume'] is not None, item['Volume'] != 'None']):
+                        volume = 'V' + item['Volume']
+                else:
+                        volume = ''
+
+                if 'annual' in item['ComicName'].lower():
+                        cname = re.sub('Annual', '', item['ComicName'], flags=re.I).strip()
+                        displayname = '%s %s %s (%s)' % (cname, volume, 'Annual', item['SeriesYear'])
+                else:
+                        displayname = '%s %s (%s)' % (item['ComicName'], volume, item['SeriesYear'])
+
         %>
 
          <tr id="${item['ReadingOrder']}" class="grade${grade}">
                 <td class="edit" title="Change the order (click to edit)" id="${storyarcid}.${item['IssueArcID']}">${item['ReadingOrder']}</td>
                 <td id="comicname" title="${item['IssueName']}">
                 %if haveit == "No":
-                     ${item['ComicName']} ${volume} (${item['SeriesYear']})
+                     ${displayname}
                 %else:
-                    <a href="comicDetails?ComicID=${haveit}">${item['ComicName']} ${volume} (${item['SeriesYear']})</a>
+                    <a href="comicDetails?ComicID=${haveit}">${displayname}</a>
 
                 %endif
                 </td>

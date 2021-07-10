@@ -343,6 +343,11 @@ def dbUpdate(ComicIDList=None, calledfrom=None, sched=False):
                     logger.info('I have added ' + str(len(newiss)) + ' new issues for this series that were not present before.')
                     forceRescan(ComicID)
 
+                    #series.json updater here (after all data written out)
+                    if not calledfrom == 'json_api':
+                        sm = mylar.series_metadata.metadata_Series(ComicID, bulk=False, api=False)
+                        sm.update_metadata()
+
                 else:
                     chkstatus = mylar.importer.addComictoDB(ComicID, mismatch, annload=annload, csyear=csyear)
                     #if cchk:
@@ -368,13 +373,27 @@ def dbUpdate(ComicIDList=None, calledfrom=None, sched=False):
     #mylar.UPDATER_STATUS = 'Waiting'
     logger.fdebug('Update complete')
 
-def latest_update(ComicID, LatestIssue, LatestDate):
+def latest_update(ComicID, LatestIssue, LatestDate, ReleaseComicID=None):
     # here we add to comics.latest
     logger.fdebug(str(ComicID) + ' - updating latest_date to : ' + str(LatestDate))
     myDB = db.DBConnection()
-    latestCTRLValueDict = {"ComicID":      ComicID}
+    cid = ComicID
+    if mylar.CONFIG.ANNUALS_ON:
+        logger.fdebug('checking for releasecomicid %s reference in annuals table' % ReleaseComicID)
+        db_check = myDB.selectone("SELECT ComicID from Annuals WHERE ReleaseComicID=?", [ReleaseComicID]).fetchone()
+        if not db_check:
+            logger.fdebug('Annual has not been added yet to series')
+        else:
+            cid = db_check[0][0]
+            logger.fdebug('ReleaseComicID found of %s linking to series %s' % (ReleaseComicID, cid))
+            if cid != ComicID:
+                cid = ComicID
+            #might have to set the issue to something like 'Annual %s' % LatestIssue ?
+
+    latestCTRLValueDict = {"ComicID":      cid}
     newlatestDict = {"LatestIssue":      str(LatestIssue),
-                    "LatestDate":       str(LatestDate)}
+                     "intLatestIssue":   helpers.issuedigits(LatestIssue),
+                     "LatestDate":       str(LatestDate)}
     myDB.upsert("comics", newlatestDict, latestCTRLValueDict)
 
 def upcoming_update(ComicID, ComicName, IssueNumber, IssueDate, forcecheck=None, futurepull=None, altissuenumber=None, weekinfo=None):
@@ -427,7 +446,7 @@ def upcoming_update(ComicID, ComicName, IssueNumber, IssueDate, forcecheck=None,
     if any(['annual' in ComicName.lower(), 'special' in ComicName.lower()]):
         if mylar.CONFIG.ANNUALS_ON:
             logger.info('checking: ' + str(ComicID) + ' -- issue#: ' + str(IssueNumber))
-            issuechk = myDB.selectone("SELECT * FROM annuals WHERE ComicID=? AND Issue_Number=?", [ComicID, IssueNumber]).fetchone()
+            issuechk = myDB.selectone("SELECT * FROM annuals WHERE ReleaseComicID=? AND Issue_Number=?", [ComicID, IssueNumber]).fetchone()
         else:
             logger.fdebug('Non-standard issue detected (annual/special/etc), but Annual Integration is not enabled. Ignoring result.')
             return
@@ -1146,7 +1165,8 @@ def forceRescan(ComicID, archive=None, module=None, recheck=False):
 
         if tmpfc['JusttheDigits'] is not None:
             temploc= tmpfc['JusttheDigits'].replace('_', ' ')
-            temploc = re.sub('[\#\']', '', temploc)
+            if "Director's Cut" not in temploc:
+                temploc = re.sub('[\#\']', '', temploc)
             logger.fdebug('temploc: %s' % temploc)
         else:
             #assume 1 if not given
@@ -1165,7 +1185,8 @@ def forceRescan(ComicID, archive=None, module=None, recheck=False):
                 logger.fdebug(module + ' Removed extension for issue: ' + temploc)
                 temploc = temploc[:-4]
             fcnew_af = re.findall('[^\()]+', temploc)
-            fcnew = shlex.split(fcnew_af[0])
+            p = shlex.quote(fcnew_af[0])
+            fcnew = shlex.split(p)
 
             fcn = len(fcnew)
             n = 0
@@ -1854,17 +1875,21 @@ def watchlist_updater(calledfrom=None, sched=False):
     library = {}
 
     if mylar.CONFIG.ANNUALS_ON is True:
-        list = myDB.select("SELECT a.comicid, b.releasecomicid, a.status, a.LastUpdated, a.Total FROM Comics AS a LEFT JOIN annuals AS b on a.comicid=b.comicid group by a.comicid")
+        list = myDB.select("SELECT a.comicname, a.comicid, b.releasecomicid, a.status, a.LastUpdated, a.Total FROM Comics AS a LEFT JOIN annuals AS b on a.comicid=b.comicid group by a.comicid")
     else:
-        list = myDB.select("SELECT comicid, status, LastUpdated, Total FROM Comics group by comicid")
+        list = myDB.select("SELECT comicname, comicid, status, LastUpdated, Total FROM Comics group by comicid")
 
     # if a series failed to update for w/e reason, LastUpdated will be NULL and cause an error otherwise.
     # the prev_failed_updates dict will store all the 'failed' ID's that will be submitted in addition to any
     # other ID's that were updated recently by CV during the check.
     prev_failed_updates = []
-
+    popthecheck = []
     for row in list:
-        if not row['LastUpdated']:
+        if row['ComicName'] is None and mylar.CONFIG.ANNUALS_ON:
+            logger.fdebug('Popping the check for: %s' % row['ComicID'])
+            popthecheck.append(row['ComicID'])
+            continue
+        elif not row['LastUpdated'] and all(['ComicID' not in row['ComicName'], row['Status'] != 'Loading', row['ComicName'] is not None]):
             prev_failed_updates.append(int(row['ComicID']))
         else:
             tm = datetime.datetime.strptime(row['LastUpdated'], '%Y-%m-%d %H:%M:%S')
@@ -1873,12 +1898,23 @@ def watchlist_updater(calledfrom=None, sched=False):
                                             'lastupdated':    calendar.timegm(tm.utctimetuple()),
                                             'total':          row['Total']}
         try:
-            if row['ReleaseComicID'] is not None:
+            if row['ReleaseComicID'] is not None and all(['ComicID' not in row['ComicName'], row['Status'] != 'Loading', row['ComicName'] is not None]):
                 library[row['ReleaseComicID']] = {'comicid':     row['ComicID'],
                                                   'status':      row['Status']}
         except:
             pass
 
+    if len(popthecheck) > 0:
+        logger.fdebug('doing the popcheck')
+        # this is for annuals that have been mistakingly added during a previous phase - they have a ComicID on the comics table but nothing linked anywhere to it
+        # this will check to see if the releasecomicid is present on the annuals table (as it just got verified as being on the comics table) and if it is,
+        # will not flag it for a previous failed update action (ie. refresh). The None values in the Comics table will get cleared out on next restart.
+        for pc in popthecheck:
+            list = myDB.select("SELECT comicname, comicid, status FROM Annuals WHERE releasecomicid=? AND comicname is not NULL", [pc]).fetchone()
+            if not list:
+                continue
+            else:
+                prev_failed_updates.append(int(row['ComicID']))
     # this is based on comicid updates atm.
     to_check = []
     loaddate_stamp = None

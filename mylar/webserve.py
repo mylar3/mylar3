@@ -40,7 +40,7 @@ import shutil
 
 import mylar
 
-from mylar import logger, db, importer, mb, search, filechecker, helpers, updater, parseit, weeklypull, PostProcessor, librarysync, moveit, Failed, readinglist, notifiers, sabparse, config
+from mylar import logger, db, importer, mb, search, filechecker, helpers, updater, parseit, weeklypull, PostProcessor, librarysync, moveit, Failed, readinglist, notifiers, sabparse, config, series_metadata
 from mylar.auth import AuthController, require
 
 import simplejson as simplejson
@@ -63,6 +63,7 @@ def serve_template(templatename, **kwargs):
                  'discord-icon': os.path.join(mylar.CONFIG.HTTP_ROOT, 'images', 'discord-icon.png'),
                  'github-icon': os.path.join(mylar.CONFIG.HTTP_ROOT, 'images', 'github-icon.png'),
                  'forum-icon': os.path.join(mylar.CONFIG.HTTP_ROOT, 'images', 'forum-icon.png'),
+                 'irc-icon': os.path.join(mylar.CONFIG.HTTP_ROOT, 'images', 'irc-icon.png'),
                  'listview_icon': os.path.join(mylar.CONFIG.HTTP_ROOT, 'images', 'listview_icon.png'),
                  'delete_icon': os.path.join(mylar.CONFIG.HTTP_ROOT, 'images', 'delete_icon.png'),
                  'deleteall_icon': os.path.join(mylar.CONFIG.HTTP_ROOT, 'images', 'deleteall_icon.png'),
@@ -78,6 +79,7 @@ def serve_template(templatename, **kwargs):
                  'discord-icon': os.path.join(mylar.CONFIG.HTTP_ROOT, 'interfaces', 'carbon', 'images', 'discord-icon-carbon.png'),
                  'github-icon': os.path.join(mylar.CONFIG.HTTP_ROOT, 'interfaces', 'carbon', 'images', 'github-icon-carbon.png'),
                  'forum-icon': os.path.join(mylar.CONFIG.HTTP_ROOT, 'interfaces', 'carbon', 'images', 'forum-icon-carbon.png'),
+                 'irc-icon': os.path.join(mylar.CONFIG.HTTP_ROOT, 'interfaces', 'carbon', 'images', 'irc-icon-carbon.png'),
                  'listview_icon': os.path.join(mylar.CONFIG.HTTP_ROOT, 'interfaces', 'carbon', 'images', 'listview_icon.png'),
                  'delete_icon': os.path.join(mylar.CONFIG.HTTP_ROOT, 'interfaces', 'carbon', 'images', 'delete_icon.png'),
                  'deleteall_icon': os.path.join(mylar.CONFIG.HTTP_ROOT, 'interfaces', 'carbon', 'images', 'deleteall_icon.png'),
@@ -326,19 +328,40 @@ class WebInterface(object):
                 try:
                     with open(os.path.join(comic['ComicLocation'], 'series.json')) as j_file:
                         metainfo = json.load(j_file)
-                    description_load = metainfo['metadata'][0]['description']
+                    try:
+                        # series.json 1.0.1
+                        description_load = metainfo['metadata']['description_text']
+                    except Exception as e:
+                        try:
+                            # series.json 1.0
+                            description_load = metainfo['metadata'][0]['description_text']
+                        except Exception as e:
+                            description_load = metainfo['metadata'][0]['description']
                 except Exception as e:
                     try:
-                        description_load = metainfo['metadata'][0]['description_formatted']
+                       # series.json 1.0.1
+                        description_load = metainfo['metadata']['description_formatted']
                     except Exception as e:
-                        logger.info('No description found within series.json. Reloading from dB if available.[error: %s]' % e)
+                        try:
+                            # series.json 1.0
+                            description_load = metainfo['metadata'][0]['description_formatted']
+                        except Exception as e:
+                            logger.info('No description found within series.json. Reloading from dB if available.[error: %s]' % e)
 
-        if description_load is not None:
-            description = description_load
-        elif comic['DescriptionEdit'] is not None:
-            description = comic['DescriptionEdit']
+        if mylar.CONFIG.SERIESJSON_FILE_PRIORITY is True:
+            if description_load is not None:
+                description = description_load
+            elif comic['DescriptionEdit'] is not None:
+                description = comic['DescriptionEdit']
+            else:
+                description = comic['Description']
         else:
-            description = comic['Description']
+            if comic['DescriptionEdit'] is not None:
+                description = comic['DescriptionEdit']
+            elif description_load is not None:
+                description = description_load
+            else:
+                description = comic['Description']
 
         if comic['Collects'] is not None:
             issues_list = json.loads(comic['Collects'])
@@ -3841,12 +3864,18 @@ class WebInterface(object):
                 #modi_names = fc.dynamic_replace(arc['ComicName'])
                 #mod_arc = re.sub('[\|\s]', '', modi_names['mod_watchcomic'].lower()).strip()   #is from the arc db
 
-                comics = myDB.select("SELECT * FROM comics WHERE DynamicComicName IN (?) COLLATE NOCASE", [arc['DynamicComicName']])
+                dyn_name = arc['DynamicComicName']
+                if mylar.CONFIG.ANNUALS_ON:
+                    dyn_name = re.sub('[\|\s]', '', re.sub('annual', '', arc['DynamicComicName'].lower())).strip()
+                comics = myDB.select("SELECT * FROM comics WHERE DynamicComicName IN (?) COLLATE NOCASE", [dyn_name])
 
                 for comic in comics:
                     mod_watch = comic['DynamicComicName'] #is from the comics db
 
-                    if re.sub('[\|\s]','', mod_watch.lower()).strip() == re.sub('[\|\s]', '', arc['DynamicComicName'].lower()).strip():
+                    tmp_chkr = re.sub('[\|\s]', '', re.sub('annual', '', arc['DynamicComicName'].lower())).strip()
+                    logger.fdebug('tmp_chkr: %s' % tmp_chkr)
+                    logger.fdebug('mod_watch: %s' % re.sub('[\|\s]', '', mod_watch.lower()).strip())
+                    if re.sub('[\|\s]','', mod_watch.lower()).strip() == tmp_chkr: #re.sub('[\|\s]', '', arc['DynamicComicName'].lower()).strip():
                         logger.fdebug("initial name match - confirming issue # is present in series")
                         if comic['ComicID'][:1] == 'G':
                             # if it's a multi-volume series, it's decimalized - let's get rid of the decimal.
@@ -3859,43 +3888,66 @@ class WebInterface(object):
                         else:
                             issue_int = helpers.issuedigits(arc['IssueNumber'])
                             logger.fdebug('int_issue = %s' % issue_int)
-                            isschk = myDB.selectone("SELECT * FROM issues WHERE Int_IssueNumber=? AND ComicID=?", [issue_int, comic['ComicID']]).fetchone() #AND STATUS !='Snatched'", [issue_int, comic['ComicID']]).fetchone()
+                            if mylar.CONFIG.ANNUALS_ON and 'annual' in arc['ComicName'].lower():
+                                logger.fdebug('annual checking: %s -- %s' % (issue_int, comic['ComicID']))
+                                isschk = myDB.select("SELECT ComicID, IssueID, IssueDate, ReleaseDate, ReleaseComicName FROM annuals WHERE Int_IssueNumber=? AND ComicID=?", [issue_int, comic['ComicID']])
+                                match_annual = True
+                            else:
+                                isschk = myDB.select("SELECT ComicID, IssueID, IssueDate, ReleaseDate, ComicName FROM issues WHERE Int_IssueNumber=? AND ComicID=?", [issue_int, comic['ComicID']]) #AND STATUS !='Snatched'", [issue_int, comic['ComicID']]).fetchone()
+                                match_annual = False
                         if isschk is None:
                             logger.fdebug('We matched on name, but issue %s doesn\'t exist for %s' % (arc['IssueNumber'], comic['ComicName']))
                         else:
-                            #this gets ugly - if the name matches and the issue, it could still be wrong series
-                            #use series year to break it down further.
-                            logger.fdebug('COMIC-comicyear: %s' % comic['ComicYear'])
-                            logger.fdebug('B4-ARC-seriesyear: %s' % arc['SeriesYear'])
-                            if any([arc['SeriesYear'] is None, arc['SeriesYear'] == 'None']):
-                                vy = '2099-00-00'
-                                for x in isschk:
-                                    if any([x['IssueDate'] is None, x['IssueDate'] == '0000-00-00']):
-                                        sy = x['StoreDate']
+                            for isk in isschk:
+                                #this gets ugly - if the name matches and the issue, it could still be wrong series
+                                #use series year to break it down further.
+                                logger.fdebug('COMIC-comicyear: %s' % comic['ComicYear'])
+                                logger.fdebug('B4-ARC-seriesyear: %s' % arc['SeriesYear'])
+                                if any([arc['SeriesYear'] is None, arc['SeriesYear'] == 'None']):
+                                    vy = '2099-00-00'
+                                    if any([isk['IssueDate'] is None, isk['IssueDate'] == '0000-00-00']):
+                                        sy = isk['ReleaseDate']
                                         if any([sy is None, sy == '0000-00-00']):
                                             continue
                                     else:
-                                        sy = x['IssueDate']
+                                        sy = isk['IssueDate']
                                     if sy < vy:
                                         v_seriesyear = sy
-                                seriesyear = v_seriesyear
-                                logger.info('No Series year set. Discovered & set to %s' % seriesyear)
-                            else:
-                                seriesyear = arc['SeriesYear']
-                            logger.fdebug('ARC-seriesyear: %s' % seriesyear)
-                            if int(comic['ComicYear']) != int(seriesyear):
-                                logger.fdebug('Series years are different - discarding match. %s != %s' % (comic['ComicYear'], seriesyear))
-                            else:
+                                    seriesyear = v_seriesyear
+                                    logger.fdebug('No Series year set. Discovered & set to %s' % seriesyear)
+                                else:
+                                    seriesyear = arc['SeriesYear']
+                                logger.fdebug('ARC-seriesyear: %s' % seriesyear)
+                                logger.fdebug('[SAFETY-CHECK] Checking issue dates between arc & series to make sure we match the right volume')
+                                if all([arc['IssueDate'] is not None, arc['IssueDate'] != '0000-00-00']):
+                                    tmpdate_chk = arc['IssueDate']
+                                elif all([arc['ReleaseDate'] is not None, arc['ReleaseDate'] != '0000-00-00']):
+                                    tmpdate_chk = arc['ReleaseDate']
+                                if any([isk['IssueDate'] is None, isk['IssueDate'] == '0000-00-00']):
+                                    sy = isk['ReleaseDate']
+                                    if any([sy is None, sy == '0000-00-00']):
+                                        logger.fdebug('No valid dates present for %s %s [%s]' % (arc['ComicName'], arc['IssueNumber'], isk['ComicID']))
+                                        continue
+                                    else:
+                                        iss_tmpchk = sy
+                                else:
+                                    iss_tmpchk = isk['IssueDate']
+
+                                if re.sub('-', '', tmpdate_chk).strip() != re.sub('-', '', iss_tmpchk).strip():
+                                    logger.fdebug('Issue Dates are different (issue:%s / arc:%s) - this is probably attempting to hit the wrong volume of the series. Ignoring this result.' % (tmpdate_chk, iss_tmpchk))
+                                    continue
                                 logger.fdebug('issue #: %s is present!' % arc['IssueNumber'])
                                 logger.fdebug('Comicname: %s' % arc['ComicName'])
-                                logger.fdebug('ComicID: %s' % isschk['ComicID'])
+                                logger.fdebug('ComicID: %s [IssueID: %s]' % (isk['ComicID'], isk['IssueID']))
                                 logger.fdebug('Issue: %s' % arc['IssueNumber'])
                                 logger.fdebug('IssueArcID: %s' % arc['IssueArcID'])
                                 #gather the matches now.
                                 arc_match.append({
                                     "match_storyarc":          arc['StoryArc'],
+                                    "match_annual":            match_annual,
                                     "match_name":              arc['ComicName'],
-                                    "match_id":                isschk['ComicID'],
+                                    "match_id":                isk['ComicID'],
+                                    "match_issueid":           isk['IssueID'],
                                     "match_issue":             arc['IssueNumber'],
                                     "match_issuearcid":        arc['IssueArcID'],
                                     "match_seriesyear":        comic['ComicYear'],
@@ -3972,12 +4024,13 @@ class WebInterface(object):
             logger.fdebug('%s issues currently exist on your watchlist that are within this arc. Analyzing...' % len(arc_match))
             for m_arc in arc_match:
                 #now we cycle through the issues looking for a match.
-                #issue = myDB.selectone("SELECT * FROM issues where ComicID=? and Issue_Number=?", [m_arc['match_id'], m_arc['match_issue']]).fetchone()
-                issue = myDB.selectone("SELECT a.Issue_Number, a.Status, a.IssueID, a.ComicName, a.IssueDate, a.Location, b.readingorder FROM issues AS a INNER JOIN storyarcs AS b ON a.comicid = b.comicid where a.comicid=? and a.issue_number=?", [m_arc['match_id'], m_arc['match_issue']]).fetchone()
-
+                if m_arc['match_annual']:
+                    issue = myDB.selectone("SELECT a.Issue_Number, a.Status, a.IssueID, a.ComicName, a.IssueDate, a.Location, b.readingorder FROM annuals AS a INNER JOIN storyarcs AS b ON a.comicid = b.comicid where a.comicid=? and a.issue_number=? and a.issueid=?", [m_arc['match_id'], m_arc['match_issue'], m_arc['match_issueid']]).fetchone()
+                else:
+                    issue = myDB.selectone("SELECT a.Issue_Number, a.Status, a.IssueID, a.ComicName, a.IssueDate, a.Location, b.readingorder FROM issues AS a INNER JOIN storyarcs AS b ON a.comicid = b.comicid where a.comicid=? and a.issue_number=?", [m_arc['match_id'], m_arc['match_issue']]).fetchone()
                 if issue is None: pass
                 else:
-                    logger.fdebug('issue: %s ... %s' % (issue['Issue_Number'], m_arc['match_issue']))
+                    logger.fdebug('[m_arc:%s][%s]issue: %s ... %s' % (m_arc['match_id'], issue['IssueID'], issue['Issue_Number'], m_arc['match_issue']))
                     if issue['Issue_Number'] == m_arc['match_issue']:
                         logger.fdebug('We matched on %s for %s' % (issue['Issue_Number'], m_arc['match_name']))
                         if issue['Status'] == 'Downloaded' or issue['Status'] == 'Archived' or issue['Status'] == 'Snatched':
@@ -5740,6 +5793,8 @@ class WebInterface(object):
                     newznab_verify = 0
                 newznab_apikey = kwargs['newznab_apikey' + newznab_number]
                 newznab_uid = kwargs['newznab_uid' + newznab_number]
+                if ',' in newznab_uid:
+                    newznab_uid = re.sub(',', '#', newznab_uid).strip()
                 try:
                     newznab_enabled = str(kwargs['newznab_enabled' + newznab_number])
                 except KeyError:
@@ -5766,6 +5821,9 @@ class WebInterface(object):
                     torznab_verify = 0
                 torznab_api = kwargs['torznab_apikey' + torznab_number]
                 torznab_category = kwargs['torznab_category' + torznab_number]
+                if ',' in torznab_category:
+                    torznab_category = re.sub(',', '#', torznab_category).strip()
+
                 try:
                     torznab_enabled = str(kwargs['torznab_enabled' + torznab_number])
                 except KeyError:
@@ -7130,142 +7188,45 @@ class WebInterface(object):
             try:
                 with open(os.path.join(desc['ComicLocation'], 'series.json')) as j_file:
                     metainfo = json.load(j_file)
-                description_load = metainfo['metadata'][0]['description']
-            except Exception as e:
                 try:
-                    description_load = metainfo['metadata'][0]['description_formatted']
+                    # series.json version 1.0.1
+                    description_load = metainfo['metadata']['description_text']
                 except Exception as e:
-                    logger.info('No description found in metadata. Reloading from dB if available.[error: %s]' % e)
-
-        if description_load is not None:
-            return description_load
-        elif desc:
+                    try:
+                        # series.json version 1.0
+                        description_load = metainfo['metadata'][0]['description_text']
+                    except Exception as e:
+                        description_load = metainfo['metadata'][0]['description']
+            except Exception as e:
+                 try:
+                    # series.json version 1.0.1
+                    description_load = metainfo['metadata']['description_formatted']
+                 except Exception as e:
+                    try:
+                        # series.json version 1.0
+                        description_load = metainfo['metadata'][0]['description_formatted']
+                    except Exception as e:
+                        logger.info('No description found in metadata. Reloading from dB if available.[error: %s]' % e)
+        if desc:
             if desc['DescriptionEdit']:
                 return desc['DescriptionEdit']
             else:
                 return desc['Description']
+        elif description_load is not None:
+            return description_load
         else:
             return 'No description available.'
     get_description.exposed = True
 
-    def update_metadata(self, comicid):
-        myDB = db.DBConnection()
-        comic = myDB.selectone('SELECT * FROM comics WHERE ComicID=?', [comicid]).fetchone()
-        if comic:
-            description_load = None
-            if not os.path.exists(comic['ComicLocation']) and mylar.CONFIG.CREATE_FOLDERS is False:
-                try:
-                    checkdirectory = filechecker.validateAndCreateDirectory(comic['ComicLocation'], True)
-                except Exception as e:
-                    logger.warn('[%s] Unable to create series directory @ %s. Aborting updating of series.json' % (e, comic['ComicLocation']))
-                    return
-                else:
-                    if checkdirectory is False:
-                        logger.warn('Unable to create series directory @ %s. Aborting updating of series.json' % (comic['ComicLocation']))
-                        return
+    def update_metadata_thread(self, **kwargs):
+        sm = series_metadata.metadata_Series(kwargs=kwargs)
+        threading.Thread(target=sm.update_metadata).start()
+    update_metadata_thread.exposed = True
 
-            if os.path.exists(os.path.join(comic['ComicLocation'], 'series.json')):
-                try:
-                    with open(os.path.join(comic['ComicLocation'], 'series.json')) as j_file:
-                        metainfo = json.load(j_file)
-                        logger.info('metainfo_loaded: %s' % (metainfo,))
-                    description_load = metainfo['metadata'][0]['description']
-                except Exception as e:
-                    try:
-                        description_load = metainfo['metadata'][0]['description_formatted']
-                    except Exception as e:
-                        logger.info('No description found in metadata. Reloading from dB if available.[error: %s]' % e)
-
-            c_date = datetime.date(int(comic['LatestDate'][:4]), int(comic['LatestDate'][5:7]), 1)
-            n_date = datetime.date.today()
-            recentchk = (n_date - c_date).days
-            if comic['NewPublish'] is True:
-                seriesStatus = 'Continuing'
-            else:
-                #do this just incase and as an extra measure of accuracy hopefully.
-                if recentchk < 55:
-                    seriesStatus = 'Continuing'
-                else:
-                    seriesStatus = 'Ended'
-
-            clean_issue_list = None
-            if comic['Collects'] != 'None':
-                clean_issue_list = comic['Collects']
-
-            if description_load is not None:
-                cdes_removed = re.sub(r'\n', '', description_load).strip()
-                cdes_formatted = description_load
-            elif comic['DescriptionEdit'] is not None:
-                cdes_removed = re.sub(r'\n', ' ', comic['DescriptionEdit']).strip()
-                cdes_formatted = comic['DescriptionEdit']
-            else:
-                if comic['Description'] is not None:
-                    cdes_removed = re.sub(r'\n', '', comic['Description']).strip()
-                else:
-                    cdes_removed = comic['Description']
-                    logger.warn('Series does not have a description. Not populating, but you might need to do a Refresh Series to fix this')
-                cdes_formatted = comic['Description']
-
-            comicVol = comic['ComicVersion']
-            if all([mylar.CONFIG.SETDEFAULTVOLUME is True, comicVol is None]):
-                comicVol = 'v1'
-            if comicVol is not None:
-                if comicVol.isdigit():
-                    comicVol = 'v' + comic['ComicVersion']
-                    logger.info('Updated version to :' + str(comicVol))
-                    if all([mylar.CONFIG.SETDEFAULTVOLUME is False, comicVol == 'v1']):
-                       comicVol = None
-            else:
-                if mylar.CONFIG.SETDEFAULTVOLUME is True:
-                    comicVol = 'v1'
-
-            if any([comic['ComicYear'] is None, comic['ComicYear'] == '0000', comic['ComicYear'][-1:] == '-']):
-                SeriesYear = issued['firstdate'][:4]
-            else:
-                SeriesYear = comic['ComicYear']
-
-            csyear = comic['Corrected_SeriesYear']
-
-            if any([int(SeriesYear) > int(datetime.datetime.now().year) + 1, int(SeriesYear) == 2099]) and csyear is not None:
-                logger.info('Corrected year of ' + str(SeriesYear) + ' to corrected year for series that was manually entered previously of ' + str(csyear))
-                SeriesYear = csyear
-
-            if all([int(comic['Total']) == 1, SeriesYear < helpers.today()[:4], comic['Type'] != 'One-Shot', comic['Type'] != 'TPB']):
-                logger.info('Determined to be a one-shot issue. Forcing Edition to One-Shot')
-                booktype = 'One-Shot'
-            else:
-                booktype = comic['Type']
-
-            if comic['Corrected_Type'] and comic['Corrected_Type'] != booktype:
-                booktype = comic['Corrected_Type']
-
-            c_image = comic
-            metadata = {}
-            metadata['metadata'] = [(
-                                        {'type': 'comicSeries',
-                                         'publisher': comic['ComicPublisher'],
-                                         'imprint': comic['PublisherImprint'],
-                                         'name': comic['ComicName'],
-                                         'comicid': comicid,
-                                         'year': SeriesYear,
-                                         'description_text': cdes_removed,
-                                         'description_formatted': cdes_formatted,
-                                         'volume': comicVol,
-                                         'booktype': booktype,
-                                         'collects': clean_issue_list,
-                                         'ComicImage': comic['ComicImageURL'],
-                                         'total_issues': comic['Total'],
-                                         'publication_run': comic['ComicPublished'],
-                                         'status': seriesStatus}
-            )]
-
-            try:
-                with open(os.path.join(comic['ComicLocation'], 'series.json'), 'w', encoding='utf-8') as outfile:
-                    json.dump(metadata, outfile, indent=4, ensure_ascii=False)
-            except Exception as e:
-                logger.error('Unable to write series.json to %s. Error returned: %s' % (comic['ComicLocation'], e))
-            else:
-                logger.fdebug('Successfully written series.json file to %s' % comic['ComicLocation'])
+    def update_metadata(self, comicid, bulk=False, api=False):
+        sm = series_metadata.metadata_Series(comicidlist=comicid, bulk=bulk, api=api)
+        sm.update_metadata()
+        return
     update_metadata.exposed = True
 
     def weekly_publisherlisting(self, weeknumber, year):
