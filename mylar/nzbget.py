@@ -34,6 +34,9 @@ class NZBGet(object):
         elif mylar.CONFIG.NZBGET_HOST[:4] == 'http':
             protocol = "http"
             nzbget_host = mylar.CONFIG.NZBGET_HOST[7:]
+        else:
+            logger.warn('[NZB-GET] You need to specify the protocol for your nzbget instance (ie. http:// or https://). You provided: %s' % (mylar.CONFIG.NZBGET_HOST))
+            return {'status': False}
         url = '%s://'
         val = (protocol,)
         if mylar.CONFIG.NZBGET_USERNAME is not None:
