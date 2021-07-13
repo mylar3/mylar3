@@ -491,8 +491,9 @@ def addComictoDB(comicid, mismatch=None, pullupd=None, imported=None, ogcname=No
     updater.forceRescan(comicid)
 
     #series.json updater here (after all data written out)
-    sm = series_metadata.metadata_Series(comicid, bulk=False, api=False)
-    sm.update_metadata()
+    if mylar.CONFIG.SERIES_METADATA_LOCAL is True:
+        sm = series_metadata.metadata_Series(comicid, bulk=False, api=False)
+        sm.update_metadata()
 
     statafter = myDB.selectone("SELECT Status FROM issues WHERE ComicID=? AND Int_IssueNumber=?", [comicid, helpers.issuedigits(latestiss)]).fetchone()
     logger.fdebug('issue: ' + latestiss + ' status after chk :' + str(statafter['Status']))

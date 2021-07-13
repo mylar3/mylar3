@@ -322,46 +322,49 @@ class WebInterface(object):
             comicImage = comic['ComicImage']
         comicpublisher = helpers.publisherImages(comic['ComicPublisher'])
 
-        description_load = None
-        if comic['ComicLocation'] is not None:
-            if os.path.exists(os.path.join(comic['ComicLocation'], 'series.json')):
-                try:
-                    with open(os.path.join(comic['ComicLocation'], 'series.json')) as j_file:
-                        metainfo = json.load(j_file)
+        if mylar.CONFIG.SERIES_METADATA_LOCAL is True:
+            description_load = None
+            if comic['ComicLocation'] is not None:
+                if os.path.exists(os.path.join(comic['ComicLocation'], 'series.json')):
                     try:
-                        # series.json 1.0.1
-                        description_load = metainfo['metadata']['description_text']
+                        with open(os.path.join(comic['ComicLocation'], 'series.json')) as j_file:
+                            metainfo = json.load(j_file)
+                        try:
+                            # series.json 1.0.1
+                            description_load = metainfo['metadata']['description_text']
+                        except Exception as e:
+                            try:
+                                # series.json 1.0
+                                description_load = metainfo['metadata'][0]['description_text']
+                            except Exception as e:
+                                description_load = metainfo['metadata'][0]['description']
                     except Exception as e:
                         try:
-                            # series.json 1.0
-                            description_load = metainfo['metadata'][0]['description_text']
+                            # series.json 1.0.1
+                            description_load = metainfo['metadata']['description_formatted']
                         except Exception as e:
-                            description_load = metainfo['metadata'][0]['description']
-                except Exception as e:
-                    try:
-                       # series.json 1.0.1
-                        description_load = metainfo['metadata']['description_formatted']
-                    except Exception as e:
-                        try:
-                            # series.json 1.0
-                            description_load = metainfo['metadata'][0]['description_formatted']
-                        except Exception as e:
-                            logger.info('No description found within series.json. Reloading from dB if available.[error: %s]' % e)
+                            try:
+                                # series.json 1.0
+                                description_load = metainfo['metadata'][0]['description_formatted']
+                            except Exception as e:
+                                logger.info('No description found within series.json. Reloading from dB if available.[error: %s]' % e)
 
-        if mylar.CONFIG.SERIESJSON_FILE_PRIORITY is True:
-            if description_load is not None:
-                description = description_load
-            elif comic['DescriptionEdit'] is not None:
-                description = comic['DescriptionEdit']
+            if mylar.CONFIG.SERIESJSON_FILE_PRIORITY is True:
+                if description_load is not None:
+                    description = description_load
+                elif comic['DescriptionEdit'] is not None:
+                    description = comic['DescriptionEdit']
+                else:
+                    description = comic['Description']
             else:
-                description = comic['Description']
+                if comic['DescriptionEdit'] is not None:
+                    description = comic['DescriptionEdit']
+                elif description_load is not None:
+                    description = description_load
+                else:
+                    description = comic['Description']
         else:
-            if comic['DescriptionEdit'] is not None:
-                description = comic['DescriptionEdit']
-            elif description_load is not None:
-                description = description_load
-            else:
-                description = comic['Description']
+            description = comic['Description']
 
         if comic['Collects'] is not None:
             issues_list = json.loads(comic['Collects'])
