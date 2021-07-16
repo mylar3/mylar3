@@ -983,6 +983,8 @@ def new_pullcheck(weeknumber, pullyear, comic1off_name=None, comic1off_id=None, 
                                 annual_ids.append({'ComicID':    an['ReleaseComicID'],
                                                    'ComicName':  an['ReleaseComicName']})
 
+                    annDyn = re.sub('2021 annual', '', watch['DynamicName'].lower()).strip()
+                    annDyn = re.sub('annual', '', annDyn.lower()).strip()
                     weeklylist.append({'ComicName':       watch['ComicName'],
                                        'SeriesYear':      watch['ComicYear'],
                                        'ComicID':         watch['ComicID'],
@@ -990,7 +992,7 @@ def new_pullcheck(weeknumber, pullyear, comic1off_name=None, comic1off_id=None, 
                                        'Booktype':        watch['BookType'],
                                        'latestIssue':     watch['LatestIssue'],
                                        'DynamicName':     watch['DynamicName'],
-                                       'AnnDynamicName':  re.sub('annual', '', watch['DynamicName'].lower()).strip(),
+                                       'AnnDynamicName':  annDyn,
                                        'AlternateNames':  altnames,
                                        'AnnualIDs':       annual_ids})
                 else:
@@ -1056,7 +1058,8 @@ def new_pullcheck(weeknumber, pullyear, comic1off_name=None, comic1off_id=None, 
                                 pass
                         else:
                             comicid = annualidmatch[0]['AnnualIDs'][0]['ComicID'].strip()
-                        logger.fdebug('[WEEKLY-PULL-ANNUAL] Series Match to ID --- ' + comicname + ' [' + comicid + ']')
+                        if comicid:
+                            logger.fdebug('[WEEKLY-PULL-ANNUAL] Series Match to ID --- ' + comicname + ' [' + comicid + ']')
                     else:
                         #if it's a name metch, it means that CV hasn't been populated yet with the necessary data
                         #do a quick issue check to see if the next issue number is in sequence and not a #1, or like #900
