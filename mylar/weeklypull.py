@@ -1041,23 +1041,17 @@ def new_pullcheck(weeknumber, pullyear, comic1off_name=None, comic1off_id=None, 
                         comicid = idmatch[0]['ComicID'].strip()
                         logger.fdebug('[WEEKLY-PULL-ID] Series Match to ID --- ' + comicname + ' [' + comicid + ']')
                     elif annualidmatch:
-                        try:
-                            if 'annual' in week['ComicName'].lower():
-                                comicname = annualidmatch[0]['AnnualIDs'][0]['ComicName'].strip()
-                            else:
-                                comicname = week['ComicName']
-                        except:
-                            comicname = week['ComicName']
+                        comicname = week['ComicName']
                         latestiss = annualidmatch[0]['latestIssue'].strip()
+                        comicid = annualidmatch[0]['AnnualIDs'][0]['ComicID'].strip()
                         if mylar.CONFIG.ANNUALS_ON:
                             comicid = None
                             for x in annualidmatch[0]['AnnualIDs']:
                                 if week['comicid'] == x['ComicID'] and week['annuallink'] is not None:
                                     comicid = x['ComicID'].strip()
+                                    comicname = x['ComicName']
                             if not comicid:
                                 pass
-                        else:
-                            comicid = annualidmatch[0]['AnnualIDs'][0]['ComicID'].strip()
                         if comicid:
                             logger.fdebug('[WEEKLY-PULL-ANNUAL] Series Match to ID --- ' + comicname + ' [' + comicid + ']')
                     else:
@@ -1643,13 +1637,13 @@ def future_check():
                             logger.fdebug('length match differential set for an allowance of 20%')
                             logger.fdebug('actual differential in length between result and series title: ' + str((length_match * 100)-100) + '%')
                             if ((length_match * 100)-100) > 20:
-                                logger.fdebug('there are too many extra words to consider this as match for the given title. Ignoring this result.') 
+                                logger.fdebug('there are too many extra words to consider this as match for the given title. Ignoring this result.')
                                 continue
                             new_match = pos_match['name'].lower()
                             split_series = ser['ComicName'].lower().split()
                             for cw in catch_words:
                                 for x in new_match.split():
-                                    #logger.fdebug('comparing x: ' + str(x) + ' to cw: ' + str(cw)) 
+                                    #logger.fdebug('comparing x: ' + str(x) + ' to cw: ' + str(cw))
                                     if x == cw:
                                         new_match = re.sub(x, '', new_match)
 
@@ -1676,12 +1670,12 @@ def future_check():
                                             word_match+=1
                                     except ValueError:
                                         break
-                                i+=1                                
+                                i+=1
                             logger.fdebug('word match score of : ' + str(word_match) + ' / ' + str(len(split_series)))
                             if word_match == len(split_series) or (word_match / len(split_series)) > 80:
                                  logger.fdebug('[' + pos_match['name'] + '] considered a match - word matching percentage is greater than 80%. Attempting to auto-add series into watchlist.')
                                  cid = pos_match['comicid']
-                                 matched = True                
+                                 matched = True
 
                 if matched:
                     #we should probably load all additional issues for the series on the futureupcoming list that are marked as Wanted and then
