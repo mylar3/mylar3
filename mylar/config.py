@@ -88,6 +88,8 @@ _CONFIG_DEFINITIONS = OrderedDict({
     'BACKUP_ON_START': (bool, 'General', False),
     'BACKFILL_LENGTH': (int, 'General', 8),  # weeks
     'BACKFILL_TIMESPAN': (int, 'General', 10),   # minutes
+    'PROBLEM_DATES': (str, 'General', []),
+    'PROBLEM_DATES_SECONDS': (int, 'General', 60),
 
     'RSS_CHECKINTERVAL': (int, 'Scheduler', 20),
     'SEARCH_INTERVAL': (int, 'Scheduler', 360),
@@ -1063,6 +1065,18 @@ class Config(object):
                 except Exception as e:
                     logger.warn('[MASS_PUBLISHERS] Unable to convert publishers [%s]. Error returned: %s' % (self.MASS_PUBLISHERS, e))
         logger.info('[MASS_PUBLISHERS] Auto-add for weekly publishers set to: %s' % (self.MASS_PUBLISHERS,))
+
+        if len(self.PROBLEM_DATES) > 0 and self.PROBLEM_DATES != '[]':
+            if type(self.PROBLEM_DATES) != list:
+                try:
+                    self.PROBLEM_DATES = json.loads(self.PROBLEM_DATES)
+                except Exception as e:
+                    logger.warn('unable to load problem dates')
+        else:
+            setattr(self, 'PROBLEM_DATES', ['2021-07-14 04:00:34'])
+            config.set('General', 'problem_dates', json.dumps(self.PROBLEM_DATES))
+
+        logger.info('[PROBLEM_DATES] Problem dates loaded: %s' % (self.PROBLEM_DATES,))
 
         #comictagger - force to use included version if option is enabled.
         import comictaggerlib.ctversion as ctversion
