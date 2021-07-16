@@ -1343,10 +1343,14 @@ class FileChecker(object):
                 justthedigits = 'Annual'
                 if series_info['issue_number'] is not None:
                     justthedigits += ' %s' % series_info['issue_number']
+                nspace_seriesname = re.sub('2021annual', '', nspace_seriesname.lower()).strip()
                 nspace_seriesname = re.sub('annual', '', nspace_seriesname.lower()).strip()
+                nspace_seriesname_decoded = re.sub('2021annual', '', nspace_seriesname_decoded.lower()).strip()
                 nspace_seriesname_decoded = re.sub('annual', '', nspace_seriesname_decoded.lower()).strip()
             if alt_series is not None and 'annual' in alt_series.lower():
+                nspace_altseriesname = re.sub('2021annual', '', nspace_altseriesname.lower()).strip()
                 nspace_altseriesname = re.sub('annual', '', nspace_altseriesname.lower()).strip()
+                nspace_altseriesname_decoded = re.sub('2021annual', '', nspace_altseriesname_decoded.lower()).strip()
                 nspace_altseriesname_decoded = re.sub('annual', '', nspace_altseriesname_decoded.lower()).strip()
         if mylar.CONFIG.ANNUALS_ON and 'special' not in nspace_watchcomic.lower():
             if 'special' in series_name.lower():
@@ -1401,6 +1405,7 @@ class FileChecker(object):
                         elif 'annual' in nspace_seriesname.lower():
                             if mylar.CONFIG.FOLDER_SCAN_LOG_VERBOSE:
                                 logger.fdebug('[FILECHECKER] Annual detected - proceeding cautiously.')
+                            nspace_seriesname = re.sub('2021annual', '', nspace_seriesname).strip()
                             nspace_seriesname = re.sub('annual', '', nspace_seriesname).strip()
                             enable_annual = False
                         elif 'special' in nspace_seriesname.lower():
