@@ -2265,7 +2265,7 @@ class WebInterface(object):
                     return threading.Thread(target=weeklypull.pullit, args=[forcecheck]).start()
 
                 if int(upc['weeknumber']) == int(weeknumber) and int(upc['year']) == int(weekyear):
-                    if upc['Status'] == 'Wanted':
+                    if all([upc['Status'] == 'Wanted', upc['IssueID'] is None]):
                         upcoming_count +=1
                         upcoming.append({"ComicName":    upc['Comic'],
                                          "IssueNumber":  upc['Issue'],
