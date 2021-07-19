@@ -1023,28 +1023,28 @@ div#artistheader h2 a {
 }
 #storyarcs th#options {
   max-width: 100px;
-  text-align: left;
+  text-align: center;
 }
 #storyarcs th#storyarc {
-  min-width: 300px;
+  min-width: 375px;
   text-align: left;
 }
 #storyarcs th#years {
-  max-width: 50px;
+  max-width: 60px;
   text-align: center;
 }
 #storyarcs th#have {
-  max-width: 80px;
+  max-width: 70px;
   text-align: center;
 }
 #storyarcs td#storyarc {
-  min-width: 300px;
+  min-width: 375px;
   text-align: left;
   vertical-align: middle;
   font-size: 12px;
 }
 #storyarcs td#years {
-  max-width: 50px;
+  max-width: 60px;
   text-align: center;
   vertical-align: middle;
 }
@@ -1054,7 +1054,7 @@ div#artistheader h2 a {
   vertical-align: middle;
 }
 #storyarcs td#have {
-  max-width: 80px;
+  max-width: 70px;
   text-align: center;
   vertical-align: middle;
 }

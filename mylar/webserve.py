@@ -3863,22 +3863,22 @@ class WebInterface(object):
                 logger.fdebug('[%s] %s : %s' % (arc['StoryArc'], arc['ComicName'], arc['IssueNumber']))
 
                 matcheroso = "no"
-                #fc = filechecker.FileChecker(watchcomic=arc['ComicName'])
-                #modi_names = fc.dynamic_replace(arc['ComicName'])
-                #mod_arc = re.sub('[\|\s]', '', modi_names['mod_watchcomic'].lower()).strip()   #is from the arc db
 
                 dyn_name = arc['DynamicComicName']
+                dyn_name = re.sub('[\|\s]','', dyn_name.lower()).strip()
                 if mylar.CONFIG.ANNUALS_ON:
-                    dyn_name = re.sub('[\|\s]', '', re.sub('annual', '', arc['DynamicComicName'].lower())).strip()
-                comics = myDB.select("SELECT * FROM comics WHERE DynamicComicName IN (?) COLLATE NOCASE", [dyn_name])
+                    dyn_name = re.sub('2021annual', '', dyn_name).strip()
+                    dyn_name = re.sub('annual', '', dyn_name).strip()
+                comics = myDB.select("SELECT * FROM comics WHERE DynamicComicName IN (?) COLLATE NOCASE",[dyn_name])
 
                 for comic in comics:
                     mod_watch = comic['DynamicComicName'] #is from the comics db
-
-                    tmp_chkr = re.sub('[\|\s]', '', re.sub('annual', '', arc['DynamicComicName'].lower())).strip()
-                    logger.fdebug('tmp_chkr: %s' % tmp_chkr)
+                    mod_watch = re.sub('[\|\s]','', mod_watch.lower()).strip()
+                    if mylar.CONFIG.ANNUALS_ON:
+                        tmp_chkr = re.sub('[\|\s]', '', re.sub('2021annual', '', mod_watch)).strip()
+                        mod_watch = re.sub('[\|\s]', '', re.sub('annual', '', tmp_chkr)).strip()
                     logger.fdebug('mod_watch: %s' % re.sub('[\|\s]', '', mod_watch.lower()).strip())
-                    if re.sub('[\|\s]','', mod_watch.lower()).strip() == tmp_chkr: #re.sub('[\|\s]', '', arc['DynamicComicName'].lower()).strip():
+                    if mod_watch == dyn_name:
                         logger.fdebug("initial name match - confirming issue # is present in series")
                         if comic['ComicID'][:1] == 'G':
                             # if it's a multi-volume series, it's decimalized - let's get rid of the decimal.
