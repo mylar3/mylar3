@@ -50,6 +50,7 @@ class NZBGet(object):
         else:
             url = url + '%s:%s/xmlrpc'
         val = val + (nzbget_host,mylar.CONFIG.NZBGET_PORT,)
+        self.display_url = '%s://%s/xmlrpc' % (protocol, nzbget_host)
         self.nzb_url = (url % val)
         self.server = xmlrpc.client.ServerProxy(self.nzb_url) #,allow_none=True)
 
@@ -74,7 +75,7 @@ class NZBGet(object):
             nzbcontent64 = standard_b64encode(nzbcontent).decode('utf-8')
 
         try:
-            logger.fdebug('sending now to %s' % self.nzb_url)
+            logger.fdebug('sending now to %s' % self.display_url)
             if mylar.CONFIG.NZBGET_CATEGORY is None:
                 nzb_category = ''
             else:
@@ -171,7 +172,7 @@ class NZBGet(object):
         found = False
         destdir = None
         double_pp = False
-        hq = [hs for hs in history if hs['NZBID'] == nzbid and ('SUCCESS' in hs['Status'] or ('COPY' in hs['Status']))]
+        hq = [hs for hs in history if hs['NZBID'] == nzbid] # and ('SUCCESS' in hs['Status'] or ('COPY' in hs['Status']))]
         if len(hq) > 0:
             logger.fdebug('found matching completed item in history. Job has a status of %s' % hq[0]['Status'])
             if len(hq[0]['ScriptStatuses']) > 0:
@@ -197,22 +198,50 @@ class NZBGet(object):
                     destdir = hq[0]['DestDir']
                     logger.fdebug('location found @ %s' % destdir)
             elif all(['COPY' in hq[0]['Status'], int(hq[0]['FileSizeMB']) > 0, hq[0]['DeleteStatus'] == 'COPY']):
-                config = self.server.config()
-                cDestDir = None
-                for x in config:
-                    if x['Name'] == 'TempDir':
-                        cTempDir = x['Value']
-                    elif x['Name'] == 'DestDir':
-                        cDestDir = x['Value']
-                    if cDestDir is not None:
-                        break
+                if hq[0]['Deleted'] is False:
+                    config = self.server.config()
+                    cDestDir = None
+                    for x in config:
+                        if x['Name'] == 'TempDir':
+                            cTempDir = x['Value']
+                        elif x['Name'] == 'DestDir':
+                            cDestDir = x['Value']
+                        if cDestDir is not None:
+                            break
 
-                if cTempDir in hq[0]['DestDir']:
-                    destdir2 = re.sub(cTempDir, cDestDir, hq[0]['DestDir']).strip()
-                    if not destdir2.endswith(os.sep):
-                        destdir2 = destdir2 + os.sep
-                    destdir = os.path.join(destdir2, hq[0]['Name'])
-                    logger.fdebug('NZBGET Destination dir set to: %s' % destdir)
+                    if cTempDir in hq[0]['DestDir']:
+                        destdir2 = re.sub(cTempDir, cDestDir, hq[0]['DestDir']).strip()
+                        if not destdir2.endswith(os.sep):
+                            destdir2 = destdir2 + os.sep
+                        destdir = os.path.join(destdir2, hq[0]['Name'])
+                        logger.fdebug('NZBGET Destination dir set to: %s' % destdir)
+                else:
+                    history_del = self.server.editqueue('HistoryMarkBad', '', hq[0]['NZBID'])
+                    if history_del is False:
+                        logger.fdebug('[NZBGET] Unable to delete item (%s)from history so I can redownload a clean copy.' % hq[0]['NZBName'])
+                        return {'status': 'failure', 'failed': False}
+                    else:
+                        logger.fdebug('[NZBGET] Successfully removed prior item (%s) from history. Attempting to get another version.' % hq[0]['NZBName'])
+                        return {'status':   True,
+                                'name':     re.sub('.nzb', '', hq[0]['NZBName']).strip(),
+                                'location': os.path.abspath(os.path.join(hq[0]['DestDir'], os.pardir)),
+                                'failed':   True,
+                                'issueid':  nzbinfo['issueid'],
+                                'comicid':  nzbinfo['comicid'],
+                                'apicall':  True,
+                                'ddl':      False,
+                                'download_info': nzbinfo['download_info']}
+            elif 'FAILURE' in hq[0]['Status']:
+                logger.warn('item is in a %s status. Considering this a FAILED attempted download for NZBID %s - %s' % (hq[0]['Status'], hq[0]['NZBID'], hq[0]['NZBName']))
+                return {'status':   True,
+                        'name':     re.sub('.nzb', '', hq[0]['NZBName']).strip(),
+                        'location': os.path.abspath(os.path.join(hq[0]['DestDir'], os.pardir)),
+                        'failed':   True,
+                        'issueid':  nzbinfo['issueid'],
+                        'comicid':  nzbinfo['comicid'],
+                        'apicall':  True,
+                        'ddl':      False,
+                        'download_info': nzbinfo['download_info']}
             else:
                 logger.warn('no file found where it should be @ %s - is there another script that moves things after completion ?' % hq[0]['DestDir'])
                 return {'status': 'file not found', 'failed': False}
@@ -232,7 +261,8 @@ class NZBGet(object):
                        'issueid':  nzbinfo['issueid'],
                        'comicid':  nzbinfo['comicid'],
                        'apicall':  True,
-                       'ddl':      False}
+                       'ddl':      False,
+                       'download_info': nzbinfo['download_info']}
         else:
             logger.warn('Could not find completed NZBID %s in history' % nzbid)
             return {'status': False}
