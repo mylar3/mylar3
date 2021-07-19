@@ -35,6 +35,7 @@ import gzip
 import os, errno
 import urllib
 from io import StringIO
+from pathlib import Path
 from apscheduler.triggers.interval import IntervalTrigger
 
 import mylar
@@ -3131,7 +3132,8 @@ def ddl_downloader(queue):
                                             'issueid':      None,
                                             'comicid':      item['comicid'],
                                             'apicall':      True,
-                                            'ddl':          True})
+                                            'ddl':          True,
+                                            'download_info': {'provider': 'DDL', 'id': item['id']}})
                     else:
                         logger.info('%s successfully downloaded - now initiating post-processing for %s' % (ddzstat['filename'], ddzstat['path']))
                         mylar.PP_QUEUE.put({'nzb_name':     ddzstat['filename'],
@@ -3140,7 +3142,8 @@ def ddl_downloader(queue):
                                             'issueid':      item['issueid'],
                                             'comicid':      item['comicid'],
                                             'apicall':      True,
-                                            'ddl':          True})
+                                            'ddl':          True,
+                                            'download_info': {'provider': 'DDL', 'id': item['id']}})
                 except Exception as e:
                     logger.error('process error: %s [%s]' %(e, ddzstat))
             elif all([ddzstat['success'] is True, mylar.CONFIG.POST_PROCESSING is False]):
@@ -3168,7 +3171,7 @@ def postprocess_main(queue):
 
             if mylar.APILOCK is False:
                 try:
-                    pprocess = process.Process(item['nzb_name'], item['nzb_folder'], item['failed'], item['issueid'], item['comicid'], item['apicall'], item['ddl'])
+                    pprocess = process.Process(item['nzb_name'], item['nzb_folder'], item['failed'], item['issueid'], item['comicid'], item['apicall'], item['ddl'], item['download_info'])
                 except:
                     pprocess = process.Process(item['nzb_name'], item['nzb_folder'], item['failed'], item['issueid'], item['comicid'], item['apicall'])
                 pp = pprocess.post_process()
@@ -3230,7 +3233,8 @@ def worker_main(queue):
                                     'issueid':      item['issueid'],
                                     'comicid':      item['comicid'],
                                     'apicall':      True,
-                                    'ddl':          False})
+                                    'ddl':          False,
+                                    'download_info': None})
                 #threading.Thread(target=self.checkFolder, args=[os.path.abspath(os.path.join(snstat['copied_filepath'], os.pardir))]).start()
         else:
             time.sleep(15)
@@ -3328,7 +3332,8 @@ def cdh_monitor(queue, item, nzstat, readd=False):
                                 'issueid':      nzstat['issueid'],
                                 'comicid':      nzstat['comicid'],
                                 'apicall':      nzstat['apicall'],
-                                'ddl':          False})
+                                'ddl':          False,
+                                'download_info': nzstat['download_info']})
         except Exception as e:
             logger.error('process error: %s' % e)
     return

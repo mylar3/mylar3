@@ -4092,6 +4092,7 @@ def searcher(
                     else:
                         send_to_nzbget['issueid'] = 'S' + IssueArcID
                     send_to_nzbget['apicall'] = True
+                    send_to_nzbget['download_info'] = {'provider': nzbprov, 'id': nzbid}
                     mylar.NZB_QUEUE.put(send_to_nzbget)
                 elif send_to_nzbget['status'] == 'double-pp':
                     return send_to_nzbget['status']
@@ -4275,6 +4276,7 @@ def searcher(
                     else:
                         sendtosab['issueid'] = 'S' + IssueArcID
                     sendtosab['apicall'] = True
+                    sendtosab['download_info'] = {'provider': nzbprov, 'id': nzbid}
                     logger.info('sendtosab: %s' % sendtosab)
                     mylar.NZB_QUEUE.put(sendtosab)
                 elif sendtosab['status'] == 'double-pp':
