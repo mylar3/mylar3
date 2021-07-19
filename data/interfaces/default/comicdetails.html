@@ -189,45 +189,52 @@
                                    <label><big>Issues in Series: </big><norm>${comic['Total']} issues</norm></label>
                                 </div>
                                 <div>
-                                    %if mylar.CONFIG.MULTIPLE_DEST_DIRS is not None and mylar.CONFIG.MULTIPLE_DEST_DIRS != 'None':
-                                       <%
-                                           try:
-                                               archive_path = os.path.join(mylar.CONFIG.MULTIPLE_DEST_DIRS, os.path.basename(comic['ComicLocation']))
-                                           except Exception:
-                                               archive_path = 'None'
+                                    <%
+                                        arc_img = None
+                                        arc_tip = None
+                                        archive_path = None
+                                        if mylar.CONFIG.MULTIPLE_DEST_DIRS is not None and mylar.CONFIG.MULTIPLE_DEST_DIRS != 'None':
+                                            try:
+                                                archive_path = os.path.join(mylar.CONFIG.MULTIPLE_DEST_DIRS, os.path.basename(comic['ComicLocation']))
+                                            except Exception:
+                                                archive_path = 'None'
 
-                                           try:
-                                               arcstyle = "font-size:12px;"
-                                               if 60 > len(archive_path) > 100:
-                                                   arcstyle = "font-size:11px;"
-                                               elif len(archive_path) > 100:
-                                                   arcstyle = "font-size:10px;"
-                                               if os.path.exists(archive_path):
-                                                   arc_img = "images/success.png"
-                                                   arc_tip = "this directory currently exists"
-                                               else:
-                                                   arc_img = "images/x_red.png"
-                                                   arc_tip = "this directory does not currently exist"
-                                           except Exception:
-                                               arc_img = "imags/x_red.png"
-                                               arc_tip = "this directory does not currently exist"
+                                            try:
+                                                arcstyle = "font-size:12px;"
+                                                if 60 > len(archive_path) > 100:
+                                                    arcstyle = "font-size:11px;"
+                                                elif len (archive_path) > 100:
+                                                    arcstyle = "font-size:10px;"
+                                                if os.path.exists(archive_path):
+                                                    arc_img = "images/success.png"
+                                                    arc_tip = "this directory currently exists"
+                                                else:
+                                                    arc_img = "images/x_red.png"
+                                                    arc_tip = "this directory does not currently exist"
+                                            except Exception:
+                                                arc_img = "imags/x_red.png"
+                                                arc_tip = "this directory does not currently exist"
 
-                                           try:
-                                               tmpstyle = "font-size:12px;"
-                                               if 60 > len(comic['ComicLocation']) > 100:
-                                                   tmpstyle = "font-size:11px;"
-                                               elif len(comic['ComicLocation']) > 100:
-                                                   tmpstyle = "font-size:10px;"
-                                               if os.path.exists(comic['ComicLocation']):
-                                                   path_img = "images/success.png"
-                                                   path_tip = "this directory currently exists"
-                                               else:
-                                                   path_img = "images/x_red.png"
-                                                   path_tip = "this directory does not currently exist"
-                                           except Exception:
-                                               path_img = "images/x_red.png"
-                                               path_tip = "this directory does not currently exist"
-                                        %>
+                                        try:
+                                            tmpstyle = "font-size:12px;"
+                                            if 60 > len(comic['ComicLocation']) > 100:
+                                                tmpstyle = "font-size:11px;"
+                                            elif len(comic['ComicLocation']) > 100:
+                                                tmpstyle = "font-size:10px;"
+                                            if os.path.exists(comic['ComicLocation']):
+                                                path_img = "images/success.png"
+                                                path_tip = "this directory currently exists"
+                                            else:
+                                                path_img = "images/x_red.png"
+                                                path_tip = "this directory does not currently exist"
+                                        except Exception:
+                                            path_img = "images/x_red.png"
+                                            path_tip = "this directory does not currently exist"
+                                    %>
+                                    %if archive_path is None:
+                                        <label><big>Directory:</big><br/>
+                                        <img src="${path_img}" title="${path_tip}" height="15" width="15" padding="5"><span style="${tmpstyle}">${comic['ComicLocation']}</span></label>
+                                    %else:
                                         %if os.path.exists(archive_path) and archive_path != comic['ComicLocation']:
                                             <label><big>Directories:</big></label><br/>
                                             <p class="tab"><img src="${path_img}" title="${path_tip}" height="15" width="15"><span style="${tmpstyle}"> Primary: ${comic['ComicLocation']}</span><br/>
@@ -236,8 +243,6 @@
                                             <label><big>Directory:</big><br/>
                                             <img src="${path_img}" title="${path_tip}" height="15" width="15" padding="5"><span style="${tmpstyle}">${comic['ComicLocation']}</span></label>
                                         %endif
-                                    %else:
-                                       <label><big>Directory</big><br/><norm>${comic['ComicLocation']}</norm></label>
                                     %endif
                                 </div>
                                 %if comicConfig['description']:

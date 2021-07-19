@@ -894,7 +894,7 @@ class PostProcessor(object):
                                             tmpseriesname = re.sub('annual', '', tmpseriesname, flags=re.I).strip()
                                             tmpseriesname = re.sub('special', '', tmpseriesname, flags=re.I).strip()
                                         dynamic_seriesname = re.sub('[\|\s]','', tmpseriesname.lower()).strip()
-                                        if cs['DynamicName'] == dynamic_seriesname:
+                                        if all([cs['DynamicName'] == dynamic_seriesname, cs['WatchValues']['Type'] != 'TPB', cs['WatchValues']['Type'] != 'One-Shot']):
                                             logger.fdebug('name match exact : %s - %s' % (cs['DynamicName'], dynamic_seriesname))
                                             test = myDB.selectone('SELECT Comic, DynamicName, Issue, weeknumber, year FROM weekly WHERE ComicID = ? ORDER BY year DESC, CAST(weeknumber AS INTEGER) DESC', [cs['ComicID']]).fetchone()
                                             if test:
@@ -940,7 +940,7 @@ class PostProcessor(object):
                                     else:
                                         logger.fdebug('not a match')
 
-                                    if second_check is False:
+                                    if all([second_check is False, cs['WatchValues']['Type'] != 'TPB', cs['WatchValues']['Type'] != 'One-Shot']):
                                         logger.fdebug('%s %s in filename don\'t match up to what\'s in the dB for %s [%s]. This is a wrong match. Continuing...' % (watchmatch['series_name'], watchmatch['justthedigits'], cs['ComicName'], cs['ComicID']))
                                         continue
 
