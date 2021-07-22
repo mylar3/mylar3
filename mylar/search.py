@@ -115,10 +115,13 @@ def search_init(
     if mode == 'want_ann':
         logger.info('Annual/Special issue search detected. Appending to issue #')
         # anything for mode other than None indicates an annual.
-        if all(['annual' not in ComicName.lower(), 'special' not in ComicName.lower()]):
-            ComicName = '%s Annual' % ComicName
+        #if all(['annual' not in ComicName.lower(), 'special' not in ComicName.lower()]):
+        #    ComicName = '%s Annual' % ComicName
+        if '2021 annual' in ComicName.lower():
+            AlternateSearch= '%s Annual' % re.sub('2021 annual', '', ComicName, flags=re.I).strip()
+            logger.info('Setting alternate search to %s because people are gonna people.' % AlternateSearch)
 
-        if all(
+        elif all(
             [
                 AlternateSearch is not None,
                 AlternateSearch != "None",
@@ -2715,6 +2718,7 @@ def searchforissue(issueid=None, new=False, rsscheck=None, manual=False):
                                 'IssueArcID': None,
                                 'mode': 'want',
                                 'DateAdded': iss['DateAdded'],
+                                'ComicName': iss['ComicName'],
                             }
                         )
                 elif stloop == 2:
@@ -2746,6 +2750,7 @@ def searchforissue(issueid=None, new=False, rsscheck=None, manual=False):
                                     'IssueArcID': iss['IssueArcID'],
                                     'mode': 'story_arc',
                                     'DateAdded': iss['DateAdded'],
+                                    'ComicName': iss['ComicName'],
                                 }
                             )
                             cnt += 1
@@ -2777,6 +2782,7 @@ def searchforissue(issueid=None, new=False, rsscheck=None, manual=False):
                                 'IssueArcID': None,
                                 'mode': 'want_ann',
                                 'DateAdded': iss['DateAdded'],
+                                'ComicName': iss['ReleaseComicName'],
                             }
                         )
                 stloop -= 1
@@ -2853,10 +2859,14 @@ def searchforissue(issueid=None, new=False, rsscheck=None, manual=False):
 
                     foundNZB = "none"
                     AllowPacks = False
+                    if result['mode'] == 'want_ann' or 'annual' in result['ComicName']:
+                        comicname = result['ComicName']
+                    else:
+                        comicname = comic['ComicName']
                     if all(
                         [result['mode'] == 'story_arc', storyarc_watchlist is False]
                     ):
-                        Comicname_filesafe = helpers.filesafe(comic['ComicName'])
+                        Comicname_filesafe = helpers.filesafe(comicname)
                         SeriesYear = comic['SeriesYear']
                         Publisher = comic['Publisher']
                         AlternateSearch = None
@@ -2915,7 +2925,7 @@ def searchforissue(issueid=None, new=False, rsscheck=None, manual=False):
                                 '%s #%s did not have a DateAdded recorded, setting it'
                                 ' : %s'
                                 % (
-                                    comic['ComicName'],
+                                    comicname,
                                     result['Issue_Number'],
                                     DateAdded,
                                 )
@@ -2936,7 +2946,7 @@ def searchforissue(issueid=None, new=False, rsscheck=None, manual=False):
                         )
                         mylar.SEARCH_QUEUE.put(
                             {
-                                'comicname': comic['ComicName'],
+                                'comicname': comicname,
                                 'seriesyear': SeriesYear,
                                 'issuenumber': result['Issue_Number'],
                                 'issueid': result['IssueID'],
@@ -2948,7 +2958,7 @@ def searchforissue(issueid=None, new=False, rsscheck=None, manual=False):
 
                     mode = result['mode']
                     foundNZB, prov = search_init(
-                        comic['ComicName'],
+                        comicname,
                         result['Issue_Number'],
                         str(ComicYear),
                         SeriesYear,
@@ -3000,7 +3010,7 @@ def searchforissue(issueid=None, new=False, rsscheck=None, manual=False):
                         'err': str(err),
                         'err_text': err_text,
                         'traceback': tracebackline,
-                        'comicname': comic['ComicName'],
+                        'comicname': comicname,
                         'issuenumber': result['Issue_Number'],
                         'seriesyear': SeriesYear,
                         'issueid': result['IssueID'],
@@ -3096,7 +3106,7 @@ def searchforissue(issueid=None, new=False, rsscheck=None, manual=False):
                         'SELECT * FROM comics where ComicID=?', [ComicID]
                     ).fetchone()
                     if mode == 'want_ann':
-                        ComicName = result['ComicName']
+                        ComicName = result['ReleaseComicName']
                         Comicname_filesafe = None
                         AlternateSearch = None
                     else:
@@ -4082,6 +4092,7 @@ def searcher(
                     else:
                         send_to_nzbget['issueid'] = 'S' + IssueArcID
                     send_to_nzbget['apicall'] = True
+                    send_to_nzbget['download_info'] = {'provider': nzbprov, 'id': nzbid}
                     mylar.NZB_QUEUE.put(send_to_nzbget)
                 elif send_to_nzbget['status'] == 'double-pp':
                     return send_to_nzbget['status']
@@ -4265,6 +4276,7 @@ def searcher(
                     else:
                         sendtosab['issueid'] = 'S' + IssueArcID
                     sendtosab['apicall'] = True
+                    sendtosab['download_info'] = {'provider': nzbprov, 'id': nzbid}
                     logger.info('sendtosab: %s' % sendtosab)
                     mylar.NZB_QUEUE.put(sendtosab)
                 elif sendtosab['status'] == 'double-pp':

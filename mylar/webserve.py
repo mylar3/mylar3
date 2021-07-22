@@ -322,46 +322,49 @@ class WebInterface(object):
             comicImage = comic['ComicImage']
         comicpublisher = helpers.publisherImages(comic['ComicPublisher'])
 
-        description_load = None
-        if comic['ComicLocation'] is not None:
-            if os.path.exists(os.path.join(comic['ComicLocation'], 'series.json')):
-                try:
-                    with open(os.path.join(comic['ComicLocation'], 'series.json')) as j_file:
-                        metainfo = json.load(j_file)
+        if mylar.CONFIG.SERIES_METADATA_LOCAL is True:
+            description_load = None
+            if comic['ComicLocation'] is not None:
+                if os.path.exists(os.path.join(comic['ComicLocation'], 'series.json')):
                     try:
-                        # series.json 1.0.1
-                        description_load = metainfo['metadata']['description_text']
+                        with open(os.path.join(comic['ComicLocation'], 'series.json')) as j_file:
+                            metainfo = json.load(j_file)
+                        try:
+                            # series.json 1.0.1
+                            description_load = metainfo['metadata']['description_text']
+                        except Exception as e:
+                            try:
+                                # series.json 1.0
+                                description_load = metainfo['metadata'][0]['description_text']
+                            except Exception as e:
+                                description_load = metainfo['metadata'][0]['description']
                     except Exception as e:
                         try:
-                            # series.json 1.0
-                            description_load = metainfo['metadata'][0]['description_text']
+                            # series.json 1.0.1
+                            description_load = metainfo['metadata']['description_formatted']
                         except Exception as e:
-                            description_load = metainfo['metadata'][0]['description']
-                except Exception as e:
-                    try:
-                       # series.json 1.0.1
-                        description_load = metainfo['metadata']['description_formatted']
-                    except Exception as e:
-                        try:
-                            # series.json 1.0
-                            description_load = metainfo['metadata'][0]['description_formatted']
-                        except Exception as e:
-                            logger.info('No description found within series.json. Reloading from dB if available.[error: %s]' % e)
+                            try:
+                                # series.json 1.0
+                                description_load = metainfo['metadata'][0]['description_formatted']
+                            except Exception as e:
+                                logger.info('No description found within series.json. Reloading from dB if available.[error: %s]' % e)
 
-        if mylar.CONFIG.SERIESJSON_FILE_PRIORITY is True:
-            if description_load is not None:
-                description = description_load
-            elif comic['DescriptionEdit'] is not None:
-                description = comic['DescriptionEdit']
+            if mylar.CONFIG.SERIESJSON_FILE_PRIORITY is True:
+                if description_load is not None:
+                    description = description_load
+                elif comic['DescriptionEdit'] is not None:
+                    description = comic['DescriptionEdit']
+                else:
+                    description = comic['Description']
             else:
-                description = comic['Description']
+                if comic['DescriptionEdit'] is not None:
+                    description = comic['DescriptionEdit']
+                elif description_load is not None:
+                    description = description_load
+                else:
+                    description = comic['Description']
         else:
-            if comic['DescriptionEdit'] is not None:
-                description = comic['DescriptionEdit']
-            elif description_load is not None:
-                description = description_load
-            else:
-                description = comic['Description']
+            description = comic['Description']
 
         if comic['Collects'] is not None:
             issues_list = json.loads(comic['Collects'])
@@ -2262,7 +2265,7 @@ class WebInterface(object):
                     return threading.Thread(target=weeklypull.pullit, args=[forcecheck]).start()
 
                 if int(upc['weeknumber']) == int(weeknumber) and int(upc['year']) == int(weekyear):
-                    if upc['Status'] == 'Wanted':
+                    if all([upc['Status'] == 'Wanted', upc['IssueID'] is None]):
                         upcoming_count +=1
                         upcoming.append({"ComicName":    upc['Comic'],
                                          "IssueNumber":  upc['Issue'],
@@ -3860,22 +3863,22 @@ class WebInterface(object):
                 logger.fdebug('[%s] %s : %s' % (arc['StoryArc'], arc['ComicName'], arc['IssueNumber']))
 
                 matcheroso = "no"
-                #fc = filechecker.FileChecker(watchcomic=arc['ComicName'])
-                #modi_names = fc.dynamic_replace(arc['ComicName'])
-                #mod_arc = re.sub('[\|\s]', '', modi_names['mod_watchcomic'].lower()).strip()   #is from the arc db
 
                 dyn_name = arc['DynamicComicName']
+                dyn_name = re.sub('[\|\s]','', dyn_name.lower()).strip()
                 if mylar.CONFIG.ANNUALS_ON:
-                    dyn_name = re.sub('[\|\s]', '', re.sub('annual', '', arc['DynamicComicName'].lower())).strip()
-                comics = myDB.select("SELECT * FROM comics WHERE DynamicComicName IN (?) COLLATE NOCASE", [dyn_name])
+                    dyn_name = re.sub('2021annual', '', dyn_name).strip()
+                    dyn_name = re.sub('annual', '', dyn_name).strip()
+                comics = myDB.select("SELECT * FROM comics WHERE DynamicComicName IN (?) COLLATE NOCASE",[dyn_name])
 
                 for comic in comics:
                     mod_watch = comic['DynamicComicName'] #is from the comics db
-
-                    tmp_chkr = re.sub('[\|\s]', '', re.sub('annual', '', arc['DynamicComicName'].lower())).strip()
-                    logger.fdebug('tmp_chkr: %s' % tmp_chkr)
+                    mod_watch = re.sub('[\|\s]','', mod_watch.lower()).strip()
+                    if mylar.CONFIG.ANNUALS_ON:
+                        tmp_chkr = re.sub('[\|\s]', '', re.sub('2021annual', '', mod_watch)).strip()
+                        mod_watch = re.sub('[\|\s]', '', re.sub('annual', '', tmp_chkr)).strip()
                     logger.fdebug('mod_watch: %s' % re.sub('[\|\s]', '', mod_watch.lower()).strip())
-                    if re.sub('[\|\s]','', mod_watch.lower()).strip() == tmp_chkr: #re.sub('[\|\s]', '', arc['DynamicComicName'].lower()).strip():
+                    if mod_watch == dyn_name:
                         logger.fdebug("initial name match - confirming issue # is present in series")
                         if comic['ComicID'][:1] == 'G':
                             # if it's a multi-volume series, it's decimalized - let's get rid of the decimal.

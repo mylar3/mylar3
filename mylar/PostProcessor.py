@@ -485,6 +485,7 @@ class PostProcessor(object):
                         as_sinfo = as_d.dynamic_replace(fl['alt_series']) #helpers.conversion(fl['alt_series']))
                         mod_altseriesname = as_sinfo['mod_seriesname']
                         if all([mylar.CONFIG.ANNUALS_ON, 'annual' in mod_altseriesname.lower()]) or all([mylar.CONFIG.ANNUALS_ON, 'special' in mod_altseriesname.lower()]):
+                            mod_altseriesname = re.sub('2021annual', '', mod_altseriesname, flags=re.I).strip()
                             mod_altseriesname = re.sub('annual', '', mod_altseriesname, flags=re.I).strip()
                             mod_altseriesname = re.sub('special', '', mod_altseriesname, flags=re.I).strip()
                         if not any(re.sub('[\|\s]', '', mod_altseriesname).lower() == x for x in loopchk):
@@ -500,6 +501,7 @@ class PostProcessor(object):
                                     loopchk.append(re.sub('[\|\s]', '', cname.lower()))
 
                     if all([mylar.CONFIG.ANNUALS_ON, 'annual' in mod_seriesname.lower()]) or all([mylar.CONFIG.ANNUALS_ON, 'special' in mod_seriesname.lower()]):
+                        mod_seriesname = re.sub('2021annual', '', mod_seriesname, flags=re.I).strip()
                         mod_seriesname = re.sub('annual', '', mod_seriesname, flags=re.I).strip()
                         mod_seriesname = re.sub('special', '', mod_seriesname, flags=re.I).strip()
 
@@ -605,6 +607,13 @@ class PostProcessor(object):
                         #force it to use the Publication Date of the latest issue instead of the Latest Date (which could be anything)
                         ld_check = myDB.selectone('SELECT ReleaseDate, Issue_Number, Int_IssueNumber from issues WHERE ComicID=? order by ReleaseDate DESC', [wv['ComicID']]).fetchone()
                         if ld_check:
+                            if mylar.CONFIG.ANNUALS_ON:
+                                ld_check_ann = myDB.selectone('SELECT ReleaseDate, Issue_Number, Int_IssueNumber from annuals WHERE ComicID=? order by ReleaseDate DESC', [wv['ComicID']]).fetchone()
+                                if ld_check_ann:
+                                    if all([ld_check_ann[0] != '0000-00-00', ld_check_ann[0] is not None]):
+                                        if int(re.sub('-', '', ld_check_ann[0]).strip()) > int(re.sub('-', '', ld_check[0]).strip()):
+                                            logger.fdebug('Annual date newer than latest issue date - re-assigning latestdate as an annual')
+                                            ld_check = ld_check_ann
                             #tmplatestdate = latestdate[0]
                             if ld_check[0][:4] != wv['LatestDate'][:4]:
                                 if ld_check[0][:4] > wv['LatestDate'][:4]:
@@ -735,6 +744,7 @@ class PostProcessor(object):
                                     fcdigit = helpers.issuedigits(re.sub('biannual', '', str(biannchk)).strip())
                                 else:
                                     if 'annual' in temploc.lower():
+                                        fcdigit = helpers.issuedigits(re.sub('2021 annual', '', str(temploc.lower())).strip())
                                         fcdigit = helpers.issuedigits(re.sub('annual', '', str(temploc.lower())).strip())
                                     else:
                                         fcdigit = helpers.issuedigits(re.sub('special', '', str(temploc.lower())).strip())
@@ -880,10 +890,11 @@ class PostProcessor(object):
                                         as_dinfo = as_d.dynamic_replace(watchmatch['series_name'])
                                         tmpseriesname = as_dinfo['mod_seriesname']
                                         if all([mylar.CONFIG.ANNUALS_ON, 'annual' in tmpseriesname.lower()]) or all([mylar.CONFIG.ANNUALS_ON, 'special' in tmpseriesname.lower()]):
+                                            tmpseriesname = re.sub('2021annual', '', tmpseriesname, flags=re.I).strip()
                                             tmpseriesname = re.sub('annual', '', tmpseriesname, flags=re.I).strip()
                                             tmpseriesname = re.sub('special', '', tmpseriesname, flags=re.I).strip()
                                         dynamic_seriesname = re.sub('[\|\s]','', tmpseriesname.lower()).strip()
-                                        if cs['DynamicName'] == dynamic_seriesname:
+                                        if all([cs['DynamicName'] == dynamic_seriesname, cs['WatchValues']['Type'] != 'TPB', cs['WatchValues']['Type'] != 'One-Shot']):
                                             logger.fdebug('name match exact : %s - %s' % (cs['DynamicName'], dynamic_seriesname))
                                             test = myDB.selectone('SELECT Comic, DynamicName, Issue, weeknumber, year FROM weekly WHERE ComicID = ? ORDER BY year DESC, CAST(weeknumber AS INTEGER) DESC', [cs['ComicID']]).fetchone()
                                             if test:
@@ -891,6 +902,7 @@ class PostProcessor(object):
                                                 week_comic = test[0]
                                                 week_dynamicname = test[1]
                                                 if all([mylar.CONFIG.ANNUALS_ON, 'annual' in week_dynamicname.lower()]) or all([mylar.CONFIG.ANNUALS_ON, 'special' in week_dynamicname.lower()]):
+                                                    week_dynamicname = re.sub('2021annual', '', week_dynamicname, flags=re.I).strip()
                                                     week_dynamicname = re.sub('annual', '', week_dynamicname, flags=re.I).strip()
                                                     week_dynamicname = re.sub('special', '', week_dynamicname, flags=re.I).strip()
                                                 week_issue = test[2]
@@ -928,7 +940,7 @@ class PostProcessor(object):
                                     else:
                                         logger.fdebug('not a match')
 
-                                    if second_check is False:
+                                    if all([second_check is False, cs['WatchValues']['Type'] != 'TPB', cs['WatchValues']['Type'] != 'One-Shot']):
                                         logger.fdebug('%s %s in filename don\'t match up to what\'s in the dB for %s [%s]. This is a wrong match. Continuing...' % (watchmatch['series_name'], watchmatch['justthedigits'], cs['ComicName'], cs['ComicID']))
                                         continue
 
@@ -1173,6 +1185,7 @@ class PostProcessor(object):
                                                 fcdigit = helpers.issuedigits(re.sub('biannual', '', str(biannchk)).strip())
                                             else:
                                                 if 'annual' in temploc.lower():
+                                                    fcdigit = helpers.issuedigits(re.sub('2021 annual', '', str(temploc.lower())).strip())
                                                     fcdigit = helpers.issuedigits(re.sub('annual', '', str(temploc.lower())).strip())
                                                 else:
                                                     fcdigit = helpers.issuedigits(re.sub('special', '', str(temploc.lower())).strip())
@@ -1485,6 +1498,7 @@ class PostProcessor(object):
                                                 logger.fdebug('%s Bi-Annual detected.' % module)
                                                 fcdigit = helpers.issuedigits(re.sub('biannual', '', str(biannchk)).strip())
                                             else:
+                                                fcdigit = helpers.issuedigits(re.sub('2021 annual', '', str(temploc.lower())).strip())
                                                 fcdigit = helpers.issuedigits(re.sub('annual', '', str(temploc.lower())).strip())
                                                 logger.fdebug('%s Annual detected [%s]. ComicID assigned as %s' % (module, fcdigit, ofv['ComicID']))
                                             annchk = "yes"

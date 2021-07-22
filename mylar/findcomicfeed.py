@@ -186,6 +186,7 @@ def Startit(searchName, searchIssue, searchYear, ComicVersion, IssDateFix, bookt
     regexList=[regEx, regExOne, regExTwo, regExThree, regExFour, regExFive]
 
     except_list=['releases', 'gold line', 'distribution', '0-day', '0 day', '0day', 'o-day']
+    block_regex = r"\[\d{2,3}\/\d{2,3}\]"
 
     for entry in keyPair:
         title = entry['title']
@@ -195,7 +196,7 @@ def Startit(searchName, searchIssue, searchYear, ComicVersion, IssDateFix, bookt
         subcnt = 0
         for subs in splitTitle:
             regExCount = 0
-            if len(subs) >= len(cName) and not any(d in subs.lower() for d in except_list) and bool(_digits.search(subs)) is True:
+            if len(subs) >= len(cName) and not (any(d in subs.lower() for d in except_list) or re.search(block_regex, subs)) and bool(_digits.search(subs)) is True:
                 # this will still match on crap like 'For SomeSomayes' especially if the series length < 'For SomeSomayes'
                 if subs.lower().startswith('for'):
                     if cName.lower().startswith('for'):

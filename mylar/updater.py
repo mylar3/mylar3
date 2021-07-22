@@ -344,7 +344,7 @@ def dbUpdate(ComicIDList=None, calledfrom=None, sched=False):
                     forceRescan(ComicID)
 
                     #series.json updater here (after all data written out)
-                    if not calledfrom == 'json_api':
+                    if not calledfrom == 'json_api' and mylar.CONFIG.SERIES_METADATA_LOCAL is True:
                         sm = mylar.series_metadata.metadata_Series(ComicID, bulk=False, api=False)
                         sm.update_metadata()
 

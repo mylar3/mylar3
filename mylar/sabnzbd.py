@@ -186,7 +186,8 @@ class SABnzbd(object):
                                  'issueid':  nzbinfo['issueid'],
                                  'comicid':  nzbinfo['comicid'],
                                  'apicall':  True,
-                                 'ddl':      False}
+                                 'ddl':      False,
+                                 'download_info': nzbinfo['download_info']}
                         break
 
                     elif all([mylar.CONFIG.SAB_TO_MYLAR, mylar.CONFIG.SAB_DIRECTORY is not None, mylar.CONFIG.SAB_DIRECTORY != 'None']):
@@ -217,7 +218,8 @@ class SABnzbd(object):
                                  'issueid':  nzbinfo['issueid'],
                                  'comicid':  nzbinfo['comicid'],
                                  'apicall':  True,
-                                 'ddl':      False}
+                                 'ddl':      False,
+                                 'download_info': nzbinfo['download_info']}
                         break
 
                     else:
@@ -240,10 +242,11 @@ class SABnzbd(object):
                                              'name':     re.sub('.nzb', '', hq['nzb_name']).strip(),
                                              'location': os.path.abspath(os.path.join(hq['storage'], os.pardir)),
                                              'failed':   True,
-                                             'issueid':  sendresponse['issueid'],
-                                             'comicid':  sendresponse['comicid'],
+                                             'issueid':  nzbinfo['issueid'],
+                                             'comicid':  nzbinfo['comicid'],
                                              'apicall':  True,
-                                             'ddl':      False}
+                                             'ddl':      False,
+                                             'download_info': nzbinfo['download_info']}
                             break
                     if found['status'] is False:
                         return {'status': 'failed_in_sab', 'failed': False}

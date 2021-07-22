@@ -26,6 +26,8 @@ from bs4 import BeautifulSoup as Soup
 from xml.parsers.expat import ExpatError
 import http.client
 import requests
+import datetime
+from operator import itemgetter
 
 def pulldetails(comicid, rtype, issueid=None, offset=1, arclist=None, comicidlist=None, dateinfo=None):
     #import easy to use xml parser called minidom:
@@ -82,8 +84,11 @@ def pulldetails(comicid, rtype, issueid=None, offset=1, arclist=None, comicidlis
         r = requests.get(PULLURL, params=payload, verify=mylar.CONFIG.CV_VERIFY, headers=mylar.CV_HEADERS)
     except Exception as e:
         logger.warn('Error fetching data from ComicVine: %s' % (e))
-        mylar.BACKENDSTATUS_CV = 'down'
-        return
+        if all(['Expecting value: line 1 column 1' not in str(e), rtype != 'db_updater']):
+            mylar.BACKENDSTATUS_CV = 'down'
+            return
+        else:
+            return False
 
     mylar.BACKENDSTATUS_CV = 'up'
     #logger.fdebug('cv status code : ' + str(r.status_code))
@@ -102,9 +107,12 @@ def pulldetails(comicid, rtype, issueid=None, offset=1, arclist=None, comicidlis
             mylar.BACKENDSTATUS_CV = 'down'
         return
     except Exception as e:
-        logger.warn('[ERROR] Error returned from CV: %s [%s]' % (e, r.content))
-        mylar.BACKENDSTATUS_CV = 'down'
-        return
+        if all(['Expecting value: line 1 column 1' in str(e), rtype == 'db_updater']):
+            return False
+        else:
+            logger.warn('[ERROR] Error returned from CV: %s [%s]' % (e, r.content))
+            mylar.BACKENDSTATUS_CV = 'down'
+            return
     else:
         return dom
 
@@ -220,38 +228,61 @@ def getComic(comicid, rtype, issueid=None, arc=None, arcid=None, arclist=None, c
         dom = pulldetails(comicid, 'single_issue', issueid=issueid, offset=1, arclist=None, comicidlist=None)
         return singleIssue(dom)
     elif rtype == 'db_updater':
-        dateline = {'start_date': dateinfo,
-                    'end_date': helpers.now()}
-        offset = 1
+        dtchk1 = datetime.datetime.strptime(dateinfo, '%Y-%m-%d %H:%M:%S')
+        dtnow = datetime.datetime.strptime(helpers.now(), '%Y-%m-%d %H:%M:%S')
+        dateline_range = []
+        for x in mylar.CONFIG.PROBLEM_DATES:
+            bline = datetime.datetime.strptime(x, '%Y-%m-%d %H:%M:%S')
+            # check if problem date is greater than the start range
+            if bline > dtchk1:
+                # check if problem date is lower than the end range
+                if bline < dtnow:
+                    dateline_range.append({'start_date': dateinfo,
+                                           'end_date': (bline - datetime.timedelta(seconds=round((mylar.CONFIG.PROBLEM_DATES_SECONDS / 60),2))).strftime('%Y-%m-%d %H:%M:%S')})
+                    dateline_range.append({'start_date': (bline + datetime.timedelta(seconds=round((mylar.CONFIG.PROBLEM_DATES_SECONDS / 60),2))).strftime('%Y-%m-%d %H:%M:%S'),
+                                           'end_date': helpers.now()})
+
+        if not dateline_range:
+            dateline_range.append({'start_date': dateinfo,
+                                   'end_date': helpers.now()})
+
         resultlist = {}
         theResults = []
+        for dateline in dateline_range:
+            offset = 1
 
-        resultlist = pulldetails(None, 'db_updater', offset=0, dateinfo=dateline)
+            resultlist = pulldetails(None, 'db_updater', offset=0, dateinfo=dateline)
 
-        totalResults = resultlist['number_of_total_results']
-        logger.fdebug('There are %s total results' % totalResults)
+            totalResults = resultlist['number_of_total_results']
+            logger.fdebug('There are %s total results' % totalResults)
 
-        if not totalResults:
-            return {'count': 0, 'results': [], 'totalcount': 0}
+            if not totalResults:
+                if len(dateline_range) == 1:
+                    return {'count': 0, 'results': [], 'totalcount': 0}
+                else:
+                    continue
 
-        overallResults = totalResults
-        if totalResults > 1500:
-            # force set this here and we'll stagger the remainder over the next hr + depending on size.
-            totalResults = 1500
+            overallResults = totalResults
+            if totalResults > 1500:
+                # force set this here and we'll stagger the remainder over the next hr + depending on size.
+                totalResults = 1500
 
-        countResults = 0
-        while (countResults < int(totalResults)):
-            logger.fdebug('Querying & compiling from %s - %s out of %s results'
-                % (countResults, countResults + 100, totalResults)
-            )
-            if countResults > 0:
-                #new api - have to change to page # instead of offset count
-                offsetcount = countResults
-                resultlist = pulldetails(None, 'db_updater', offset=offsetcount, dateinfo=dateline)
-            resultlist = db_updates(resultlist)
-            theResults = theResults + resultlist
-            #search results are limited to 100 and by pagination now...let's account for this.
-            countResults = countResults + 100
+            countResults = 0
+            while (countResults < int(totalResults)):
+                logger.fdebug('Querying & compiling from %s - %s out of %s results'
+                    % (countResults, countResults + 100, totalResults)
+                )
+                if countResults > 0:
+                    #new api - have to change to page # instead of offset count
+                    offsetcount = countResults
+                    resultlist = pulldetails(None, 'db_updater', offset=offsetcount, dateinfo=dateline)
+                    if resultlist is False:
+                        logger.info('reached as far as (%s) of (%s) and CV has returned an error. Stopping here unfortunately...' % (offsetcount, totalResults))
+                        break
+                resultlist = db_updates(resultlist)
+                theResults = theResults + resultlist
+                #search results are limited to 100 and by pagination now...let's account for this.
+                countResults = countResults + 100
 
         return {'count': len(theResults),
                 'results': theResults,
@@ -1284,7 +1315,7 @@ def db_updates(results, rtype='issueid'):
     # comicid = update based on changes to comicid
     dataset = []
     data = results['results']
-    for x in data:
+    for x in sorted(data, key=itemgetter('date_last_updated'), reverse=False):
         if rtype == 'comicid':
             xlastissue = None
             if x['last_issue'] is not None:

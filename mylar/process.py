@@ -21,7 +21,7 @@ from . import logger
 
 class Process(object):
 
-    def __init__(self, nzb_name, nzb_folder, failed=False, issueid=None, comicid=None, apicall=False, ddl=False):
+    def __init__(self, nzb_name, nzb_folder, failed=False, issueid=None, comicid=None, apicall=False, ddl=False, download_info=None):
         self.nzb_name = nzb_name
         self.nzb_folder = nzb_folder
         self.failed = failed
@@ -29,6 +29,7 @@ class Process(object):
         self.comicid = comicid
         self.apicall = apicall
         self.ddl = ddl
+        self.download_info = download_info
 
     def post_process(self):
         if self.failed == '0':
@@ -70,7 +71,9 @@ class Process(object):
             if mylar.CONFIG.FAILED_DOWNLOAD_HANDLING is True:
                 #drop the if-else continuation so we can drop down to this from the above if statement.
                 logger.info('Initiating Failed Download handling for this download.')
-                FailProcess = mylar.Failed.FailedProcessor(nzb_name=self.nzb_name, nzb_folder=self.nzb_folder, queue=ppqueue)
+                nzbid = self.download_info['id']
+                provider = self.download_info['provider']
+                FailProcess = mylar.Failed.FailedProcessor(nzb_name=self.nzb_name, nzb_folder=self.nzb_folder, queue=ppqueue, prov=provider, id=nzbid)
                 thread_ = threading.Thread(target=FailProcess.Process, name="FAILED Post-Processing")
                 thread_.start()
                 thread_.join()
