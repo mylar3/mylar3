@@ -142,8 +142,7 @@ class SABnzbd(object):
         if sab_check is None:
             #set min_sab to 3.2.0 since 3.2.0 beta 1 has the api call for history search by nzo_id
             try:
-                sab_minimum_version = '3.2.0'
-                min_sab = re.sub('[^0-9]', '', sab_minimum_version)
+                min_sab = '3.2.0'
                 sab_vers = mylar.CONFIG.SAB_VERSION
                 if 'beta' in sab_vers:
                     sab_vers = re.sub('[^0-9]', '', sab_vers)
@@ -156,7 +155,7 @@ class SABnzbd(object):
                     logger.fdebug('SABnzbd version is less than 3.2.0. Querying history based on history size of 200.')
                     hist_params['limit'] = 200
             except Exception as e:
-                logger.warn('[SABNZBD-VERSION-CHECK] Exception encountered trying to compare installed version [%s] to [%s]. Setting history length to last 200 items. (error: %s)' % (mylar.CONFIG.SAB_VERSION, sab_minimum_version ,e))
+                logger.warn('[SABNZBD-VERSION-CHECK] Exception encountered trying to compare installed version [%s] to [%s]. Setting history length to last 200 items. (error: %s)' % (mylar.CONFIG.SAB_VERSION, min_sab ,e))
                 hist_params['limit'] = 200
 
         hist = requests.get(self.sab_url, params=hist_params, verify=False)
