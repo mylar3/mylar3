@@ -107,7 +107,10 @@
                                           issueid = issue['IssueID']
 
                                       if any(d['IssueID'] == str(issue['IssueID']) for d in ann_list):
-                                          adjcomicname = issue['ReleaseComicName']
+                                          try:
+                                              adjcomicname = issue['ReleaseComicName']
+                                          except Exception as e:
+                                              adjcomicname = issue['ComicName']
                                       else:
                                           adjcomicname = issue['ComicName']
                                       endif

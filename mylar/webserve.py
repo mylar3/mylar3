@@ -2335,6 +2335,8 @@ class WebInterface(object):
         ann_list = []
 
         ann_cnt = 0
+        issues_list = []
+        ann_failed = []
 
         if mylar.CONFIG.ANNUALS_ON:
             #let's add the annuals to the wanted table so people can see them
@@ -2347,7 +2349,28 @@ class WebInterface(object):
 #           anncnt = myDB.select("SELECT COUNT(*) FROM annuals WHERE Status='Wanted' OR Status='Snatched'")
 #           ann_cnt = anncnt[0][0]
             ann_list += annuals_list
-            issues += annuals_list
+
+            for isse in issues:
+                found_iss = False
+                for d in ann_list:
+                    if d['IssueID'] == str(isse['IssueID']):
+                        found_iss = True
+                        ann_failed.append({'issueid': isse['IssueID'],
+                                           'comicid': isse['ComicID'],
+                                           'comicname': isse['ComicName']})
+                        break
+                if found_iss:
+                    pass
+                else:
+                    issues_list.append(isse)
+
+            if len(ann_failed) > 0:
+                logger.warn('[ANNUAL-DUPLICATION] There are duplicate issues in the Wanted list that are in both annuals and issues.')
+                logger.warn('[ANNUAL-DUPLICATION] This is due to having annual integration enabled, while also having the annuals listed as a separate entry in your watchlist.')
+                logger.fdebug('[ANNUAL-DUPLICATION] Duplicate entries (status of Wanted): %s' % (ann_failed,))
+
+            issues = issues_list
+            issues += ann_list
 
         issues_tmp = sorted(issues, key=itemgetter('ReleaseDate'), reverse=True)
         issues_tmp1 = sorted(issues_tmp, key=lambda x: x if isinstance(itemgetter('DateAdded'), str) else "", reverse=True)

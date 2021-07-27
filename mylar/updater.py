@@ -1141,6 +1141,8 @@ def forceRescan(ComicID, archive=None, module=None, recheck=False):
 
     issID_to_ignore = []
     issID_to_ignore.append(str(ComicID))
+    annID_to_ignore = []
+    annID_to_ignore.append(str(ComicID))
     issID_to_write = []
     ANNComicID = None
     d_annuals = []
@@ -1510,13 +1512,14 @@ def forceRescan(ComicID, archive=None, module=None, recheck=False):
                 else:
                     issStatus = "Downloaded"
 
-                issID_to_ignore.append(str(iss_id))
 
                 if ANNComicID:
                     d_annuals.append((issStatus, issSize, isslocation, iss_id))
+                    annID_to_ignore.append(str(iss_id))
                     ANNComicID = None
                 else:
                     d_issues.append((issStatus, issSize, isslocation, iss_id))
+                    issID_to_ignore.append(str(iss_id))
             else:
                 ANNComicID = None
         fn+=1
@@ -1533,6 +1536,7 @@ def forceRescan(ComicID, archive=None, module=None, recheck=False):
 
     #here we need to change the status of the ones we DIDN'T FIND above since the loop only hits on FOUND issues.
     update_iss = []
+    update_ann = []
     #break this up in sequnces of 200 so it doesn't break the sql statement.
     cnt = 0
     u_start = datetime.datetime.now()
@@ -1569,12 +1573,37 @@ def forceRescan(ComicID, archive=None, module=None, recheck=False):
                 #    issStatus = "Skipped"
                 update_iss.append((issStatus, chk['IssueID']))
 
+    for genlist in helpers.chunker(annID_to_ignore, 200):
+        tmpsql = "SELECT * FROM annuals WHERE ComicID=? AND NOT Deleted AND IssueID not in ({seq})".format(seq=','.join(['?'] *(len(genlist) -1)))
+        chkthis = myDB.select(tmpsql, genlist)
+        if chkthis is None:
+            pass
+        else:
+            for chk in chkthis:
+                if chk['IssueID'] in annID_to_ignore:
+                    continue
+
+                old_status = chk['Status']
+
+                if old_status == "Skipped":
+                    if mylar.CONFIG.AUTOWANT_ALL:
+                        issStatus = "Wanted"
+                    else:
+                        issStatus = "Skipped"
+                elif old_status == "Downloaded":
+                    issStatus = "Archived"
+                else:
+                    continue
+                update_ann.append((issStatus, chk['IssueID']))
+
+
     logger.fdebug('[nothaves] issue_status_generation_time_taken: %s' % (datetime.datetime.now() - u_start))
 
     if len(update_iss) > 0:
         r_start = datetime.datetime.now()
         try:
             myDB.action("UPDATE issues SET Status=? WHERE IssueID=?", update_iss, executemany=True)
+            myDB.action("UPDATE annuals SET Status=? WHERE IssueID=?", update_ann, executemany=True)
         except Exception as e:
             logger.warn('Error updating: %s' % e)
         logger.fdebug('[nothaves] issue_status_writing took %s' % (datetime.datetime.now() - r_start))
@@ -1640,15 +1669,35 @@ def forceRescan(ComicID, archive=None, module=None, recheck=False):
     #now that we are finished...
     #adjust for issues that have been marked as Downloaded, but aren't found/don't exist.
     #do it here, because above loop only cycles though found comics using filechecker.
-    downissues = "SELECT *, 0 as type FROM issues WHERE Status='Downloaded' and ComicID=? AND IssueID not in ({seq})".format(seq=','.join(['?'] *(len(issID_to_ignore) -1)))
-    downchk = myDB.select(downissues, issID_to_ignore)
-    downannuals = "SELECT *, 1 as type FROM annuals WHERE Status='Downloaded' and ComicID=? AND NOT Deleted AND IssueID not in ({seq})".format(seq=','.join(['?'] *(len(issID_to_ignore) -1)))
-    downchk += myDB.select(downannuals, issID_to_ignore)
+    #downissues = "SELECT *, 0 as type FROM issues WHERE Status='Downloaded' and ComicID=? AND IssueID not in ({seq})".format(seq=','.join(['?'] *(len(issID_to_ignore) -1)))
+    #downchk = myDB.select(downissues, issID_to_ignore)
+    cnt = 0
+    downchk = None
+    for genlist in helpers.chunker(issID_to_ignore, 200):
+        tmpsql = "SELECT *, 0 as type FROM issues WHERE Status='Downloaded' and ComicID=? AND IssueID not in ({seq})".format(seq=','.join(['?'] *(len(genlist) -1)))
+        if cnt == 0:
+            downchk = myDB.select(tmpsql, genlist)
+        else:
+            downchk += myDB.select(tmpsql, genlist)
+        cnt += 1
+    #logger.info('downchklist: %s' % downchklist)
+    #downannuals = "SELECT *, 1 as type FROM annuals WHERE Status='Downloaded' and ComicID=? AND NOT Deleted AND IssueID not in ({seq})".format(seq=','.join(['?'] *(len(issID_to_ignore) -1)))
+    #downchk += myDB.select(downannuals, issID_to_ignore)
+    cnt = 0
+    for genlist in helpers.chunker(annID_to_ignore, 200):
+        annuals_sql = "SELECT *, 1 as type FROM annuals WHERE Status='Downloaded' and ComicID=? AND NOT Deleted AND IssueID not in ({seq})".format(seq=','.join(['?'] *(len(genlist) -1)))
+        if any([cnt == 0, downchk is None]):
+            downchk = myDB.select(annuals_sql, genlist)
+        else:
+            downchk += myDB.select(annuals_sql, genlist)
+        cnt += 1
+
     if downchk is None:
         pass
     else:
         archivedissues = 0 #set this to 0 so it tallies correctly.
         dvalues = []
+
         for down in downchk:
             if down['type'] == 1:
                 dtable = 'annuals'
@@ -1665,15 +1714,20 @@ def forceRescan(ComicID, archive=None, module=None, recheck=False):
                 myDB.upsert(dtable, newValue, controlValue)
                 archivedissues+=1
             else:
-                comicpath = os.path.join(rescan['ComicLocation'], down['Location'])
-                if not os.path.exists(comicpath):
+                tmp_location = [x['ComicLocation'] for x in fc['comiclist'] if x['ComicFilename'] == down['Location']]
+                if not tmp_location:
                     logger.info(
                         '[%s] Changing status of #%s from Downloaded to Archived -'
-                        ' cannot locate file' % (down['Issue_Number'], down['IssueID'])
+                        ' cannot locate file %s' %
+                        (down['Issue_Number'], down['IssueID'], down['Location'])
                     )
-                    controlValue = {"IssueID":   down['IssueID']}
-                    newValue = {"Status":    "Archived"}
-                    myDB.upsert(dtable, newValue, controlValue)
+                    try:
+                        controlValue = {"IssueID": down['IssueID']}
+                        newValue = {"Status": "Archived"}
+                        logger.info('[%s] %s : %s' % (dtable, newValue, controlValue))
+                        myDB.upsert(dtable, newValue, controlValue)
+                    except Exception as e:
+                        logger.error('error: %s' % e)
                     archivedissues+=1
 
         if archivedissues > 0:
