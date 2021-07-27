@@ -1025,6 +1025,7 @@ def new_pullcheck(weeknumber, pullyear, comic1off_name=None, comic1off_id=None, 
                     annualidmatch = [x for x in weeklylist if week['comicid'] is not None and ([xa for xa in x['AnnualIDs'] if int(xa['ComicID']) == int(week['comicid'])])]
                     if not annualidmatch:
                         annualidmatch = [x for x in weeklylist if week['annuallink'] is not None and (int(x['ComicID']) == int(week['annuallink']))]
+
                 #The above will auto-match against ComicID if it's populated on the pullsite, otherwise do name-matching.
                 namematch = [ab for ab in weeklylist if ab['DynamicName'] == week['dynamicname']]
                 #logger.fdebug('rowid: ' + str(week['rowid']))
@@ -1043,17 +1044,22 @@ def new_pullcheck(weeknumber, pullyear, comic1off_name=None, comic1off_id=None, 
                     elif annualidmatch:
                         comicname = week['ComicName']
                         latestiss = annualidmatch[0]['latestIssue'].strip()
-                        comicid = annualidmatch[0]['AnnualIDs'][0]['ComicID'].strip()
-                        if mylar.CONFIG.ANNUALS_ON:
-                            comicid = None
-                            for x in annualidmatch[0]['AnnualIDs']:
-                                if week['comicid'] == x['ComicID'] and week['annuallink'] is not None:
-                                    comicid = x['ComicID'].strip()
-                                    comicname = x['ComicName']
-                            if not comicid:
-                                pass
-                        if comicid:
-                            logger.fdebug('[WEEKLY-PULL-ANNUAL] Series Match to ID --- ' + comicname + ' [' + comicid + ']')
+                        try:
+                           # if x['annuals'] is none cause CV hasn't updated yet, we need to take  the week['annualllink'] value and refresh.
+                            comicid = annualidmatch[0]['AnnualIDs'][0]['ComicID'].strip()
+                        except Exception as e:
+                            comicid = week['comicid']
+                        else:
+                            if mylar.CONFIG.ANNUALS_ON:
+                                comicid = None
+                                for x in annualidmatch[0]['AnnualIDs']:
+                                    if week['comicid'] == x['ComicID'] and week['annuallink'] is not None:
+                                        comicid = x['ComicID'].strip()
+                                        comicname = x['ComicName']
+                                if not comicid:
+                                    pass
+                            if comicid:
+                                logger.fdebug('[WEEKLY-PULL-ANNUAL] Series Match to ID --- ' + comicname + ' [' + comicid + ']')
                     else:
                         #if it's a name metch, it means that CV hasn't been populated yet with the necessary data
                         #do a quick issue check to see if the next issue number is in sequence and not a #1, or like #900
