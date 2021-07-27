@@ -111,6 +111,7 @@ class metadata_Series(object):
                         else:
                             cdes_removed = comic['Description']
                             logger.warn('Series does not have a description. Not populating, but you might need to do a Refresh Series to fix this')
+                        cdes_formatted = comic['Description']
                 else:
                     if comic['DescriptionEdit'] is not None:
                         cdes_removed = re.sub(r'\n', ' ', comic['DescriptionEdit']).strip()
