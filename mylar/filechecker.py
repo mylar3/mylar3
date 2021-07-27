@@ -99,7 +99,7 @@ class FileChecker(object):
             self.pp_mode = False
 
         self.failed_files = []
-        self.dynamic_handlers = ['/','-',':',';','\'',',','&','?','!','+','*','(',')','\\u2014','\\u2013','\\u2019']
+        self.dynamic_handlers = ['/','-',':',';','\'','"',',','&','?','!','+','*','(',')','\\u2014','\\u2013','\\u2019']
         self.dynamic_replacements = ['and','the']
         self.rippers = ['-empire','-empire-hd','minutemen-','-dcp','Glorith-HD']
 
