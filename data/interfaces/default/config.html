@@ -449,7 +449,7 @@
                                 </div>
 
                                 <div class="row checkbox left clearfix" id="sab_cdh" style="display:unset;">
-                                    <input type="checkbox" id="sab_client_post_processing" onclick="initConfigCheckbox($this);" name="sab_client_post_processing" value="1" ${config['sab_client_post_processing']} /><label>Enable Completed Download Handling</label>
+                                    <input type="checkbox" id="sab_client_post_processing" onclick="initConfigCheckbox($(this));" name="sab_client_post_processing" value="1" ${config['sab_client_post_processing']} /><label>Enable Completed Download Handling</label>
                                     <div id="sabcompletedinfo">
                                        <div class="row">
                                            <small class="heading"><span style="float: left; margin-right: .3em; margin-top: 4px;" class="ui-icon ui-icon-info"></span>
@@ -524,7 +524,7 @@
                                               </div>
 
                             <div class="row checkbox left clearfix">
-                                <input type="checkbox" id="nzbget_client_post_processing" onclick="initConfigCheckbox($this);" name="nzbget_client_post_processing" value="1" ${config['nzbget_client_post_processing']} /><label>Enable Completed Download Handling</label>
+                                <input type="checkbox" id="nzbget_client_post_processing" onclick="initConfigCheckbox($(this));" name="nzbget_client_post_processing" value="1" ${config['nzbget_client_post_processing']} /><label>Enable Completed Download Handling</label>
                                 <div id="nzbgetcompletedinfo">
                                    <div class="row">
                                        <small class="heading"><span style="float: left; margin-right: .3em; margin-top: 4px;" class="ui-icon ui-icon-info"></span>
@@ -1223,14 +1223,42 @@
                                 </div>                           
                 	</fieldset>
                         <fieldset>
+                                <legend>Conversions</legend>
+<!--
+                                <div class="row checkbox left clearfix">
+                                    <input type="checkbox" id="enable_file_conversions" onclick="initConfigCheckbox($(this));" name="enable_file_conversions" value="1"  /><label>File Conversions</label>
+                                </div>
+                                    <div class="config">
+-->
+                                        <div class="row checkbox left clearfix">
+                                                <% cbr2cbz_config = int(mylar.CONFIG.CBR2CBZ_ONLY) %>
+                                                <input type="hidden" id="cbr2cbz_config" value="${cbr2cbz_config}" />
+                                                <input id="cbr2cbz_only" type="checkbox" name="cbr2cbz_only" value="1" ${config['cbr2cbz_only']} /><label style="float:left;width:75%;">Convert CBR to CBZ</label>
+                                        </div>
+<!--
+                                        <div class="row checkbox left clearfix">
+                                                <input style="float:left;width:40px;" id="cbr2cb7_only" type="checkbox" name="cbr2cb7_only" value="1" /><label style="float:left;width:75%;">Convert (CBR/CBZ) to CB7</label>
+                                        </div>
+                                    </div>
+                                <div class="row checkbox left clearfix">
+                                    <input type="checkbox" id="enable_image_conversions" onclick="initConfigCheckbox($(this));" name="enable_image_conversions" value="1" /><label>Image Conversions</label>
+                                </div>
+                                    <div class="config">
+                                        <div class="row checkbox left clearfix">
+                                                <input style="float:left;width:40px;" id="cbr2cbz" type="checkbox" name="cbr2cbz_only" value="1" ${config['cbr2cbz_only']} /><label style="float:left;width:75%;">Convert (JPG/PNG) to WEBP</label>
+                                        </div>
+                                        <div class="row checkbox left clearfix">
+                                                <input style="float:left;width:40px;" id="cbr2cbz" type="checkbox" name="cbr2cbz_only" value="1" ${config['cbr2cbz_only']} /><label style="float:left;width:75%;">Convert WEBP to JPG</label>
+                                        </div>
+                                    </div>
+-->
+                        </fieldset>
+                        <fieldset>
                                 <legend>Metadata Tagging</legend><small class="heading"><span style="float: left; margin-right: .3em; margin-top: 4px;" class="ui-icon ui-icon-info"></span>ComicTagger is included</small>
                                 <div class="row checkbox left clearfix">
-                                     <input id="enable_meta" type="checkbox" onclick="initConfigCheckbox($this));" name="enable_meta" value="1" ${config['enable_meta']} /><label>Enable Metadata Tagging</label>
+                                     <input id="enable_meta" type="checkbox" onclick="initConfigCheckbox($(this));" name="enable_meta" value="1" ${config['enable_meta']} /><label>Enable Metadata Tagging</label>
                                 </div>
                                 <div class="config">
-                                        <div class="row checkbox left clearfix">
-                                                <input id="cbr2cbz" type="checkbox" name="cbr2cbz_only" value="1" ${config['cbr2cbz_only']} /><label>Convert CBR to CBZ ONLY</label>
-                                        </div>
                                         <div id="metataggingoptions">
                                             <div class="row checkbox left clearfix">
                                                     <input type="checkbox" name="ct_tag_cr" value="1" ${config['ct_tag_cr']} /><label>Write ComicRack (cr) tags (ComicInfo.xml)</label>
@@ -1805,23 +1833,37 @@
                         }
                 });
 
-                if ($("#cbr2cbz").is(":checked"))
+                if ($("#enable_meta").is(":checked"))
                         {
-                                $("#metataggingoptions").hide();
+                                if ( document.getElementById("cbr2cbz_only").checked == false ){   // && document.getElementById("cbr2cb7_only").checked == false){
+                                    document.getElementById("cbr2cbz_only").checked = true;
+                                    document.getElementById("cbr2cbz_only").setAttribute("disabled", "disabled");
+                                }
+                                $("#metataggingoptions").slideDown();
                         }
-                else
-                        {
-                                $("#metataggingoptions").show();
+                else    {
+                                document.getElementById("cbr2cbz_only").removeAttribute("disabled");
+                                $("#metataggingoptions").slideUp();
                         }
 
-                $("#cbr2cbz").click(function(){
-                        if ($("#cbr2cbz").is(":checked"))
+                $("#enable_meta").click(function(){
+                        if ($("#enable_meta").is(":checked"))
                         {
-                                $("#metataggingoptions").slideUp();
+                                if ( document.getElementById("cbr2cbz_only").checked == false ){   // && document.getElementById("cbr2cb7_only").checked == false){
+                                    document.getElementById("cbr2cbz_only").checked = true;
+                                }
+                                document.getElementById("cbr2cbz_only").setAttribute("disabled", "disabled");
+                                $("#metataggingoptions").slideDown();
                         }
                         else
                         {
-                                $("#metataggingoptions").slideDown();
+                                if ( document.getElementById("cbr2cbz_config").value == 1 ) {
+                                    document.getElementById("cbr2cbz_only").checked = true;
+                                } else {
+                                    document.getElementById("cbr2cbz_only").checked = false;
+                                }
+                                document.getElementById("cbr2cbz_only").removeAttribute("disabled");
+                                $("#metataggingoptions").slideUp();
                         }
                 });
 
@@ -2782,6 +2824,8 @@
                 initConfigCheckbox("#enable_pre_scripts");
                 initConfigCheckbox("#enable_snatch_script");
                 initConfigCheckbox("#enable_extra_scripts");
+                //initConfigCheckbox("#enable_file_conversions");
+                //initConfigCheckbox("#enable_image_conversions");
 	}
 	$(document).ready(function() {
 		initThisPage();
