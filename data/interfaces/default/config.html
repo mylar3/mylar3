@@ -234,7 +234,7 @@
                                  <legend>Interface</legend>
                                  <div class="row">
                                   <label>Interface</label> 
-                                    <select name="interface"><h3>
+                                    <select name="interface">
                                       %for interface in config['interface_list']:
                                           <%
                                               if interface == mylar.CONFIG.INTERFACE:
@@ -1269,10 +1269,36 @@
                                             <div class="row checkbox left clearfix">
                                                     <input type="checkbox" name="ct_cbz_overwrite" value="1" ${config['ct_cbz_overwrite']} /><label>Overwrite existing cbz tags (if they exist)</label>
                                             </div>
-
+                                            <div style="text-align:right;">
+                                                <a href="#" onclick="show_advanced_meta()"><span id="show_meta_advanced">Show Advanced</span></a>
+                                            </div>
                                             <div>
-                                               <small><center>If ComicVine API Key specified, will use with ComicTagger</center></small>
-                                               <small><center>Writing each type of metadata will increase API count respectively</center></small>
+                                                <div id="advanced_meta" style="display:none">
+                                                    <div class="row checkbox left clearfix">
+                                                        <input type="checkbox" name="cmtag_volume" id="cmtag_volume" value="1" ${config['cmtag_volume']} /><span title="write out the Volume field"><label>Tag Volume</label></span>
+                                                    </div>
+                                                    <div class="row checkbox left clearfix">
+                                                        <input type="checkbox" name="cmtag_start_year_as_volume" id="cmtag_start_year_as_volume" value="1" ${config['cmtag_start_year_as_volume']} /><span title="Use the start year for the Volume in place of the Volume #"><label>Use Start Year as Volume</label></span>
+                                                    </div>
+                                                    <div>
+                                                        <span title="How the IssueID is written - use Comictagger(IssueID) or ComicVine Scraper (CVDB) versioning"><label>Notes format</label>
+                                                        <select name="ct_notes_format">
+                                                         %for notes_f in ['Issue ID', 'CVDB']:
+                                                             <%
+                                                                 if notes_f == mylar.CONFIG.CT_NOTES_FORMAT:
+                                                                     selected = 'selected'
+                                                                 else:
+                                                                     selected = ''
+                                                             %>
+                                                            <option value="${notes_f}" ${selected}>${notes_f}</option>
+                                                         %endfor
+                                                       </select></span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div>
+                                               <p style="padding-top:10%;text-align:center;color:#999;display:block;font-size:11px;line-height:12px;">If ComicVine API Key specified, will use with ComicTagger</br>
+                                               Writing each type of metadata will increase API count respectively</p>
                                             </div>
                                         </div>
                                 </div>
@@ -1674,6 +1700,17 @@
                 x.style.display = "none";
             }
         }
+        function show_advanced_meta()
+        {
+            var x = document.getElementById("advanced_meta");
+            if (x.style.display === "none") {
+                x.style.display = "block";
+                document.getElementById("show_meta_advanced").innerHTML = "Hide Advanced";
+            } else {
+                x.style.display = "none";
+                document.getElementById("show_meta_advanced").innerHTML = "Show Advanced";
+            }
+        }
         </script>
         <script>
         function manageBlockedProviders() {
@@ -1866,7 +1903,29 @@
                                 $("#metataggingoptions").slideUp();
                         }
                 });
+                if ($("#cmtag_start_year_as_volume").is(":checked"))
+                        {
+                                document.getElementById("cmtag_volume").checked = true;
+                                document.getElementById("cmtag_volume").setAttribute("disabled", "disabled");
+                        }
+                else
+                       {
+                                document.getElementById("cmtag_volume").removeAttribute("disabled");
+                       }
 
+                $("#cmtag_start_year_as_volume").click(function(){
+                        if ($("#cmtag_start_year_as_volume").is(":checked"))
+                        {
+                                if ( document.getElementById("cmtag_volume").checked == false ){
+                                    document.getElementById("cmtag_volume").checked = true;
+                                    document.getElementById("cmtag_volume").setAttribute("disabled", "disabled");
+                                }
+                        }
+                        else
+                        {
+                                    document.getElementById("cmtag_volume").removeAttribute("disabled");
+                        }
+                });
                 if ($("#prowl").is(":checked"))
                         {
                                 $("#prowloptions").show();
