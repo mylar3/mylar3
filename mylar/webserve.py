@@ -1267,22 +1267,34 @@ class WebInterface(object):
                 continue
             else:
                 mi = myDB.selectone("SELECT * FROM issues WHERE IssueID=?", [IssueID]).fetchone()
+                arcs = False
                 annchk = 'no'
                 if mi is None:
                     if mylar.CONFIG.ANNUALS_ON:
                         mi = myDB.selectone("SELECT * FROM annuals WHERE IssueID=? AND NOT Deleted", [IssueID]).fetchone()
-                        comicname = mi['ReleaseComicName']
-                        annchk = 'yes'
+                        if mi is not None:
+                            comicname = mi['ReleaseComicName']
+                            issuenumber = mi['Issue_Number']
+                            annchk = 'yes'
+                        else:
+                            mi = myDB.selectone("SELECT * FROM storyarcs WHERE IssueArcID=?", [IssueID]).fetchone()
+                            if mi is not None:
+                                arcs = True
+                                comicname = mi['ComicName']
+                                issuenumber = mi['IssueNumber']
+                            else:
+                                logger.warn('unable to reference issueid: %s' % IssueID)
+                                continue
                 else:
                     comicname = mi['ComicName']
+                    issuenumber = mi['Issue_Number']
 
-                miyr = myDB.selectone("SELECT ComicYear FROM comics WHERE ComicID=?", [mi['ComicID']]).fetchone()
                 if action == 'Downloaded':
                     if mi['Status'] == "Skipped" or mi['Status'] == "Wanted":
                         logger.fdebug("Cannot change status to %s as comic is not Snatched or Downloaded" % (newaction))
                         continue
                 elif action == 'Archived':
-                    logger.fdebug("Marking %s %s as %s" % (comicname, mi['Issue_Number'], newaction))
+                    logger.fdebug("Marking %s %s as %s" % (comicname, issuenumber, newaction))
                     #updater.forceRescan(mi['ComicID'])
                     issuestoArchive.append(IssueID)
                 elif action == 'Wanted' or action == 'Retry':
@@ -1290,7 +1302,7 @@ class WebInterface(object):
                         logger.fdebug('Issue already set to Wanted status - no need to change it again.')
                         continue
                     if action == 'Retry': newaction = 'Wanted'
-                    logger.fdebug("Marking %s %s as %s" % (comicname, mi['Issue_Number'], newaction))
+                    logger.fdebug("Marking %s %s as %s" % (comicname, issuenumber, newaction))
                     issuesToAdd.append(IssueID)
                 elif action == 'Skipped':
                     logger.fdebug("Marking " + str(IssueID) + " as Skipped")
@@ -1301,10 +1313,15 @@ class WebInterface(object):
                     failedcomicid = mi['ComicID']
                     failedissueid = IssueID
                     break
-                controlValueDict = {"IssueID": IssueID}
+                if arcs is False:
+                    controlValueDict = {"IssueID": IssueID}
+                else:
+                    controlValueDict = {"IssueArcID": IssueID}
                 newValueDict = {"Status": newaction}
                 if annchk == 'yes':
                     myDB.upsert("annuals", newValueDict, controlValueDict)
+                elif arcs is True:
+                    myDB.upsert("storyarcs", newValueDict, controlValueDict)
                 else:
                     myDB.upsert("issues", newValueDict, controlValueDict)
                 logger.fdebug("updated...to " + str(newaction))
