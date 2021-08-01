@@ -3264,6 +3264,7 @@ def searchIssueIDList(issuelist):
         )
     ):
         for issueid in issuelist:
+            comicname = None
             logger.info('searching for issueid: %s' % issueid)
             issue = myDB.selectone(
                 'SELECT * from issues WHERE IssueID=?', [issueid]
@@ -3273,12 +3274,22 @@ def searchIssueIDList(issuelist):
                     'SELECT * from annuals WHERE IssueID=? AND NOT Deleted', [issueid]
                 ).fetchone()
                 if issue is None:
-                    logger.warn(
-                        'Unable to determine IssueID - perhaps you need to'
-                        ' delete/refresh series? Skipping this entry: %s'
-                        % issueid
-                    )
-                    continue
+                    issue = myDB.selectone(
+                        'SELECT * from storyarcs WHERE IssueArcID=?', [issueid]
+                    ).fetchone()
+                    if issue is not None:
+                        comicname = issue['ComicName']
+                        logger.info('comicname : %s' % comicname)
+                        seriesyear = issue['SeriesYear']
+                        booktype = issue['Type']
+                        issuenumber = issue['IssueNumber']
+                    else:
+                        logger.warn(
+                            'Unable to determine IssueID - perhaps you need to'
+                            ' delete/refresh series? Skipping this entry: %s'
+                            % issueid
+                        )
+                        continue
 
             if any([issue['Status'] == 'Downloaded', issue['Status'] == 'Snatched']):
                 logger.fdebug(
@@ -3288,22 +3299,26 @@ def searchIssueIDList(issuelist):
                 )
                 continue
 
-            comic = myDB.selectone(
-                'SELECT * from comics WHERE ComicID=?', [issue['ComicID']]
-            ).fetchone()
-            SeriesYear = comic['ComicYear']
-            booktype = comic['Type']
-            if (
-                comic['Corrected_Type'] is not None
-                and comic['Type'] != comic['Corrected_Type']
-            ):
-                booktype = comic['Corrected_Type']
+            if comicname is None:
+                comic = myDB.selectone(
+                    'SELECT * from comics WHERE ComicID=?', [issue['ComicID']]
+                ).fetchone()
+                comicname = comic['ComicName']
+                seriesyear = comic['ComicYear']
+                booktype = comic['Type']
+                issuenumber = issue['Issue_Number']
+
+                if (
+                    comic['Corrected_Type'] is not None
+                    and comic['Type'] != comic['Corrected_Type']
+                ):
+                    booktype = comic['Corrected_Type']
 
             mylar.SEARCH_QUEUE.put(
                 {
-                    'comicname': comic['ComicName'],
-                    'seriesyear': SeriesYear,
-                    'issuenumber': issue['Issue_Number'],
+                    'comicname': comicname,
+                    'seriesyear': seriesyear,
+                    'issuenumber': issuenumber,
                     'issueid': issue['IssueID'],
                     'comicid': issue['ComicID'],
                     'booktype': booktype,
