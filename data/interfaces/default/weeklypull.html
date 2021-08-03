@@ -33,8 +33,8 @@
                                       <a id="pub_button" onclick="runthem();return false;" href="#">Submit</a>
                                   </div>
                               </div>
-                              <input id="year" type="hidden" name="year" value="${weekinfo['year']}">
-                              <input id="weeknumber" type="hidden" name="weeknumber" value="${weekinfo['weeknumber']}">
+                              <input id="year" type="hidden" name="year" value="${weekinfo['year']}" />
+                              <input id="weeknumber" type="hidden" name="weeknumber" value="${weekinfo['weeknumber']}" />
                             </div>
                            </div>
 
@@ -54,7 +54,7 @@
         <div>
            </br></br>
            <table width="100%" align="center">
-              <tr>
+             <tr>
               <td style="vertical-align: middle; text-align: right">
                   <a href="pullist?week=${weekinfo['prev_weeknumber']}&year=${weekinfo['prev_year']}&current=${weekinfo['weeknumber']}-${weekinfo['year']}" title="Previous Week (${weekinfo['prev_weeknumber']})" onclick="$('#pull_table').page('first').draw('page');">
                       <img src="${icons['prev']}" width="16" height="18" Alt="Previous"/>
@@ -72,8 +72,8 @@
                       <img src="${icons['next']}" width="16" height="18" Alt="Next"/>
                   </a>
               </td>
-              </tr>
-            </table>
+             </tr>
+           </table>
         </div>
 
         <div>
@@ -81,12 +81,11 @@
              <fieldset>
                   <div class="row checkbox left clearfix">
                        </br>
-                       <input type="checkbox" name="weekfolder" id="weekfolder" value="1" ${checked(mylar.CONFIG.WEEKFOLDER)} /><label>Store in Weekly Directory (${weekfold})</label> 
+                       <input type="checkbox" name="weekfolder" id="weekfolder" value="1" ${checked(mylar.CONFIG.WEEKFOLDER)} /><label>Store in Weekly Directory (${weekfold})</label>
                  </div>
-
-               <input id="massyear" type="hidden" name="year" value="${weekinfo['year']}">
-               <input id="massnumber" type="hidden" name="weeknumber" value="${weekinfo['weeknumber']}">
-               <input type="hidden" name="midweek" value="${weekinfo['midweek']}">
+               <input id="massyear" type="hidden" name="year" value="${weekinfo['year']}" />
+               <input id="massnumber" type="hidden" name="weeknumber" value="${weekinfo['weeknumber']}" />
+               <input type="hidden" name="midweek" value="${weekinfo['midweek']}" />
                <input type="submit" style="display:none" />
              </fieldset>
           </form>
@@ -123,7 +122,7 @@
                                         grade = 'H'
 
                                 if weekly['HAVEIT'] == 'OneOff':
-                                        grade = 'H'
+                                        grade = 'T'
 
                                 #if the comicid is present, but issue isn't marked as wanted.
                                 if weekly['HAVEIT'] == 'Yes' and weekly['STATUS'] == 'Skipped':
@@ -280,8 +279,23 @@
 		%endfor
 		</tbody>
 	</table>
-             </br><small><center>last updated: ${weekinfo['last_update']}</center></small>
       </div>
+        <div style="z-index:10;position:absolute;text-align:center;margin-top:10px;">
+            <div style="display:inline-block;">
+                 </br>
+                 <small>last updated: ${weekinfo['last_update']}</small>
+            </div>
+        </div>
+        <div style="z-index:10;position:relative;float:right;margin-top:10px;">
+            <table style="border-spacing:3px;border-collapse:separate;">
+              <tr>
+                <td style="float:left;margin-left:2px;vertical-align:middle;"><span style="border:1px solid#ccc;float:left;width:30px;height:12px;margin:4px;background:#641716;"></span> monitored series</td>
+                <td style="margin-left:5px;"><span style="border:1px solid#ccc;float:left;width:30px;height:12px;margin:4px;background:#ae3431;"></span> auto-want</td>
+                <td style="float:left;margin-left:2px;vertical-align:middle;"><span style="border:1px solid#ccc;float:left;width:30px;height:12px;margin:4px;background:#382f64;"></span> mismatched</td>
+                <td style="margin-left:5px;"><span style="border:1px solid#ccc;float:left;width:30px;height:12px;margin:4px;background:#bd915a;"></span> one-off</td>
+              </tr>
+            </table>
+       </div>
 </%def>
 
 <%def name="headIncludes()">

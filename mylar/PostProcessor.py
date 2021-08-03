@@ -921,7 +921,11 @@ class PostProcessor(object):
                                                         # only worry about the last 2 weeks of the pull (basically where the data might be available due to CV being late / not updatin$
                                                         tmp_weeknumber = int(test[3])
                                                         tmp_weekyear = int(test[4])
-                                                        if (tmp_weekyear != int(mylar.CURRENT_YEAR)) and tmp_weeknumber + 2 >= int(mylar.CURRENT_WEEKNUMBER):
+                                                        #logger.info('tmp_weeknumber: %s / tmp_weekyear: %s' % (tmp_weeknumber, tmp_weekyear))
+                                                        #logger.info('mylar.currentyear: %s / mylar.current_weeknumber: %s' % (mylar.CURRENT_YEAR, mylar.CURRENT_WEEKNUMBER))
+                                                        # will have to modify the line below to acocmodate when the current year changes and the weeknumber flips back to 0/1.
+                                                        # migth need to extend +2 to +4 so that it covers the entire month
+                                                        if (tmp_weekyear == int(mylar.CURRENT_YEAR)) and tmp_weeknumber + 2 >= int(mylar.CURRENT_WEEKNUMBER):
                                                             logger.fdebug('%s %s should have current weekly data if this was an ongoing publication.' % (watchmatch['series_name'], watchmatch['justthedigits']))
                                                             second_check = False
                                                         else:

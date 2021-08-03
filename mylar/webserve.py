@@ -1267,22 +1267,34 @@ class WebInterface(object):
                 continue
             else:
                 mi = myDB.selectone("SELECT * FROM issues WHERE IssueID=?", [IssueID]).fetchone()
+                arcs = False
                 annchk = 'no'
                 if mi is None:
                     if mylar.CONFIG.ANNUALS_ON:
                         mi = myDB.selectone("SELECT * FROM annuals WHERE IssueID=? AND NOT Deleted", [IssueID]).fetchone()
-                        comicname = mi['ReleaseComicName']
-                        annchk = 'yes'
+                        if mi is not None:
+                            comicname = mi['ReleaseComicName']
+                            issuenumber = mi['Issue_Number']
+                            annchk = 'yes'
+                        else:
+                            mi = myDB.selectone("SELECT * FROM storyarcs WHERE IssueArcID=?", [IssueID]).fetchone()
+                            if mi is not None:
+                                arcs = True
+                                comicname = mi['ComicName']
+                                issuenumber = mi['IssueNumber']
+                            else:
+                                logger.warn('unable to reference issueid: %s' % IssueID)
+                                continue
                 else:
                     comicname = mi['ComicName']
+                    issuenumber = mi['Issue_Number']
 
-                miyr = myDB.selectone("SELECT ComicYear FROM comics WHERE ComicID=?", [mi['ComicID']]).fetchone()
                 if action == 'Downloaded':
                     if mi['Status'] == "Skipped" or mi['Status'] == "Wanted":
                         logger.fdebug("Cannot change status to %s as comic is not Snatched or Downloaded" % (newaction))
                         continue
                 elif action == 'Archived':
-                    logger.fdebug("Marking %s %s as %s" % (comicname, mi['Issue_Number'], newaction))
+                    logger.fdebug("Marking %s %s as %s" % (comicname, issuenumber, newaction))
                     #updater.forceRescan(mi['ComicID'])
                     issuestoArchive.append(IssueID)
                 elif action == 'Wanted' or action == 'Retry':
@@ -1290,7 +1302,7 @@ class WebInterface(object):
                         logger.fdebug('Issue already set to Wanted status - no need to change it again.')
                         continue
                     if action == 'Retry': newaction = 'Wanted'
-                    logger.fdebug("Marking %s %s as %s" % (comicname, mi['Issue_Number'], newaction))
+                    logger.fdebug("Marking %s %s as %s" % (comicname, issuenumber, newaction))
                     issuesToAdd.append(IssueID)
                 elif action == 'Skipped':
                     logger.fdebug("Marking " + str(IssueID) + " as Skipped")
@@ -1301,10 +1313,15 @@ class WebInterface(object):
                     failedcomicid = mi['ComicID']
                     failedissueid = IssueID
                     break
-                controlValueDict = {"IssueID": IssueID}
+                if arcs is False:
+                    controlValueDict = {"IssueID": IssueID}
+                else:
+                    controlValueDict = {"IssueArcID": IssueID}
                 newValueDict = {"Status": newaction}
                 if annchk == 'yes':
                     myDB.upsert("annuals", newValueDict, controlValueDict)
+                elif arcs is True:
+                    myDB.upsert("storyarcs", newValueDict, controlValueDict)
                 else:
                     myDB.upsert("issues", newValueDict, controlValueDict)
                 logger.fdebug("updated...to " + str(newaction))
@@ -2335,6 +2352,8 @@ class WebInterface(object):
         ann_list = []
 
         ann_cnt = 0
+        issues_list = []
+        ann_failed = []
 
         if mylar.CONFIG.ANNUALS_ON:
             #let's add the annuals to the wanted table so people can see them
@@ -2347,7 +2366,28 @@ class WebInterface(object):
 #           anncnt = myDB.select("SELECT COUNT(*) FROM annuals WHERE Status='Wanted' OR Status='Snatched'")
 #           ann_cnt = anncnt[0][0]
             ann_list += annuals_list
-            issues += annuals_list
+
+            for isse in issues:
+                found_iss = False
+                for d in ann_list:
+                    if d['IssueID'] == str(isse['IssueID']):
+                        found_iss = True
+                        ann_failed.append({'issueid': isse['IssueID'],
+                                           'comicid': isse['ComicID'],
+                                           'comicname': isse['ComicName']})
+                        break
+                if found_iss:
+                    pass
+                else:
+                    issues_list.append(isse)
+
+            if len(ann_failed) > 0:
+                logger.warn('[ANNUAL-DUPLICATION] There are duplicate issues in the Wanted list that are in both annuals and issues.')
+                logger.warn('[ANNUAL-DUPLICATION] This is due to having annual integration enabled, while also having the annuals listed as a separate entry in your watchlist.')
+                logger.fdebug('[ANNUAL-DUPLICATION] Duplicate entries (status of Wanted): %s' % (ann_failed,))
+
+            issues = issues_list
+            issues += ann_list
 
         issues_tmp = sorted(issues, key=itemgetter('ReleaseDate'), reverse=True)
         issues_tmp1 = sorted(issues_tmp, key=lambda x: x if isinstance(itemgetter('DateAdded'), str) else "", reverse=True)
@@ -5461,10 +5501,13 @@ class WebInterface(object):
                     "file_opts": mylar.CONFIG.FILE_OPTS,
                     "enable_meta": helpers.checked(mylar.CONFIG.ENABLE_META),
                     "cbr2cbz_only": helpers.checked(mylar.CONFIG.CBR2CBZ_ONLY),
+                    "cmtag_start_year_as_volume": helpers.checked(mylar.CONFIG.CMTAG_START_YEAR_AS_VOLUME),
                     "cmtagger_path": mylar.CONFIG.CMTAGGER_PATH,
                     "ct_tag_cr": helpers.checked(mylar.CONFIG.CT_TAG_CR),
                     "ct_tag_cbl": helpers.checked(mylar.CONFIG.CT_TAG_CBL),
                     "ct_cbz_overwrite": helpers.checked(mylar.CONFIG.CT_CBZ_OVERWRITE),
+                    "cmtag_volume": helpers.checked(mylar.CONFIG.CMTAG_VOLUME),
+                    "ct_notes_format": mylar.CONFIG.CT_NOTES_FORMAT,
                     "unrar_cmd": mylar.CONFIG.UNRAR_CMD,
                     "failed_download_handling": helpers.checked(mylar.CONFIG.FAILED_DOWNLOAD_HANDLING),
                     "failed_auto": helpers.checked(mylar.CONFIG.FAILED_AUTO),
@@ -5763,7 +5806,8 @@ class WebInterface(object):
                            'dognzb', 'dognzb_verify', 'experimental', 'enable_torrent_search', 'enable_32p', 'enable_torznab',
                            'newznab', 'use_minsize', 'use_maxsize', 'ddump', 'failed_download_handling', 'sab_client_post_processing', 'nzbget_client_post_processing',
                            'failed_auto', 'post_processing', 'enable_check_folder', 'enable_pre_scripts', 'enable_snatch_script', 'enable_extra_scripts',
-                           'enable_meta', 'cbr2cbz_only', 'ct_tag_cr', 'ct_tag_cbl', 'ct_cbz_overwrite', 'rename_files', 'replace_spaces', 'zero_level',
+                           'enable_meta', 'cbr2cbz_only', 'ct_tag_cr', 'ct_tag_cbl', 'ct_cbz_overwrite', 'cmtag_start_year_as_volume', 'cmtag_volume',
+                           'rename_files', 'replace_spaces', 'zero_level',
                            'lowercase_filenames', 'autowant_upcoming', 'autowant_all', 'comic_cover_local', 'cover_folder_local', 'series_metadata_local', 'alternate_latest_series_covers', 'cvinfo', 'snatchedtorrent_notify',
                            'prowl_enabled', 'prowl_onsnatch', 'pushover_enabled', 'pushover_onsnatch', 'pushover_image', 'boxcar_enabled',
                            'boxcar_onsnatch', 'pushbullet_enabled', 'pushbullet_onsnatch', 'telegram_enabled', 'telegram_onsnatch', 'telegram_image', 'discord_enabled', 'discord_onsnatch', 'slack_enabled', 'slack_onsnatch',

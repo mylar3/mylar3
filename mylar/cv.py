@@ -17,6 +17,7 @@ import sys
 import os
 import re
 import time
+import pytz
 from mylar import logger, helpers
 import string
 import feedparser
@@ -229,7 +230,7 @@ def getComic(comicid, rtype, issueid=None, arc=None, arcid=None, arclist=None, c
         return singleIssue(dom)
     elif rtype == 'db_updater':
         dtchk1 = datetime.datetime.strptime(dateinfo, '%Y-%m-%d %H:%M:%S')
-        dtnow = datetime.datetime.strptime(helpers.now(), '%Y-%m-%d %H:%M:%S')
+        dtnow = datetime.datetime.now(tz=datetime.timezone.utc)
         dateline_range = []
         for x in mylar.CONFIG.PROBLEM_DATES:
             bline = datetime.datetime.strptime(x, '%Y-%m-%d %H:%M:%S')
@@ -243,8 +244,15 @@ def getComic(comicid, rtype, issueid=None, arc=None, arcid=None, arclist=None, c
                                            'end_date': helpers.now()})
 
         if not dateline_range:
-            dateline_range.append({'start_date': dateinfo,
-                                   'end_date': helpers.now()})
+            # we store dates in UTC - CV API returns dates in UTC-7 (Pacific time zone)
+            p_zone =  pytz.timezone("US/Pacific")
+            dtchk1 = datetime.datetime.strptime(dateinfo, '%Y-%m-%d %H:%M:%S')
+            p_aware = pytz.utc.localize(dtchk1)
+            p_start = p_aware.astimezone(p_zone)
+
+            p_now = dtnow.astimezone(p_zone)
+            dateline_range.append({'start_date': datetime.datetime.strftime(p_start, '%Y-%m-%d %H:%M:%S'),
+                                   'end_date': datetime.datetime.strftime(p_now, '%Y-%m-%d %H:%M:%S')})
 
         resultlist = {}
         theResults = []

@@ -99,7 +99,7 @@ class FileChecker(object):
             self.pp_mode = False
 
         self.failed_files = []
-        self.dynamic_handlers = ['/','-',':',';','\'',',','&','?','!','+','*','(',')','\\u2014','\\u2013','\\u2019']
+        self.dynamic_handlers = ['/','-',':',';','\'','"',',','&','?','!','+','*','(',')','\\u2014','\\u2013','\\u2019']
         self.dynamic_replacements = ['and','the']
         self.rippers = ['-empire','-empire-hd','minutemen-','-dcp','Glorith-HD']
 
@@ -706,14 +706,15 @@ class FileChecker(object):
                     sep_volume = True
                     logger.fdebug('volume label detected, but vol. number is not adjacent, adjusting scope to include number.')
                 elif 'volume' in sf.lower() or all(['part' in sf.lower(), len(sf) == 4]):
-                    volume = re.sub("[^0-9]", "", sf)
-                    if volume.isdigit():
-                        volume_found['volume'] = volume
-                        volume_found['position'] = split_file.index(sf)
-                    else:
-                        volumeprior = True
-                        volumeprior_label = sf
-                        sep_volume = True
+                    if self.watchcomic is not None and 'part' not in self.watchcomic.lower():
+                        volume = re.sub("[^0-9]", "", sf)
+                        if volume.isdigit():
+                            volume_found['volume'] = volume
+                            volume_found['position'] = split_file.index(sf)
+                        else:
+                            volumeprior = True
+                            volumeprior_label = sf
+                            sep_volume = True
 
                 elif any([sf == 'I', sf == 'II', sf == 'III', sf == 'IV']) and volumeprior:
                     volumeprior = False

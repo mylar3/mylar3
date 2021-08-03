@@ -234,7 +234,7 @@
                                  <legend>Interface</legend>
                                  <div class="row">
                                   <label>Interface</label> 
-                                    <select name="interface"><h3>
+                                    <select name="interface">
                                       %for interface in config['interface_list']:
                                           <%
                                               if interface == mylar.CONFIG.INTERFACE:
@@ -449,7 +449,7 @@
                                 </div>
 
                                 <div class="row checkbox left clearfix" id="sab_cdh" style="display:unset;">
-                                    <input type="checkbox" id="sab_client_post_processing" onclick="initConfigCheckbox($this);" name="sab_client_post_processing" value="1" ${config['sab_client_post_processing']} /><label>Enable Completed Download Handling</label>
+                                    <input type="checkbox" id="sab_client_post_processing" onclick="initConfigCheckbox($(this));" name="sab_client_post_processing" value="1" ${config['sab_client_post_processing']} /><label>Enable Completed Download Handling</label>
                                     <div id="sabcompletedinfo">
                                        <div class="row">
                                            <small class="heading"><span style="float: left; margin-right: .3em; margin-top: 4px;" class="ui-icon ui-icon-info"></span>
@@ -524,7 +524,7 @@
                                               </div>
 
                             <div class="row checkbox left clearfix">
-                                <input type="checkbox" id="nzbget_client_post_processing" onclick="initConfigCheckbox($this);" name="nzbget_client_post_processing" value="1" ${config['nzbget_client_post_processing']} /><label>Enable Completed Download Handling</label>
+                                <input type="checkbox" id="nzbget_client_post_processing" onclick="initConfigCheckbox($(this));" name="nzbget_client_post_processing" value="1" ${config['nzbget_client_post_processing']} /><label>Enable Completed Download Handling</label>
                                 <div id="nzbgetcompletedinfo">
                                    <div class="row">
                                        <small class="heading"><span style="float: left; margin-right: .3em; margin-top: 4px;" class="ui-icon ui-icon-info"></span>
@@ -1223,14 +1223,42 @@
                                 </div>                           
                 	</fieldset>
                         <fieldset>
+                                <legend>Conversions</legend>
+<!--
+                                <div class="row checkbox left clearfix">
+                                    <input type="checkbox" id="enable_file_conversions" onclick="initConfigCheckbox($(this));" name="enable_file_conversions" value="1"  /><label>File Conversions</label>
+                                </div>
+                                    <div class="config">
+-->
+                                        <div class="row checkbox left clearfix">
+                                                <% cbr2cbz_config = int(mylar.CONFIG.CBR2CBZ_ONLY) %>
+                                                <input type="hidden" id="cbr2cbz_config" value="${cbr2cbz_config}" />
+                                                <input id="cbr2cbz_only" type="checkbox" name="cbr2cbz_only" value="1" ${config['cbr2cbz_only']} /><label style="float:left;width:75%;">Convert CBR to CBZ</label>
+                                        </div>
+<!--
+                                        <div class="row checkbox left clearfix">
+                                                <input style="float:left;width:40px;" id="cbr2cb7_only" type="checkbox" name="cbr2cb7_only" value="1" /><label style="float:left;width:75%;">Convert (CBR/CBZ) to CB7</label>
+                                        </div>
+                                    </div>
+                                <div class="row checkbox left clearfix">
+                                    <input type="checkbox" id="enable_image_conversions" onclick="initConfigCheckbox($(this));" name="enable_image_conversions" value="1" /><label>Image Conversions</label>
+                                </div>
+                                    <div class="config">
+                                        <div class="row checkbox left clearfix">
+                                                <input style="float:left;width:40px;" id="cbr2cbz" type="checkbox" name="cbr2cbz_only" value="1" ${config['cbr2cbz_only']} /><label style="float:left;width:75%;">Convert (JPG/PNG) to WEBP</label>
+                                        </div>
+                                        <div class="row checkbox left clearfix">
+                                                <input style="float:left;width:40px;" id="cbr2cbz" type="checkbox" name="cbr2cbz_only" value="1" ${config['cbr2cbz_only']} /><label style="float:left;width:75%;">Convert WEBP to JPG</label>
+                                        </div>
+                                    </div>
+-->
+                        </fieldset>
+                        <fieldset>
                                 <legend>Metadata Tagging</legend><small class="heading"><span style="float: left; margin-right: .3em; margin-top: 4px;" class="ui-icon ui-icon-info"></span>ComicTagger is included</small>
                                 <div class="row checkbox left clearfix">
-                                     <input id="enable_meta" type="checkbox" onclick="initConfigCheckbox($this));" name="enable_meta" value="1" ${config['enable_meta']} /><label>Enable Metadata Tagging</label>
+                                     <input id="enable_meta" type="checkbox" onclick="initConfigCheckbox($(this));" name="enable_meta" value="1" ${config['enable_meta']} /><label>Enable Metadata Tagging</label>
                                 </div>
                                 <div class="config">
-                                        <div class="row checkbox left clearfix">
-                                                <input id="cbr2cbz" type="checkbox" name="cbr2cbz_only" value="1" ${config['cbr2cbz_only']} /><label>Convert CBR to CBZ ONLY</label>
-                                        </div>
                                         <div id="metataggingoptions">
                                             <div class="row checkbox left clearfix">
                                                     <input type="checkbox" name="ct_tag_cr" value="1" ${config['ct_tag_cr']} /><label>Write ComicRack (cr) tags (ComicInfo.xml)</label>
@@ -1241,10 +1269,36 @@
                                             <div class="row checkbox left clearfix">
                                                     <input type="checkbox" name="ct_cbz_overwrite" value="1" ${config['ct_cbz_overwrite']} /><label>Overwrite existing cbz tags (if they exist)</label>
                                             </div>
-
+                                            <div style="text-align:right;">
+                                                <a href="#" onclick="show_advanced_meta()"><span id="show_meta_advanced">Show Advanced</span></a>
+                                            </div>
                                             <div>
-                                               <small><center>If ComicVine API Key specified, will use with ComicTagger</center></small>
-                                               <small><center>Writing each type of metadata will increase API count respectively</center></small>
+                                                <div id="advanced_meta" style="display:none">
+                                                    <div class="row checkbox left clearfix">
+                                                        <input type="checkbox" name="cmtag_volume" id="cmtag_volume" value="1" ${config['cmtag_volume']} /><span title="write out the Volume field"><label>Tag Volume</label></span>
+                                                    </div>
+                                                    <div class="row checkbox left clearfix">
+                                                        <input type="checkbox" name="cmtag_start_year_as_volume" id="cmtag_start_year_as_volume" value="1" ${config['cmtag_start_year_as_volume']} /><span title="Use the start year for the Volume in place of the Volume #"><label>Use Start Year as Volume</label></span>
+                                                    </div>
+                                                    <div>
+                                                        <span title="How the IssueID is written - use Comictagger(IssueID) or ComicVine Scraper (CVDB) versioning"><label>Notes format</label>
+                                                        <select name="ct_notes_format">
+                                                         %for notes_f in ['Issue ID', 'CVDB']:
+                                                             <%
+                                                                 if notes_f == mylar.CONFIG.CT_NOTES_FORMAT:
+                                                                     selected = 'selected'
+                                                                 else:
+                                                                     selected = ''
+                                                             %>
+                                                            <option value="${notes_f}" ${selected}>${notes_f}</option>
+                                                         %endfor
+                                                       </select></span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div>
+                                               <p style="padding-top:10%;text-align:center;color:#999;display:block;font-size:11px;line-height:12px;">If ComicVine API Key specified, will use with ComicTagger</br>
+                                               Writing each type of metadata will increase API count respectively</p>
                                             </div>
                                         </div>
                                 </div>
@@ -1646,6 +1700,17 @@
                 x.style.display = "none";
             }
         }
+        function show_advanced_meta()
+        {
+            var x = document.getElementById("advanced_meta");
+            if (x.style.display === "none") {
+                x.style.display = "block";
+                document.getElementById("show_meta_advanced").innerHTML = "Hide Advanced";
+            } else {
+                x.style.display = "none";
+                document.getElementById("show_meta_advanced").innerHTML = "Show Advanced";
+            }
+        }
         </script>
         <script>
         function manageBlockedProviders() {
@@ -1805,26 +1870,62 @@
                         }
                 });
 
-                if ($("#cbr2cbz").is(":checked"))
+                if ($("#enable_meta").is(":checked"))
                         {
-                                $("#metataggingoptions").hide();
+                                if ( document.getElementById("cbr2cbz_only").checked == false ){   // && document.getElementById("cbr2cb7_only").checked == false){
+                                    document.getElementById("cbr2cbz_only").checked = true;
+                                    document.getElementById("cbr2cbz_only").setAttribute("disabled", "disabled");
+                                }
+                                $("#metataggingoptions").slideDown();
                         }
-                else
-                        {
-                                $("#metataggingoptions").show();
+                else    {
+                                document.getElementById("cbr2cbz_only").removeAttribute("disabled");
+                                $("#metataggingoptions").slideUp();
                         }
 
-                $("#cbr2cbz").click(function(){
-                        if ($("#cbr2cbz").is(":checked"))
+                $("#enable_meta").click(function(){
+                        if ($("#enable_meta").is(":checked"))
                         {
-                                $("#metataggingoptions").slideUp();
+                                if ( document.getElementById("cbr2cbz_only").checked == false ){   // && document.getElementById("cbr2cb7_only").checked == false){
+                                    document.getElementById("cbr2cbz_only").checked = true;
+                                }
+                                document.getElementById("cbr2cbz_only").setAttribute("disabled", "disabled");
+                                $("#metataggingoptions").slideDown();
                         }
                         else
                         {
-                                $("#metataggingoptions").slideDown();
+                                if ( document.getElementById("cbr2cbz_config").value == 1 ) {
+                                    document.getElementById("cbr2cbz_only").checked = true;
+                                } else {
+                                    document.getElementById("cbr2cbz_only").checked = false;
+                                }
+                                document.getElementById("cbr2cbz_only").removeAttribute("disabled");
+                                $("#metataggingoptions").slideUp();
                         }
                 });
+                if ($("#cmtag_start_year_as_volume").is(":checked"))
+                        {
+                                document.getElementById("cmtag_volume").checked = true;
+                                document.getElementById("cmtag_volume").setAttribute("disabled", "disabled");
+                        }
+                else
+                       {
+                                document.getElementById("cmtag_volume").removeAttribute("disabled");
+                       }
 
+                $("#cmtag_start_year_as_volume").click(function(){
+                        if ($("#cmtag_start_year_as_volume").is(":checked"))
+                        {
+                                if ( document.getElementById("cmtag_volume").checked == false ){
+                                    document.getElementById("cmtag_volume").checked = true;
+                                    document.getElementById("cmtag_volume").setAttribute("disabled", "disabled");
+                                }
+                        }
+                        else
+                        {
+                                    document.getElementById("cmtag_volume").removeAttribute("disabled");
+                        }
+                });
                 if ($("#prowl").is(":checked"))
                         {
                                 $("#prowloptions").show();
@@ -2782,6 +2883,8 @@
                 initConfigCheckbox("#enable_pre_scripts");
                 initConfigCheckbox("#enable_snatch_script");
                 initConfigCheckbox("#enable_extra_scripts");
+                //initConfigCheckbox("#enable_file_conversions");
+                //initConfigCheckbox("#enable_image_conversions");
 	}
 	$(document).ready(function() {
 		initThisPage();
