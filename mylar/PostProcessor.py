@@ -894,7 +894,14 @@ class PostProcessor(object):
                                             tmpseriesname = re.sub('annual', '', tmpseriesname, flags=re.I).strip()
                                             tmpseriesname = re.sub('special', '', tmpseriesname, flags=re.I).strip()
                                         dynamic_seriesname = re.sub('[\|\s]','', tmpseriesname.lower()).strip()
-                                        if all([cs['DynamicName'] == dynamic_seriesname, cs['WatchValues']['Type'] != 'TPB', cs['WatchValues']['Type'] != 'One-Shot']):
+
+                                        alts = []
+                                        for x in alt_list:
+                                            if x['AS_DyComicName'] == cs['DynamicName']:
+                                                alts = x['AS_Alt']
+                                        alt_listing = [True if x.lower() == dynamic_seriesname else False for x in alts]
+
+                                        if any([cs['DynamicName'] == dynamic_seriesname, alt_listing]) and all([cs['WatchValues']['Type'] != 'TPB', cs['WatchValues']['Type'] != 'One-Shot']):
                                             logger.fdebug('name match exact : %s - %s' % (cs['DynamicName'], dynamic_seriesname))
                                             test = myDB.selectone('SELECT Comic, DynamicName, Issue, weeknumber, year FROM weekly WHERE ComicID = ? ORDER BY year DESC, CAST(weeknumber AS INTEGER) DESC', [cs['ComicID']]).fetchone()
                                             if test:
@@ -909,7 +916,7 @@ class PostProcessor(object):
                                                 week_intissue = helpers.issuedigits(week_issue)
                                                 logger.fdebug('week_dynamicname: %s / dynamic_seriesname: %s' % (week_dynamicname,dynamic_seriesname))
                                                 logger.fdebug('week_intissue: %s / fcdigit: %s' % (week_intissue, fcdigit))
-                                                if week_dynamicname == dynamic_seriesname:
+                                                if any([week_dynamicname == dynamic_seriesname, alt_listing]):
                                                     if 'Present' in cs['ComicPublished']:
                                                         if week_intissue == fcdigit:
                                                             logger.fdebug('Matched exactly on Series Title, IssueNumber, present on the pull.')
