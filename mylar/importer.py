@@ -307,7 +307,7 @@ def addComictoDB(comicid, mismatch=None, pullupd=None, imported=None, ogcname=No
                 if all([os.path.isdir(os.path.join(mylar.CONFIG.MULTIPLE_DEST_DIRS, os.path.basename(comlocation))) is True, os.path.isfile(os.path.join(mylar.CONFIG.MULTIPLE_DEST_DIRS, os.path.basename(comlocation), 'cover.jpg')) is False]):
                     cloc_it.append(os.path.join(mylar.CONFIG.MULTIPLE_DEST_DIRS, os.path.basename(comlocation)))
                 else:
-                    ff = mylar.filers.FileHandlers(ComicID=comicid)
+                    ff = mylar.filers.FileHandlers(comic=comic)
                     cloc = ff.secondary_folders(comlocation)
                     if os.path.isfile(os.path.join(cloc, 'cover.jpg')) is False:
                         cloc_it.append(cloc)
