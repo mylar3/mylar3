@@ -47,8 +47,8 @@ class FileHandlers(object):
             self.issue = None
             self.issueid = None
 
-    def folder_create(self, booktype=None, update_loc=None):
-        # dictionary needs to passed called comic with 
+    def folder_create(self, booktype=None, update_loc=None, secondary=None):
+        # dictionary needs to passed called comic with
         #  {'ComicPublisher', 'CorrectedType, 'Type', 'ComicYear', 'ComicName', 'ComicVersion'}
         # or pass in comicid value from __init__
 
@@ -209,7 +209,12 @@ class FileHandlers(object):
                     'path_convert': path_convert,
                     'comicid':      comicid}
         else:
-            ddir = pathlib.PurePath(mylar.CONFIG.DESTINATION_DIR)
+            if secondary is not None:
+                ppath = secondary
+            else:
+                ppath = mylar.CONFIG.DESTINATION_DIR
+
+            ddir = pathlib.PurePath(ppath)
             i = 0
             bb = []
             while i < len(ddir.parts):
@@ -237,6 +242,7 @@ class FileHandlers(object):
                 first = first.replace(' ', mylar.CONFIG.REPLACE_CHAR)
             logger.fdebug('first-2: %s' % first)
             comlocation = str(p_path.joinpath(first))
+            com_parentdir = str(p_path.joinpath(first).parent)
             logger.fdebug('comlocation: %s' % comlocation)
 
             #try:
@@ -262,7 +268,8 @@ class FileHandlers(object):
                 return
 
             return {'comlocation': comlocation,
-                    'subpath':     bb_tuple}
+                    'subpath':     bb_tuple,
+                    'com_parentdir': com_parentdir}
 
     def rename_file(self, ofilename, issue=None, annualize=None, arc=False, file_format=None): #comicname, issue, comicyear=None, issueid=None)
             comicid = self.comicid   # it's coming in unicoded...
@@ -677,3 +684,18 @@ class FileHandlers(object):
 
             return rename_this
 
+    def secondary_folders(self, comiclocation, secondary=None):
+        if not secondary:
+            secondary = mylar.CONFIG.MULTIPLE_DEST_DIRS
+
+        secondary_main = self.folder_create(secondary=secondary)
+        secondaryfolders = secondary_main['comlocation']
+
+        if not os.path.exists(secondaryfolders):
+            tmpbase = os.path.basename(comiclocation)
+            tmpath = os.path.join(secondary_main['com_parentdir'], tmpbase)
+
+            if os.path.exists(tmpath):
+                secondaryfolders = tmpath
+
+        return secondaryfolders

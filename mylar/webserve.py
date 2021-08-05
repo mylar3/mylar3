@@ -2784,11 +2784,12 @@ class WebInterface(object):
             if mylar.CONFIG.ANNUALS_ON:
                 issues += myDB.select("SELECT * FROM annuals WHERE ComicID=? AND NOT Deleted", [cid])
             try:
-                if mylar.CONFIG.MULTIPLE_DEST_DIRS is not None and mylar.CONFIG.MULTIPLE_DEST_DIRS != 'None' and os.path.join(mylar.CONFIG.MULTIPLE_DEST_DIRS, os.path.basename(comicdir)) != comicdir:
-                    logger.fdebug('multiple_dest_dirs:' + mylar.CONFIG.MULTIPLE_DEST_DIRS)
-                    logger.fdebug('dir: ' + comicdir)
-                    logger.fdebug('os.path.basename: ' + os.path.basename(comicdir))
-                    pathdir = os.path.join(mylar.CONFIG.MULTIPLE_DEST_DIRS, os.path.basename(comicdir))
+                if all([mylar.CONFIG.MULTIPLE_DEST_DIRS is not None, mylar.CONFIG.MULTIPLE_DEST_DIRS != 'None']):
+                    if os.path.exists(os.path.join(mylar.CONFIG.MULTIPLE_DEST_DIRS, os.path.basename(comicdir))):
+                        secondary_folders = os.path.join(mylar.CONFIG.MULTIPLE_DEST_DIRS, os.path.basename(comicdir))
+                    else:
+                        ff = mylar.filers.FileHandlers(ComicID=ComicID)
+                        secondary_folders = ff.secondary_folders(comicdir)
             except:
                 pass
 
@@ -4097,8 +4098,14 @@ class WebInterface(object):
                                 #check multiple destination directory usage here.
                                 if not os.path.isfile(issloc):
                                     try:
-                                        if all([mylar.CONFIG.MULTIPLE_DEST_DIRS is not None, mylar.CONFIG.MULTIPLE_DEST_DIRS != 'None', os.path.join(mylar.CONFIG.MULTIPLE_DEST_DIRS, os.path.basename(m_arc['match_filedirectory'])) != issloc, os.path.exists(os.path.join(mylar.CONFIG.MULTIPLE_DEST_DIRS, os.path.basename(m_arc['match_filedirectory'])))]):
-                                            issloc = os.path.join(mylar.CONFIG.MULTIPLE_DEST_DIRS, os.path.basename(m_arc['match_filedirectory']), issue['Location'])
+                                        if all([mylar.CONFIG.MULTIPLE_DEST_DIRS is not None, mylar.CONFIG.MULTIPLE_DEST_DIRS != 'None']):
+                                            if os.path.exists(os.path.join(mylar.CONFIG.MULTIPLE_DEST_DIRS, os.path.basename(m_arc['match_filedirectory']))):
+                                                secondary_folders = os.path.join(mylar.CONFIG.MULTIPLE_DEST_DIRS, os.path.basename(m_arc['match_filedirectory']))
+                                            else:
+                                                ff = mylar.filers.FileHandlers(ComicID=m_arc['match_id'])
+                                                secondary_folders = ff.secondary_folders(m_arc['match_filedirectory'])
+
+                                            issloc = os.path.join(secondary_folders, issue['Location'])
                                             if not os.path.isfile(issloc):
                                                 logger.warn('Source file cannot be located. Please do a Recheck for the specific series to ensure everything is correct.')
                                                 continue
@@ -6278,6 +6285,17 @@ class WebInterface(object):
 
     def manual_metatag(self, dirName, issueid, filename, comicid, comversion, seriesyear=None, group=False, agerating=None):
         module = '[MANUAL META-TAGGING]'
+        if not os.path.exists(filename):
+            if all([mylar.CONFIG.MULTIPLE_DEST_DIRS is not None, mylar.CONFIG.MULTIPLE_DEST_DIRS != 'None']):
+                if os.path.exists(os.path.join(mylar.CONFIG.MULTIPLE_DEST_DIRS, os.path.basename(dirName))):
+                    secondary_folder = os.path.join(mylar.CONFIG.MULTIPLE_DEST_DIRS, os.path.basename(dirName))
+                else:
+                    ff = mylar.filers.FileHandlers(ComicID=comicid)
+                    secondary_folder = ff.secondary_folders(dirName)
+
+                if os.path.join(secondary_folder, os.path.basename(filename)):
+                    dirName = secondary_folder
+                    filename = os.path.join(secondary_folder, os.path.basename(filename))
         try:
             from . import cmtagmylar
             if mylar.CONFIG.CMTAG_START_YEAR_AS_VOLUME:
@@ -6324,12 +6342,17 @@ class WebInterface(object):
             except Exception as e:
                 if str(e.errno) == '2':
                     try:
-                        if mylar.CONFIG.MULTIPLE_DEST_DIRS is not None and mylar.CONFIG.MULTIPLE_DEST_DIRS != 'None' and os.path.join(mylar.CONFIG.MULTIPLE_DEST_DIRS, os.path.basename(dirName)) != dirName:
-                            dst = os.path.join(mylar.CONFIG.MULTIPLE_DEST_DIRS, os.path.basename(dirName))
-                            shutil.copy(metaresponse, dst)
-                            logger.info('%s Sucessfully wrote metadata to .cbz (%s) - Continuing..' % (module, os.path.split(metaresponse)[1]))
+                        if all([mylar.CONFIG.MULTIPLE_DEST_DIRS is not None, mylar.CONFIG.MULTIPLE_DEST_DIRS != 'None']):
+                            if os.path.exists(os.path.join(mylar.CONFIG.MULTIPLE_DEST_DIRS, os.path.basename(dirName))):
+                                secondary_folder = os.path.join(mylar.CONFIG.MULTIPLE_DEST_DIRS, os.path.basename(dirName))
+                            else:
+                                ff = mylar.filers.FileHandlers(ComicID=comicid)
+                                secondary_folder = ff.secondary_folders(dirName)
+
+                            shutil.copy(metaresponse, secondary_folder)
+                            logger.info('%s Sucessfully wrote metadata to .cbz (%s) - Continuing..' % (module, dst_filename))
                     except Exception as e:
-                        logger.warn('%s [%s] Unable to complete metatagging : %s [%s]' % (module, dst, e, e.errno))
+                        logger.warn('%s [%s] Unable to complete metatagging : %s [%s]' % (module, secondary_folder, e, e.errno))
                         fail = True
                 else:
                     logger.warn('%s [%s] Unable to complete metatagging : %s [%s]' % (module, dst, e, e.errno))

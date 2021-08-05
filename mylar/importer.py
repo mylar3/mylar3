@@ -299,18 +299,28 @@ def addComictoDB(comicid, mismatch=None, pullupd=None, imported=None, ogcname=No
 
         #if the comic cover local is checked, save a cover.jpg to the series folder.
         if mylar.CONFIG.COMIC_COVER_LOCAL is True:
-            cloc_it = comlocation
+            cloc_it = []
             if comlocation is not None and all([os.path.isdir(comlocation) is True, os.path.isfile(os.path.join(comlocation, 'cover.jpg')) is False]):
-                cloc_it = comlocation
-            elif mylar.CONFIG.MULTIPLE_DEST_DIRS is not None and all([os.path.isdir(os.path.join(mylar.CONFIG.MULTIPLE_DEST_DIRS, os.path.basename(comlocation))) is True, os.path.isfile(os.path.join(mylar.CONFIG.MULTIPLE_DEST_DIRS, os.path.basename(comlocation), 'cover.jpg')) is False]):
-                cloc_it = os.path.join(mylar.CONFIG.MULTIPLE_DEST_DIRS, os.path.basename(comlocation))
-            try:
-                comiclocal = os.path.join(cloc_it, 'cover.jpg')
-                shutil.copyfile(cimage, comiclocal)
-                if mylar.CONFIG.ENFORCE_PERMS:
-                    filechecker.setperms(comiclocal)
-            except IOError as e:
-                logger.error('[%s] Unable to save cover (%s) into series directory (%s) at this time.' % (e, cimage, comiclocal))
+                cloc_it.append(comlocation)
+
+            if all([mylar.CONFIG.MULTIPLE_DEST_DIRS is not None, mylar.CONFIG.MULTIPLE_DEST_DIRS != 'None']):
+                if all([os.path.isdir(os.path.join(mylar.CONFIG.MULTIPLE_DEST_DIRS, os.path.basename(comlocation))) is True, os.path.isfile(os.path.join(mylar.CONFIG.MULTIPLE_DEST_DIRS, os.path.basename(comlocation), 'cover.jpg')) is False]):
+                    cloc_it.append(os.path.join(mylar.CONFIG.MULTIPLE_DEST_DIRS, os.path.basename(comlocation)))
+                else:
+                    ff = mylar.filers.FileHandlers(ComicID=comicid)
+                    cloc = ff.secondary_folders(comlocation)
+                    if os.path.isfile(os.path.join(cloc, 'cover.jpg')) is False:
+                        cloc_it.append(cloc)
+
+            for clocit in cloc_it:
+                try:
+                    comiclocal = os.path.join(clocit, 'cover.jpg')
+                    shutil.copyfile(cimage, comiclocal)
+                    if mylar.CONFIG.ENFORCE_PERMS:
+                        filechecker.setperms(comiclocal)
+                except IOError as e:
+                    if 'No such file or directory' not in str(e):
+                        logger.error('[%s] Unable to save cover (%s) into series directory (%s) at this time.' % (e, cimage, comiclocal))
 
     else:
         ComicImage = None
@@ -1740,20 +1750,27 @@ def image_it(comicid, latestissueid, comlocation, ComicImage):
 
     #if the comic cover local is checked, save a cover.jpg to the series folder.
     if mylar.CONFIG.COMIC_COVER_LOCAL is True:
-        cloc_it = comlocation
+        cloc_it = []
         if (comlocation is not None and all([os.path.isdir(comlocation) is True, os.path.isfile(os.path.join(comlocation, 'cover.jpg')) is False])):
-            cloc_it = comlocation
-        elif (mylar.CONFIG.MULTIPLE_DEST_DIRS is not None and all([os.path.isdir(mylar.CONFIG.MULTIPLE_DEST_DIRS) is True, os.path.isfile(os.path.join(mylar.CONFIG.MULTIPLE_DEST_DIRS, 'cover.jpg')) is False])):
-            cloc_it = mylar.CONFIG.MULTIPLE_DEST_DIRS
-        try:
-            comiclocal = os.path.join(cloc_it, 'cover.jpg')
-            shutil.copyfile(cimage, comiclocal)
-            if mylar.CONFIG.ENFORCE_PERMS:
-                filechecker.setperms(comiclocal)
-        except IOError as e:
-            logger.error('[%s] Error saving cover (%s) into series directory (%s) at this time' % (e, cimage, comiclocal))
-        except Exception as e:
-            logger.error('[%s] Unable to save cover (%s) into series directory (%s) at this time' % (e, cimage, comiclocal))
+            cloc_it.append(comlocation)
+        elif ([mylar.CONFIG.MULTIPLE_DEST_DIRS is not None, mylar.CONFIG.MULTIPLE_DEST_DIRS != 'None']):
+            if all([os.path.isdir(os.path.join(mylar.CONFIG.MULTIPLE_DEST_DIRS, os.path.basename(comlocation))) is True, os.path.isfile(os.path.join(mylar.CONFIG.MULTIPLE_DEST_DIRS, os.path.basename(comlocation), 'cover.jpg')) is False]):
+                cloc_it.append(os.path.join(mylar.CONFIG.MULTIPLE_DEST_DIRS, os.path.basename(comlocation)))
+            else:
+                ff = mylar.filers.FileHandlers(ComicID=comicid)
+                cloc = ff.secondary_folders(comlocation)
+                if os.path.isfile(os.path.join(cloc, 'cover.jpg')) is False:
+                    cloc_it.append(cloc)
+
+        for clocit in cloc_it:
+            try:
+                comiclocal = os.path.join(clocit, 'cover.jpg')
+                shutil.copyfile(cimage, comiclocal)
+                if mylar.CONFIG.ENFORCE_PERMS:
+                    filechecker.setperms(comiclocal)
+            except IOError as e:
+                if 'No such file or directory' not in str(e):
+                    logger.error('[%s] Error saving cover (%s) into series directory (%s) at this time' % (e, cimage, comiclocal))
 
     myDB = db.DBConnection()
     myDB.upsert('comics', {'ComicImage': ComicImage}, {'ComicID': comicid})

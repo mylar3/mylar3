@@ -193,9 +193,14 @@
                                         arc_img = None
                                         arc_tip = None
                                         archive_path = None
-                                        if mylar.CONFIG.MULTIPLE_DEST_DIRS is not None and mylar.CONFIG.MULTIPLE_DEST_DIRS != 'None':
+                                        if all([mylar.CONFIG.MULTIPLE_DEST_DIRS is not None, mylar.CONFIG.MULTIPLE_DEST_DIRS != 'None']):
                                             try:
-                                                archive_path = os.path.join(mylar.CONFIG.MULTIPLE_DEST_DIRS, os.path.basename(comic['ComicLocation']))
+                                                if os.path.exists(os.path.join(mylar.CONFIG.MULTIPLE_DEST_DIRS, os.path.basename(comic['ComicLocation']))):
+                                                    secondary_folders = os.path.join(mylar.CONFIG.MULTIPLE_DEST_DIRS, os.path.basename(comic['ComicLocation']))
+                                                else:
+                                                    ff = mylar.filers.FileHandlers(ComicID=comic['ComicID'])
+                                                    secondary_folders = ff.secondary_folders(comic['ComicLocation'])
+                                                archive_path = secondary_folders
                                             except Exception:
                                                 archive_path = 'None'
 
