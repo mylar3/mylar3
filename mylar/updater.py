@@ -1905,7 +1905,7 @@ def watchlist_updater(calledfrom=None, sched=False):
         return
 
 
-    logger.fdebug('update_list: %s' % (update_list,))
+    #logger.fdebug('update_list: %s' % (update_list,))
 
     if update_list['count'] == 0:
         logger.info('[BACKFILL-UPDATE] Nothing new has been posted to any series in your watchlist')
@@ -1951,11 +1951,16 @@ def watchlist_updater(calledfrom=None, sched=False):
         elif not row['LastUpdated'] and all(['ComicID' not in row['ComicName'], row['Status'] != 'Loading', row['ComicName'] is not None]):
             prev_failed_updates.append(int(row['ComicID']))
         else:
-            tm = datetime.datetime.strptime(row['LastUpdated'], '%Y-%m-%d %H:%M:%S')
-            library[int(row['ComicID'])] = {'comicid':        row['ComicID'],
-                                            'status':         row['Status'],
-                                            'lastupdated':    calendar.timegm(tm.utctimetuple()),
-                                            'total':          row['Total']}
+            try:
+                tm = datetime.datetime.strptime(row['LastUpdated'], '%Y-%m-%d %H:%M:%S')
+            except Exception:
+                # if the lastupdated date is NULL, but the other values filled in partially - this will make sure to get the ID so it can be refeshed properly
+                prev_failed_updates.append(int(row['ComicID']))
+            else:
+                library[int(row['ComicID'])] = {'comicid':        row['ComicID'],
+                                                'status':         row['Status'],
+                                                'lastupdated':    calendar.timegm(tm.utctimetuple()),
+                                                'total':          row['Total']}
         try:
             if row['ReleaseComicID'] is not None and all(['ComicID' not in row['ComicName'], row['Status'] != 'Loading', row['ComicName'] is not None]):
                 library[row['ReleaseComicID']] = {'comicid':     row['ComicID'],

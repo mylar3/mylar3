@@ -2956,46 +2956,14 @@ class WebInterface(object):
 
     def manageIssues(self, **kwargs):
         status = kwargs['status']
-        results = []
-        resultlist = []
         myDB = db.DBConnection()
         if mylar.CONFIG.ANNUALS_ON:
             issues = myDB.select("SELECT * from issues WHERE Status=? AND ComicName NOT LIKE '%Annual%'", [status])
-            annuals = myDB.select("SELECT * from annuals WHERE Status=? AND NOT Deleted", [status])
+            issues += myDB.select("SELECT * from annuals WHERE Status=? AND NOT Deleted", [status])
         else:
             issues = myDB.select("SELECT * from issues WHERE Status=?", [status])
-            annuals = []
-        for iss in issues:
-            results.append(iss)
-            if status == 'Snatched':
-                resultlist.append(str(iss['IssueID']))
-        for ann in annuals:
-            results.append(ann)
-            if status == 'Snatched':
-                resultlist.append(str(ann['IssueID']))
-        endresults = []
-        if status == 'Snatched':
-            for genlist in helpers.chunker(resultlist, 200):
-                tmpsql = "SELECT * FROM snatched where Status='Snatched' and status != 'Post-Processed' and (provider='32P' or Provider='WWT' or Provider='DEM') AND IssueID in ({seq})".format(seq=','.join(['?'] *(len(genlist))))
-                chkthis = myDB.select(tmpsql, genlist)
-                if chkthis is None:
-                    continue
-                else:
-                    for r in results:
-                        rr = dict(r)
-                        snatchit = [x['hash'] for x in chkthis if r['ISSUEID'] == x['IssueID']]
-                        try:
-                            if snatchit:
-                                logger.fdebug('[%s] Discovered previously snatched torrent not downloaded. Marking for manual auto-snatch retrieval: %s' % (r['ComicName'], ''.join(snatchit)))
-                                rr['hash'] = ''.join(snatchit)
-                            else:
-                                rr['hash'] = None
-                        except:
-                            rr['hash'] = None
-                        endresults.append(rr)
-                    results = endresults
 
-        return serve_template(templatename="manageissues.html", title="Manage " + str(status) + " Issues", issues=results, status=status)
+        return serve_template(templatename="manageissues.html", title="Manage " + str(status) + " Issues", issues=issues, status=status)
     manageIssues.exposed = True
 
     def manageFailed(self):
