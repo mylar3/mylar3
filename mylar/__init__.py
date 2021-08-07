@@ -274,7 +274,8 @@ def initialize(config_file):
             update_imprints = True
             if os.path.exists(pub_path):
                 filetime = max(os.path.getctime(pub_path), os.path.getmtime(pub_path))
-                if ((time.time() > filetime) / 3600 > 24):
+                pub_diff = ((time.time() - filetime) / 3600)
+                if pub_diff > 24:
                     logger.info('[IMPRINT_LOADS] Publisher imprint listing found, but possibly stale ( > 24hrs). Retrieving up-to-date listing')
                 else:
                     update_imprints = False

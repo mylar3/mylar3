@@ -47,7 +47,7 @@ class FileHandlers(object):
             self.issue = None
             self.issueid = None
 
-    def folder_create(self, booktype=None, update_loc=None, secondary=None):
+    def folder_create(self, booktype=None, update_loc=None, secondary=None, imprint=None):
         # dictionary needs to passed called comic with
         #  {'ComicPublisher', 'CorrectedType, 'Type', 'ComicYear', 'ComicName', 'ComicVersion'}
         # or pass in comicid value from __init__
@@ -116,6 +116,13 @@ class FileHandlers(object):
             chunk_f = re.compile(r'\s+')
             chunk_folder_format = chunk_f.sub(' ', chunk_f_f)
 
+        if any([imprint is None, imprint == 'None']):
+            imprint = self.comic['PublisherImprint']
+        if any([imprint is None, imprint == 'None']):
+            chunk_f_f = re.sub('\$Imprint', '', chunk_folder_format)
+            chunk_f = re.compile(r'\s+')
+            chunk_folder_format = chunk_f.sub(' ', chunk_f_f)
+
         chunk_folder_format = re.sub("[()|[]]", '', chunk_folder_format).strip()
         ccf = chunk_folder_format.find('/ ')
         if ccf != -1:
@@ -127,6 +134,7 @@ class FileHandlers(object):
         #do work to generate folder path
         values = {'$Series':        series,
                   '$Publisher':     publisher,
+                  '$Imprint':       imprint,
                   '$Year':          self.comic['ComicYear'],
                   '$series':        series.lower(),
                   '$publisher':     publisher.lower(),
@@ -173,6 +181,9 @@ class FileHandlers(object):
                                 break
                         if self.comic['ComicPublisher'] is not None:
                             if self.comic['ComicPublisher'] in dp:
+                                break
+                        if self.comic['PublisherImprint'] is not None:
+                            if self.comic['PublisherImprint'] in dp:
                                 break
                         if self.comic['ComicVersion'] is not None:
                             if self.comic['ComicVersion'] in dp:

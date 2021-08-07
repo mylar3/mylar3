@@ -38,7 +38,7 @@
                 <tr>
                 <td style="float:left;margin-right:10px;"><span style="border:1px solid#ccc;float:left;width:30px;height:12px;margin:4px;;background:#61924f;"></span> Print</td></tr>
                 <tr>
-                <td style="float:left;margin-right:10px;"><span class="gradeZ" style="border:1px solid#ccc;float:left;width:30px;height:12px;margin:4px;"></span> Digital/TPB/GN</td></tr>
+                <td style="float:left;margin-right:10px;"><span class="gradeZ" style="border:1px solid#ccc;float:left;width:30px;height:12px;margin:4px;"></span> Digital/TPB/GN/HC</td></tr>
             </table>
         </div>
 
@@ -72,6 +72,9 @@
                                                 grade = 'Z'
                                             elif result['type'] == 'TPB':
                                                 rtype = '[TPB]'
+                                                grade = 'Z'
+                                            elif result['type'] == 'GN':
+                                                rtype = '[GN]'
                                                 grade = 'Z'
                                             elif result['type'] == 'HC':
                                                 rtype = '[HC]'

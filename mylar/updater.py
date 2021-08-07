@@ -998,11 +998,16 @@ def forceRescan(ComicID, archive=None, module=None, recheck=False):
     else:
         altnames = ''
 
-    if (all([rescan['Type'] != 'Print', rescan['Type'] != 'Digital', rescan['Type'] != 'None', rescan['Type'] is not None]) and rescan['Corrected_Type'] != 'Print') or rescan['Corrected_Type'] == 'TPB':
+    if (all([rescan['Type'] != 'Print', rescan['Type'] != 'Digital', rescan['Type'] != 'None', rescan['Type'] is not None]) and rescan['Corrected_Type'] != 'Print') or any([rescan['Corrected_Type'] == 'TPB', rescan['Corrected_Type'] == 'HC', rescan['Corrected_Type'] == 'GN']):
         if rescan['Type'] == 'One-Shot' and rescan['Corrected_Type'] is None:
             booktype = 'One-Shot'
         else:
-            booktype = 'TPB'
+            if rescan['Type'] == 'GN' and rescan['Corrected_Type'] is None:
+                booktype = 'GN'
+            elif rescan['Type'] == 'HC' and rescan['Corrected_Type'] is None:
+                booktype = 'HC'
+            else:
+                booktype = 'TPB'
     else:
         booktype = None
 
@@ -1066,7 +1071,7 @@ def forceRescan(ComicID, archive=None, module=None, recheck=False):
                 break
 
             try:
-                if all([booktype == 'TPB', iscnt > 1]) or all([booktype == 'One-Shot', iscnt == 1, cla['JusttheDigits'] is None]):
+                if all([booktype == 'TPB', iscnt > 1]) or all([booktype == 'GN', iscnt > 1]) or all([booktype =='HC', iscnt > 1]) or all([booktype == 'One-Shot', iscnt == 1, cla['JusttheDigits'] is None]):
                     if cla['SeriesVolume'] is not None:
                         just_the_digits = re.sub('[^0-9]', '', cla['SeriesVolume']).strip()
                     else:
@@ -1177,7 +1182,7 @@ def forceRescan(ComicID, archive=None, module=None, recheck=False):
             logger.fdebug('temploc: %s' % temploc)
         else:
             #assume 1 if not given
-            if any([booktype == 'TPB', booktype == 'One-Shot']):
+            if any([booktype == 'TPB', booktype == 'GN', booktype == 'HC', booktype == 'One-Shot']):
                 temploc = '1'
             else:
                 temploc = None
@@ -1212,7 +1217,7 @@ def forceRescan(ComicID, archive=None, module=None, recheck=False):
 
                 if temploc is not None:
                     fcdigit = helpers.issuedigits(temploc)
-                elif any([booktype == 'TPB', booktype == 'One-Shot']) and temploc is None:
+                elif any([booktype == 'TPB', booktype == 'GN', booktype == 'HC', booktype == 'One-Shot']) and temploc is None:
                     fcdigit = helpers.issuedigits('1')
 
                 if int(fcdigit) == int_iss:

@@ -377,6 +377,10 @@ class WebInterface(object):
         else:
             if comic['Corrected_Type'] == 'TPB':
                 force_type = 'TPB'
+            elif comic['Corrected_Type'] == 'GN':
+                force_type = 'GN'
+            elif comic['Corrected_Type'] == 'HC':
+                force_type = 'HC'
             elif comic['Corrected_Type'] == 'Digital':
                 force_type = 'Digital'
             elif comic['Corrected_Type'] == 'One-Shot':
@@ -1713,7 +1717,7 @@ class WebInterface(object):
             else:
                 storedate = issues['ReleaseDate']
 
-        if BookType == 'TPB':
+        if any([BookType == 'TPB', BookType == 'HC', BookType == 'GN']):
             logger.info('%s[%s] Now Queueing %s (%s) for search' % (moduletype, BookType, ComicName, SeriesYear))
         elif ComicIssue is None:
             logger.info('%s Now Queueing %s (%s) for search' % (moduletype, ComicName, SeriesYear))
@@ -5555,9 +5559,9 @@ class WebInterface(object):
         raise cherrypy.HTTPRedirect("comicDetails?ComicID=%s" % comicid)
     manual_annual_add.exposed = True
 
-    def comic_config(self, com_location, ComicID, alt_search=None, fuzzy_year=None, comic_version=None, force_continuing=None, force_type=None, alt_filename=None, allow_packs=None, corrected_seriesyear=None, torrentid_32p=None, ignore_type=None, age_rating=None):
+    def comic_config(self, com_location, ComicID, alt_search=None, fuzzy_year=None, comic_version=None, force_continuing=None, force_type=None, alt_filename=None, allow_packs=None, corrected_seriesyear=None, torrentid_32p=None, ignore_type=None, age_rating=None, publisher_imprint=None):
         myDB = db.DBConnection()
-        chk1 = myDB.selectone('SELECT ComicLocation, Type, Corrected_Type FROM comics WHERE ComicID=?', [ComicID]).fetchone()
+        chk1 = myDB.selectone('SELECT ComicLocation, Type, Corrected_Type, PublisherImprint FROM comics WHERE ComicID=?', [ComicID]).fetchone()
         if chk1[0] is None:
             orig_location = com_location
         else:
@@ -5572,6 +5576,11 @@ class WebInterface(object):
             orig_corr_type = None
         else:
             orig_corr_type = chk1[2]
+
+        if chk1[3] is None:
+            orig_imprint = None
+        else:
+            orig_imprint = chk1[3]
 
 #--- this is for multiple search terms............
 #--- works, just need to redo search.py to accomodate multiple search terms
@@ -5630,6 +5639,10 @@ class WebInterface(object):
 
         if force_type == 'TPB':
             newValues['Corrected_Type'] = 'TPB'
+        elif force_type == 'GN':
+            newValues['Corrected_Type'] = 'GN'
+        elif force_type == 'HC':
+            newValues['Corrected_Type'] = 'HC'
         elif force_type == 'Digital':
             newValues['Corrected_Type'] = 'Digital'
         elif force_type == 'One-Shot':
@@ -5651,19 +5664,30 @@ class WebInterface(object):
             logger.info('AgeRating: %s' % age_rating)
             newValues['AgeRating'] = age_rating
 
+        if all([publisher_imprint.strip() is not None, publisher_imprint != 'None', publisher_imprint != '']):
+            newValues['PublisherImprint'] = publisher_imprint
+        else:
+            newValues['PublisherImprint'] = 'None'
+
         #logger.fdebug('orig_type:%s -- force_type: %s' % (orig_type, force_type))
         #logger.fdebug('orig_corr_type: %s-- corrected_type: %s' % (orig_corr_type, newValues['Corrected_Type']))
         #logger.fdebug('config_folder_format:%s' % (mylar.CONFIG.FOLDER_FORMAT))
         #logger.fdebug('config_format_booktype:%s' % (mylar.CONFIG.FORMAT_BOOKTYPE))
         #logger.fdebug('com_location:%s -- orig_location: %s' % (com_location, orig_location))
-        if orig_corr_type != newValues['Corrected_Type']:
+        if any([orig_corr_type != newValues['Corrected_Type'], orig_imprint != newValues['PublisherImprint'] ]):
+            mod_booktype = orig_corr_type
+            mod_imprint = orig_imprint
             if all(['$Type' in mylar.CONFIG.FOLDER_FORMAT, com_location == orig_location, mylar.CONFIG.FORMAT_BOOKTYPE is True]):
-                #rename folder if the $Type is in folder format to accomodate new forced format.
-                from . import filers
-                x = filers.FileHandlers(ComicID=ComicID)
-                newcom_location = x.folder_create(booktype=newValues['Corrected_Type'])
-                if newcom_location['comlocation'] is not None:
-                    com_location = newcom_location['comlocation']
+                mod_booktype = newValues['Corrected_Type']
+            if all(['$Imprint' in mylar.CONFIG.FOLDER_FORMAT, com_location == orig_location]):
+                mod_imprint = newValues['PublisherImprint']
+
+            #rename folder if the $Type is in folder format to accomodate new forced format.
+            from . import filers
+            x = filers.FileHandlers(ComicID=ComicID)
+            newcom_location = x.folder_create(booktype=mod_booktype, imprint=mod_imprint)
+            if newcom_location['comlocation'] is not None:
+                com_location = newcom_location['comlocation']
 
 
         if allow_packs is None:
@@ -5685,8 +5709,17 @@ class WebInterface(object):
                 logger.info("Validating Directory (" + str(com_location) + "). Already exists! Continuing...")
             else:
                 if orig_location != com_location and os.path.isdir(orig_location) is True:
-                    logger.fdebug('Renaming existing location [%s] to new location: %s' % (orig_location, com_location))
+                    logger.fdebug('Attempting to rename existing location [%s]' % (orig_location))
                     try:
+                        # make sure 2 levels up in strucure exist
+                        if not os.path.exists(os.path.split ( os.path.split(com_location)[0] ) [0] ):
+                            logger.fdebug('making directory: %s' % os.path.split(os.path.split(com_location)[0])[0])
+                            os.mkdir(os.path.split(os.path.split(com_location)[0])[0])
+                        # make sure parent directory exists
+                        if not os.path.exists(os.path.split(com_location)[0]):
+                            logger.fdebug('making directory: %s' % os.path.split(com_location)[0])
+                            os.mkdir(os.path.split(com_location)[0])
+                        logger.info('Renaming directory: %s --> %s' % (orig_location,com_location))
                         os.rename(orig_location, com_location)
                     except Exception as e:
                         if 'No such file or directory' in e:

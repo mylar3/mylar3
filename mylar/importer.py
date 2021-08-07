@@ -241,8 +241,9 @@ def addComictoDB(comicid, mismatch=None, pullupd=None, imported=None, ogcname=No
 
     if comlocation is None:
 
-        comic_values = {'ComicName':        comic['ComicName'], 
+        comic_values = {'ComicName':        comic['ComicName'],
                         'ComicPublisher':   comic['ComicPublisher'],
+                        'PublisherImprint': comic['PublisherImprint'],
                         'ComicYear':        SeriesYear,
                         'ComicVersion':     comicVol,
                         'Type':             comic['Type'],
@@ -363,7 +364,7 @@ def addComictoDB(comicid, mismatch=None, pullupd=None, imported=None, ogcname=No
     logger.fdebug('comicIssues: %s' % comicIssues)
     logger.fdebug('seriesyear: %s / currentyear: %s' % (SeriesYear, helpers.today()[:4]))
     logger.fdebug('comicType: %s' % comic['Type'])
-    if all([int(comicIssues) == 1, SeriesYear < helpers.today()[:4], comic['Type'] != 'One-Shot', comic['Type'] != 'TPB']):
+    if all([int(comicIssues) == 1, SeriesYear < helpers.today()[:4], comic['Type'] != 'One-Shot', comic['Type'] != 'TPB', comic['Type'] != 'HC', comic['Type'] != 'GN']):
         logger.info('Determined to be a one-shot issue. Forcing Edition to One-Shot')
         booktype = 'One-Shot'
     else:
@@ -1604,7 +1605,7 @@ def annual_check(ComicName, SeriesYear, comicid, issuetype, issuechk, annualslis
         if not sresults:
             return
 
-        annual_types_ignore = {'paperback', 'collecting', 'reprinting', 'reprints', 'collected edition', 'print edition', 'tpb', 'available in print', 'collects'}
+        annual_types_ignore = {'paperback', 'collecting', 'reprinting', 'reprints', 'collected edition', 'print edition', 'hardcover', 'hc', 'tpb', 'gn', 'graphic novel', 'available in print', 'collects'}
 
         if len(sresults) > 0:
             logger.fdebug('[IMPORTER-ANNUAL] - there are ' + str(len(sresults)) + ' results.')

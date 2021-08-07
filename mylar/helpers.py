@@ -199,7 +199,8 @@ def human2bytes(s):
 
 def replace_all(text, dic):
     for i, j in dic.items():
-        text = text.replace(i, j)
+        if all([j != 'None', j is not None]):
+            text = text.replace(i, j)
     return text.rstrip()
 
 def cleanName(string):
@@ -835,16 +836,26 @@ def updateComicLocation():
                     comversion = 'None'
                 #if comversion is None, remove it so it doesn't populate with 'None'
                 if comversion == 'None':
-                    chunk_f_f = re.sub('\$VolumeN', '', mylar.CONFIG.FOLDER_FORMAT)
+                    chunk_f_f = re.sub('\$VolumeN', '', chunk_folder_format)
+                    chunk_f = re.compile(r'\s+')
+                    chunk_folder = chunk_f.sub(' ', chunk_f_f)
+                else:
+                    chunk_folder = chunk_folder_format
+
+                imprint = dl['PublisherImprint']
+                if any([imprint is None, imprint == 'None']):
+                    chunk_f_f = re.sub('\$Imprint', '', chunk_folder)
                     chunk_f = re.compile(r'\s+')
                     folderformat = chunk_f.sub(' ', chunk_f_f)
                 else:
-                    folderformat = mylar.CONFIG.FOLDER_FORMAT
+                    folderformat = chunk_folder
+
 
                 #do work to generate folder path
 
                 values = {'$Series':        comicname_folder,
                           '$Publisher':     publisher,
+                          '$Imprint':       imprint,
                           '$Year':          year,
                           '$series':        comicname_folder.lower(),
                           '$publisher':     publisher.lower(),
@@ -1467,7 +1478,7 @@ def havetotals(refreshit=None):
 
             comictype = comic['Type']
             try:
-                if (any([comictype == 'None', comictype is None, comictype == 'Print']) and comic['Corrected_Type'] != 'TPB') or all([comic['Corrected_Type'] is not None, comic['Corrected_Type'] == 'Print']):
+                if (any([comictype == 'None', comictype is None, comictype == 'Print']) and all([comic['Corrected_Type'] != 'TPB', comic['Corrected_Type'] != 'GN', comic['Corrected_Type'] != 'HC'])) or all([comic['Corrected_Type'] is not None, comic['Corrected_Type'] == 'Print']):
                     comictype = None
                 else:
                     if comic['Corrected_Type'] is not None:
