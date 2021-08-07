@@ -348,7 +348,7 @@ def search_init(
                 cmloopit = 1
 
         chktpb = 0
-        if booktype == 'TPB':
+        if any([booktype == 'TPB', booktype =='HC', booktype == 'GN']):
             chktpb = 1
 
         if findit['status'] is True:
@@ -623,7 +623,14 @@ def search_init(
                     if tmp_IssueNumber is not None:
                         issuedisplay = tmp_IssueNumber
                     else:
-                        if any([booktype == 'One-Shot', booktype == 'TPB']):
+                        if any(
+                               [
+                                   booktype == 'One-Shot',
+                                   booktype == 'TPB',
+                                   booktype == 'HC',
+                                   booktype == 'GC'
+                               ]
+                        ):
                             issuedisplay = None
                         else:
                             issuedisplay = StoreDate[5:]
@@ -912,7 +919,7 @@ def NZB_SEARCH(
             mod_isssearch = str(issdig) + str(isssearch)
         else:
             if cmloopit == 4:
-                if booktype == 'TPB':
+                if any([booktype == 'TPB', booktype == 'HC', booktype == 'GN']):
                     comsearch = comsrc + "%20v" + str(isssearch)
                 mod_isssearch = ''
             else:
@@ -1785,7 +1792,7 @@ def NZB_SEARCH(
                     or all(
                         [booktype != parsed_comic['booktype'], ignore_booktype is True]
                     )
-                    or booktype == parsed_comic['booktype']
+                    or booktype in parsed_comic['booktype']
                 ):
                     try:
                         fcomic = filechecker.FileChecker(watchcomic=ComicName)
@@ -2063,32 +2070,50 @@ def NZB_SEARCH(
                         logger.fdebug(
                             "We matched on versions for annuals %s" % fndcomicversion
                         )
-                    elif booktype != 'TPB' and (
-                        int(F_ComicVersion) == int(D_ComicVersion)
-                        or int(F_ComicVersion) == int(S_ComicVersion)
+                    elif all(
+                             [
+                                 booktype != 'TPB',
+                                 booktype != 'HC',
+                                 booktype != 'GN',
+                            ]
+                        ) and (
+                            int(F_ComicVersion) == int(D_ComicVersion)
+                            or int(F_ComicVersion) == int(S_ComicVersion)
                     ):
                         logger.fdebug("We matched on versions...%s" % fndcomicversion)
                     else:
-                        if booktype == 'TPB' and (
-                            int(F_ComicVersion) == int(findcomiciss)
-                            and filecomic['justthedigits'] is None
+                        if any(
+                               [
+                                   booktype == 'TPB',
+                                   booktype == 'HC',
+                                   booktype == 'GN',
+                               ]
+                            ) and (
+                                int(F_ComicVersion) == int(findcomiciss)
+                                and filecomic['justthedigits'] is None
                         ):
                             logger.fdebug(
-                                'TPB detected - reassigning volume %s to match as the'
+                                '%s detected - reassigning volume %s to match as the'
                                 ' issue number based on Volume'
-                                % fndcomicversion
+                                % (booktype, fndcomicversion)
                             )
-                        elif booktype == 'TPB' and all(
+                        elif all(
+                                 [
+                                     booktype == 'TPB',
+                                     booktype == 'HC',
+                                     booktype == 'GN',
+                                 ]
+                            ) and all(
                             [
                                 int(F_ComicVersion) == int(findcomiciss),
                                 fndcomicversion is not None,
-                                filecomic['booktype'] == 'TPB',
+                                booktype in filecomic['booktype'],
                                 filecomic['justthedigits'] is None,
                             ]
                         ):
                             logger.fdebug(
-                                'TPB detected - reassigning volume %s to match as the issue number'
-                                % fndcomicversion
+                                '%s detected - reassigning volume %s to match as the issue number'
+                                % (booktype, fndcomicversion)
                             )
                         else:
                             logger.fdebug("Versions wrong. Ignoring possible match.")
@@ -2279,22 +2304,34 @@ def NZB_SEARCH(
                         if (
                             all([intIss is not None, comintIss is not None])
                             and int(intIss) == int(comintIss)
-                            or all(
+                            or (any(
                                 [
-                                    chktpb != 0,
                                     filecomic['booktype'] == 'TPB',
-                                    pc_in is None,
-                                    helpers.issuedigits(F_ComicVersion) == intIss,
+                                    filecomic['booktype'] == 'GN',
+                                    filecomic['booktype'] == 'HC',
+                                    filecomic['booktype'] == 'TPB/GN/HC',
                                 ]
-                            )
-                            or all(
+                                ) and all(
+                                    [
+                                        chktpb != 0,
+                                        pc_in is None,
+                                        helpers.issuedigits(F_ComicVersion) == intIss,
+                                    ]
+                            ))
+                            or (any(
                                 [
-                                    chktpb == 2,
                                     filecomic['booktype'] == 'TPB',
-                                    pc_in is None,
-                                    cmloopit == 1,
+                                    filecomic['booktype'] == 'GN',
+                                    filecomic['booktype'] == 'HC',
+                                    filecomic['booktype'] == 'TPB/GN/HC',
                                 ]
-                            )
+                                )  and all(
+                                    [
+                                        chktpb == 2,
+                                        pc_in is None,
+                                        cmloopit == 1,
+                                    ]
+                            ))
                             or all([cmloopit == 4, findcomiciss is None, pc_in is None])
                             or all([cmloopit == 4, findcomiciss is None, pc_in == 1])
                         ):
@@ -2504,7 +2541,13 @@ def NZB_SEARCH(
         logger.fdebug(
             'booktype:%s / chktpb: %s / findloop: %s' % (booktype, chktpb, findloop)
         )
-        if booktype == 'TPB' and chktpb == 1 and findloop + 1 > findcount:
+        if any(
+               [
+                   booktype == 'TPB',
+                   booktype == 'GN',
+                   booktype == 'HC',
+                ]
+            ) and chktpb == 1 and findloop + 1 > findcount:
             pass  # findloop=-1
         else:
             findloop += 1

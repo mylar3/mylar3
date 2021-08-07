@@ -385,6 +385,8 @@ def findComic(name, mode, issue, limityear=None, search_type=None):
                                         xmltype = 'Digital'
                                     elif 'paperback' in xmldeck.lower():
                                         xmltype = 'TPB'
+                                    elif 'graphic novel' in xmldeck.lower():
+                                        xmltype = 'GN'
                                     elif 'hardcover' in xmldeck.lower():
                                         xmltype = 'HC'
                                     elif 'oneshot' in re.sub('-', '', xmldeck.lower()).strip():
@@ -397,8 +399,10 @@ def findComic(name, mode, issue, limityear=None, search_type=None):
                                     xmltype = 'Print'
                                 elif 'digital' in xmldesc[:60].lower() and 'digital edition can be found' not in xmldesc.lower():
                                     xmltype = 'Digital'
-                                elif all(['paperback' in xmldesc[:60].lower(), 'paperback can be found' not in xmldesc.lower()]) or 'collects' in xmldesc[:60].lower():
+                                elif all(['paperback' in xmldesc[:60].lower(), 'paperback can be found' not in xmldesc.lower()]) or all(['hardcover' not in xmldesc[:60].lower(), 'collects' in xmldesc[:60].lower()]):
                                     xmltype = 'TPB'
+                                elif all(['graphic novel' in xmldesc[:60].lower(), 'graphic novel can be found' not in xmldesc.lower()]):
+                                    xmltype = 'GN'
                                 elif 'hardcover' in xmldesc[:60].lower() and 'hardcover can be found' not in xmldesc.lower():
                                     xmltype = 'HC'
                                 elif any(['one-shot' in xmldesc[:60].lower(), 'one shot' in xmldesc[:60].lower()]) and any(['can be found' not in xmldesc.lower(), 'following the' not in xmldesc.lower()]):

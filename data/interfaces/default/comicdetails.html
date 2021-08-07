@@ -123,7 +123,7 @@
                                 </div>
                                 <div>
                                    <label><big>Publisher: </big><norm>${comic['ComicPublisher']}</norm></label>
-                                   %if comic['PublisherImprint']:
+                                   %if all([comic['PublisherImprint'] is not None, comic['PublisherImprint'] != 'None']):
                                        </br><label><big>Imprint: </big><norm>${comic['PublisherImprint']}</norm></label>
                                    %endif
 	            		</div>
@@ -138,9 +138,18 @@
                                               comictype = comic['Corrected_Type']
                                           else:
                                               comictype = comic['Type']
+
+                                      if comictype == 'HC':
+                                          display_type = 'Hardcover'
+                                      elif comictype == 'GN':
+                                          display_type = 'Graphic Novel'
+                                      elif comictype == 'TPB':
+                                          display_type = 'Trade PaperBack'
+                                      else:
+                                          display_type = comictype
                                 %>
                                 <div>
-                                    <label><big>Edition: </big><norm>${comictype}</norm>
+                                    <label><big>Edition: </big><norm>${display_type}</norm>
                                     <% 
                                         if comicConfig['issue_list'] is not None:
                                             cnt = 0
@@ -329,7 +338,7 @@
                                                 <label>Force-Type (original:${comic['Type']})</label>
                                                 <select name="force_type">
                                                 <%
-                                                    ftt_list = ['Select', 'TPB', 'Digital', 'One-Shot', 'Print']
+                                                    ftt_list = ['Select', 'TPB', 'HC', 'GN', 'Digital', 'One-Shot', 'Print']
                                                 %>
                                                 %for ftt in ftt_list:
                                                         <%
@@ -356,7 +365,7 @@
                                                 <a href="#" title="Will forcibly mark this series as selected in those instances where it assumes it's a ${comic['Type']}-based series"><img src="images/info32.png" height="16" alt="" /></a>
                                 </div>
                                 <div class="row checkbox right clearfix">
-                                   %if comic['Type'] != 'TPB':
+                                   %if all([comic['Type'] != 'TPB', comic['Type'] != 'HC', comic['Type'] != 'GN']):
                                        <label>Accept all booktype search matches</label>
                                        <input type="checkbox" style="vertical-align: bottom; margin: 3px; margin-top: -3px;" name="ignore_type" value="1" ${comicConfig['ignore_type']} />
                                        <a href="#" title="Will not restrict search matches to just being a matching Edition type (ie. One-Shots/Digitals will match against normal Issues."><img src="images/info32.png" height="16" alt="" /></a>
@@ -392,6 +401,11 @@
                                        <input type="text" name="alt_filename" value="${comic['AlternateFileName']}" size="90">
                                        <a href="#" title="Alternate File Naming"><img src="images/info32.png" height="16" alt="" /></a>
                                        <small>Alternate file-naming to be used when post-processing / renaming files instead of the actual title.</small>
+                                   </div>
+
+                                   <div class="row">
+                                       <label>Publication Imprint</label>
+                                       <input type="text" name="publisher_imprint" value="${comic['PublisherImprint']}" size="90">
                                    </div>
 
                                    <div class="row">
