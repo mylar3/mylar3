@@ -7,6 +7,7 @@
         <div id="subhead_container">
                 <div id="subhead_menu">
                       <a id="menu_link_refresh" href="#" title="Restart stalled queue" onclick="doAjaxCall('ddl_requeue?mode=restart_queue',$(this),'table')" data-success="Restarted Queue">Restart Queue</a>
+                      <a id="menu_link_refresh" href="#" title="Clear the queue of all Qeueued entries" onclick="ajaxcallit('clear_queue')" data-success="Qeueue successfully cleared">Clear Queue</a>
                 </div>
         </div>
 </%def>
@@ -155,7 +156,10 @@
                        $('#ajaxMsg').html("<div class='msg'><span class='ui-icon ui-icon-check'></span>"+objd['message']+"</div>");
                    } else if (qmode == 'restart-queue') {
                        $('#ajaxMsg').html("<div class='msg'><span class='ui-icon ui-icon-check'></span>"+objd['message']+"</div>");
+                   } else if (qmode == 'clear_queue') {
+                       $('#ajaxMsg').html("<div class='msg'><span class='ui-icon ui-icon-check'></span>"+objd['message']+"</div>");
                    }
+
             });
             $('#ajaxMsg').addClass('success').fadeIn().delay(3000).fadeOut();
             $('#queue_table').DataTable().ajax.reload(null, false);

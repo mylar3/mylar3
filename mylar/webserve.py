@@ -2486,6 +2486,18 @@ class WebInterface(object):
 
     def ddl_requeue(self, mode, id=None):
         myDB = db.DBConnection()
+        if mode == 'clear_queue':
+            chk = myDB.selectone("SELECT count(*) AS count FROM ddl_info WHERE status = 'Queued'").fetchone()
+            countchk = 0
+            if chk:
+                countchk = chk['count']
+
+            if countchk == 0:
+                return json.dumps({'status': True, 'message': 'Queue already cleared - there was nothing to clear from the Queue'})
+
+            myDB.action("DELETE FROM ddl_info WHERE status = 'Queued'")
+            return json.dumps({'status': True, 'message': 'Successfully cleared %s items from the Queue' % countchk})
+
         if id is None:
             items = myDB.select("SELECT * FROM ddl_info WHERE status = 'Queued' ORDER BY updated_date DESC")
         else:
