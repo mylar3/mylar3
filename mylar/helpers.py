@@ -1493,12 +1493,18 @@ def havetotals(refreshit=None):
             else:
                 cversion = comic['ComicVersion']
 
+            if comic['ComicImage'] is None:
+                comicImage = 'cache/%s.jpg' % comic['ComicID']
+            else:
+                comicImage = comic['ComicImage']
+
+
             comics.append({"ComicID":         comic['ComicID'],
                            "ComicName":       comic['ComicName'],
                            "ComicSortName":   comic['ComicSortName'],
                            "ComicPublisher":  comic['ComicPublisher'],
                            "ComicYear":       comic['ComicYear'],
-                           "ComicImage":      comic['ComicImage'],
+                           "ComicImage":      comicImage,
                            "LatestIssue":     comic['LatestIssue'],
                            "LatestDate":      comic['LatestDate'],
                            "ComicVolume":     cversion,
