@@ -504,7 +504,7 @@ def GetComicInfo(comicid, dom, safechk=None, series=False):
     if comic_desc != 'None' and comic['Type'] == 'None':
         if 'print' in comic_desc[:60].lower() and all(['for the printed edition' not in comic_desc.lower(), 'print edition can be found' not in comic_desc.lower(), 'reprints' not in comic_desc.lower()]):
             comic['Type'] = 'Print'
-        elif 'digital' in comic_desc[:60].lower() and 'digital edition can be found' not in comic_desc.lower():
+        elif all(['digital' in comic_desc[:60].lower(), 'graphic novel' not in comic_desc[:60].lower(), 'digital edition can be found' not in comic_desc.lower()]):
             comic['Type'] = 'Digital'
         elif all(['paperback' in comic_desc[:60].lower(), 'paperback can be found' not in comic_desc.lower()]) or all(['hardcover' not in comic_desc[:60].lower(), 'collects' in comic_desc[:60].lower()]):
             comic['Type'] = 'TPB'
@@ -989,7 +989,7 @@ def GetSeriesYears(dom):
         if comic_desc != 'None' and tempseries['Type'] == 'None':
             if 'print' in comic_desc[:60].lower() and all(['for the printed edition' not in comic_desc.lower(), 'print edition can be found' not in comic_desc.lower(), 'reprints' not in comic_desc.lower()]):
                 tempseries['Type'] = 'Print'
-            elif 'digital' in comic_desc[:60].lower() and 'digital edition can be found' not in comic_desc.lower():
+            elif all(['digital' in comic_desc[:60].lower(), 'graphic novel' not in comic_desc[:60].lower(), 'digital edition can be found' not in comic_desc.lower()]):
                 tempseries['Type'] = 'Digital'
             elif all(['paperback' in comic_desc[:60].lower(), 'paperback can be found' not in comic_desc.lower()]) or all(['hardcover' not in comic_desc[:60].lower(), 'collects' in comic_desc[:60].lower()]):
                 tempseries['Type'] = 'TPB'
