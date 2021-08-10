@@ -5676,7 +5676,7 @@ class WebInterface(object):
             logger.info('AgeRating: %s' % age_rating)
             newValues['AgeRating'] = age_rating
 
-        if all([publisher_imprint.strip() is not None, publisher_imprint != 'None', publisher_imprint != '']):
+        if all([publisher_imprint is not None, publisher_imprint != 'None', publisher_imprint != '']):
             newValues['PublisherImprint'] = publisher_imprint
         else:
             newValues['PublisherImprint'] = 'None'
