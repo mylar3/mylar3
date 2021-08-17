@@ -377,6 +377,10 @@ class WebInterface(object):
         else:
             if comic['Corrected_Type'] == 'TPB':
                 force_type = 'TPB'
+            elif comic['Corrected_Type'] == 'GN':
+                force_type = 'GN'
+            elif comic['Corrected_Type'] == 'HC':
+                force_type = 'HC'
             elif comic['Corrected_Type'] == 'Digital':
                 force_type = 'Digital'
             elif comic['Corrected_Type'] == 'One-Shot':
@@ -1713,7 +1717,7 @@ class WebInterface(object):
             else:
                 storedate = issues['ReleaseDate']
 
-        if BookType == 'TPB':
+        if any([BookType == 'TPB', BookType == 'HC', BookType == 'GN']):
             logger.info('%s[%s] Now Queueing %s (%s) for search' % (moduletype, BookType, ComicName, SeriesYear))
         elif ComicIssue is None:
             logger.info('%s Now Queueing %s (%s) for search' % (moduletype, ComicName, SeriesYear))
@@ -2482,6 +2486,18 @@ class WebInterface(object):
 
     def ddl_requeue(self, mode, id=None):
         myDB = db.DBConnection()
+        if mode == 'clear_queue':
+            chk = myDB.selectone("SELECT count(*) AS count FROM ddl_info WHERE status = 'Queued'").fetchone()
+            countchk = 0
+            if chk:
+                countchk = chk['count']
+
+            if countchk == 0:
+                return json.dumps({'status': True, 'message': 'Queue already cleared - there was nothing to clear from the Queue'})
+
+            myDB.action("DELETE FROM ddl_info WHERE status = 'Queued'")
+            return json.dumps({'status': True, 'message': 'Successfully cleared %s items from the Queue' % countchk})
+
         if id is None:
             items = myDB.select("SELECT * FROM ddl_info WHERE status = 'Queued' ORDER BY updated_date DESC")
         else:
@@ -2784,11 +2800,12 @@ class WebInterface(object):
             if mylar.CONFIG.ANNUALS_ON:
                 issues += myDB.select("SELECT * FROM annuals WHERE ComicID=? AND NOT Deleted", [cid])
             try:
-                if mylar.CONFIG.MULTIPLE_DEST_DIRS is not None and mylar.CONFIG.MULTIPLE_DEST_DIRS != 'None' and os.path.join(mylar.CONFIG.MULTIPLE_DEST_DIRS, os.path.basename(comicdir)) != comicdir:
-                    logger.fdebug('multiple_dest_dirs:' + mylar.CONFIG.MULTIPLE_DEST_DIRS)
-                    logger.fdebug('dir: ' + comicdir)
-                    logger.fdebug('os.path.basename: ' + os.path.basename(comicdir))
-                    pathdir = os.path.join(mylar.CONFIG.MULTIPLE_DEST_DIRS, os.path.basename(comicdir))
+                if all([mylar.CONFIG.MULTIPLE_DEST_DIRS is not None, mylar.CONFIG.MULTIPLE_DEST_DIRS != 'None']):
+                    if os.path.exists(os.path.join(mylar.CONFIG.MULTIPLE_DEST_DIRS, os.path.basename(comicdir))):
+                        secondary_folders = os.path.join(mylar.CONFIG.MULTIPLE_DEST_DIRS, os.path.basename(comicdir))
+                    else:
+                        ff = mylar.filers.FileHandlers(ComicID=ComicID)
+                        secondary_folders = ff.secondary_folders(comicdir)
             except:
                 pass
 
@@ -2955,46 +2972,14 @@ class WebInterface(object):
 
     def manageIssues(self, **kwargs):
         status = kwargs['status']
-        results = []
-        resultlist = []
         myDB = db.DBConnection()
         if mylar.CONFIG.ANNUALS_ON:
             issues = myDB.select("SELECT * from issues WHERE Status=? AND ComicName NOT LIKE '%Annual%'", [status])
-            annuals = myDB.select("SELECT * from annuals WHERE Status=? AND NOT Deleted", [status])
+            issues += myDB.select("SELECT * from annuals WHERE Status=? AND NOT Deleted", [status])
         else:
             issues = myDB.select("SELECT * from issues WHERE Status=?", [status])
-            annuals = []
-        for iss in issues:
-            results.append(iss)
-            if status == 'Snatched':
-                resultlist.append(str(iss['IssueID']))
-        for ann in annuals:
-            results.append(ann)
-            if status == 'Snatched':
-                resultlist.append(str(ann['IssueID']))
-        endresults = []
-        if status == 'Snatched':
-            for genlist in helpers.chunker(resultlist, 200):
-                tmpsql = "SELECT * FROM snatched where Status='Snatched' and status != 'Post-Processed' and (provider='32P' or Provider='WWT' or Provider='DEM') AND IssueID in ({seq})".format(seq=','.join(['?'] *(len(genlist))))
-                chkthis = myDB.select(tmpsql, genlist)
-                if chkthis is None:
-                    continue
-                else:
-                    for r in results:
-                        rr = dict(r)
-                        snatchit = [x['hash'] for x in chkthis if r['ISSUEID'] == x['IssueID']]
-                        try:
-                            if snatchit:
-                                logger.fdebug('[%s] Discovered previously snatched torrent not downloaded. Marking for manual auto-snatch retrieval: %s' % (r['ComicName'], ''.join(snatchit)))
-                                rr['hash'] = ''.join(snatchit)
-                            else:
-                                rr['hash'] = None
-                        except:
-                            rr['hash'] = None
-                        endresults.append(rr)
-                    results = endresults
 
-        return serve_template(templatename="manageissues.html", title="Manage " + str(status) + " Issues", issues=results, status=status)
+        return serve_template(templatename="manageissues.html", title="Manage " + str(status) + " Issues", issues=issues, status=status)
     manageIssues.exposed = True
 
     def manageFailed(self):
@@ -4097,8 +4082,14 @@ class WebInterface(object):
                                 #check multiple destination directory usage here.
                                 if not os.path.isfile(issloc):
                                     try:
-                                        if all([mylar.CONFIG.MULTIPLE_DEST_DIRS is not None, mylar.CONFIG.MULTIPLE_DEST_DIRS != 'None', os.path.join(mylar.CONFIG.MULTIPLE_DEST_DIRS, os.path.basename(m_arc['match_filedirectory'])) != issloc, os.path.exists(os.path.join(mylar.CONFIG.MULTIPLE_DEST_DIRS, os.path.basename(m_arc['match_filedirectory'])))]):
-                                            issloc = os.path.join(mylar.CONFIG.MULTIPLE_DEST_DIRS, os.path.basename(m_arc['match_filedirectory']), issue['Location'])
+                                        if all([mylar.CONFIG.MULTIPLE_DEST_DIRS is not None, mylar.CONFIG.MULTIPLE_DEST_DIRS != 'None']):
+                                            if os.path.exists(os.path.join(mylar.CONFIG.MULTIPLE_DEST_DIRS, os.path.basename(m_arc['match_filedirectory']))):
+                                                secondary_folders = os.path.join(mylar.CONFIG.MULTIPLE_DEST_DIRS, os.path.basename(m_arc['match_filedirectory']))
+                                            else:
+                                                ff = mylar.filers.FileHandlers(ComicID=m_arc['match_id'])
+                                                secondary_folders = ff.secondary_folders(m_arc['match_filedirectory'])
+
+                                            issloc = os.path.join(secondary_folders, issue['Location'])
                                             if not os.path.isfile(issloc):
                                                 logger.warn('Source file cannot be located. Please do a Recheck for the specific series to ensure everything is correct.')
                                                 continue
@@ -5580,9 +5571,9 @@ class WebInterface(object):
         raise cherrypy.HTTPRedirect("comicDetails?ComicID=%s" % comicid)
     manual_annual_add.exposed = True
 
-    def comic_config(self, com_location, ComicID, alt_search=None, fuzzy_year=None, comic_version=None, force_continuing=None, force_type=None, alt_filename=None, allow_packs=None, corrected_seriesyear=None, torrentid_32p=None, ignore_type=None, age_rating=None):
+    def comic_config(self, com_location, ComicID, alt_search=None, fuzzy_year=None, comic_version=None, force_continuing=None, force_type=None, alt_filename=None, allow_packs=None, corrected_seriesyear=None, torrentid_32p=None, ignore_type=None, age_rating=None, publisher_imprint=None):
         myDB = db.DBConnection()
-        chk1 = myDB.selectone('SELECT ComicLocation, Type, Corrected_Type FROM comics WHERE ComicID=?', [ComicID]).fetchone()
+        chk1 = myDB.selectone('SELECT ComicLocation, Type, Corrected_Type, PublisherImprint FROM comics WHERE ComicID=?', [ComicID]).fetchone()
         if chk1[0] is None:
             orig_location = com_location
         else:
@@ -5597,6 +5588,11 @@ class WebInterface(object):
             orig_corr_type = None
         else:
             orig_corr_type = chk1[2]
+
+        if chk1[3] is None:
+            orig_imprint = None
+        else:
+            orig_imprint = chk1[3]
 
 #--- this is for multiple search terms............
 #--- works, just need to redo search.py to accomodate multiple search terms
@@ -5655,6 +5651,10 @@ class WebInterface(object):
 
         if force_type == 'TPB':
             newValues['Corrected_Type'] = 'TPB'
+        elif force_type == 'GN':
+            newValues['Corrected_Type'] = 'GN'
+        elif force_type == 'HC':
+            newValues['Corrected_Type'] = 'HC'
         elif force_type == 'Digital':
             newValues['Corrected_Type'] = 'Digital'
         elif force_type == 'One-Shot':
@@ -5676,19 +5676,30 @@ class WebInterface(object):
             logger.info('AgeRating: %s' % age_rating)
             newValues['AgeRating'] = age_rating
 
+        if all([publisher_imprint is not None, publisher_imprint != 'None', publisher_imprint != '']):
+            newValues['PublisherImprint'] = publisher_imprint
+        else:
+            newValues['PublisherImprint'] = 'None'
+
         #logger.fdebug('orig_type:%s -- force_type: %s' % (orig_type, force_type))
         #logger.fdebug('orig_corr_type: %s-- corrected_type: %s' % (orig_corr_type, newValues['Corrected_Type']))
         #logger.fdebug('config_folder_format:%s' % (mylar.CONFIG.FOLDER_FORMAT))
         #logger.fdebug('config_format_booktype:%s' % (mylar.CONFIG.FORMAT_BOOKTYPE))
         #logger.fdebug('com_location:%s -- orig_location: %s' % (com_location, orig_location))
-        if orig_corr_type != newValues['Corrected_Type']:
+        if any([orig_corr_type != newValues['Corrected_Type'], orig_imprint != newValues['PublisherImprint'] ]):
+            mod_booktype = orig_corr_type
+            mod_imprint = orig_imprint
             if all(['$Type' in mylar.CONFIG.FOLDER_FORMAT, com_location == orig_location, mylar.CONFIG.FORMAT_BOOKTYPE is True]):
-                #rename folder if the $Type is in folder format to accomodate new forced format.
-                from . import filers
-                x = filers.FileHandlers(ComicID=ComicID)
-                newcom_location = x.folder_create(booktype=newValues['Corrected_Type'])
-                if newcom_location['comlocation'] is not None:
-                    com_location = newcom_location['comlocation']
+                mod_booktype = newValues['Corrected_Type']
+            if all(['$Imprint' in mylar.CONFIG.FOLDER_FORMAT, com_location == orig_location]):
+                mod_imprint = newValues['PublisherImprint']
+
+            #rename folder if the $Type is in folder format to accomodate new forced format.
+            from . import filers
+            x = filers.FileHandlers(ComicID=ComicID)
+            newcom_location = x.folder_create(booktype=mod_booktype, imprint=mod_imprint)
+            if newcom_location['comlocation'] is not None:
+                com_location = newcom_location['comlocation']
 
 
         if allow_packs is None:
@@ -5710,8 +5721,17 @@ class WebInterface(object):
                 logger.info("Validating Directory (" + str(com_location) + "). Already exists! Continuing...")
             else:
                 if orig_location != com_location and os.path.isdir(orig_location) is True:
-                    logger.fdebug('Renaming existing location [%s] to new location: %s' % (orig_location, com_location))
+                    logger.fdebug('Attempting to rename existing location [%s]' % (orig_location))
                     try:
+                        # make sure 2 levels up in strucure exist
+                        if not os.path.exists(os.path.split ( os.path.split(com_location)[0] ) [0] ):
+                            logger.fdebug('making directory: %s' % os.path.split(os.path.split(com_location)[0])[0])
+                            os.mkdir(os.path.split(os.path.split(com_location)[0])[0])
+                        # make sure parent directory exists
+                        if not os.path.exists(os.path.split(com_location)[0]):
+                            logger.fdebug('making directory: %s' % os.path.split(com_location)[0])
+                            os.mkdir(os.path.split(com_location)[0])
+                        logger.info('Renaming directory: %s --> %s' % (orig_location,com_location))
                         os.rename(orig_location, com_location)
                     except Exception as e:
                         if 'No such file or directory' in e:
@@ -6278,6 +6298,17 @@ class WebInterface(object):
 
     def manual_metatag(self, dirName, issueid, filename, comicid, comversion, seriesyear=None, group=False, agerating=None):
         module = '[MANUAL META-TAGGING]'
+        if not os.path.exists(filename):
+            if all([mylar.CONFIG.MULTIPLE_DEST_DIRS is not None, mylar.CONFIG.MULTIPLE_DEST_DIRS != 'None']):
+                if os.path.exists(os.path.join(mylar.CONFIG.MULTIPLE_DEST_DIRS, os.path.basename(dirName))):
+                    secondary_folder = os.path.join(mylar.CONFIG.MULTIPLE_DEST_DIRS, os.path.basename(dirName))
+                else:
+                    ff = mylar.filers.FileHandlers(ComicID=comicid)
+                    secondary_folder = ff.secondary_folders(dirName)
+
+                if os.path.join(secondary_folder, os.path.basename(filename)):
+                    dirName = secondary_folder
+                    filename = os.path.join(secondary_folder, os.path.basename(filename))
         try:
             from . import cmtagmylar
             if mylar.CONFIG.CMTAG_START_YEAR_AS_VOLUME:
@@ -6324,12 +6355,17 @@ class WebInterface(object):
             except Exception as e:
                 if str(e.errno) == '2':
                     try:
-                        if mylar.CONFIG.MULTIPLE_DEST_DIRS is not None and mylar.CONFIG.MULTIPLE_DEST_DIRS != 'None' and os.path.join(mylar.CONFIG.MULTIPLE_DEST_DIRS, os.path.basename(dirName)) != dirName:
-                            dst = os.path.join(mylar.CONFIG.MULTIPLE_DEST_DIRS, os.path.basename(dirName))
-                            shutil.copy(metaresponse, dst)
-                            logger.info('%s Sucessfully wrote metadata to .cbz (%s) - Continuing..' % (module, os.path.split(metaresponse)[1]))
+                        if all([mylar.CONFIG.MULTIPLE_DEST_DIRS is not None, mylar.CONFIG.MULTIPLE_DEST_DIRS != 'None']):
+                            if os.path.exists(os.path.join(mylar.CONFIG.MULTIPLE_DEST_DIRS, os.path.basename(dirName))):
+                                secondary_folder = os.path.join(mylar.CONFIG.MULTIPLE_DEST_DIRS, os.path.basename(dirName))
+                            else:
+                                ff = mylar.filers.FileHandlers(ComicID=comicid)
+                                secondary_folder = ff.secondary_folders(dirName)
+
+                            shutil.copy(metaresponse, secondary_folder)
+                            logger.info('%s Sucessfully wrote metadata to .cbz (%s) - Continuing..' % (module, dst_filename))
                     except Exception as e:
-                        logger.warn('%s [%s] Unable to complete metatagging : %s [%s]' % (module, dst, e, e.errno))
+                        logger.warn('%s [%s] Unable to complete metatagging : %s [%s]' % (module, secondary_folder, e, e.errno))
                         fail = True
                 else:
                     logger.warn('%s [%s] Unable to complete metatagging : %s [%s]' % (module, dst, e, e.errno))

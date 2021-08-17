@@ -710,7 +710,7 @@ class PostProcessor(object):
                             continue
                         else:
                             try:
-                                if all([cs['WatchValues']['Type'] == 'TPB', cs['WatchValues']['Total'] > 1]) or all([cs['WatchValues']['Type'] == 'One-Shot', cs['WatchValues']['Total'] == 1]):
+                                if (any([cs['WatchValues']['Type'] == 'TPB', cs['WatchValues']['Type'] == 'HC', cs['WatchValues']['Type'] == 'GN']) and cs['WatchValues']['Total'] > 1) or all([cs['WatchValues']['Type'] == 'One-Shot', cs['WatchValues']['Total'] == 1]):
                                     if watchmatch['series_volume'] is not None:
                                         just_the_digits = re.sub('[^0-9]', '', watchmatch['series_volume']).strip()
                                     else:
@@ -727,13 +727,13 @@ class PostProcessor(object):
                                 temploc = re.sub('[\#\']', '', temploc)
                                 #logger.fdebug('temploc: %s' % temploc)
                             else:
-                                if any([cs['WatchValues']['Type'] == 'TPB', cs['WatchValues']['Type'] == 'One-Shot']):
+                                if any([cs['WatchValues']['Type'] == 'TPB', cs['WatchValues']['Type'] == 'GN', cs['WatchValues']['Type'] == 'HC', cs['WatchValues']['Type'] == 'One-Shot']):
                                    temploc = '1'
                                 else:
                                    temploc = None
                             datematch = "False"
 
-                            if temploc is None and all([cs['WatchValues']['Type'] != 'TPB', cs['WatchValues']['Type'] != 'One-Shot']):
+                            if temploc is None and all([cs['WatchValues']['Type'] != 'TPB', cs['WatchValues']['Type'] != 'GN', cs['WatchValues']['Type'] != 'HC', cs['WatchValues']['Type'] != 'One-Shot']):
                                 logger.info('this should have an issue number to match to this particular series: %s' % cs['ComicID'])
                                 continue
 
@@ -894,7 +894,14 @@ class PostProcessor(object):
                                             tmpseriesname = re.sub('annual', '', tmpseriesname, flags=re.I).strip()
                                             tmpseriesname = re.sub('special', '', tmpseriesname, flags=re.I).strip()
                                         dynamic_seriesname = re.sub('[\|\s]','', tmpseriesname.lower()).strip()
-                                        if all([cs['DynamicName'] == dynamic_seriesname, cs['WatchValues']['Type'] != 'TPB', cs['WatchValues']['Type'] != 'One-Shot']):
+
+                                        alts = []
+                                        for x in alt_list:
+                                            if x['AS_DyComicName'] == cs['DynamicName']:
+                                                alts = x['AS_Alt']
+                                        alt_listing = [True if x.lower() == dynamic_seriesname else False for x in alts]
+
+                                        if any([cs['DynamicName'] == dynamic_seriesname, alt_listing]) and all([cs['WatchValues']['Type'] != 'TPB', cs['WatchValues']['Type'] != 'GN', cs['WatchValues']['Type'] != 'HC', cs['WatchValues']['Type'] != 'One-Shot']):
                                             logger.fdebug('name match exact : %s - %s' % (cs['DynamicName'], dynamic_seriesname))
                                             test = myDB.selectone('SELECT Comic, DynamicName, Issue, weeknumber, year FROM weekly WHERE ComicID = ? ORDER BY year DESC, CAST(weeknumber AS INTEGER) DESC', [cs['ComicID']]).fetchone()
                                             if test:
@@ -909,7 +916,7 @@ class PostProcessor(object):
                                                 week_intissue = helpers.issuedigits(week_issue)
                                                 logger.fdebug('week_dynamicname: %s / dynamic_seriesname: %s' % (week_dynamicname,dynamic_seriesname))
                                                 logger.fdebug('week_intissue: %s / fcdigit: %s' % (week_intissue, fcdigit))
-                                                if week_dynamicname == dynamic_seriesname:
+                                                if any([week_dynamicname == dynamic_seriesname, alt_listing]):
                                                     if 'Present' in cs['ComicPublished']:
                                                         if week_intissue == fcdigit:
                                                             logger.fdebug('Matched exactly on Series Title, IssueNumber, present on the pull.')
@@ -944,7 +951,7 @@ class PostProcessor(object):
                                     else:
                                         logger.fdebug('not a match')
 
-                                    if all([second_check is False, cs['WatchValues']['Type'] != 'TPB', cs['WatchValues']['Type'] != 'One-Shot']):
+                                    if all([second_check is False, cs['WatchValues']['Type'] != 'TPB', cs['WatchValues']['Type'] != 'GN', cs['WatchValues']['Type'] != 'HC', cs['WatchValues']['Type'] != 'One-Shot']):
                                         logger.fdebug('%s %s in filename don\'t match up to what\'s in the dB for %s [%s]. This is a wrong match. Continuing...' % (watchmatch['series_name'], watchmatch['justthedigits'], cs['ComicName'], cs['ComicID']))
                                         continue
 
@@ -1155,7 +1162,7 @@ class PostProcessor(object):
                                     nm+=1
                                 else:
                                     try:
-                                        if all([v[i]['WatchValues']['Type'] == 'TPB', v[i]['WatchValues']['Total'] > 1]) or all([v[i]['WatchValues']['Type'] == 'One-Shot', v[i]['WatchValues']['Total'] == 1]):
+                                        if (any([v[i]['WatchValues']['Type'] == 'TPB', v[i]['WatchValues']['Type'] == 'GN', v[i]['WatchValues']['Type'] == 'HC']) and v[i]['WatchValues']['Total'] > 1) or all([v[i]['WatchValues']['Type'] == 'One-Shot', v[i]['WatchValues']['Total'] == 1]):
                                             if watchmatch['series_volume'] is not None:
                                                 just_the_digits = re.sub('[^0-9]', '', arcmatch['series_volume']).strip()
                                             else:
@@ -1172,7 +1179,7 @@ class PostProcessor(object):
                                         temploc = re.sub('[\#\']', '', temploc)
                                         #logger.fdebug('temploc: %s' % temploc)
                                     else:
-                                        if any([v[i]['WatchValues']['Type'] == 'TPB', v[i]['WatchValues']['Type'] == 'One-Shot']):
+                                        if any([v[i]['WatchValues']['Type'] == 'TPB', v[i]['WatchValues']['Type'] == 'GN', v[i]['WatchValues']['Type'] == 'HC', v[i]['WatchValues']['Type'] == 'One-Shot']):
                                             temploc = '1'
                                         else:
                                             temploc = None

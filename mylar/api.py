@@ -813,11 +813,20 @@ class Api(object):
             comiclocation = comic.get('ComicLocation')
             f = os.path.join(comiclocation, issuelocation)
             if not os.path.isfile(f):
-                if mylar.CONFIG.MULTIPLE_DEST_DIRS is not None and mylar.CONFIG.MULTIPLE_DEST_DIRS != 'None':
-                    pathdir = os.path.join(mylar.CONFIG.MULTIPLE_DEST_DIRS, os.path.basename(comiclocation))
-                    f = os.path.join(pathdir, issuelocation)
-                    self.file = f
-                    self.filename = issuelocation
+                try:
+                    if all([mylar.CONFIG.MULTIPLE_DEST_DIRS is not None, mylar.CONFIG.MULTIPLE_DEST_DIRS != 'None']):
+                        if os.path.exists(os.path.join(mylar.CONFIG.MULTIPLE_DEST_DIRS, os.path.basename(comiclocation))):
+                            secondary_folders = os.path.join(mylar.CONFIG.MULTIPLE_DEST_DIRS, os.path.basename(comiclocation))
+                        else:
+                            ff = mylar.filers.FileHandlers(ComicID=issue['ComicID'])
+                            secondary_folders = ff.secondary_folders(comiclocation)
+
+                        f = os.path.join(secondary_folders, issuelocation)
+                        self.file = f
+                        self.filename = issuelocation
+
+                except Exception:
+                    pass
             else:
                 self.file = f
                 self.filename = issuelocation

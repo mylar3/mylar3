@@ -47,8 +47,8 @@ class FileHandlers(object):
             self.issue = None
             self.issueid = None
 
-    def folder_create(self, booktype=None, update_loc=None):
-        # dictionary needs to passed called comic with 
+    def folder_create(self, booktype=None, update_loc=None, secondary=None, imprint=None):
+        # dictionary needs to passed called comic with
         #  {'ComicPublisher', 'CorrectedType, 'Type', 'ComicYear', 'ComicName', 'ComicVersion'}
         # or pass in comicid value from __init__
 
@@ -116,6 +116,13 @@ class FileHandlers(object):
             chunk_f = re.compile(r'\s+')
             chunk_folder_format = chunk_f.sub(' ', chunk_f_f)
 
+        if any([imprint is None, imprint == 'None']):
+            imprint = self.comic['PublisherImprint']
+        if any([imprint is None, imprint == 'None']):
+            chunk_f_f = re.sub('\$Imprint', '', chunk_folder_format)
+            chunk_f = re.compile(r'\s+')
+            chunk_folder_format = chunk_f.sub(' ', chunk_f_f)
+
         chunk_folder_format = re.sub("[()|[]]", '', chunk_folder_format).strip()
         ccf = chunk_folder_format.find('/ ')
         if ccf != -1:
@@ -127,6 +134,7 @@ class FileHandlers(object):
         #do work to generate folder path
         values = {'$Series':        series,
                   '$Publisher':     publisher,
+                  '$Imprint':       imprint,
                   '$Year':          self.comic['ComicYear'],
                   '$series':        series.lower(),
                   '$publisher':     publisher.lower(),
@@ -174,6 +182,9 @@ class FileHandlers(object):
                         if self.comic['ComicPublisher'] is not None:
                             if self.comic['ComicPublisher'] in dp:
                                 break
+                        if self.comic['PublisherImprint'] is not None:
+                            if self.comic['PublisherImprint'] in dp:
+                                break
                         if self.comic['ComicVersion'] is not None:
                             if self.comic['ComicVersion'] in dp:
                                 break
@@ -209,7 +220,12 @@ class FileHandlers(object):
                     'path_convert': path_convert,
                     'comicid':      comicid}
         else:
-            ddir = pathlib.PurePath(mylar.CONFIG.DESTINATION_DIR)
+            if secondary is not None:
+                ppath = secondary
+            else:
+                ppath = mylar.CONFIG.DESTINATION_DIR
+
+            ddir = pathlib.PurePath(ppath)
             i = 0
             bb = []
             while i < len(ddir.parts):
@@ -237,6 +253,7 @@ class FileHandlers(object):
                 first = first.replace(' ', mylar.CONFIG.REPLACE_CHAR)
             logger.fdebug('first-2: %s' % first)
             comlocation = str(p_path.joinpath(first))
+            com_parentdir = str(p_path.joinpath(first).parent)
             logger.fdebug('comlocation: %s' % comlocation)
 
             #try:
@@ -262,7 +279,8 @@ class FileHandlers(object):
                 return
 
             return {'comlocation': comlocation,
-                    'subpath':     bb_tuple}
+                    'subpath':     bb_tuple,
+                    'com_parentdir': com_parentdir}
 
     def rename_file(self, ofilename, issue=None, annualize=None, arc=False, file_format=None): #comicname, issue, comicyear=None, issueid=None)
             comicid = self.comicid   # it's coming in unicoded...
@@ -677,3 +695,18 @@ class FileHandlers(object):
 
             return rename_this
 
+    def secondary_folders(self, comiclocation, secondary=None):
+        if not secondary:
+            secondary = mylar.CONFIG.MULTIPLE_DEST_DIRS
+
+        secondary_main = self.folder_create(secondary=secondary)
+        secondaryfolders = secondary_main['comlocation']
+
+        if not os.path.exists(secondaryfolders):
+            tmpbase = os.path.basename(comiclocation)
+            tmpath = os.path.join(secondary_main['com_parentdir'], tmpbase)
+
+            if os.path.exists(tmpath):
+                secondaryfolders = tmpath
+
+        return secondaryfolders

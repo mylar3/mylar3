@@ -998,11 +998,16 @@ def forceRescan(ComicID, archive=None, module=None, recheck=False):
     else:
         altnames = ''
 
-    if (all([rescan['Type'] != 'Print', rescan['Type'] != 'Digital', rescan['Type'] != 'None', rescan['Type'] is not None]) and rescan['Corrected_Type'] != 'Print') or rescan['Corrected_Type'] == 'TPB':
+    if (all([rescan['Type'] != 'Print', rescan['Type'] != 'Digital', rescan['Type'] != 'None', rescan['Type'] is not None]) and rescan['Corrected_Type'] != 'Print') or any([rescan['Corrected_Type'] == 'TPB', rescan['Corrected_Type'] == 'HC', rescan['Corrected_Type'] == 'GN']):
         if rescan['Type'] == 'One-Shot' and rescan['Corrected_Type'] is None:
             booktype = 'One-Shot'
         else:
-            booktype = 'TPB'
+            if rescan['Type'] == 'GN' and rescan['Corrected_Type'] is None:
+                booktype = 'GN'
+            elif rescan['Type'] == 'HC' and rescan['Corrected_Type'] is None:
+                booktype = 'HC'
+            else:
+                booktype = 'TPB'
     else:
         booktype = None
 
@@ -1025,19 +1030,24 @@ def forceRescan(ComicID, archive=None, module=None, recheck=False):
         #logger.fdebug(module + 'comiccnt is:' + str(comiccnt))
         fca.append(tmpval)
         try:
-            if all([mylar.CONFIG.MULTIPLE_DEST_DIRS is not None, mylar.CONFIG.MULTIPLE_DEST_DIRS != 'None', os.path.join(mylar.CONFIG.MULTIPLE_DEST_DIRS, os.path.basename(rescan['ComicLocation'])) != rescan['ComicLocation'], os.path.exists(os.path.join(mylar.CONFIG.MULTIPLE_DEST_DIRS, os.path.basename(rescan['ComicLocation'])))]):
+            if all([mylar.CONFIG.MULTIPLE_DEST_DIRS is not None, mylar.CONFIG.MULTIPLE_DEST_DIRS != 'None']):
+                if os.path.exists(os.path.join(mylar.CONFIG.MULTIPLE_DEST_DIRS, os.path.basename(rescan['ComicLocation']))):
+                    secondary_folders = os.path.join(mylar.CONFIG.MULTIPLE_DEST_DIRS, os.path.basename(rescan['ComicLocation']))
+                else:
+                    ff = mylar.filers.FileHandlers(ComicID=ComicID)
+                    secondary_folders = ff.secondary_folders(rescan['ComicLocation'])
+
                 logger.fdebug(module + 'multiple_dest_dirs:' + mylar.CONFIG.MULTIPLE_DEST_DIRS)
                 logger.fdebug(module + 'dir: ' + rescan['ComicLocation'])
                 logger.fdebug(module + 'os.path.basename: ' + os.path.basename(rescan['ComicLocation']))
-                pathdir = os.path.join(mylar.CONFIG.MULTIPLE_DEST_DIRS, os.path.basename(rescan['ComicLocation']))
-                logger.info(module + ' Now checking files for ' + rescan['ComicName'] + ' (' + str(rescan['ComicYear']) + ') in :' + pathdir)
-                mvals = filechecker.FileChecker(dir=pathdir, watchcomic=rescan['ComicName'], Publisher=rescan['ComicPublisher'], AlternateSearch=altnames)
+                logger.info(module + ' Now checking files for ' + rescan['ComicName'] + ' (' + str(rescan['ComicYear']) + ') in :' + secondary_folders)
+                mvals = filechecker.FileChecker(dir=secondary_folders, watchcomic=rescan['ComicName'], Publisher=rescan['ComicPublisher'], AlternateSearch=altnames)
                 tmpv = mvals.listFiles()
-                #tmpv = filechecker.listFiles(dir=pathdir, watchcomic=rescan['ComicName'], Publisher=rescan['ComicPublisher'], AlternateSearch=altnames)
+                #tmpv = filechecker.listFiles(dir=secondary_dir, watchcomic=rescan['ComicName'], Publisher=rescan['ComicPublisher'], AlternateSearch=altnames)
                 logger.fdebug(module + 'tmpv filecount: ' + str(tmpv['comiccount']))
                 comiccnt += int(tmpv['comiccount'])
                 fca.append(tmpv)
-        except:
+        except Exception:
             pass
     else:
 #        files_arc = filechecker.listFiles(dir=archive, watchcomic=rescan['ComicName'], Publisher=rescan['ComicPublisher'], AlternateSearch=rescan['AlternateSearch'])
@@ -1061,7 +1071,7 @@ def forceRescan(ComicID, archive=None, module=None, recheck=False):
                 break
 
             try:
-                if all([booktype == 'TPB', iscnt > 1]) or all([booktype == 'One-Shot', iscnt == 1, cla['JusttheDigits'] is None]):
+                if all([booktype == 'TPB', iscnt > 1]) or all([booktype == 'GN', iscnt > 1]) or all([booktype =='HC', iscnt > 1]) or all([booktype == 'One-Shot', iscnt == 1, cla['JusttheDigits'] is None]):
                     if cla['SeriesVolume'] is not None:
                         just_the_digits = re.sub('[^0-9]', '', cla['SeriesVolume']).strip()
                     else:
@@ -1172,7 +1182,7 @@ def forceRescan(ComicID, archive=None, module=None, recheck=False):
             logger.fdebug('temploc: %s' % temploc)
         else:
             #assume 1 if not given
-            if any([booktype == 'TPB', booktype == 'One-Shot']):
+            if any([booktype == 'TPB', booktype == 'GN', booktype == 'HC', booktype == 'One-Shot']):
                 temploc = '1'
             else:
                 temploc = None
@@ -1207,7 +1217,7 @@ def forceRescan(ComicID, archive=None, module=None, recheck=False):
 
                 if temploc is not None:
                     fcdigit = helpers.issuedigits(temploc)
-                elif any([booktype == 'TPB', booktype == 'One-Shot']) and temploc is None:
+                elif any([booktype == 'TPB', booktype == 'GN', booktype == 'HC', booktype == 'One-Shot']) and temploc is None:
                     fcdigit = helpers.issuedigits('1')
 
                 if int(fcdigit) == int_iss:
@@ -1900,7 +1910,7 @@ def watchlist_updater(calledfrom=None, sched=False):
         return
 
 
-    logger.fdebug('update_list: %s' % (update_list,))
+    #logger.fdebug('update_list: %s' % (update_list,))
 
     if update_list['count'] == 0:
         logger.info('[BACKFILL-UPDATE] Nothing new has been posted to any series in your watchlist')
@@ -1946,11 +1956,16 @@ def watchlist_updater(calledfrom=None, sched=False):
         elif not row['LastUpdated'] and all(['ComicID' not in row['ComicName'], row['Status'] != 'Loading', row['ComicName'] is not None]):
             prev_failed_updates.append(int(row['ComicID']))
         else:
-            tm = datetime.datetime.strptime(row['LastUpdated'], '%Y-%m-%d %H:%M:%S')
-            library[int(row['ComicID'])] = {'comicid':        row['ComicID'],
-                                            'status':         row['Status'],
-                                            'lastupdated':    calendar.timegm(tm.utctimetuple()),
-                                            'total':          row['Total']}
+            try:
+                tm = datetime.datetime.strptime(row['LastUpdated'], '%Y-%m-%d %H:%M:%S')
+            except Exception:
+                # if the lastupdated date is NULL, but the other values filled in partially - this will make sure to get the ID so it can be refeshed properly
+                prev_failed_updates.append(int(row['ComicID']))
+            else:
+                library[int(row['ComicID'])] = {'comicid':        row['ComicID'],
+                                                'status':         row['Status'],
+                                                'lastupdated':    calendar.timegm(tm.utctimetuple()),
+                                                'total':          row['Total']}
         try:
             if row['ReleaseComicID'] is not None and all(['ComicID' not in row['ComicName'], row['Status'] != 'Loading', row['ComicName'] is not None]):
                 library[row['ReleaseComicID']] = {'comicid':     row['ComicID'],

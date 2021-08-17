@@ -492,6 +492,8 @@ def GetComicInfo(comicid, dom, safechk=None, series=False):
                 comic['Type'] = 'Digital'
             elif 'paperback' in comic_deck.lower():
                 comic['Type'] = 'TPB'
+            elif 'graphic novel' in comic_deck.lower():
+                comic['Type'] = 'GN'
             elif 'hardcover' in comic_deck.lower():
                 comic['Type'] = 'HC'
             elif 'oneshot' in re.sub('-', '', comic_deck.lower()).strip():
@@ -502,10 +504,12 @@ def GetComicInfo(comicid, dom, safechk=None, series=False):
     if comic_desc != 'None' and comic['Type'] == 'None':
         if 'print' in comic_desc[:60].lower() and all(['for the printed edition' not in comic_desc.lower(), 'print edition can be found' not in comic_desc.lower(), 'reprints' not in comic_desc.lower()]):
             comic['Type'] = 'Print'
-        elif 'digital' in comic_desc[:60].lower() and 'digital edition can be found' not in comic_desc.lower():
+        elif all(['digital' in comic_desc[:60].lower(), 'graphic novel' not in comic_desc[:60].lower(), 'digital edition can be found' not in comic_desc.lower()]):
             comic['Type'] = 'Digital'
-        elif all(['paperback' in comic_desc[:60].lower(), 'paperback can be found' not in comic_desc.lower()]) or 'collects' in comic_desc[:60].lower():
+        elif all(['paperback' in comic_desc[:60].lower(), 'paperback can be found' not in comic_desc.lower()]) or all(['hardcover' not in comic_desc[:60].lower(), 'collects' in comic_desc[:60].lower()]):
             comic['Type'] = 'TPB'
+        elif all(['graphic novel' in comic_desc[:60].lower(), 'graphic novel can be found' not in comic_desc.lower()]):
+            comic['Type'] = 'GN'
         elif 'hardcover' in comic_desc[:60].lower() and 'hardcover can be found' not in comic_desc.lower():
             comic['Type'] = 'HC'
         elif any(['one-shot' in comic_desc[:60].lower(), 'one shot' in comic_desc[:60].lower()]) and any(['can be found' not in comic_desc.lower(), 'following the' not in comic_desc.lower(), 'after the' not in comic_desc.lower()]):
@@ -973,6 +977,8 @@ def GetSeriesYears(dom):
                     tempseries['Type'] = 'Digital'
                 elif 'paperback' in comic_deck.lower():
                     tempseries['Type'] = 'TPB'
+                elif 'graphic novel' in comic_deck.lower():
+                    tempseries['Type'] = 'GN'
                 elif 'hardcover' in comic_deck.lower():
                     tempseries['Type'] = 'HC'
                 elif 'oneshot' in re.sub('-', '', comic_deck.lower()).strip():
@@ -983,10 +989,12 @@ def GetSeriesYears(dom):
         if comic_desc != 'None' and tempseries['Type'] == 'None':
             if 'print' in comic_desc[:60].lower() and all(['for the printed edition' not in comic_desc.lower(), 'print edition can be found' not in comic_desc.lower(), 'reprints' not in comic_desc.lower()]):
                 tempseries['Type'] = 'Print'
-            elif 'digital' in comic_desc[:60].lower() and 'digital edition can be found' not in comic_desc.lower():
+            elif all(['digital' in comic_desc[:60].lower(), 'graphic novel' not in comic_desc[:60].lower(), 'digital edition can be found' not in comic_desc.lower()]):
                 tempseries['Type'] = 'Digital'
-            elif all(['paperback' in comic_desc[:60].lower(), 'paperback can be found' not in comic_desc.lower()]) or 'collects' in comic_desc[:60].lower():
+            elif all(['paperback' in comic_desc[:60].lower(), 'paperback can be found' not in comic_desc.lower()]) or all(['hardcover' not in comic_desc[:60].lower(), 'collects' in comic_desc[:60].lower()]):
                 tempseries['Type'] = 'TPB'
+            elif all(['graphic novel' in comic_desc[:60].lower(), 'graphic novel can be found' not in comic_desc.lower()]):
+                tempseries['Type'] = 'GN'
             elif 'hardcover' in comic_desc[:60].lower() and 'hardcover can be found' not in comic_desc.lower():
                 tempseries['Type'] = 'HC'
             elif any(['one-shot' in comic_desc[:60].lower(), 'one shot' in comic_desc[:60].lower()]) and any(['can be found' not in comic_desc.lower(), 'following the' not in comic_desc.lower()]):
@@ -1169,7 +1177,7 @@ def GetSeriesYears(dom):
             else:
                 break
 
-        if all([int(number_issues) == 1, tempseries['SeriesYear'] < helpers.today()[:4], tempseries['Type'] != 'One-Shot', tempseries['Type'] != 'TPB']):
+        if all([int(number_issues) == 1, tempseries['SeriesYear'] < helpers.today()[:4], tempseries['Type'] != 'One-Shot', tempseries['Type'] != 'TPB', tempseries['Type'] != 'HC', tempseries['Type'] != 'GN']):
             booktype = 'One-Shot'
         else:
             booktype = tempseries['Type']

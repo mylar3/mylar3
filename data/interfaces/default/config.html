@@ -1325,7 +1325,7 @@
                                      <label>Folder Format</label>
                                      <input type="text" name="folder_format" value="${config['folder_format']}" size="43">
                                      <%
-                                          folder_options = "$Series = SeriesName\n$Year = SeriesYear\n$VolumeY = V{SeriesYear}\n$VolumeN = V{Volume#}\n$Type = BookType (TPB/GN)"
+                                          folder_options = "$Series = SeriesName\n$Year = SeriesYear\n$VolumeY = V{SeriesYear}\n$VolumeN = V{Volume#}\n$Publisher = Publisher\n$Imprint = Publisher Imprint\n$Type = BookType (TPB/GN/HC/One-Shot/Digital)"
                                      %>
                                      <a href="#" title="${folder_options}"><img src="images/info32.png" height="16" alt="" /></a>
                                      <small>Use: $Publisher, $Series, $Year<br />
@@ -1339,7 +1339,7 @@
                                     <label> File Format</label>
                                     <input type="text" name="file_format" value="${config['file_format']}" size="43">
                                     <%
-                                         file_options = "$Series = SeriesName\n$Year = IssueYear\n$Annual = Annual (word)\n$Issue = IssueNumber\n$VolumeY = V{SeriesYear}\n$VolumeN = V{Volume#}\n$month = publication month number\n$monthname = publication month name\n$Type = BookType (TPB)"
+                                         file_options = "$Series = SeriesName\n$Year = IssueYear\n$Annual = Annual (word)\n$Issue = IssueNumber\n$VolumeY = V{SeriesYear}\n$VolumeN = V{Volume#}\n$month = publication month number\n$monthname = publication month name\n$Type = BookType (TPB/GN/HC/One-Shot/Digital)"
                                     %>
                                     <a href="#" title="${file_options}"><img src="images/info32.png" height="16" alt="" /></a>
                                     <small>Use:  $Series, $Year, $Issue<br />
