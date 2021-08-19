@@ -2900,7 +2900,8 @@ class WebInterface(object):
                     status = mylar.VERSION_STATUS
                     interval = str(mylar.CONFIG.CHECK_GITHUB_INTERVAL) + ' mins'
 
-                if status != jb['Status'] and not('rss' in jb['JobName'].lower()):
+                if all([status != 'Running', status != jb['Status'], not('rss' in jb['JobName'].lower())]):
+                    #logger.fdebug('[%s]: jb[status] %s / status:%s' % (jb['JobName'], jb['Status'], status))
                     status = jb['Status']
 
                 tmp.append({'prev_run_datetime':  prev_run,
