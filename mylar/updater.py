@@ -2038,7 +2038,7 @@ def watchlist_updater(calledfrom=None, sched=False):
             '%Y-%m-%d %H:%M:%S'), loaddate_stamp)
         )
 
-    helpers.job_management(write=True, job='DB Updater', current_run=helpers.utctimestamp(), status='Waiting')
+    helpers.job_management(write=True, job='DB Updater', last_run_completed=helpers.utctimestamp(), status='Waiting')
     mylar.UPDATER_STATUS = 'Waiting'
 
     # once we trigger it the dates above are updated to backfill dates and we can
