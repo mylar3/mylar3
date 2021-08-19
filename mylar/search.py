@@ -1052,7 +1052,9 @@ def NZB_SEARCH(
                         host_newznab_fix = str(host_newznab) + "/"
                     else:
                         host_newznab_fix = host_newznab
-                    findurl = '%sapi?t=search&q=%s&o=xml&cat=%s' % (
+                    if not host_newznab_fix.endswith('api'):
+                        host_newznab_fix += 'api'
+                    findurl = '%s?t=search&q=%s&o=xml&cat=%s' % (
                         host_newznab_fix,
                         comsearch,
                         category_newznab,
@@ -2360,6 +2362,10 @@ def NZB_SEARCH(
                                 entry['title'] = entry['filename']
                             else:
                                 nzbid = generate_id(nzbprov, entry['link'])
+                                try:
+                                    entry['link'] = entry.enclosures[0]['url']
+                                except Exception:
+                                    pass
                             if all([manual is not True, alt_match is False]):
                                 downloadit = True
                             else:
@@ -3308,7 +3314,6 @@ def searchIssueIDList(issuelist):
     ):
         for issueid in issuelist:
             comicname = None
-            logger.info('searching for issueid: %s' % issueid)
             issue = myDB.selectone(
                 'SELECT * from issues WHERE IssueID=?', [issueid]
             ).fetchone()
@@ -3322,7 +3327,6 @@ def searchIssueIDList(issuelist):
                     ).fetchone()
                     if issue is not None:
                         comicname = issue['ComicName']
-                        logger.info('comicname : %s' % comicname)
                         seriesyear = issue['SeriesYear']
                         booktype = issue['Type']
                         issuenumber = issue['IssueNumber']
@@ -3374,7 +3378,6 @@ def searchIssueIDList(issuelist):
             'There are no search providers enabled atm - not performing the requested'
             ' search for obvious reasons'
         )
-
 
 def provider_sequence(
     nzbprovider, torprovider, newznab_hosts, torznab_hosts, ddlprovider
@@ -3585,11 +3588,11 @@ def searcher(
         sabpriority = '0'
 
     if nzbprov == 'torznab' or nzbprov == 'DDL':
+        link = link['link']
         if nzbprov == 'DDL':
             nzbid = link['id']
         else:
             nzbid = generate_id(nzbprov, link['id'])
-        link = link['link']
     else:
         try:
             link = link['link']
