@@ -1048,12 +1048,11 @@ def NZB_SEARCH(
                     )
                 elif nzbprov == 'newznab':
                     # let's make sure the host has a '/' at the end, if not add it.
-                    if host_newznab[len(host_newznab) - 1 : len(host_newznab)] != '/':
-                        host_newznab_fix = str(host_newznab) + "/"
-                    else:
-                        host_newznab_fix = host_newznab
+                    host_newznab_fix = host_newznab
                     if not host_newznab_fix.endswith('api'):
-                        host_newznab_fix += 'api'
+                        if not host_newznab_fix.endswith('/'):
+                            host_newznab_fix += '/'
+                        host_newznab_fix = urljoin(host_newznab_fix, 'api')
                     findurl = '%s?t=search&q=%s&o=xml&cat=%s' % (
                         host_newznab_fix,
                         comsearch,

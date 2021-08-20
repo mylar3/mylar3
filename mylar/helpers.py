@@ -34,6 +34,7 @@ import hashlib
 import gzip
 import os, errno
 import urllib
+from urllib.parse import urljoin
 from io import StringIO
 from apscheduler.triggers.interval import IntervalTrigger
 
@@ -3778,10 +3779,13 @@ def newznab_test(name, host, ssl, apikey):
               'apikey':  apikey,
               'o':       'xml'}
 
-    if host[:-1] == '/':
-        host = host + 'api'
-    else:
-        host = host + '/api'
+    if not host.endswith('api'):
+        if not host.endswith('/'):
+            host += '/'
+        host = urljoin(host, 'api')
+        logger.fdebug('[TEST-NEWZNAB] Appending `api` to end of host: %s' % host)
+
+
     headers = {'User-Agent': str(mylar.USER_AGENT)}
     logger.info('host: %s' % host)
     try:
