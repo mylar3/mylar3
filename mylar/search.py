@@ -3587,11 +3587,11 @@ def searcher(
         sabpriority = '0'
 
     if nzbprov == 'torznab' or nzbprov == 'DDL':
-        link = link['link']
         if nzbprov == 'DDL':
             nzbid = link['id']
         else:
             nzbid = generate_id(nzbprov, link['id'])
+        link = link['link']
     else:
         try:
             link = link['link']
