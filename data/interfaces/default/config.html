@@ -87,7 +87,11 @@
                             by buying me a coffee (or several)</strong></label></br></br>
                          </div>
                          <div style="width: 60%; margin: 0px auto;" align="center">
-                            <a id="navDonate" href="https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&amp;hosted_button_id=EWQADB5AMVRFU" rel="noreferrer" onclick="window.open('http://dereferer.org/?' + this.href); return false;"><img src="https://www.paypalobjects.com/en_US/i/btn/btn_donate_SM.gif" alt="[donate]" /></a>
+                            <%
+                                   pline = "https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&amp;hosted_button_id=EWQADB5AMVRFU"
+                                   bline = 'data:text/html;charset=utf-8, <html><meta http-equiv="refresh" content="0;URL=&#39;${pline}&#39;"></html>'
+                            %>
+                            <a id="navDonate" rel="noreferrer" onclick="window.open('${pline}');return false" href='${bline}'><img src="https://www.paypalobjects.com/en_US/i/btn/btn_donate_SM.gif" alt="[donate]" /></a>
                             <a href="#" onclick="javascript:window.prompt('Please copy/paste my Bitcoin address into your Bitcoin client.', '18eCE9wZxnNiZgE4Cc5pwJMnMjEfhdmH4U');"><img src="images/bitcoin.png" alt="Bitcoin" height="20" align="center"></a></div>
                          </div>
                    </fieldset>
