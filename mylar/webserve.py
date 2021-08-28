@@ -2900,8 +2900,7 @@ class WebInterface(object):
                     status = mylar.VERSION_STATUS
                     interval = str(mylar.CONFIG.CHECK_GITHUB_INTERVAL) + ' mins'
 
-                if all([status != 'Running', status != jb['Status'], not('rss' in jb['JobName'].lower())]):
-                    #logger.fdebug('[%s]: jb[status] %s / status:%s' % (jb['JobName'], jb['Status'], status))
+                if status != jb['Status'] and not('rss' in jb['JobName'].lower()):
                     status = jb['Status']
 
                 tmp.append({'prev_run_datetime':  prev_run,
@@ -6322,18 +6321,14 @@ class WebInterface(object):
                 vol_label = comversion
 
             if all([issueid is not None, comicid is not None]):
-                from mylar import db
                 myDB = db.DBConnection()
-                roders = myDB.select('SELECT count(*) as count, ComicName, IssueNumber, StoryArcID, ReadingOrder from storyarcs WHERE ComicID=? AND IssueID=?', [comicid, issueid])
+                roders = myDB.select('SELECT ComicName, IssueNumber, StoryArcID, ReadingOrder from storyarcs WHERE ComicID=? AND IssueID=?', [comicid, issueid])
                 readingorder = None
                 if roders is not None:
+                    readingorder = []
                     for rd in roders:
-                        if int(rd['count']) == 1:
-                            readingorder = rd['ReadingOrder']
-                            logger.fdebug('reading order found: # %s' % readingorder)
-                        else:
-                            logger.fdebug('Multiple storyarcs returned. An issue can only be part of one storyarc atm')
-                            break
+                        readingorder.append((rd['StoryArc'], rd['ReadingOrder']))
+                    logger.fdebug('readingorder: %s' % (readingorder))
 
             metaresponse = cmtagmylar.run(dirName, issueid=issueid, filename=filename, comversion=vol_label, manualmeta=True, readingorder=readingorder, agerating=agerating)
         except ImportError:
