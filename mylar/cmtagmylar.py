@@ -99,7 +99,19 @@ def run(dirName, nzbName=None, issueid=None, comversion=None, manual=None, filen
         cvers = "volume="
 
     if readingorder is not None:
-        rorder = 'storyArcNumber=%s' % readingorder
+        if type(readingorder) == list:
+            orderseq = []
+            arcseq = []
+            for osq in readingorder:
+                orderseq.append(str(osq[1]))
+                arcseq.append(osq[0])
+            arcseqn = ','.join(arcseq).strip()
+            arcseqname = re.sub(r',', '^,', arcseqn).strip()
+            ordersn = ','.join(orderseq).strip()
+            orders = re.sub(r',', '^,', ordersn).strip()
+            rorder = 'storyArcNumber=%s, storyArc=%s' % (orders, arcseqname)
+        else:
+            roder = 'storyArcNumber=%s' % readingorder
     else:
         rorder = 'storyArcNumber='
 

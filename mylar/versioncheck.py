@@ -388,7 +388,7 @@ def versionload():
     else:
         vers = 'NONE'
 
-    mylar.USER_AGENT = 'Mylar3/' +str(hash) +'(' +vers +') +http://www.github.com/mylar3/mylar3/'
+    mylar.USER_AGENT = 'Mylar3/' +str(hash) +'(' +vers +') +https://github.com/mylar3/mylar3/'
 
     logger.info('Version information: %s [%s]' % (mylar.CONFIG.GIT_BRANCH, mylar.CURRENT_VERSION))
 
