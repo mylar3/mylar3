@@ -1344,11 +1344,14 @@ class WebInterface(object):
         myDB = db.DBConnection()
         cnt = 0
         for ID in args:
-            logger.info(ID)
             if any([ID is None, 'manage_failed_length' in ID]):
                 continue
             else:
-                myDB.action("DELETE FROM Failed WHERE ID=?", [ID])
+                if '##' in ID:
+                    f = ID.split('##')
+                    myDB.action("DELETE FROM Failed WHERE IssueID=? AND Provider=? AND NZBName=? AND DateFailed=?", [f[0],f[1],f[2],f[3]])
+                else:
+                    myDB.action("DELETE FROM Failed WHERE ID=?", [ID])
                 cnt+=1
         logger.info('[DB FAILED CLEANSING] Cleared ' + str(cnt) + ' entries from the Failed DB so they will now be downloaded if available/working.')
     markentries.exposed = True
@@ -2999,6 +3002,7 @@ class WebInterface(object):
 
             results.append({"Series":        f['ComicName'],
                             "ComicID":       f['ComicID'],
+                            "IssueID":       f['IssueID'],
                             "Issue_Number":  f['Issue_Number'],
                             "Provider":      f['Provider'],
                             "Link":          link,
