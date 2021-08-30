@@ -296,11 +296,19 @@ table.display tr.even.gradeC {
 }
 
 table.display tr.even.gradeE {
-	background-color: #F96178;
+	background-color: #444b54;
 }
 
 table.display tr.odd.gradeE {
-	background-color: #F96178;
+	background-color: #444b54;
+}
+
+table.display tr.even.gradeG {
+        background-color: #0A0A0A;
+}
+
+table.display tr.odd.gradeG {
+        background-color: #0A0A0A;
 }
 
 table.display tr.even.gradeH {
@@ -309,6 +317,14 @@ table.display tr.even.gradeH {
 
 table.display tr.odd.gradeH {
         background-color: #ae3431;
+}
+
+table.display tr.odd.gradeI {
+        background-color: #216f70;
+}
+
+table.display tr.even.gradeI {
+        background-color: #216f70;
 }
 
 table.display tr.even.gradeL {
@@ -357,6 +373,7 @@ table.display tr.odd.gradeZ {
 table.display tr.even.gradeZ {
 	-background-color: #2e3338;
 }
+
 table.display tr.odd.gradeT {
         background-color: #bd915a;
 }
@@ -394,7 +411,9 @@ table.display tr.gradeA td,
 table.display tr.gradeB td,
 table.display tr.gradeC td,
 table.display tr.gradeE td,
+table.display tr.gradeG td,
 table.display tr.gradeH td,
+table.display tr.gradeI td,
 table.display tr.gradeL td,
 table.display tr.gradeX td,
 table.display tr.gradeU td,
@@ -439,11 +458,19 @@ table.display_no_select tr.even.gradeC {
 }
 
 table.display_no_select tr.even.gradeE {
-        background-color: #F96178;
+        background-color: #444b54;
 }
 
 table.display_no_select tr.odd.gradeE {
-        background-color: #F96178;
+        background-color: #444b54;
+}
+
+table.display_no_select tr.even.gradeG{
+        background-color: #0A0A0A;
+}
+
+table.display_no_select tr.odd.gradeG {
+        background-color: #0A0A0A;
 }
 
 table.display_no_select tr.even.gradeH{
@@ -454,12 +481,12 @@ table.display_no_select tr.odd.gradeH {
         background-color: #ae3431;
 }
 
-table.display_no_select tr.even.gradeL {
-        background-color: #ebf5ff;
+table.display_no_select tr.even.gradeI {
+        background-color: #216f70;
 }
 
-table.display_no_select tr.odd.gradeL {
-        background-color: #ebf5ff;
+table.display_no_select tr.odd.gradeI {
+        background-color: #216f70;
 }
 
 table.display_no_select tr.odd.gradeX {
@@ -542,7 +569,9 @@ table.display_no_select tr.gradeL #status {
 table.display_no_select tr.gradeA td,
 table.display_no_select tr.gradeC td,
 table.display_no_select tr.gradeE td,
+table.display_no_select tr.gradeG td,
 table.display_no_select tr.gradeH td,
+table.display_no_select tr.gradeI td,
 table.display_no_select tr.gradeL td,
 table.display_no_select tr.gradeX td,
 table.display_no_select tr.gradeU td,

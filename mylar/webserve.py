@@ -1129,32 +1129,39 @@ class WebInterface(object):
     def deleteSeries(self, ComicID, delete_dir=None):
         myDB = db.DBConnection()
         comic = myDB.selectone('SELECT * from comics WHERE ComicID=?', [ComicID]).fetchone()
-        if comic['ComicName'] is None: ComicName = "None"
-        else: ComicName = comic['ComicName']
-        seriesdir = comic['ComicLocation']
-        seriesyear = comic['ComicYear']
-        seriesvol = comic['ComicVersion']
-        logger.info("Deleting all traces of Comic: " + ComicName)
-        myDB.action('DELETE from comics WHERE ComicID=?', [ComicID])
-        myDB.action('DELETE from issues WHERE ComicID=?', [ComicID])
-        if mylar.CONFIG.ANNUALS_ON:
-            myDB.action('DELETE from annuals WHERE ComicID=?', [ComicID])
-        myDB.action('DELETE from upcoming WHERE ComicID=?', [ComicID])
-        if delete_dir: #mylar.CONFIG.DELETE_REMOVE_DIR:
-            logger.fdebug('Remove directory on series removal enabled.')
-            if os.path.exists(seriesdir):
-                logger.fdebug('Attempting to remove the directory and contents of : ' + seriesdir)
-                try:
-                    shutil.rmtree(seriesdir)
-                except:
-                    logger.warn('Unable to remove directory after removing series from Mylar.')
-                else:
-                    logger.info('Successfully removed directory: %s' % (seriesdir))
+        try:
+            if comic['ComicName'] is None:
+                ComicName = 'None'
             else:
-                logger.warn('Unable to remove directory as it does not exist in : ' + seriesdir)
+                ComicName = comic['ComicName']
+        except Exception as e:
+            logger.warn('Unable to reference ID in database - was ComicID: %s already deleted? Error returned: %s' % (ComicID, e))
+        else:
+            seriesdir = comic['ComicLocation']
+            seriesyear = comic['ComicYear']
+            seriesvol = comic['ComicVersion']
+            logger.info("Deleting all traces of Comic: " + ComicName)
+            myDB.action('DELETE from comics WHERE ComicID=?', [ComicID])
+            myDB.action('DELETE from issues WHERE ComicID=?', [ComicID])
+
+            if mylar.CONFIG.ANNUALS_ON:
+                myDB.action('DELETE from annuals WHERE ComicID=?', [ComicID])
+            myDB.action('DELETE from upcoming WHERE ComicID=?', [ComicID])
             myDB.action('DELETE from readlist WHERE ComicID=?', [ComicID])
-        logger.info('Successful deletion of %s %s (%s) from your watchlist' % (ComicName, seriesvol, seriesyear))
-        helpers.ComicSort(sequence='update')
+            if delete_dir: #mylar.CONFIG.DELETE_REMOVE_DIR:
+                logger.fdebug('Remove directory on series removal enabled.')
+                if os.path.exists(seriesdir):
+                    logger.fdebug('Attempting to remove the directory and contents of : ' + seriesdir)
+                    try:
+                        shutil.rmtree(seriesdir)
+                    except:
+                        logger.warn('Unable to remove directory after removing series from Mylar.')
+                    else:
+                        logger.info('Successfully removed directory: %s' % (seriesdir))
+                else:
+                    logger.warn('Unable to remove directory as it does not exist in : ' + seriesdir)
+            logger.info('Successful deletion of %s %s (%s) from your watchlist' % (ComicName, seriesvol, seriesyear))
+            helpers.ComicSort(sequence='update')
         raise cherrypy.HTTPRedirect("home")
     deleteSeries.exposed = True
 
@@ -2451,6 +2458,22 @@ class WebInterface(object):
 
         return serve_template(templatename="upcoming.html", title="Upcoming", upcoming=upcoming, issues=issues, ann_list=ann_list, futureupcoming=futureupcoming, future_nodata_upcoming=future_nodata_upcoming, futureupcoming_count=futureupcoming_count, upcoming_count=upcoming_count, wantedcount=wantedcount, isCounts=isCounts)
     upcoming.exposed = True
+
+    def searchformissing(self, ComicID):
+        #search for 'missing' issues for a given series without marking them as Wanted (issues that are in a Skipped or Wanted state).
+        myDB = db.DBConnection()
+        missing = myDB.select("SELECT * FROM issues WHERE ComicID=? AND (Status ='Skipped' or Status='Wanted')", [ComicID])
+        if mylar.CONFIG.ANNUALS_ON:
+            missing += myDB.select("SELECT * FROM annuals WHERE ComicID=? AND (Status ='Skipped' or Status='Wanted')", [ComicID])
+        missinglist = []
+        for mis in missing:
+            missinglist.append(mis['IssueID'])
+
+        threading.Thread(target=search.searchIssueIDList, args=[missinglist]).start()
+        logger.info('[SEARCH-FOR-MISSING] Queued up %s issues to seach for' % (len(missinglist)))
+
+        raise cherrypy.HTTPRedirect("comicDetails?ComicID=%s" % [ComicID])
+    searchformissing.exposed = True
 
     def skipped2wanted(self, comicid, fromupdate=None):
         # change all issues for a given ComicID that are Skipped, into Wanted.

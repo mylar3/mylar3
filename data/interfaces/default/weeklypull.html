@@ -56,7 +56,7 @@
            <table width="100%" align="center">
              <tr>
               <td style="vertical-align: middle; text-align: right">
-                  <a href="pullist?week=${weekinfo['prev_weeknumber']}&year=${weekinfo['prev_year']}&current=${weekinfo['weeknumber']}-${weekinfo['year']}" title="Previous Week (${weekinfo['prev_weeknumber']})" onclick="$('#pull_table').page('first').draw('page');">
+                  <a href="pullist?week=${weekinfo['prev_weeknumber']}&year=${weekinfo['prev_year']}&current=${weekinfo['weeknumber']}-${weekinfo['year']}" title="Previous Week (${weekinfo['prev_weeknumber']})" onclick="arrows_page();">
                       <img src="${icons['prev']}" width="16" height="18" Alt="Previous"/>
                   </a>
               </td>
@@ -68,7 +68,7 @@
               %endif
               </td>
               <td style="vertical-align: middle; text-align: left">
-                    <a href="pullist?week=${weekinfo['next_weeknumber']}&year=${weekinfo['next_year']}&current=${weekinfo['weeknumber']}-${weekinfo['year']}" title="Next Week (${weekinfo['next_weeknumber']})" onclick="$('#pull_table').page('first').draw('page');">
+                    <a href="pullist?week=${weekinfo['next_weeknumber']}&year=${weekinfo['next_year']}&current=${weekinfo['weeknumber']}-${weekinfo['year']}" title="Next Week (${weekinfo['next_weeknumber']})" onclick="arrows_page();">
                       <img src="${icons['next']}" width="16" height="18" Alt="Next"/>
                   </a>
               </td>
@@ -125,7 +125,7 @@
                                         grade = 'T'
 
                                 #if the comicid is present, but issue isn't marked as wanted.
-                                if weekly['HAVEIT'] == 'Yes' and weekly['STATUS'] == 'Skipped':
+                                if any([weekly['HAVEIT'] == 'Yes', weekly['HAVEIT'] == weekly['COMICID']]) and weekly['STATUS'] == 'Skipped':
                                         grade = 'E'
                                                                
 			%>
@@ -194,12 +194,20 @@
                                             %endif
                                         %elif any([weekly['STATUS'] == 'Skipped', weekly['STATUS'] == 'Wanted']):
                                             %if weekly['STATUS'] == 'Skipped':
-                                                %if weekly['COMICID'] != '' and weekly['COMICID'] is not None:
-                                                    <a href="#" title="auto-add to Watchlist directly by ID available for this series" onclick="doAjaxCall('addbyid?comicid=${weekly['COMICID']}&calledby=True',$(this),'table')" data-success="${weekly['COMIC']} is now being added to your wachlist.">
+                                                %if all([weekly['COMICID'] != '', weekly['COMICID'] is not None]) and all([weekly['HAVEIT'] != 'Yes', weekly['HAVEIT'] != weekly['COMICID']]):
+                                                    <a href="#" title="auto-add to Watchlist directly by ID available for this series" onclick="doAjaxCall('addbyid?comicid=${weekly['COMICID']}&calledby=True&ogcname=${weekly['COMIC']| u}',$(this),'table');return true;">
                                                     %if mylar.CONFIG.SHOW_ICONS:
                                                         <img style="margin: 0px 5px" src="images/add.png" height="25" width="25" class="highqual" />
                                                     %else:
                                                         <span class="ui-icon ui-icon-plus"></span>Add
+                                                    %endif
+                                                    </a>
+                                                %elif weekly['COMICID'] == weekly['HAVEIT'] or weekly['HAVEIT'] == 'Yes':
+                                                    <a href="#" title="mark this issue as Wanted" onclick="doAjaxCall('queueIssue?IssueID=${weekly['ISSUEID']}&ComicID=${weekly['COMICID']}&ComicIssue=${weekly['ISSUE']}&mode=want',$(this),'table')" data-success="${weekly['COMIC']} #${weekly['ISSUE']} has now been marked as Wanted.">
+                                                    %if mylar.CONFIG.SHOW_ICONS:
+                                                        <img style="margin: 0px 5px" src="images/add.png" height="25" width="25" class="highqual" />
+                                                    %else:
+                                                        <span class="ui-icon ui-icon-plus"></span>Mark
                                                     %endif
                                                     </a>
                                                 %else:
@@ -289,10 +297,11 @@
         <div style="z-index:10;position:relative;float:right;margin-top:10px;">
             <table style="border-spacing:3px;border-collapse:separate;">
               <tr>
-                <td style="float:left;margin-left:2px;vertical-align:middle;"><span style="border:1px solid#ccc;float:left;width:30px;height:12px;margin:4px;background:#641716;"></span> monitored series</td>
-                <td style="margin-left:5px;"><span style="border:1px solid#ccc;float:left;width:30px;height:12px;margin:4px;background:#ae3431;"></span> auto-want</td>
-                <td style="float:left;margin-left:2px;vertical-align:middle;"><span style="border:1px solid#ccc;float:left;width:30px;height:12px;margin:4px;background:#382f64;"></span> mismatched</td>
-                <td style="margin-left:5px;"><span style="border:1px solid#ccc;float:left;width:30px;height:12px;margin:4px;background:#bd915a;"></span> one-off</td>
+                <td style="float:left;margin-left:2px;vertical-align:middle;"><span style="border:1px solid#ccc;float:left;width:30px;height:12px;margin:4px;background:#641716;" title="Series is monitored & issue is Wanted"></span> monitored series</td>
+                <td style="float:left;margin-left:2px;vertical-align:middle;"><span style="border:1px solid#ccc;float:left;width:30px;height:12px;margin:4px;background:#444b54;" title="Series is Monitored & issue is Skipped"></span> monitored series</td>
+                <td style="margin-left:5px;"><span style="border:1px solid#ccc;float:left;width:30px;height:12px;margin:4px;background:#ae3431;" title="Will auo-add series to watchlist when available"></span> auto-want</td>
+                <td style="float:left;margin-left:2px;vertical-align:middle;"><span style="border:1px solid#ccc;float:left;width:30px;height:12px;margin:4px;background:#382f64;" title="Incorrectly matched series"></span> mismatched</td>
+                <td style="margin-left:5px;"><span style="border:1px solid#ccc;float:left;width:30px;height:12px;margin:4px;background:#bd915a;" title="Downloaded issue is not on your watchlist"></span> one-off</td>
               </tr>
             </table>
        </div>
@@ -399,6 +408,11 @@
                         }
             });
         };
+
+        function arrows_page() {
+            var tables = $('table.display').DataTable();
+            tables.page('first').draw('page');
+        }
 
         function run_them() {
             var pubs = document.getElementsByName("publishers[]");
