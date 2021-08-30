@@ -25,6 +25,7 @@
                             <a id="menu_link_refresh" onclick="doAjaxCall('manualRename?comicid=${comic['ComicID']}', $(this),'table')" data-success="Renaming files.">Rename Files</a>
                         %endif
                             <a id="menu_link_refresh" onclick="doAjaxCall('forceRescan?ComicID=${comic['ComicID']}', $(this), 'table');"  data-success="${comic['ComicName']} is being rescanned">Recheck Files</a>
+                            <a id="menu_link_searchmissing" onclick="doAjaxCall('searchformissing?ComicID=${comic['ComicID']}', $(this), 'table');" href="#" data-success="Now queueing missing items for ${comic['ComicName']}" title="Search for all issues that are in either a Skipped or Wanted status">Search-4-Missing</a>
                         %if mylar.CONFIG.ENABLE_META:
                             <a id="menu_link_refresh" onclick="doAjaxCall('group_metatag?ComicID=${comic['ComicID']}&dirName=${comic['ComicLocation'] |u}', $(this),'table');refreshLoadSeries();" data-success="(re)tagging every issue present for '${comic['ComicName']}'">Manual MetaTagging</a>
                         %endif
