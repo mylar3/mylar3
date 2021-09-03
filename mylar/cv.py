@@ -828,6 +828,8 @@ def GetIssuesInfo(comicid, dom, arcid=None):
                 tempissue['Issue_Number'] = subtrack.getElementsByTagName('issue_number')[0].firstChild.wholeText
             except:
                 logger.fdebug('No Issue Number available - Trade Paperbacks, Graphic Novels and Compendiums are not supported as of yet.')
+            else:
+                tempissue['Issue_Number'] = tempissue['Issue_Number'].strip()
 
             try:
                 tempissue['ComicImage'] = subtrack.getElementsByTagName('small_url')[0].firstChild.wholeText
