@@ -4372,7 +4372,7 @@ class WebInterface(object):
     ReadMassCopy.exposed = True
 
     def logs(self, **kwargs):
-        return serve_template(templatename="logs.html", title="Log", lineList=mylar.LOGLIST)
+        return serve_template(templatename="logs.html", title="Log", lineList=mylar.LOGLIST, log_level=mylar.LOG_LEVEL)
     logs.exposed = True
 
     def config_dump(self):
@@ -6744,11 +6744,30 @@ class WebInterface(object):
         return loglines
     viewSpecificLog.exposed = True
 
-    def deleteSpecificLog(self, log_id, all=None):
-        logger.info('log_id: %s' % log_id)
-        logger.info('all: %s' % all)
+    def deleteSpecificLog(self, log_id=None, allspecific=None):
         myDB = db.DBConnection()
-        if all != log_id:
+        if all([allspecific is not None, log_id is None]):
+            chk_specific = myDB.select("SELECT rowid FROM exceptions_log")
+            cnt = 0
+            if chk_specific:
+                for csc in chk_specific:
+                    try:
+                        log_file = 'specific_%s.log' % csc['rowid']
+                        os.remove(os.path.join(mylar.CONFIG.LOG_DIR, log_file))
+                        cnt+=1
+                    except Exception as e:
+                        logger.warn(
+                            '[EXCEPTION-LOG-DELETION] Cannot find %s in the logs directory of'
+                            ' %s. Error returned: %s' % (log_file, mylar.CONFIG.LOG_DIR, e)
+                        )
+                    try:
+                        myDB.action('DELETE from exceptions_log WHERE rowid=?', [csc['rowid']])
+                    except Exception as e:
+                        pass
+
+            return json.dumps({'status': 'success', 'message':'Succesfully removed %s specific log files' % cnt})
+
+        elif allspecific != log_id:
             # for group entries
             reflines = myDB.selectone(
                            'SELECT error, func_name, filename, line_num'

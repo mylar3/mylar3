@@ -8,15 +8,10 @@
     <div id="subhead_container">
         <div id="subhead_menu">
             <a id="menu_link_delete" href="#" onclick="doAjaxCall('clearLogs',$(this),'table')" data-success="All logs cleared">Clear Log</a>
-            <a id="menu_link_edit" href="toggleVerbose">Toggle Debug Logging
-            %if mylar.LOG_LEVEL < 2:
-              ON 
-            %else:
-              OFF
-            %endif
-            </a>
+            <a id="menu_link_searchmissing" href="toggleVerbose"><span id="toggle_check"></span></a>
                         <a id="menu_link_edit" title="Manage Exceptions" href="javascript:void(0)" onclick="manageTheExceptions()">Exceptions / Tracebacks</a>
                         <div id="manage_exceptions_dialog" title="View currently logged tracebacks / exceptions" style="display:none">
+                            <input type="button" id="delete_all_specific" value="Clear ALL Specific Logs" style="padding:5px;float:right;position:relative;" />
                             <input id="listview" value="${icons['listview_icon']}" style="display:none;" />
                             <input id="delete" value="${icons['delete_icon']}" style="display:none;" />
                             <input id="deleteall" value="${icons['deleteall_icon']}" style="display:none;" />
@@ -138,6 +133,24 @@
         }
         </script>
         <script>
+        $('#delete_all_specific').click(function () {
+           var tt = 'all';
+           $.ajax({
+                url: "deleteSpecificLog",
+                data: { allspecific: tt },
+                success: function (data) {
+                   var obj = JSON.parse(data);
+                   if (obj['status'] == 'success'){
+                       $('#ajaxMsg').html("<div class='msg'><span class='ui-icon ui-icon-check'></span>"+obj['message']+"</div>");
+                       $('#ajaxMsg').addClass('success').fadeIn().delay(3000).fadeOut();
+                   }
+                }
+           }).done(function() {
+                var ltable = $('table.display_log').DataTable();
+                ltable.ajax.reload(null,false);
+           });
+        });
+
         function delete_log(log_id, all) {
             if (log_id == undefined) {
                 log_id = document.getElementById("log_id").value;
@@ -213,8 +226,18 @@
             $("#deleteConfirm").dialog({modal: true});
         }
 
+        function checkloglevel(){
+            var loglevel = "${log_level}";
+            if (loglevel != 2){
+                document.getElementById("toggle_check").innerHTML = 'Enable Debug Logging';
+            } else {
+                document.getElementById("toggle_check").innerHTML = 'Disable Debug Logging';
+            }
+        }
+
         $(document).ready(function() {
             initActions();
+            checkloglevel();
             $('#log_table').dataTable( {
                     "bProcessing": true,
                     "bServerSide": true,
