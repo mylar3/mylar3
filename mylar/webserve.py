@@ -1129,32 +1129,39 @@ class WebInterface(object):
     def deleteSeries(self, ComicID, delete_dir=None):
         myDB = db.DBConnection()
         comic = myDB.selectone('SELECT * from comics WHERE ComicID=?', [ComicID]).fetchone()
-        if comic['ComicName'] is None: ComicName = "None"
-        else: ComicName = comic['ComicName']
-        seriesdir = comic['ComicLocation']
-        seriesyear = comic['ComicYear']
-        seriesvol = comic['ComicVersion']
-        logger.info("Deleting all traces of Comic: " + ComicName)
-        myDB.action('DELETE from comics WHERE ComicID=?', [ComicID])
-        myDB.action('DELETE from issues WHERE ComicID=?', [ComicID])
-        if mylar.CONFIG.ANNUALS_ON:
-            myDB.action('DELETE from annuals WHERE ComicID=?', [ComicID])
-        myDB.action('DELETE from upcoming WHERE ComicID=?', [ComicID])
-        if delete_dir: #mylar.CONFIG.DELETE_REMOVE_DIR:
-            logger.fdebug('Remove directory on series removal enabled.')
-            if os.path.exists(seriesdir):
-                logger.fdebug('Attempting to remove the directory and contents of : ' + seriesdir)
-                try:
-                    shutil.rmtree(seriesdir)
-                except:
-                    logger.warn('Unable to remove directory after removing series from Mylar.')
-                else:
-                    logger.info('Successfully removed directory: %s' % (seriesdir))
+        try:
+            if comic['ComicName'] is None:
+                ComicName = 'None'
             else:
-                logger.warn('Unable to remove directory as it does not exist in : ' + seriesdir)
+                ComicName = comic['ComicName']
+        except Exception as e:
+            logger.warn('Unable to reference ID in database - was ComicID: %s already deleted? Error returned: %s' % (ComicID, e))
+        else:
+            seriesdir = comic['ComicLocation']
+            seriesyear = comic['ComicYear']
+            seriesvol = comic['ComicVersion']
+            logger.info("Deleting all traces of Comic: " + ComicName)
+            myDB.action('DELETE from comics WHERE ComicID=?', [ComicID])
+            myDB.action('DELETE from issues WHERE ComicID=?', [ComicID])
+
+            if mylar.CONFIG.ANNUALS_ON:
+                myDB.action('DELETE from annuals WHERE ComicID=?', [ComicID])
+            myDB.action('DELETE from upcoming WHERE ComicID=?', [ComicID])
             myDB.action('DELETE from readlist WHERE ComicID=?', [ComicID])
-        logger.info('Successful deletion of %s %s (%s) from your watchlist' % (ComicName, seriesvol, seriesyear))
-        helpers.ComicSort(sequence='update')
+            if delete_dir: #mylar.CONFIG.DELETE_REMOVE_DIR:
+                logger.fdebug('Remove directory on series removal enabled.')
+                if os.path.exists(seriesdir):
+                    logger.fdebug('Attempting to remove the directory and contents of : ' + seriesdir)
+                    try:
+                        shutil.rmtree(seriesdir)
+                    except:
+                        logger.warn('Unable to remove directory after removing series from Mylar.')
+                    else:
+                        logger.info('Successfully removed directory: %s' % (seriesdir))
+                else:
+                    logger.warn('Unable to remove directory as it does not exist in : ' + seriesdir)
+            logger.info('Successful deletion of %s %s (%s) from your watchlist' % (ComicName, seriesvol, seriesyear))
+            helpers.ComicSort(sequence='update')
         raise cherrypy.HTTPRedirect("home")
     deleteSeries.exposed = True
 
@@ -1344,11 +1351,14 @@ class WebInterface(object):
         myDB = db.DBConnection()
         cnt = 0
         for ID in args:
-            logger.info(ID)
             if any([ID is None, 'manage_failed_length' in ID]):
                 continue
             else:
-                myDB.action("DELETE FROM Failed WHERE ID=?", [ID])
+                if '##' in ID:
+                    f = ID.split('##')
+                    myDB.action("DELETE FROM Failed WHERE IssueID=? AND Provider=? AND NZBName=? AND DateFailed=?", [f[0],f[1],f[2],f[3]])
+                else:
+                    myDB.action("DELETE FROM Failed WHERE ID=?", [ID])
                 cnt+=1
         logger.info('[DB FAILED CLEANSING] Cleared ' + str(cnt) + ' entries from the Failed DB so they will now be downloaded if available/working.')
     markentries.exposed = True
@@ -2449,6 +2459,22 @@ class WebInterface(object):
         return serve_template(templatename="upcoming.html", title="Upcoming", upcoming=upcoming, issues=issues, ann_list=ann_list, futureupcoming=futureupcoming, future_nodata_upcoming=future_nodata_upcoming, futureupcoming_count=futureupcoming_count, upcoming_count=upcoming_count, wantedcount=wantedcount, isCounts=isCounts)
     upcoming.exposed = True
 
+    def searchformissing(self, ComicID):
+        #search for 'missing' issues for a given series without marking them as Wanted (issues that are in a Skipped or Wanted state).
+        myDB = db.DBConnection()
+        missing = myDB.select("SELECT * FROM issues WHERE ComicID=? AND (Status ='Skipped' or Status='Wanted')", [ComicID])
+        if mylar.CONFIG.ANNUALS_ON:
+            missing += myDB.select("SELECT * FROM annuals WHERE ComicID=? AND (Status ='Skipped' or Status='Wanted')", [ComicID])
+        missinglist = []
+        for mis in missing:
+            missinglist.append(mis['IssueID'])
+
+        threading.Thread(target=search.searchIssueIDList, args=[missinglist]).start()
+        logger.info('[SEARCH-FOR-MISSING] Queued up %s issues to seach for' % (len(missinglist)))
+
+        raise cherrypy.HTTPRedirect("comicDetails?ComicID=%s" % [ComicID])
+    searchformissing.exposed = True
+
     def skipped2wanted(self, comicid, fromupdate=None):
         # change all issues for a given ComicID that are Skipped, into Wanted.
         issuestowanted = []
@@ -2999,6 +3025,7 @@ class WebInterface(object):
 
             results.append({"Series":        f['ComicName'],
                             "ComicID":       f['ComicID'],
+                            "IssueID":       f['IssueID'],
                             "Issue_Number":  f['Issue_Number'],
                             "Provider":      f['Provider'],
                             "Link":          link,
@@ -4345,7 +4372,7 @@ class WebInterface(object):
     ReadMassCopy.exposed = True
 
     def logs(self, **kwargs):
-        return serve_template(templatename="logs.html", title="Log", lineList=mylar.LOGLIST)
+        return serve_template(templatename="logs.html", title="Log", lineList=mylar.LOGLIST, log_level=mylar.LOG_LEVEL)
     logs.exposed = True
 
     def config_dump(self):
@@ -6321,18 +6348,14 @@ class WebInterface(object):
                 vol_label = comversion
 
             if all([issueid is not None, comicid is not None]):
-                from mylar import db
                 myDB = db.DBConnection()
-                roders = myDB.select('SELECT count(*) as count, ComicName, IssueNumber, StoryArcID, ReadingOrder from storyarcs WHERE ComicID=? AND IssueID=?', [comicid, issueid])
+                roders = myDB.select('SELECT ComicName, IssueNumber, StoryArcID, ReadingOrder from storyarcs WHERE ComicID=? AND IssueID=?', [comicid, issueid])
                 readingorder = None
                 if roders is not None:
+                    readingorder = []
                     for rd in roders:
-                        if int(rd['count']) == 1:
-                            readingorder = rd['ReadingOrder']
-                            logger.fdebug('reading order found: # %s' % readingorder)
-                        else:
-                            logger.fdebug('Multiple storyarcs returned. An issue can only be part of one storyarc atm')
-                            break
+                        readingorder.append((rd['StoryArc'], rd['ReadingOrder']))
+                    logger.fdebug('readingorder: %s' % (readingorder))
 
             metaresponse = cmtagmylar.run(dirName, issueid=issueid, filename=filename, comversion=vol_label, manualmeta=True, readingorder=readingorder, agerating=agerating)
         except ImportError:
@@ -6721,11 +6744,30 @@ class WebInterface(object):
         return loglines
     viewSpecificLog.exposed = True
 
-    def deleteSpecificLog(self, log_id, all=None):
-        logger.info('log_id: %s' % log_id)
-        logger.info('all: %s' % all)
+    def deleteSpecificLog(self, log_id=None, allspecific=None):
         myDB = db.DBConnection()
-        if all != log_id:
+        if all([allspecific is not None, log_id is None]):
+            chk_specific = myDB.select("SELECT rowid FROM exceptions_log")
+            cnt = 0
+            if chk_specific:
+                for csc in chk_specific:
+                    try:
+                        log_file = 'specific_%s.log' % csc['rowid']
+                        os.remove(os.path.join(mylar.CONFIG.LOG_DIR, log_file))
+                        cnt+=1
+                    except Exception as e:
+                        logger.warn(
+                            '[EXCEPTION-LOG-DELETION] Cannot find %s in the logs directory of'
+                            ' %s. Error returned: %s' % (log_file, mylar.CONFIG.LOG_DIR, e)
+                        )
+                    try:
+                        myDB.action('DELETE from exceptions_log WHERE rowid=?', [csc['rowid']])
+                    except Exception as e:
+                        pass
+
+            return json.dumps({'status': 'success', 'message':'Succesfully removed %s specific log files' % cnt})
+
+        elif allspecific != log_id:
             # for group entries
             reflines = myDB.selectone(
                            'SELECT error, func_name, filename, line_num'

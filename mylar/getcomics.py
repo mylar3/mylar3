@@ -290,9 +290,15 @@ class GC(object):
             # if it's a pack - remove the issue-range and the possible issue years
             # (cause it most likely will span) and pass thru as separate items
             if pack is True:
-                title = re.sub(issues, '', title).strip()
+                brackets = re.findall("\(.*?\)", title)
+                for b in brackets:
+                    if issues in b:
+                        title = re.sub(b, '', title).strip()
+                        break
+                if not brackets:
+                    title = re.sub(issues, '', title).strip()
                 # kill any brackets in the issue line here.
-                issues = re.sub(r'[\(\)\[\]]', '', issues).strip()
+                issues = re.sub(r'[\(|\)|\[|\]]', '', issues).strip()
                 if title.endswith('#'):
                     title = title[:-1].strip()
             else:

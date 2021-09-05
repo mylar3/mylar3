@@ -231,6 +231,9 @@ def getComic(comicid, rtype, issueid=None, arc=None, arcid=None, arclist=None, c
     elif rtype == 'db_updater':
         dtchk1 = datetime.datetime.strptime(dateinfo, '%Y-%m-%d %H:%M:%S')
         dtnow = datetime.datetime.now(tz=datetime.timezone.utc)
+        dtnow = dtnow.strftime('%Y-%m-%d %H:%M:%S')
+        # stupid convert it back to a datetime after we localized the UTC timestamp
+        dtnow = datetime.datetime.strptime(dtnow, '%Y-%m-%d %H:%M:%S')
         dateline_range = []
         for x in mylar.CONFIG.PROBLEM_DATES:
             bline = datetime.datetime.strptime(x, '%Y-%m-%d %H:%M:%S')
@@ -256,6 +259,7 @@ def getComic(comicid, rtype, issueid=None, arc=None, arcid=None, arclist=None, c
 
         resultlist = {}
         theResults = []
+        innerbreak = False
         for dateline in dateline_range:
             offset = 1
 
@@ -274,6 +278,8 @@ def getComic(comicid, rtype, issueid=None, arc=None, arcid=None, arclist=None, c
             if totalResults > 1500:
                 # force set this here and we'll stagger the remainder over the next hr + depending on size.
                 totalResults = 1500
+                #if it's the 1st of 2 loops, we need to break out after the 1st loop if it's > 1500 results
+                innerbreak = True
 
             countResults = 0
             while (countResults < int(totalResults)):
@@ -291,6 +297,9 @@ def getComic(comicid, rtype, issueid=None, arc=None, arcid=None, arclist=None, c
                 theResults = theResults + resultlist
                 #search results are limited to 100 and by pagination now...let's account for this.
                 countResults = countResults + 100
+
+            if innerbreak is True:
+                break
 
         return {'count': len(theResults),
                 'results': theResults,
@@ -819,6 +828,8 @@ def GetIssuesInfo(comicid, dom, arcid=None):
                 tempissue['Issue_Number'] = subtrack.getElementsByTagName('issue_number')[0].firstChild.wholeText
             except:
                 logger.fdebug('No Issue Number available - Trade Paperbacks, Graphic Novels and Compendiums are not supported as of yet.')
+            else:
+                tempissue['Issue_Number'] = tempissue['Issue_Number'].strip()
 
             try:
                 tempissue['ComicImage'] = subtrack.getElementsByTagName('small_url')[0].firstChild.wholeText

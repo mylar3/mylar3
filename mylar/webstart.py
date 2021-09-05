@@ -57,7 +57,7 @@ def initialize(options):
         'tools.encode.encoding': 'utf-8',
         'tools.encode.text_only': False,
         'tools.decode.on': True,
-        'log.screen': True,
+        'log.screen': options['cherrypy_logging'],
         'engine.autoreload.on': False,
     }
 

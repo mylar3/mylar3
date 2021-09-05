@@ -1117,7 +1117,7 @@ class PostProcessor(object):
                                                                 "Publisher":        av['Publisher'],
                                                                 "IssueID":          av['IssueID'],
                                                                 "IssueNumber":      av['IssueNumber'],
-                                                                "IssueYear":        av['IssueYear'],   #for some reason this is empty 
+                                                                "IssueYear":        av['IssueYear'],   #for some reason this is empty
                                                                 "ReadingOrder":     av['ReadingOrder'],
                                                                 "IssueDate":        av['IssueDate'],
                                                                 "Status":           av['Status'],
@@ -1567,11 +1567,19 @@ class PostProcessor(object):
 
                             crcvalue = helpers.crc(ofilename)
 
+                            roders = myDB.select('SELECT StoryArc, ReadingOrder from storyarcs WHERE ComicID=? AND IssueID=?', [ml['ComicID'], issueid])
+                            readingorder = None
+                            if roders is not None:
+                                readingorder = []
+                                for rd in roders:
+                                    readingorder.append((rd['StoryArc'], rd['ReadingOrder']))
+                            logger.fdebug('readingorder: %s' % (readingorder))
+
                             if mylar.CONFIG.ENABLE_META:
                                 logger.info('[STORY-ARC POST-PROCESSING] Metatagging enabled - proceeding...')
                                 try:
                                     from . import cmtagmylar
-                                    metaresponse = cmtagmylar.run(self.nzb_folder, issueid=issueid, filename=ofilename, readingorder=ml['ReadingOrder'], agerating=None)
+                                    metaresponse = cmtagmylar.run(self.nzb_folder, issueid=issueid, filename=ofilename, readingorder=readingorder, agerating=None)
                                 except ImportError:
                                     logger.warn('%s comictaggerlib not found on system. Ensure the ENTIRE lib directory is located within mylar/lib/comictaggerlib/' % module)
                                     metaresponse = "fail"
@@ -1623,12 +1631,11 @@ class PostProcessor(object):
 
                             #if from a StoryArc, check to see if we're appending the ReadingOrder to the filename
                             if mylar.CONFIG.READ2FILENAME:
-
                                 logger.fdebug('%s readingorder#: %s' % (module, ml['ReadingOrder']))
                                 if int(ml['ReadingOrder']) < 10: readord = "00" + str(ml['ReadingOrder'])
                                 elif int(ml['ReadingOrder']) >= 10 and int(ml['ReadingOrder']) <= 99: readord = "0" + str(ml['ReadingOrder'])
                                 else: readord = str(ml['ReadingOrder'])
-                                dfilename = str(readord) + "-" + os.path.split(dfilename)[1]
+                                dfilename = '%s-%s' % (readord, os.path.split(dfilename)[1])
 
                             grab_dst = os.path.join(grdst, dfilename)
 
@@ -1895,7 +1902,10 @@ class PostProcessor(object):
                         if ml['AnnualType'] is not None:
                             logger.info('%s direct post-processing of issue completed for %s %s #%s.' % (module, ml['ComicName'], ml['AnnualType'], ml['IssueNumber']))
                         else:
-                            logger.info('%s direct post-processing of issue completed for %s #%s.' % (module, ml['ComicName'], ml['IssueNumber']))
+                            if ml['IssueNumber'] is not None:
+                                logger.info('%s direct post-processing of issue completed for %s #%s.' % (module, ml['ComicName'], ml['IssueNumber']))
+                            else:
+                                logger.info('%s direct post-processing of issue completed for %s.' % (module, ml['ComicName']))
                     else:
                         logger.info('%s Manual post-processing completed for %s issues.' % (module, i))
                 else:
@@ -1903,6 +1913,7 @@ class PostProcessor(object):
                         logger.info('%s post-processing of pack completed for %s issues [FAILED: %s]' % (module, i, self.failed_files))
                     else:
                         logger.info('%s Manual post-processing completed for %s issues [FAILED: %s]' % (module, i, self.failed_files))
+
                 if mylar.APILOCK is True:
                     mylar.APILOCK = False
                 self.valreturn.append({"self.log": self.log,
@@ -1994,18 +2005,22 @@ class PostProcessor(object):
                         odir = self.nzb_folder
 
                     ofilename = orig_filename = tinfo['comiclocation']
-
                     if ofilename is not None:
                         path, ext = os.path.splitext(ofilename)
                     else:
-                        #os.walk the location to get the filename...(coming from sab kinda thing) where it just passes the path.
-                        for root, dirnames, filenames in os.walk(odir, followlinks=True):
-                            for filename in filenames:
-                                if filename.lower().endswith(self.extensions):
-                                    ofilename = orig_filename = filename
-                                    logger.fdebug('%s Valid filename located as : %s' % (module, ofilename))
-                                    path, ext = os.path.splitext(ofilename)
-                                    break
+                        if os.path.isfile(odir):
+                            logger.fdebug('%s Assumed directory location (%s) is actually file location. Correcting...' % (module, odir))
+                            ofilename = orig_filename = os.path.basename(odir)
+                            _, ext = os.path.splitext(ofilename)
+                        else:
+                            #os.walk the location to get the filename...(coming from sab kinda thing) where it just passes the path.
+                            for root, dirnames, filenames in os.walk(odir, followlinks=True):
+                                for filename in filenames:
+                                    if filename.lower().endswith(self.extensions):
+                                        ofilename = orig_filename = filename
+                                        logger.fdebug('%s Valid filename located as : %s' % (module, ofilename))
+                                        path, ext = os.path.splitext(ofilename)
+                                        break
 
                     if ofilename is None:
                         logger.error('%s Unable to post-process file as it is not in a valid cbr/cbz format or cannot be located in path. PostProcessing aborted.' % module)
@@ -2042,6 +2057,17 @@ class PostProcessor(object):
                         issueid = arcdata['IssueID']
                         rdorder = arcdata['ReadingOrder']
 
+                    if rdorder is not None:
+                        roders = myDB.select('SELECT StoryArc, ReadingOrder from storyarcs WHERE ComicID=? AND IssueID=?', [comicid, issueid])
+                        readingorder = None
+                        if roders is not None:
+                            readingorder = []
+                            for rd in roders:
+                                readingorder.append((rd['StoryArc'], rd['ReadingOrder']))
+                    else:
+                        readingorder = rdorder
+                    logger.fdebug('readingorder: %s' % (readingorder))
+
                     #tag the meta.
                     metaresponse = None
                     crcvalue = helpers.crc(os.path.join(location, ofilename))
@@ -2052,7 +2078,11 @@ class PostProcessor(object):
                         self._log("Metatagging enabled - proceeding...")
                         try:
                             from . import cmtagmylar
-                            metaresponse = cmtagmylar.run(location, issueid=issueid, filename=os.path.join(self.nzb_folder, ofilename), readingorder=rdorder, agerating=None)
+                            if os.path.isfile(odir):
+                                tmp_ppdir = odir
+                            else:
+                                tmp_ppdir = os.path.join(odir, ofilename)
+                            metaresponse = cmtagmylar.run(location, issueid=issueid, filename=tmp_ppdir, readingorder=readingorder, agerating=None)
                         except ImportError:
                             logger.warn('%s comictaggerlib not found on system. Ensure the ENTIRE lib directory is located within mylar/lib/comictaggerlib/' % module)
                             metaresponse = "fail"
@@ -2608,16 +2638,13 @@ class PostProcessor(object):
 
                 try:
                     #check for reading order here.
-                    order_the_read = myDB.select('SELECT count(*) as count, ReadingOrder FROM storyarcs WHERE IssueID=? AND ComicID=?', [issueid, comicid])
+                    order_the_read = myDB.select('SELECT StoryArc, ReadingOrder FROM storyarcs WHERE IssueID=? AND ComicID=?', [issueid, comicid])
                     readingorder = None
                     if order_the_read is not None:
+                        readingorder = []
                         for rd in order_the_read:
-                            if int(rd['count']) == 1:
-                                readingorder = rd['ReadingOrder']
-                                logger.fdebug('reading order found: # %s' % readingorder)
-                            else:
-                                logger.fdebug('Multiple storyarcs returned. An issue can only be part of one storyarc atm')
-                                break
+                            readingorder.append((rd['StoryArc'], rd['ReadingOrder']))
+                    logger.fdebug('readingorder: %s' % (readingorder))
 
                     from . import cmtagmylar
                     if ml is None:
@@ -2912,66 +2939,67 @@ class PostProcessor(object):
                 if ml['IssueArcID']:
                     logger.info('Watchlist Story Arc match detected.')
                     logger.info(ml)
-                    arcinfo = myDB.selectone('SELECT * FROM storyarcs where IssueArcID=?', [ml['IssueArcID']]).fetchone()
-                    if arcinfo is None:
+                    arcsforever = myDB.select('SELECT * FROM storyarcs where ComicID=? AND IssueID=?', [ml['ComicID'], ml['IssueID']])
+                    if arcsforever is None:
                         logger.warn('Unable to locate IssueID within givin Story Arc. Ensure everything is up-to-date (refreshed) for the Arc.')
                     else:
-                        if mylar.CONFIG.COPY2ARCDIR is True:
-                            if arcinfo['Publisher'] is None:
-                                arcpub = arcinfo['IssuePublisher']
+                        for arcinfo in arcsforever:
+                            if mylar.CONFIG.COPY2ARCDIR is True:
+                                if arcinfo['Publisher'] is None:
+                                    arcpub = arcinfo['IssuePublisher']
+                                else:
+                                    arcpub = arcinfo['Publisher']
+
+                                grdst = helpers.arcformat(arcinfo['StoryArc'], helpers.spantheyears(arcinfo['StoryArcID']), arcpub)
+                                logger.info('grdst:' + grdst)
+                                checkdirectory = filechecker.validateAndCreateDirectory(grdst, True, module=module)
+                                if not checkdirectory:
+                                    logger.warn('%s Error trying to validate/create directory. Aborting this process at this time.' % module)
+                                    self.valreturn.append({"self.log": self.log,
+                                                           "mode": 'stop'})
+                                    return self.queue.put(self.valreturn)
+
+                                if mylar.CONFIG.READ2FILENAME:
+                                    logger.fdebug('%s readingorder#: %s' % (module, arcinfo['ReadingOrder']))
+                                    if int(arcinfo['ReadingOrder']) < 10: readord = "00" + str(arcinfo['ReadingOrder'])
+                                    elif int(arcinfo['ReadingOrder']) >= 10 and int(arcinfo['ReadingOrder']) <= 99: readord = "0" + str(arcinfo['ReadingOrder'])
+                                    else: readord = str(arcinfo['ReadingOrder'])
+                                    dfilename = str(readord) + "-" + os.path.split(dst)[1]
+                                else:
+                                    dfilename = os.path.split(dst)[1]
+
+                                grab_dst = os.path.join(grdst, dfilename)
+
+                                logger.fdebug('%s Destination Path : %s' % (module, grab_dst))
+                                grab_src = dst
+                                logger.fdebug('%s Source Path : %s' % (module, grab_src))
+                                logger.info('%s[%s] %s into directory: %s' % (module, mylar.CONFIG.ARC_FILEOPS.upper(), dst, grab_dst))
+
+                                try:
+                                    #need to ensure that src is pointing to the series in order to do a soft/hard-link properly
+                                    checkspace = helpers.get_free_space(grdst)
+                                    if checkspace is False:
+                                        raise OSError
+                                    fileoperation = helpers.file_ops(grab_src, grab_dst, arc=True)
+                                    if not fileoperation:
+                                        raise OSError
+                                except Exception as e:
+                                    logger.error('%s Failed to %s %s: %s' % (module, mylar.CONFIG.ARC_FILEOPS, grab_src, e))
+                                    return
                             else:
-                                arcpub = arcinfo['Publisher']
+                                grab_dst = dst
 
-                            grdst = helpers.arcformat(arcinfo['StoryArc'], helpers.spantheyears(arcinfo['StoryArcID']), arcpub)
-                            logger.info('grdst:' + grdst)
-                            checkdirectory = filechecker.validateAndCreateDirectory(grdst, True, module=module)
-                            if not checkdirectory:
-                                logger.warn('%s Error trying to validate/create directory. Aborting this process at this time.' % module)
-                                self.valreturn.append({"self.log": self.log,
-                                                       "mode": 'stop'})
-                                return self.queue.put(self.valreturn)
+                            #delete entry from nzblog table in case it was forced via the Story Arc Page
+                            IssArcID = 'S' + str(arcinfo['IssueArcID'])
+                            myDB.action('DELETE from nzblog WHERE IssueID=? AND SARC=?', [IssArcID,arcinfo['StoryArc']])
 
-                            if mylar.CONFIG.READ2FILENAME:
-                                logger.fdebug('%s readingorder#: %s' % (module, arcinfo['ReadingOrder']))
-                                if int(arcinfo['ReadingOrder']) < 10: readord = "00" + str(arcinfo['ReadingOrder'])
-                                elif int(arcinfo['ReadingOrder']) >= 10 and int(arcinfo['ReadingOrder']) <= 99: readord = "0" + str(arcinfo['ReadingOrder'])
-                                else: readord = str(arcinfo['ReadingOrder'])
-                                dfilename = str(readord) + "-" + os.path.split(dst)[1]
-                            else:
-                                dfilename = os.path.split(dst)[1]
-
-                            grab_dst = os.path.join(grdst, dfilename)
-
-                            logger.fdebug('%s Destination Path : %s' % (module, grab_dst))
-                            grab_src = dst
-                            logger.fdebug('%s Source Path : %s' % (module, grab_src))
-                            logger.info('%s[%s] %s into directory: %s' % (module, mylar.CONFIG.ARC_FILEOPS.upper(), dst, grab_dst))
-
-                            try:
-                                #need to ensure that src is pointing to the series in order to do a soft/hard-link properly
-                                checkspace = helpers.get_free_space(grdst)
-                                if checkspace is False:
-                                    raise OSError
-                                fileoperation = helpers.file_ops(grab_src, grab_dst, arc=True)
-                                if not fileoperation:
-                                    raise OSError
-                            except Exception as e:
-                                logger.error('%s Failed to %s %s: %s' % (module, mylar.CONFIG.ARC_FILEOPS, grab_src, e))
-                                return
-                        else:
-                            grab_dst = dst
-
-                        #delete entry from nzblog table in case it was forced via the Story Arc Page
-                        IssArcID = 'S' + str(ml['IssueArcID'])
-                        myDB.action('DELETE from nzblog WHERE IssueID=? AND SARC=?', [IssArcID,arcinfo['StoryArc']])
-
-                        logger.fdebug('%s IssueArcID: %s' % (module, ml['IssueArcID']))
-                        ctrlVal = {"IssueArcID":  ml['IssueArcID']}
-                        newVal = {"Status":       "Downloaded",
-                                  "Location":     grab_dst}
-                        logger.fdebug('writing: %s -- %s' % (newVal, ctrlVal))
-                        myDB.upsert("storyarcs", newVal, ctrlVal)
-                        logger.fdebug('%s [%s] Post-Processing completed for: %s' % (module, arcinfo['StoryArc'], grab_dst))
+                            logger.fdebug('%s IssueArcID: %s' % (module, ml['IssueArcID']))
+                            ctrlVal = {"IssueArcID":  arcinfo['IssueArcID']}
+                            newVal = {"Status":       "Downloaded",
+                                      "Location":     grab_dst}
+                            logger.fdebug('writing: %s -- %s' % (newVal, ctrlVal))
+                            myDB.upsert("storyarcs", newVal, ctrlVal)
+                            logger.fdebug('%s [%s] Post-Processing completed for: %s' % (module, arcinfo['StoryArc'], grab_dst))
 
             except:
                 pass
