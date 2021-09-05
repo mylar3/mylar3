@@ -1268,6 +1268,8 @@ class WebInterface(object):
         myDB = db.DBConnection()
         issuesToAdd = []
         issuestoArchive = []
+        tier1_cnt = 0
+        tier2_cnt = 0
         if action == 'WantedNew':
             newaction = 'Wanted'
         else:
@@ -1300,7 +1302,21 @@ class WebInterface(object):
                     comicname = mi['ComicName']
                     issuenumber = mi['Issue_Number']
 
-                if action == 'Downloaded':
+                if action == 'OppositeTier':
+                    try:
+                        if mi['DateAdded'] <= mylar.SEARCH_TIER_DATE:
+                            date_added = helpers.today() #tier = "2nd"
+                            tier1_cnt +=1
+                        else:
+                            date_added = mylar.SEARCH_TIER_DATE #tier = "1st [%s]" % mi['DateAdded']
+                            tier2_cnt +=1
+                    except:
+                        date_added = mylar.SEARCH_TIER_DATE #"1st [%s]" % mi['DateAdded']
+                        tier2_cnt +=1
+
+                    newValueDict = {'DateAdded': date_added}
+
+                elif action == 'Downloaded':
                     if mi['Status'] == "Skipped" or mi['Status'] == "Wanted":
                         logger.fdebug("Cannot change status to %s as comic is not Snatched or Downloaded" % (newaction))
                         continue
@@ -1328,14 +1344,26 @@ class WebInterface(object):
                     controlValueDict = {"IssueID": IssueID}
                 else:
                     controlValueDict = {"IssueArcID": IssueID}
-                newValueDict = {"Status": newaction}
+
+                if action != 'OppositeTier':
+                    newValueDict = {"Status": newaction}
+
                 if annchk == 'yes':
                     myDB.upsert("annuals", newValueDict, controlValueDict)
                 elif arcs is True:
                     myDB.upsert("storyarcs", newValueDict, controlValueDict)
                 else:
                     myDB.upsert("issues", newValueDict, controlValueDict)
-                logger.fdebug("updated...to " + str(newaction))
+
+        if action == 'OppositeTier':
+            tierline = 'Now changing '
+            if tier2_cnt > 0:
+                tierline += '%s Tier1 items to Tier 2' % tier2_cnt
+            if tier1_cnt > 0:
+                if tier2_cnt > 0:
+                    tierline += ' and '
+                tierline += '%s Tier2 items to Tier 1' % tier1_cnt
+            logger.info('[TIER-REARRANGER] %s' % tierline)
         if action == 'Failed' and mylar.CONFIG.FAILED_DOWNLOAD_HANDLING:
             self.failed_handling(failedcomicid, failedissueid)
         if len(issuestoArchive) > 0:
