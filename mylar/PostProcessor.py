@@ -557,7 +557,7 @@ class PostProcessor(object):
                             comicseries = myDB.select(tmpsql, tuple(loopchk))
 
                     if not comicseries or orig_seriesname != mod_seriesname:
-                        if all(['special' in orig_seriesname.lower(), mylar.CONFIG.ANNUALS_ON, orig_seriesname != mod_seriesname]):
+                        if any(['special' in orig_seriesname.lower(), 'annual' in orig_seriesname.lower()]) and all([mylar.CONFIG.ANNUALS_ON, orig_seriesname != mod_seriesname]):
                             if not any(re.sub('[\|\s]', '', orig_seriesname).lower() == x for x in loopchk):
                                 loopchk.append(re.sub('[\|\s]', '', orig_seriesname.lower()))
                                 tmpsql = "SELECT * FROM comics WHERE DynamicComicName IN ({seq}) COLLATE NOCASE".format(seq=','.join('?' * len(loopchk)))
@@ -889,7 +889,7 @@ class PostProcessor(object):
                                         as_d = filechecker.FileChecker(watchcomic=watchmatch['series_name'])
                                         as_dinfo = as_d.dynamic_replace(watchmatch['series_name'])
                                         tmpseriesname = as_dinfo['mod_seriesname']
-                                        if all([mylar.CONFIG.ANNUALS_ON, 'annual' in tmpseriesname.lower()]) or all([mylar.CONFIG.ANNUALS_ON, 'special' in tmpseriesname.lower()]):
+                                        if all([mylar.CONFIG.ANNUALS_ON, 'annual' in tmpseriesname.lower(), 'annual' not in cs['DynamicName']]) or all([mylar.CONFIG.ANNUALS_ON, 'special' in tmpseriesname.lower()]):
                                             tmpseriesname = re.sub('2021annual', '', tmpseriesname, flags=re.I).strip()
                                             tmpseriesname = re.sub('annual', '', tmpseriesname, flags=re.I).strip()
                                             tmpseriesname = re.sub('special', '', tmpseriesname, flags=re.I).strip()
@@ -908,7 +908,7 @@ class PostProcessor(object):
                                                 logger.fdebug('test matched to ComicID: %s' % (cs['ComicID']))
                                                 week_comic = test[0]
                                                 week_dynamicname = test[1]
-                                                if all([mylar.CONFIG.ANNUALS_ON, 'annual' in week_dynamicname.lower()]) or all([mylar.CONFIG.ANNUALS_ON, 'special' in week_dynamicname.lower()]):
+                                                if all([mylar.CONFIG.ANNUALS_ON, 'annual' in week_dynamicname.lower(), 'annual' not in dynamic_seriesname]) or all([mylar.CONFIG.ANNUALS_ON, 'special' in week_dynamicname.lower()]):
                                                     week_dynamicname = re.sub('2021annual', '', week_dynamicname, flags=re.I).strip()
                                                     week_dynamicname = re.sub('annual', '', week_dynamicname, flags=re.I).strip()
                                                     week_dynamicname = re.sub('special', '', week_dynamicname, flags=re.I).strip()
@@ -944,7 +944,19 @@ class PostProcessor(object):
                                                     logger.fdebug('%s %s is not part of an ongoing publication. Bypassing this check and letting the dates verify below' % (watchmatch['series_name'],watchmatch['justthedigits']))
                                                     second_check = True
                                                 else:
-                                                    second_check = False
+                                                    # if the name matches, but the data isn't present on the pull from a previous week (due to being a new install)
+                                                    # it won't be able to post-process. Get current issue date, resolve to week and see if week is present in pull.
+                                                    ischk = isc['ReleaseDate']
+                                                    if ischk:
+                                                        rls_the_date = datetime.datetime.strptime(isc['ReleaseDate'], '%Y-%m-%d')
+                                                        rls_weeknumber = rls_the_date.isocalendar()[1]
+                                                        rls_weekyear = rls_the_date.isocalendar()[0]
+                                                        popit = myDB.select("SELECT * FROM sqlite_master WHERE name='weekly' and type='table'")
+                                                        if popit:
+                                                            w_results = myDB.select("SELECT * from weekly WHERE weeknumber=? AND year=?", [rls_weeknumber,rls_weekyear])
+                                                            if len(w_results) == 0:
+                                                                # if the week doesn't exist, let it pass... (or we can possibly force recreate?)
+                                                                second_check = True
                                         else:
                                             pass
                                             #logger.info('name in dB (%s) does not match name in file (%s)' % (cs['ComicName'], watchmatch['series_name']))
@@ -3075,39 +3087,42 @@ class PostProcessor(object):
 
         prline2 = 'Mylar has downloaded and post-processed: ' + prline
 
-        if mylar.CONFIG.PROWL_ENABLED:
-            pushmessage = prline
-            prowl = notifiers.PROWL()
-            prowl.notify(pushmessage, "Download and Postprocessing completed", module=module)
+        try:
+            if mylar.CONFIG.PROWL_ENABLED:
+                pushmessage = prline
+                prowl = notifiers.PROWL()
+                prowl.notify(pushmessage, "Download and Postprocessing completed", module=module)
 
-        if mylar.CONFIG.PUSHOVER_ENABLED:
-            pushover = notifiers.PUSHOVER()
-            pushover.notify(prline, prline2, module=module, imageFile=imageFile)
+            if mylar.CONFIG.PUSHOVER_ENABLED:
+                pushover = notifiers.PUSHOVER()
+                pushover.notify(prline, prline2, module=module, imageFile=imageFile)
 
-        if mylar.CONFIG.BOXCAR_ENABLED:
-            boxcar = notifiers.BOXCAR()
-            boxcar.notify(prline=prline, prline2=prline2, module=module)
+            if mylar.CONFIG.BOXCAR_ENABLED:
+                boxcar = notifiers.BOXCAR()
+                boxcar.notify(prline=prline, prline2=prline2, module=module)
 
-        if mylar.CONFIG.PUSHBULLET_ENABLED:
-            pushbullet = notifiers.PUSHBULLET()
-            pushbullet.notify(prline=prline, prline2=prline2, module=module)
+            if mylar.CONFIG.PUSHBULLET_ENABLED:
+                pushbullet = notifiers.PUSHBULLET()
+                pushbullet.notify(prline=prline, prline2=prline2, module=module)
 
-        if mylar.CONFIG.TELEGRAM_ENABLED:
-            telegram = notifiers.TELEGRAM()
-            telegram.notify(prline2, imageFile)
+            if mylar.CONFIG.TELEGRAM_ENABLED:
+                telegram = notifiers.TELEGRAM()
+                telegram.notify(prline2, imageFile)
 
-        if mylar.CONFIG.SLACK_ENABLED:
-            slack = notifiers.SLACK()
-            slack.notify("Download and Postprocessing completed", prline2, module=module)
+            if mylar.CONFIG.SLACK_ENABLED:
+                slack = notifiers.SLACK()
+                slack.notify("Download and Postprocessing completed", prline2, module=module)
 
-        if mylar.CONFIG.DISCORD_ENABLED:
-            discord = notifiers.DISCORD()
-            discord.notify("Download and Postprocessing completed", prline2, module=module)
+            if mylar.CONFIG.DISCORD_ENABLED:
+                discord = notifiers.DISCORD()
+                discord.notify("Download and Postprocessing completed", prline2, module=module)
 
-        if mylar.CONFIG.EMAIL_ENABLED and mylar.CONFIG.EMAIL_ONPOST:
-            logger.info("Sending email notification")
-            email = notifiers.EMAIL()
-            email.notify(prline2, "Mylar notification - Processed", module=module)
+            if mylar.CONFIG.EMAIL_ENABLED and mylar.CONFIG.EMAIL_ONPOST:
+                logger.info("Sending email notification")
+                email = notifiers.EMAIL()
+                email.notify(prline2, "Mylar notification - Processed", module=module)
+        except Exception as e:
+            logger.warn('[NOTIFICATION] Unable to send notification: %s' % e)
 
         return
 
