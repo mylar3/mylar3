@@ -1001,6 +1001,7 @@ class WebInterface(object):
     GCDaddComic.exposed = True
 
     def post_process(self, nzb_name, nzb_folder, failed=False, apc_version=None, comicrn_version=None):
+        pp_fail = False
         if all([nzb_name != 'Manual Run', nzb_name != 'Manual+Run']):
             if comicrn_version is None and apc_version is None:
                 logger.warn('ComicRN should be v' + str(mylar.STATIC_COMICRN_VERSION) + ' and autoProcessComics.py should be v' + str(mylar.STATIC_APC_VERSION) + ', but they are not and are out of date. Post-Processing may or may not work.')
@@ -1013,6 +1014,8 @@ class WebInterface(object):
                     apc_version = "0"
                 if mylar.CONFIG.AUTHENTICATION == 2:
                     logger.warn('YOU NEED TO UPDATE YOUR autoProcessComics.py file in order to use this option with the Forms Login enabled due to security.')
+                    yield json.dumps({'status': 'fail', 'message': 'YOU NEED TO UPDATE YOUR autoProcessComics.py file in order to use this option with Forms Login enabled.'})
+                    pp_fail = True
                 logger.warn('Your autoProcessComics.py script should be v' + str(mylar.STATIC_APC_VERSION) + ', but is v' + str(apc_version) + ' and is out of date. Odds are something is gonna fail - you should update it.')
             else:
                 logger.info('ComicRN.py version: ' + str(comicrn_version) + ' -- autoProcessComics.py version: ' + str(apc_version))
@@ -1020,8 +1023,20 @@ class WebInterface(object):
         else:
              if not os.path.exists(nzb_folder):
                  yield json.dumps({'status': 'fail', 'message': '%s does not exist - please verify!' % (nzb_folder)})
+                 pp_fail = True
              else:
-                 yield json.dumps({'status': 'success', 'message': 'Successfully submitted %s for manual post-processing...' % (nzb_folder)})
+                 if nzb_folder.lower() == mylar.CONFIG.DESTINATION_DIR.lower():
+                     try:
+                         yield json.dumps({'status': 'fail', 'message': '%s is identical to your Comic Location path. You CANNOT post-process from this location.' % (nzb_folder)})
+                         pp_fail = True
+                     except Exception as e:
+                         logger.warn('error: %s' % e)
+                         pp_fail = True
+                 else:
+                     yield json.dumps({'status': 'success', 'message': 'Successfully submitted %s for manual post-processing...' % (nzb_folder)})
+
+        if pp_fail is True:
+            return
 
         import queue
         logger.info('Starting postprocessing for : ' + nzb_name)
