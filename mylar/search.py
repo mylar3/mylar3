@@ -3518,7 +3518,7 @@ def nzbname_create(provider, title=None, info=None):
         # let's change all space to decimals for simplicity
         logger.fdebug('[SEARCHER] entry[title]: %s' % title)
         # gotta replace & or escape it
-        nzbname = re.sub(r'\&amp;(amp;)?|\&', 'and', title)
+        nzbname = re.sub(r'\&amp;|(amp;)|amp;|\&', 'and', title)
         nzbname = re.sub(r'[\,\:\?\'\+]', '', nzbname)
         nzbname = re.sub(r'[\(\)]', ' ', nzbname)
         logger.fdebug('[SEARCHER] nzbname (remove chars): %s' % nzbname)
