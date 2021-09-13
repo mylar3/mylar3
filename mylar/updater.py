@@ -854,7 +854,7 @@ def foundsearch(ComicID, IssueID, mode=None, down=None, provider=None, SARC=None
         if mode == 'story_arc':
             IssueNum = issue['IssueNumber']
             newsnatchValues = {"ComicName":       ComicName,
-                               "ComicID":         'None',
+                               "ComicID":         ComicID, #'None',
                                "Issue_Number":    IssueNum,
                                "DateAdded":       helpers.now(),
                                "Status":          "Snatched",

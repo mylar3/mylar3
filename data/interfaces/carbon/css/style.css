@@ -1069,15 +1069,15 @@ div#artistheader h2 a {
   vertical-align: middle;
 }
 #arc_detail th#options {
-  min-width: 130px;
-  text-align: left;
+  max-width: 200px;
+  text-align: center;
 }
 #arc_detail th#comicname {
-  min-width: 290px;
+  min-width: 280px;
   text-align: left;
 }
 #arc_detail th#issue {
-  max-width: 15px;
+  max-width: 25px;
   text-align: center;
 }
 #arc_detail th#status {
@@ -1089,19 +1089,19 @@ div#artistheader h2 a {
   text-align: center;
 }
 #arc_detail th#readingorder {
-  max-width: 10px;
-  text-align: left;
+  max-width: 15px;
+  text-align: right;
   vertical-align: middle;
 }
 #arc_detail td#comicname {
-  min-width: 290px;
+  min-width: 280px;
   text-align: left;
   vertical-align: middle;
   font-size: 12px;
 }
 #arc_detail td#issue {
-  max-width: 15px;
-  text-align: left;
+  max-width: 25px;
+  text-align: right;
   vertical-align: middle;
 }
 #arc_detail td#status {
@@ -1115,13 +1115,13 @@ div#artistheader h2 a {
   vertical-align: middle;
 }
 #arc_detail td#options {
-  min-width: 130px;
+  max-width: 200px;
   text-align: left;
   vertical-align: middle;
 }
 #arc_detail td#readingorder {
-  max-width: 10px;
-  text-align: left;
+  max-width: 15px;
+  text-align: right;
   vertical-align: middle;
 }
 #weekly_pull th#publisher {

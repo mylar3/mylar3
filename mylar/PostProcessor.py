@@ -1393,8 +1393,20 @@ class PostProcessor(object):
                                                         tmpfilename = arcmatch['comicfilename'] #helpers.conversion(arcmatch['comicfilename'])
                                                         if arcmatch['sub']:
                                                             clocation = os.path.join(arcmatch['comiclocation'], arcmatch['sub'], tmpfilename)
+                                                            if not os.path.exists(clocation):
+                                                                scrubs = re.sub(watchmatch['comiclocation'], '', watchmatch['sub']).strip()
+                                                                if scrubs[:2] == '//' or scrubs[:2] == '\\':
+                                                                    scrubs = scrubs[1:]
+                                                                    if os.path.exists(scrubs):
+                                                                        logger.fdebug('[MODIFIED CLOCATION] %s' % scrubs)
+                                                                        clocation = scrubs
                                                         else:
-                                                            clocation = os.path.join(arcmatch['comiclocation'], tmpfilename)
+                                                            logger.fdebug('%s[CLOCATION] %s' % (module, arcmatch['comiclocation']))
+                                                            if os.path.isfile(arcmatch['comiclocation']):
+                                                                clocation = arcmatch['comiclocation']
+                                                            else:
+                                                                clocation = os.path.join(arcmatch['comiclocation'], tmpfilename)
+
                                                         logger.info('[%s #%s] MATCH: %s / %s / %s' % (k, isc['IssueNumber'], clocation, isc['IssueID'], v[i]['ArcValues']['IssueID']))
                                                         if v[i]['ArcValues']['Publisher'] is None:
                                                             arcpublisher = v[i]['ArcValues']['ComicPublisher']
@@ -1760,6 +1772,7 @@ class PostProcessor(object):
                     logger.fdebug('%s Issueid: %s' % (module, issueid))
                     sarc = nzbiss['SARC']
                     self.oneoff = nzbiss['OneOff']
+                    logger.fdebug('sarc: %s / oneoff: %s' % (sarc, self.oneoff))
                     tmpiss = myDB.selectone('SELECT * FROM issues WHERE IssueID=?', [issueid]).fetchone()
                     if tmpiss is None:
                         tmpiss = myDB.selectone('SELECT * FROM annuals WHERE IssueID=? AND NOT Deleted', [issueid]).fetchone()
@@ -1776,7 +1789,7 @@ class PostProcessor(object):
                                        'sarc':          sarc,
                                        'oneoff':        self.oneoff})
 
-                    elif all([self.oneoff is not None, issueid[0] == 'S']):
+                    elif self.oneoff is not None and any([issueid[0] == 'S', '_' in issueid]):
                         issuearcid = re.sub('S', '', issueid).strip()
                         oneinfo = myDB.selectone("SELECT * FROM storyarcs WHERE IssueArcID=?", [issuearcid]).fetchone()
                         if oneinfo is None:
@@ -2185,12 +2198,13 @@ class PostProcessor(object):
                     #delete entry from nzblog table
                     myDB.action('DELETE from nzblog WHERE issueid=?', [issueid])
 
-                    if sandwich is not None and 'S' in sandwich:
+                    if (sandwich is not None and 'S' in sandwich) or '_' in issueid:
                         logger.info('%s IssueArcID is : %s' % (module, issuearcid))
                         ctrlVal = {"IssueArcID":  issuearcid}
                         newVal = {"Status":       "Downloaded",
                                   "Location":     grab_dst}
                         myDB.upsert("storyarcs", newVal, ctrlVal)
+                        updater.foundsearch(ComicID=comicid, mode='story_arc', IssueID=issueid, IssueArcID=issuearcid, down='PP', module=module)
                         logger.info('%s Updated status to Downloaded' % module)
 
                         logger.info('%s Post-Processing completed for: [%s] %s' % (module, sarc, grab_dst))
@@ -2952,69 +2966,74 @@ class PostProcessor(object):
                     logger.info('Watchlist Story Arc match detected.')
                     logger.info(ml)
                     arcsforever = myDB.select('SELECT * FROM storyarcs where ComicID=? AND IssueID=?', [ml['ComicID'], ml['IssueID']])
-                    if arcsforever is None:
-                        logger.warn('Unable to locate IssueID within givin Story Arc. Ensure everything is up-to-date (refreshed) for the Arc.')
-                    else:
-                        for arcinfo in arcsforever:
-                            if mylar.CONFIG.COPY2ARCDIR is True:
-                                if arcinfo['Publisher'] is None:
-                                    arcpub = arcinfo['IssuePublisher']
-                                else:
-                                    arcpub = arcinfo['Publisher']
+                    if not arcsforever:
+                        # reverse lookup the issuearcid to get the issueid and check the table for multiple occurances across multiple arcs
+                        id_arcsforever = myDB.selectone('SELECT IssueID FROM storyarcs WHERE IssueArcID=? AND ComicID=?', [ml['IssueArcID'], ml['ComicID']]).fetchone()
+                        if not id_arcsforever:
+                            logger.warn('Unable to locate IssueID within givin Story Arc. Ensure everything is up-to-date (refreshed) for the Arc.')
+                        else:
+                            arcsforever = myDB.select('SELECT * FROM storyarcs WHERE IssueID=?', [id_arcsforever[0]])
 
-                                grdst = helpers.arcformat(arcinfo['StoryArc'], helpers.spantheyears(arcinfo['StoryArcID']), arcpub)
-                                logger.info('grdst:' + grdst)
-                                checkdirectory = filechecker.validateAndCreateDirectory(grdst, True, module=module)
-                                if not checkdirectory:
-                                    logger.warn('%s Error trying to validate/create directory. Aborting this process at this time.' % module)
-                                    self.valreturn.append({"self.log": self.log,
-                                                           "mode": 'stop'})
-                                    return self.queue.put(self.valreturn)
-
-                                if mylar.CONFIG.READ2FILENAME:
-                                    logger.fdebug('%s readingorder#: %s' % (module, arcinfo['ReadingOrder']))
-                                    if int(arcinfo['ReadingOrder']) < 10: readord = "00" + str(arcinfo['ReadingOrder'])
-                                    elif int(arcinfo['ReadingOrder']) >= 10 and int(arcinfo['ReadingOrder']) <= 99: readord = "0" + str(arcinfo['ReadingOrder'])
-                                    else: readord = str(arcinfo['ReadingOrder'])
-                                    dfilename = str(readord) + "-" + os.path.split(dst)[1]
-                                else:
-                                    dfilename = os.path.split(dst)[1]
-
-                                grab_dst = os.path.join(grdst, dfilename)
-
-                                logger.fdebug('%s Destination Path : %s' % (module, grab_dst))
-                                grab_src = dst
-                                logger.fdebug('%s Source Path : %s' % (module, grab_src))
-                                logger.info('%s[%s] %s into directory: %s' % (module, mylar.CONFIG.ARC_FILEOPS.upper(), dst, grab_dst))
-
-                                try:
-                                    #need to ensure that src is pointing to the series in order to do a soft/hard-link properly
-                                    checkspace = helpers.get_free_space(grdst)
-                                    if checkspace is False:
-                                        raise OSError
-                                    fileoperation = helpers.file_ops(grab_src, grab_dst, arc=True)
-                                    if not fileoperation:
-                                        raise OSError
-                                except Exception as e:
-                                    logger.error('%s Failed to %s %s: %s' % (module, mylar.CONFIG.ARC_FILEOPS, grab_src, e))
-                                    return
+                    for arcinfo in arcsforever:
+                        if mylar.CONFIG.COPY2ARCDIR is True:
+                            if arcinfo['Publisher'] is None:
+                                arcpub = arcinfo['IssuePublisher']
                             else:
-                                grab_dst = dst
+                                arcpub = arcinfo['Publisher']
 
-                            #delete entry from nzblog table in case it was forced via the Story Arc Page
-                            IssArcID = 'S' + str(arcinfo['IssueArcID'])
-                            myDB.action('DELETE from nzblog WHERE IssueID=? AND SARC=?', [IssArcID,arcinfo['StoryArc']])
+                            grdst = helpers.arcformat(arcinfo['StoryArc'], helpers.spantheyears(arcinfo['StoryArcID']), arcpub)
+                            logger.info('grdst:' + grdst)
+                            checkdirectory = filechecker.validateAndCreateDirectory(grdst, True, module=module)
+                            if not checkdirectory:
+                                logger.warn('%s Error trying to validate/create directory. Aborting this process at this time.' % module)
+                                self.valreturn.append({"self.log": self.log,
+                                                       "mode": 'stop'})
+                                return self.queue.put(self.valreturn)
 
-                            logger.fdebug('%s IssueArcID: %s' % (module, ml['IssueArcID']))
-                            ctrlVal = {"IssueArcID":  arcinfo['IssueArcID']}
-                            newVal = {"Status":       "Downloaded",
-                                      "Location":     grab_dst}
-                            logger.fdebug('writing: %s -- %s' % (newVal, ctrlVal))
-                            myDB.upsert("storyarcs", newVal, ctrlVal)
-                            logger.fdebug('%s [%s] Post-Processing completed for: %s' % (module, arcinfo['StoryArc'], grab_dst))
+                            if mylar.CONFIG.READ2FILENAME:
+                                logger.fdebug('%s readingorder#: %s' % (module, arcinfo['ReadingOrder']))
+                                if int(arcinfo['ReadingOrder']) < 10: readord = "00" + str(arcinfo['ReadingOrder'])
+                                elif int(arcinfo['ReadingOrder']) >= 10 and int(arcinfo['ReadingOrder']) <= 99: readord = "0" + str(arcinfo['ReadingOrder'])
+                                else: readord = str(arcinfo['ReadingOrder'])
+                                dfilename = str(readord) + "-" + os.path.split(dst)[1]
+                            else:
+                                dfilename = os.path.split(dst)[1]
 
-            except:
-                pass
+                            grab_dst = os.path.join(grdst, dfilename)
+
+                            logger.fdebug('%s Destination Path : %s' % (module, grab_dst))
+                            grab_src = dst
+                            logger.fdebug('%s Source Path : %s' % (module, grab_src))
+                            logger.info('%s[%s] %s into directory: %s' % (module, mylar.CONFIG.ARC_FILEOPS.upper(), dst, grab_dst))
+
+                            try:
+                                #need to ensure that src is pointing to the series in order to do a soft/hard-link properly
+                                checkspace = helpers.get_free_space(grdst)
+                                if checkspace is False:
+                                    raise OSError
+                                fileoperation = helpers.file_ops(grab_src, grab_dst, arc=True)
+                                if not fileoperation:
+                                    raise OSError
+                            except Exception as e:
+                                logger.error('%s Failed to %s %s: %s' % (module, mylar.CONFIG.ARC_FILEOPS, grab_src, e))
+                                return
+                        else:
+                            grab_dst = dst
+
+                        #delete entry from nzblog table in case it was forced via the Story Arc Page
+                        IssArcID = 'S' + str(arcinfo['IssueArcID'])
+                        myDB.action('DELETE from nzblog WHERE IssueID=? AND SARC=?', [IssArcID,arcinfo['StoryArc']])
+
+                        logger.fdebug('%s IssueArcID: %s' % (module, ml['IssueArcID']))
+                        ctrlVal = {"IssueArcID":  arcinfo['IssueArcID']}
+                        newVal = {"Status":       "Downloaded",
+                                  "Location":     grab_dst}
+                        logger.fdebug('writing: %s -- %s' % (newVal, ctrlVal))
+                        myDB.upsert("storyarcs", newVal, ctrlVal)
+                        logger.fdebug('%s [%s] Post-Processing completed for: %s' % (module, arcinfo['StoryArc'], grab_dst))
+
+            except Exception as e:
+                logger.error('error encountered: %s' % e)
 
             if mylar.CONFIG.WEEKFOLDER or mylar.CONFIG.SEND2READ:
                 #mylar.CONFIG.WEEKFOLDER = will *copy* the post-processed file to the weeklypull list folder for the given week.

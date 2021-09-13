@@ -2650,6 +2650,15 @@ def NZB_SEARCH(
                     alt_nzbname=alt_nzbname,
                     oneoff=oneoff,
                 )
+                updater.foundsearch(
+                    ComicID,
+                    IssueID,
+                    mode=mode,
+                    provider=tmpprov,
+                    SARC=SARC,
+                    IssueArcID=IssueArcID
+                )
+
             # send out the notifications for the snatch.
             if any([oneoff is True, IssueID is None]):
                 cyear = ComicYear
@@ -3124,7 +3133,7 @@ def searchforissue(issueid=None, new=False, rsscheck=None, manual=False):
                     ComicVersion = result['Volume']
                     SARC = result['StoryArc']
                     IssueArcID = issueid
-                    actissueid = None
+                    actissueid = result['IssueID'] #None
                     IssueDate = result['IssueDate']
                     StoreDate = result['ReleaseDate']
                     DigitalDate = result['DigitalDate']
@@ -3365,7 +3374,7 @@ def searchIssueIDList(issuelist):
                     'comicname': comicname,
                     'seriesyear': seriesyear,
                     'issuenumber': issuenumber,
-                    'issueid': issue['IssueID'],
+                    'issueid': issue['IssueID'], #issueid,
                     'comicid': issue['ComicID'],
                     'booktype': booktype,
                 }

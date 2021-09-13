@@ -1428,7 +1428,7 @@ class WebInterface(object):
         chk_snatch = myDB.select('SELECT * FROM snatched WHERE IssueID=?', [IssueID])
         if chk_snatch is None:
             logger.info('Unable to locate how issue was downloaded (name, provider). Cannot continue.')
-            return
+            return json.dumps({'status': 'failure', 'message': 'Unable to locate how issue was downloaded. Cannot retry.'})
 
         providers_snatched = []
         confirmedsnatch = False
@@ -1444,16 +1444,16 @@ class WebInterface(object):
             elif (cs['Status'] == 'Post-Processed' or cs['Status'] == 'Downloaded') and confirmedsnatch == True:
                 logger.info('Issue has already been Snatched, Downloaded & Post-Processed.')
                 logger.info('You should be using Manual Search or Mark Wanted - not retry the same download.')
-                #return
+                return json.dumps({'status': 'failure', 'message': 'Issue has already been Post-Processed. You should mark as Wanted / Manual Search'})
 
         if len(providers_snatched) == 0:
-            return
+            return json.dumps({'status': 'failure', 'message': 'No providers are enabled to try the redownload'})
 
         chk_logresults = []
         for ps in sorted(providers_snatched, key=itemgetter('DateAdded', 'Provider'), reverse=True):
             try:
                 Provider_sql = '%' + ps['Provider'] + '%'
-                chk_the_log = myDB.selectone('SELECT * FROM nzblog WHERE IssueID=? AND Provider like (?)', [IssueID, Provider_sql]).fetchone()
+                chk_the_log = myDB.selectone('SELECT * FROM nzblog WHERE IssueID=? OR IssueID=? AND Provider like (?)', [IssueID, 'S'+IssueID, Provider_sql]).fetchone()
             except:
                 logger.warn('Unable to locate provider reference for attempted Retry. Will see if I can just get the last attempted download.')
                 chk_the_log = myDB.selectone('SELECT * FROM nzblog WHERE IssueID=? and Provider != "CBT" and Provider != "KAT"', [IssueID]).fetchone()
@@ -1461,7 +1461,7 @@ class WebInterface(object):
             if chk_the_log is None:
                 if len(providers_snatched) == 1:
                     logger.info('Unable to locate provider information ' + ps['Provider'] + ' from nzblog - if you wiped the log, you have to search/download as per normal')
-                    return
+                    return json.dumps({'status': 'failure', 'message': 'Cannot locate provider information for issue'})
                 else:
                     logger.info('Unable to locate provider information ' + ps['Provider'] + ' from nzblog. Checking additional providers that came back as being used to download this issue')
                     continue
@@ -1474,17 +1474,18 @@ class WebInterface(object):
         if all([ComicYear is not None, ComicYear != 'None']) and all([IssueID is not None, IssueID != 'None']):
             getYear = myDB.selectone('SELECT IssueDate, ReleaseDate FROM Issues WHERE IssueID=?', [IssueID]).fetchone()
             if getYear is None:
-                logger.warn('Unable to retrieve valid Issue Date for Retry of Issue (Try to refresh the series and then try again.')
-                return
+                logger.warn('Unable to retrieve any valid date for Issue (Try to refresh the series and then try again.')
+                return json.dumps({'status': 'failure', 'message': 'Invalid Issue Date for issue (refresh the series maybe)'})
             if getYear['IssueDate'][:4] == '0000':
                 if getYear['ReleaseDate'][:4] == '0000':
-                    logger.warn('Unable to retrieve valid Issue Date for Retry of Issue (Try to refresh the series and then try again.')
-                    return
+                    logger.warn('Unable to retrieve valid Issue/Release Date for Retry of Issue (Try to refresh the series and then try again.')
+                    return json.dumps({'status': 'failure', 'message': 'Invalid Issue/Release Date for issue (refresh the series maybe)'})
                 else:
                     ComicYear = getYear['ReleaseDate'][:4]
             else:
                 ComicYear = getYear['IssueDate'][:4]
 
+        retried = False
         for chk_log in chk_logresults:
             nzbname = chk_log['NZBName']
             id = chk_log['ID']
@@ -1548,10 +1549,15 @@ class WebInterface(object):
                 if chkthis is None:
                     chkthis = myDB.selectone('SELECT a.ComicID, a.ComicName, a.ComicVersion, a.ComicYear, b.IssueID, b.Issue_Number, b.IssueDate FROM comics as a INNER JOIN issues as b ON a.ComicID = b.ComicID WHERE IssueID=?', [IssueID]).fetchone()
                     if chkthis is None:
-                        chkthis = myDB.selectone('SELECT ComicID, ComicName, year as ComicYear, IssueID, IssueNumber as Issue_number, weeknumber, year from oneoffhistory WHERE IssueID=?', [IssueID]).fetchone()
+                        chkthis = myDB.selectone('SELECT ComicID, ComicName, year as ComicYear, IssueID, IssueNumber as Issue_Number, weeknumber, year from oneoffhistory WHERE IssueID=?', [IssueID]).fetchone()
                         if chkthis is None:
-                            logger.warn('Unable to locate previous snatch details (checked issues/annuals/one-offs). Retrying the snatch for this issue is unavailable.')
-                            continue
+                            if any(['_' in IssueID, IssueID.startswith('S')]):
+                                chkthis = myDB.selectone('SELECT ComicID, ComicName, seriesyear as ComicYear, IssueID, IssueNumber as Issue_Number, IssueDate, Volume as ComicVersion from storyarcs WHERE IssueArcID=?', [IssueID]).fetchone()
+                            else:
+                                chkthis = myDB.selectone('SELECT ComicID, ComicName, seriesyear as ComicYear, IssueID, IssueNumber as Issue_Number, IssueDate, Volume as ComicVersion from storyarcs WHERE IssueID=?', [IssueID]).fetchone()
+                            if chkthis is None:
+                                logger.warn('Unable to locate previous snatch details (checked issues/annuals/one-offs/storyarcs). Retrying the snatch for this issue is unavailable.')
+                                continue
                         else:
                             logger.fdebug('Successfully located issue as a one-off download initiated via pull-list. Let\'s do this....')
                             oneoff = True
@@ -1566,19 +1572,17 @@ class WebInterface(object):
                 else:
                     IssueDate = chkthis['IssueDate']
                     ComicVersion = chkthis['ComicVersion']
-                comicinfo = []
-                comicinfo.append({"ComicName":     chkthis['ComicName'],
-                                  "ComicVolume":   ComicVersion,
-                                  "IssueNumber":   chkthis['Issue_Number'],
-                                  "comyear":       chkthis['ComicYear'],
-                                  "IssueDate":     IssueDate,
-                                  "pack":          False,
-                                  "modcomicname":  modcomicname,
-                                  "oneoff":        oneoff})
+                comicinfo = [{"ComicName":     chkthis['ComicName'],
+                             "ComicVolume":   ComicVersion,
+                             "IssueNumber":   chkthis['Issue_Number'],
+                             "comyear":       chkthis['ComicYear'],
+                             "IssueDate":     IssueDate,
+                             "pack":          False,
+                             "modcomicname":  modcomicname,
+                             "oneoff":        oneoff}]
 
                 newznabinfo = None
                 link = None
-
                 if fullprov == 'nzb.su':
                     if not mylar.CONFIG.NZBSU:
                         logger.error('nzb.su is not enabled - unable to process retry request until provider is re-enabled.')
@@ -1586,6 +1590,7 @@ class WebInterface(object):
                     # http://nzb.su/getnzb/ea1befdeee0affd663735b2b09010140.nzb&i=<uid>&r=<passkey>
                     link = 'http://nzb.su/getnzb/' + str(id) + '.nzb&i=' + str(mylar.CONFIG.NZBSU_UID) + '&r=' + str(mylar.CONFIG.NZBSU_APIKEY)
                     logger.info('fetched via nzb.su. Retrying the send : ' + str(link))
+                    retried = True
                 elif fullprov == 'dognzb':
                     if not mylar.CONFIG.DOGNZB:
                         logger.error('Dognzb is not enabled - unable to process retry request until provider is re-enabled.')
@@ -1593,6 +1598,7 @@ class WebInterface(object):
                     # https://dognzb.cr/fetch/5931874bf7381b274f647712b796f0ac/<passkey>
                     link = 'https://dognzb.cr/fetch/' + str(id) + '/' + str(mylar.CONFIG.DOGNZB_APIKEY)
                     logger.info('fetched via dognzb. Retrying the send : ' + str(link))
+                    retried = True
                 elif fullprov == 'experimental':
                     if not mylar.CONFIG.EXPERIMENTAL:
                         logger.error('Experimental is not enabled - unable to process retry request until provider is re-enabled.')
@@ -1600,6 +1606,7 @@ class WebInterface(object):
                     # http://nzbindex.nl/download/110818178
                     link = 'http://nzbindex.nl/download/' + str(id)
                     logger.info('fetched via experimental. Retrying the send : ' + str(link))
+                    retried = True
                 elif 'newznab' in fullprov:
                     if not mylar.CONFIG.NEWZNAB:
                         logger.error('Newznabs are not enabled - unable to process retry request until provider is re-enabled.')
@@ -1624,14 +1631,36 @@ class WebInterface(object):
                                 logger.info('newznab detected as : ' + str(newznab_info[0]) + ' @ ' + str(newznab_host))
                                 logger.info('link : ' + str(link))
                                 newznabinfo = (newznab_info[0], newznab_info[1], newznab_info[2], newznab_info[3], newznab_info[4])
+                                retried = True
                             else:
                                 logger.error(str(newznab_info[0]) + ' is not enabled - unable to process retry request until provider is re-enabled.')
                             break
+                elif 'DDL' in fullprov:
+                    get_id = myDB.selectone('SELECT id, mainlink FROM ddl_info WHERE IssueID=?', [IssueID]).fetchone()
+                    if get_id:
+                        link = {'id': get_id[0], 'link': get_id[1]}
+                        retried = True
 
                 if link is not None:
                     sendit = search.searcher(fullprov, nzbname, comicinfo, link=link, IssueID=IssueID, ComicID=ComicID, tmpprov=fullprov, directsend=True, newznab=newznabinfo)
                     break
-        return
+
+        if retried is True:
+            retry_status = 'success'
+            if comicinfo is not None:
+                cinfo = comicinfo[0]
+                if cinfo['IssueNumber'] is not None:
+                    retry_message = 'Successfully submitted retry for %s (%s) #%s' % (cinfo['ComicName'], cinfo['comyear'], cinfo['IssueNumber'])
+                else:
+                    retry_message = 'Successfully submitted retry for %s (%s)' % (cinfo['ComicName'], cinfo['comyear'])
+            else:
+                retry_message = 'Successfully submitted retry'
+        else:
+            retry_status = 'failure'
+            retry_message = 'Unable to retry issue - please check the logs for more information.'
+
+        return json.dumps({'status': retry_status, 'message': retry_message})
+
     retryissue.exposed = True
 
     def queueit(self, **kwargs):
@@ -3275,14 +3304,41 @@ class WebInterface(object):
 
     def loadhistory(self, iDisplayStart=0, iDisplayLength=100, iSortCol_0=5, sSortDir_0="desc", sSearch="", **kwargs):
         myDB = db.DBConnection()
-        resultlist = myDB.select("SELECT * from snatched order by DateAdded DESC")
+        r_list = myDB.select("select b.StoryArcID, b.StoryArc, b.IssueArcID, a.* from snatched a left join storyarcs b on b.issueid=a.issueid order by DateAdded DESC")
         iDisplayStart = int(iDisplayStart)
         iDisplayLength = int(iDisplayLength)
+        resultlist = []
+        for rt in r_list:
+            tmplist = {'StoryArc': rt['StoryArc'],
+                       'StoryArcID': rt['StoryArcID'],
+                       'IssueArcID': rt['IssueArcID'],
+                       'ComicName': rt['ComicName'],
+                       'Issue_Number': rt['Issue_Number'],
+                       'Status': rt['Status'],
+                       'DateAdded': rt['DateAdded'],
+                       'Provider': rt['Provider'],
+                       'IssueID': rt['IssueID'],
+                       'ComicID': rt['ComicID']}
+
+            if rt['IssueID'] is not None and all(['_' in rt['IssueID'], rt['StoryArc'] is None]):
+                tmp = myDB.selectone("Select StoryArc FROM storyarcs where IssueArcID=?", [re.sub('S', '', rt['IssueID'])]).fetchone()
+                if tmp:
+                    tmplist['StoryArc'] = tmp['StoryArc']
+
+            resultlist.append(tmplist)
+
         filtered = []
         if sSearch == "" or sSearch == None:
             filtered = resultlist[::]
         else:
-            filtered = [row for row in resultlist if any([sSearch.lower() in row['ComicName'].lower(), sSearch.lower() in row['Status'].lower(), sSearch.lower() in row['DateAdded'], sSearch.lower() in row['Issue_Number']])]
+            for row in resultlist:
+                if row['StoryArc'] is not None:
+                    if any([sSearch.lower() in row['ComicName'].lower(), sSearch.lower() in row['StoryArc'].lower(), sSearch.lower() in row['Status'].lower(), sSearch.lower() in row['DateAdded'], sSearch.lower() in row['Issue_Number']]):
+                        filtered.append(row)
+                else:
+                    if any([sSearch.lower() in row['ComicName'].lower(), sSearch.lower() in row['Status'].lower(), sSearch.lower() in row['DateAdded'], sSearch.lower() in row['Issue_Number']]):
+                        filtered.append(row)
+
         sortcolumn = 'DateAdded'
         if iSortCol_0 == '1':
             sortcolumn = 'DateAdded'
@@ -3297,7 +3353,7 @@ class WebInterface(object):
 
         filtered.sort(key=lambda x: (x[sortcolumn] is None, x[sortcolumn] == '', x[sortcolumn]), reverse=sSortDir_0 == "asc")
         rows = filtered[iDisplayStart:(iDisplayStart + iDisplayLength)]
-        rows = [[row['DateAdded'], row['ComicName'], row['Issue_Number'], row['Status'], row['IssueID'], row['ComicID'], row['Provider']] for row in rows]
+        rows = [[row['DateAdded'], row['ComicName'], row['Issue_Number'], row['Status'], row['IssueID'], row['ComicID'], row['Provider'], row['StoryArc'], row['IssueArcID'], row['StoryArcID']] for row in rows]
         return json.dumps({
             'iTotalDisplayRecords': len(filtered),
             'iTotalRecords': len(resultlist),
