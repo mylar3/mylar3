@@ -427,7 +427,7 @@ class Config(object):
                 count = sum(1 for line in open(self._config_file))
             else:
                 count = 0
-            self.newconfig = 10
+            self.newconfig = 11
             if count == 0:
                 CONFIG_VERSION = 0
                 MINIMALINI = False
@@ -543,9 +543,6 @@ class Config(object):
 
     def read(self, startup=False):
         self.config_vals()
-        setattr(self, 'EXTRA_NEWZNABS', self.get_extra_newznabs())
-        setattr(self, 'EXTRA_TORZNABS', self.get_extra_torznabs())
-        setattr(self, 'IGNORED_PUBLISHERS', self.get_ignored_pubs())
 
         if startup is True:
             if self.LOG_DIR is None:
@@ -575,16 +572,22 @@ class Config(object):
             else:
                 logger.mylar_log.initLogger(loglevel=log_level, log_dir=self.LOG_DIR, max_logsize=self.MAX_LOGSIZE, max_logfiles=self.MAX_LOGFILES)
 
+        extra_newznabs, extra_torznabs = self.get_extras()
+        setattr(self, 'EXTRA_NEWZNABS', extra_newznabs)
+        setattr(self, 'EXTRA_TORZNABS', extra_torznabs)
+        setattr(self, 'IGNORED_PUBLISHERS', self.get_ignored_pubs())
+
         if any([self.CONFIG_VERSION == 0, self.CONFIG_VERSION < self.newconfig]):
             try:
                 shutil.move(self._config_file, os.path.join(mylar.DATA_DIR, 'config.ini.backup'))
             except:
                 logger.warn('Unable to make proper backup of config file in %s' % os.path.join(mylar.DATA_DIR, 'config.ini.backup'))
-            if self.CONFIG_VERSION < 10:
+            if self.CONFIG_VERSION < 11:
                 logger.info('Attempting to update configuration..')
                 #8-torznab multiple entries merged into extra_torznabs value
                 #9-remote rtorrent ssl option
                 #10-encryption of all keys/passwords.
+                #11-provider_ids
                 self.config_update()
             setattr(self, 'CONFIG_VERSION', str(self.newconfig))
             config.set('General', 'CONFIG_VERSION', str(self.newconfig))
@@ -633,6 +636,29 @@ class Config(object):
             except Exception as e:
                 logger.error('Error: %s' % e)
             logger.info('Successfully updated config to version 10 ( password / apikey - .ini encryption )')
+        #if self.CONFIG_VERSION < 11:
+            #add ID to all providers as a way to better identify them
+            #tmp_newznabs = self.EXTRA_NEWZNABS
+            #n_cnt = 0
+            #a_list = []
+            #if len(tmp_newznabs) > 0:
+            #    for i in tmp_newznabs:
+            #        tmp_i = list(i)
+            #        tmp_i.append(n_cnt)
+            #        a_list.append(tuple(tmp_i))
+            #        n_cnt +=1
+            #setattr(self, 'EXTRA_NEWZNABS', a_list)
+            #tmp_torznabs = self.EXTRA_TORZNABS
+            #b_cnt = 0
+            #b_list = []
+            #if len(tmp_torznabs) > 0:
+            #    for i in tmp_torznabs:
+            #        tmp_i = list(i)
+            #        tmp_i.append(b_cnt)
+            #        b_list.append(tuple(tmp_i))
+            #        b_cnt +=1
+            #setattr(self, 'EXTRA_TORZNABS', b_list)
+
         logger.info('Configuration upgraded to version %s' % self.newconfig)
 
     def check_section(self, section, key):
@@ -792,8 +818,9 @@ class Config(object):
         config.set('Torznab', 'extra_torznabs', ', '.join(tmp_torz))
 
         # this needs to revert from , to # so that it is stored properly (multiple categories)
-        setattr(self, 'EXTRA_NEWZNABS', self.get_extra_newznabs())
-        setattr(self, 'EXTRA_TORZNABS', self.get_extra_torznabs())
+        extra_newznabs, extra_torznabs = self.get_extras()
+        setattr(self, 'EXTRA_NEWZNABS', extra_newznabs)
+        setattr(self, 'EXTRA_TORZNABS', extra_torznabs)
 
         self.provider_sequence()
 
@@ -1246,34 +1273,119 @@ class Config(object):
 
         return KEYS_32P
 
-    def get_extra_newznabs(self):
-        extra_newznabs = self.EXTRA_NEWZNABS
-        if type(extra_newznabs) != list:
-            extra_newznabs = list(zip(*[iter(extra_newznabs.split(', '))]*6))
+    def get_extras(self):
+        cnt=0
+        while (cnt < 2):
+            if cnt == 0:
+                ex = self.EXTRA_NEWZNABS
+            else:
+                ex = self.EXTRA_TORZNABS
+
+            if type(ex) != list:
+                if self.CONFIG_VERSION < 11:
+                    if cnt == 0:
+                        extra_newznabs = list(zip(*[iter(ex.split(', '))]*6))
+                    else:
+                        extra_torznabs = list(zip(*[iter(ex.split(', '))]*6))
+                else:
+                    if cnt == 0:
+                        extra_newznabs = list(zip(*[iter(ex.split(', '))]*7))
+                    else:
+                        extra_torznabs = list(zip(*[iter(ex.split(', '))]*7))
+            else:
+               if cnt == 0:
+                   extra_newznabs = ex
+               else:
+                   extra_torznabs = ex
+            cnt+=1
+
         x_newzcat = []
-        for x in extra_newznabs:
-            x_cat = x[4]
-            if '#' in x_cat:
-                x_t = x[4].split('#')
-                x_cat = ','.join(x_t)
-                if x_cat[0] == ',':
-                    x_cat = re.sub(',', '#', x_cat, 1)
-            x_newzcat.append((x[0],x[1],x[2],x[3],x_cat,x[5]))
-        extra_newznabs = x_newzcat
-        return extra_newznabs
+        x_torzcat = []
+        cnt = 0
+        while (cnt < 2):
+            if cnt == 0:
+                ex = extra_newznabs
+            else:
+                ex = extra_torznabs
+
+            for x in ex:
+                x_cat = x[4]
+                if '#' in x_cat:
+                    x_t = x[4].split('#')
+                    x_cat = ','.join(x_t)
+                    if x_cat[0] == ',':
+                        x_cat = re.sub(',', '#', x_cat, 1)
+                try:
+                    if cnt == 0:
+                        x_newzcat.append((x[0],x[1],x[2],x[3],x_cat,x[5],int(x[6])))
+                    else:
+                        x_torzcat.append((x[0],x[1],x[2],x[3],x_cat,x[5],int(x[6])))
+                    if int(x[6]) > mylar.PROVIDER_START_ID:
+                        mylar.PROVIDER_START_ID = int(x[6])
+                except Exception as e:
+                    if cnt == 0:
+                        x_newzcat.append((x[0],x[1],x[2],x[3],x_cat,x[5]))
+                    else:
+                        x_torzcat.append((x[0],x[1],x[2],x[3],x_cat,x[5]))
+            cnt +=1
+
+        # had to loop thru entire set above in order to get the highest id to start at
+        xx_newzcat = []
+        xx_torzcat = []
+        cnt = 0
+        while (cnt < 2):
+            if cnt == 0:
+                ex = x_newzcat
+            else:
+                ex = x_torzcat
+
+            for xn in ex:
+                try:
+                    if cnt == 0:
+                        xx_newzcat.append((xn[0],xn[1],xn[2],xn[3],xn[4],xn[5],xn[6]))
+                    else:
+                        xx_torzcat.append((xn[0],xn[1],xn[2],xn[3],xn[4],xn[5],xn[6]))
+                except Exception as e:
+                    mylar.PROVIDER_START_ID += 1
+                    if cnt == 0:
+                        xx_newzcat.append((xn[0],xn[1],xn[2],xn[3],xn[4],xn[5],mylar.PROVIDER_START_ID))
+                    else:
+                        xx_torzcat.append((xn[0],xn[1],xn[2],xn[3],xn[4],xn[5],mylar.PROVIDER_START_ID))
+            cnt +=1
+        #logger.fdebug('xx_newzcat: %s' % (xx_newzcat,))
+        #logger.fdebug('xx_torzcat: %s' % (xx_torzcat,))
+        return xx_newzcat, xx_torzcat
 
     def get_extra_torznabs(self):
         extra_torznabs = self.EXTRA_TORZNABS
         if type(extra_torznabs) != list:
-            extra_torznabs = list(zip(*[iter(extra_torznabs.split(', '))]*6))
+            if self.CONFIG_VERSION < 11:
+                extra_torznabs = list(zip(*[iter(extra_torznabs.split(', '))]*6))
+            else:
+                extra_torznabs = list(zip(*[iter(extra_torznabs.split(', '))]*7))
         x_torcat = []
         for x in extra_torznabs:
             x_cat = x[4]
             if '#' in x_cat:
                 x_t = x[4].split('#')
                 x_cat = ','.join(x_t)
-            x_torcat.append((x[0],x[1],x[2],x[3],x_cat,x[5]))
-        extra_torznabs = x_torcat
+            try:
+                x_torcat.append((x[0],x[1],x[2],x[3],x_cat,x[5],int(x[6])))
+                if int(x[6]) > mylar.PROVIDER_START_ID:
+                    mylar.PROVIDER_START_ID = int(x[6])
+            except Exception as e:
+                x_torcat.append((x[0],x[1],x[2],x[3],x_cat,x[5]))
+
+        # had to loop thru entire set above in order to get the highest id to start at
+        xx_torcat = []
+        for xn in x_torcat:
+            try:
+                xx_torcat.append((xn[0],xn[1],xn[2],xn[3],xn[4],xn[5],xn[6]))
+            except Exception as e:
+                mylar.PROVIDER_START_ID += 1
+                xx_torcat.append((xn[0],xn[1],xn[2],xn[3],xn[4],xn[5],mylar.PROVIDER_START_ID))
+
+        extra_torznabs = xx_torcat
         return extra_torznabs
 
     def get_ignored_pubs(self):
