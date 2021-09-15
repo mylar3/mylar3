@@ -5995,7 +5995,11 @@ class WebInterface(object):
 
                 del kwargs[kwarg]
 
-                mylar.CONFIG.EXTRA_NEWZNABS.append((newznab_name, newznab_host, newznab_verify, newznab_apikey, newznab_uid, newznab_enabled))
+                if newznab_number.startswith('_'):
+                    mylar.PROVIDER_START_ID +=1
+                    newznab_number = str(mylar.PROVIDER_START_ID)
+
+                mylar.CONFIG.EXTRA_NEWZNABS.append((newznab_name, newznab_host, newznab_verify, newznab_apikey, newznab_uid, newznab_enabled, int(newznab_number)))
 
         mylar.CONFIG.EXTRA_TORZNABS = []
 
@@ -6024,7 +6028,11 @@ class WebInterface(object):
 
                 del kwargs[kwarg]
 
-                mylar.CONFIG.EXTRA_TORZNABS.append((torznab_name, torznab_host, torznab_verify, torznab_api, torznab_category, torznab_enabled))
+                if torznab_number.startswith('_'):
+                    mylar.PROVIDER_START_ID +=1
+                    torznab_number = str(mylar.PROVIDER_START_ID)
+
+                mylar.CONFIG.EXTRA_TORZNABS.append((torznab_name, torznab_host, torznab_verify, torznab_api, torznab_category, torznab_enabled, int(torznab_number)))
 
         mylar.CONFIG.process_kwargs(kwargs)
 

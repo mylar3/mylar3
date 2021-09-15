@@ -918,7 +918,8 @@ class Api(object):
                                  'apikey': nz[3],
                                  'categories': cats,
                                  'uid': uid,
-                                 'enabled': bool(int(nz[5]))})
+                                 'enabled': bool(int(nz[5])),
+                                 'id': int(nz[6])})
             torznabs= []
             for nz in mylar.CONFIG.EXTRA_TORZNABS:
                 cats = nz[4]
@@ -928,7 +929,8 @@ class Api(object):
                                  'host': nz[1],
                                  'apikey': nz[3],
                                  'categories': nz[4],
-                                 'enabled': bool(int(nz[5]))})
+                                 'enabled': bool(int(nz[5])),
+                                 'id': int(nz[6])})
 
             providers = {'newznabs': newznabs, 'torznabs': torznabs}
         except Exception as e:
@@ -998,7 +1000,17 @@ class Api(object):
                 else:
                     newznab_uid = '%s%s'.strip() % ('#', re.sub(',', '#', newznab_categories))
 
-            mylar.CONFIG.EXTRA_NEWZNABS.append((newznab_name, newznab_host, newznab_verify, newznab_apikey, newznab_uid, newznab_enabled))
+            #prov_id assignment here
+            prov_id = mylar.PROVIDER_START_ID + 1
+
+            prov_line = (newznab_name, newznab_host, newznab_verify, newznab_apikey, newznab_uid, newznab_enabled, prov_id)
+            if prov_line not in mylar.CONFIG.EXTRA_NEWZNABS:
+                mylar.CONFIG.EXTRA_NEWZNABS.append(prov_line)
+            else:
+                self.data = self._failureResponse('exact details belong to another provider id already [%]. Maybe you should be using changeProvider' % prov_id)
+                logger.fdebug('[API][addProvider] %s' % (self.data,))
+                return
+
             p_name = newznab_name
 
         elif providertype == 'torznab':
@@ -1035,7 +1047,17 @@ class Api(object):
                     tc = torznab_categories.split(',')
                     torznab_categories = '#'.join(tc).strip()
 
-            mylar.CONFIG.EXTRA_TORZNABS.append((torznab_name, torznab_host, torznab_verify, torznab_apikey, torznab_categories, torznab_enabled))
+            #prov_id assignment here
+            prov_id = mylar.PROVIDER_START_ID + 1
+
+            prov_line = (torznab_name, torznab_host, torznab_verify, torznab_apikey, torznab_categories, torznab_enabled, prov_id)
+            if prov_line not in mylar.CONFIG.EXTRA_TORZNABS:
+                mylar.CONFIG.EXTRA_TORZNABS.append(prov_line)
+            else:
+                self.data = self._failureResponse('exact details belong to another provider id already [%]. Maybe you should be using changeProvider' % prov_id)
+                logger.fdebug('[API][addProvider] %s' % (self.data,))
+                return
+
             p_name = torznab_name
 
         try:
@@ -1044,16 +1066,20 @@ class Api(object):
             logger.error('[API][ADD_PROVIDER][%s] error returned : %s' % (providertype, e))
             self.data = self._failureResponse('Unable to add %s provider %s to the provider list. Check the logs.' % (providertype, p_name))
         else:
-            self.data = self._successResponse('Successfully added %s provider %s to the provider list' % (providertype, p_name))
+            self.data = self._successResponse('Successfully added %s provider %s to the provider list [prov_id: %s]' % (providertype, p_name, prov_id))
         return
 
     def _delProvider(self, **kwargs):
         providername = None
+        prov_id = None
         if 'name' in kwargs:
             providername = kwargs['name'].strip()
 
-        if any([providername is None, providername == '']):
-            self.data = self._failureResponse('name given for provider cannot be None or blank')
+        if 'prov_id' in kwargs:
+            prov_id = int(kwargs['prov_id'])
+
+        if any([providername is None, providername == '']) and prov_id is None:
+            self.data = self._failureResponse('at least one of prov_id or name must be provided (cannot be blank)')
             logger.fdebug('[API][delProvider] %s' % (self.data,))
             return
 
@@ -1076,23 +1102,50 @@ class Api(object):
         del_match = False
         newznabs = []
         if providertype == 'newznab':
+            if prov_id is not None:
+                prov_match = 'id'
+            else:
+                prov_match = 'name'
             for nz in mylar.CONFIG.EXTRA_NEWZNABS:
-                if providername.lower() == nz[0]:
-                    del_match = True
-                    continue
+                if prov_match == 'id':
+                    if prov_id == nz[6]:
+                        del_match = True
+                        providername = nz[0]
+                        continue
+                    else:
+                        newznabs.append(nz)
                 else:
-                    newznabs.append(nz)
+                    if providername.lower() == nz[0]:
+                        del_match = True
+                        prov_id = nz[6]
+                        continue
+                    else:
+                        newznabs.append(nz)
 
             if del_match is True:
                 mylar.CONFIG.EXTRA_NEWZNABS = ((newznabs))
         else:
             torznabs= []
+            if prov_id is not None:
+                prov_match = 'id'
+            else:
+                prov_match = 'name'
             for nz in mylar.CONFIG.EXTRA_TORZNABS:
-                if providername.lower() == nz[0]:
-                    del_match = True
-                    continue
+                if prov_match == 'id':
+                    if prov_id == nz[6]:
+                        del_match = True
+                        providername = nz[0]
+                        continue
+                    else:
+                        torznabs.append(nz)
                 else:
-                    torznabs.append(nz)
+                    if providername.lower() == nz[0]:
+                        del_match = True
+                        prov_id = nz[6]
+                        continue
+                    else:
+                        torznabs.append(nz)
+
             if del_match is True:
                 mylar.CONFIG.EXTRA_TORZNABS = ((torznabs))
 
@@ -1107,13 +1160,14 @@ class Api(object):
                 logger.error('[API][ADD_PROVIDER][%s] error returned : %s' % (providertype, e))
                 self.data = self._failureResponse('Unable to save config of deleted %s provider %s. Check the logs.' % (providertype, providername))
             else:
-                self.data = self._successResponse('Successfully removed %s provider %s' % (providertype, providername))
+                self.data = self._successResponse('Successfully removed %s provider %s [prov_id:%s]' % (providertype, providername, prov_id))
                 logger.fdebug('[API][delProvider] %s' % self.data)
         return
 
     def _changeProvider(self, **kwargs):
         providername = None
         changename = None
+        prov_id = None
         if 'altername' in kwargs:
             changename = kwargs.pop('altername').strip()
             if any([changename is None, changename == '']):
@@ -1121,10 +1175,14 @@ class Api(object):
                 logger.fdebug('[API][changeProvider] %s' % (self.data,))
                 return
 
+        if 'prov_id' in kwargs:
+            prov_id = int(kwargs['prov_id'])
+
         if 'name' not in kwargs:
-            self.data = self._failureResponse('provider name (`name`) not given')
-            logger.fdebug('[API][changeProvider] %s' % (self.data,))
-            return
+            if prov_id is None:
+                self.data = self._failureResponse('provider id (`prov_id`) or provider name (`name`) not given. One must be supplied.')
+                logger.fdebug('[API][changeProvider] %s' % (self.data,))
+                return
         else:
             providername = kwargs['name'].strip()
             if all([providername is None, providername == '']):
@@ -1214,76 +1272,116 @@ class Api(object):
         newznabs = []
         change_match = []
         if providertype == 'newznab':
+            if prov_id is not None:
+                prov_match = 'id'
+            else:
+                prov_match = 'name'
             for nz in mylar.CONFIG.EXTRA_NEWZNABS:
-                if providername.lower() == nz[0].lower():
-                    if changename is not None:
-                        if providername.lower() != changename.lower():
-                            providername = changename
-                            change_match.append('name')
-                    p_host = nz[1]
-                    if providerhost is not None:
-                        if p_host.lower() != providerhost.lower():
-                            p_host = providerhost
-                            change_match.append('host')
-                    p_verify = nz[2]
-                    if prov_verify is not None:
-                        if p_verify != prov_verify:
-                            p_verify = prov_verify
-                            change_match.append('verify')
-                    p_apikey = nz[3]
-                    if prov_apikey is not None:
-                        if p_apikey != prov_apikey:
-                            p_apikey = prov_apikey
-                            change_match.append('apikey')
-                    p_uid = nz[4]
-                    if newznab_uid is not None:
-                        if p_uid != newznab_uid:
-                            p_uid = newznab_uid
-                            change_match.append('uid')
-                    p_enabled = nz[5]
-                    if p_enabled != prov_enabled and prov_enabled is not None:
-                        p_enabled = prov_enabled
-                        change_match.append('enabled')
-                    newznabs.append((providername, p_host, p_verify, p_apikey, p_uid, p_enabled))
+                if prov_match == 'id':
+                    if nz[6] != prov_id:
+                        newznabs.append(nz)
+                        continue
                 else:
-                    newznabs.append(nz)
+                    if providername.lower() != nz[0].lower():
+                        newznabs.append(nz)
+                        continue
+                if not prov_id:
+                    # cannot alter prov_id via changeProvider method
+                    prov_id = nz[6]
+                if changename is not None:
+                    if providername is None:
+                        providername = changename
+                        change_match.append('name')
+                    elif providername.lower() != changename.lower():
+                        providername = changename
+                        change_match.append('name')
+                else:
+                    if providername is None:
+                        providername = nz[0]
+                    else:
+                        change_match.append('name')
+                p_host = nz[1]
+                if providerhost is not None:
+                    if p_host.lower() != providerhost.lower():
+                        p_host = providerhost
+                        change_match.append('host')
+                p_verify = nz[2]
+                if prov_verify is not None:
+                    if p_verify != prov_verify:
+                        p_verify = prov_verify
+                        change_match.append('verify')
+                p_apikey = nz[3]
+                if prov_apikey is not None:
+                    if p_apikey != prov_apikey:
+                        p_apikey = prov_apikey
+                        change_match.append('apikey')
+                p_uid = nz[4]
+                if newznab_uid is not None:
+                    if p_uid != newznab_uid:
+                        p_uid = newznab_uid
+                        change_match.append('uid')
+                p_enabled = nz[5]
+                if p_enabled != prov_enabled and prov_enabled is not None:
+                    p_enabled = prov_enabled
+                    change_match.append('enabled')
+                newznabs.append((providername, p_host, p_verify, p_apikey, p_uid, p_enabled, prov_id))
 
             if len(change_match) > 0:
                 mylar.CONFIG.EXTRA_NEWZNABS = ((newznabs))
         else:
             torznabs= []
+            if prov_id is not None:
+                prov_match = 'id'
+            else:
+                prov_match = 'name'
             for nt in mylar.CONFIG.EXTRA_TORZNABS:
-                if providername.lower() == nt[0].lower():
-                    if changename is not None:
-                        if providername.lower() != changename.lower():
-                            providername = changename
-                            change_match.append('name')
-                    p_host = nt[1]
-                    if providerhost is not None:
-                        if p_host.lower() != providerhost.lower():
-                            p_host = providerhost
-                            change_match.append('host')
-                    p_verify = nt[2]
-                    if p_verify != prov_verify and prov_verify is not None:
-                        p_verify = prov_verify
-                        change_match.append('verify')
-                    p_apikey = nt[3]
-                    if prov_apikey is not None:
-                        if p_apikey != prov_apikey:
-                            p_apikey = prov_apikey
-                            change_match.append('apikey')
-                    p_categories = nt[4]
-                    if torznab_categories is not None:
-                        if p_categories != torznab_categories:
-                            p_categories = torznab_categories
-                            change_match.append('categories')
-                    p_enabled = nt[5]
-                    if p_enabled != prov_enabled and prov_enabled is not None:
-                        p_enabled = prov_enabled
-                        change_match.append('enabled')
-                    torznabs.append((providername, p_host, p_verify, p_apikey, p_categories, p_enabled))
+                if prov_match == 'id':
+                    if nt[6] != prov_id:
+                        torznabs.append(nt)
+                        continue
                 else:
-                    torznabs.append(nt)
+                    if providername.lower() != nt[0].lower():
+                        torznabs.append(nt)
+                        continue
+                if not prov_id:
+                    # cannot alter prov_id via changeProvider method
+                    prov_id = nt[6]
+                if changename is not None:
+                    if providername is None:
+                        providername = changename
+                        change_match.append('name')
+                    elif providername.lower() != changename.lower():
+                        providername = changename
+                        change_match.append('name')
+                else:
+                    if providername is None:
+                        providername = nt[0]
+                    else:
+                        change_match.append('name')
+                p_host = nt[1]
+                if providerhost is not None:
+                    if p_host.lower() != providerhost.lower():
+                        p_host = providerhost
+                        change_match.append('host')
+                p_verify = nt[2]
+                if p_verify != prov_verify and prov_verify is not None:
+                    p_verify = prov_verify
+                    change_match.append('verify')
+                p_apikey = nt[3]
+                if prov_apikey is not None:
+                    if p_apikey != prov_apikey:
+                        p_apikey = prov_apikey
+                        change_match.append('apikey')
+                p_categories = nt[4]
+                if torznab_categories is not None:
+                    if p_categories != torznab_categories:
+                        p_categories = torznab_categories
+                        change_match.append('categories')
+                p_enabled = nt[5]
+                if p_enabled != prov_enabled and prov_enabled is not None:
+                    p_enabled = prov_enabled
+                    change_match.append('enabled')
+                torznabs.append((providername, p_host, p_verify, p_apikey, p_categories, p_enabled, prov_id))
 
             if len(change_match) > 0:
                 mylar.CONFIG.EXTRA_TORZNABS = ((torznabs))
@@ -1298,7 +1396,7 @@ class Api(object):
             except Exception as e:
                 logger.error('[API][ADD_PROVIDER][%s] error returned : %s' % (providertype, e))
             else:
-                self.data = self._successResponse('Successfully changed %s for %s provider %s ' % (change_match, providertype, providername))
+                self.data = self._successResponse('Successfully changed %s for %s provider %s [prov_id:%s]' % (change_match, providertype, providername, prov_id))
                 logger.fdebug('[API][changeProvider] %s' % self.data)
         return
 
