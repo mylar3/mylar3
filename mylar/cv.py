@@ -397,7 +397,7 @@ def GetComicInfo(comicid, dom, safechk=None, series=False):
                                         pubrun = h
                                         y = pubrun.find('-')
                                         pub_start = pubrun[:y][:4].strip()
-                                        pub_start_month = pub_start[pub_start.find('.'):].strip()
+                                        pub_start_month = pubrun[:y][pubrun.find('.')+1:].strip()
                                         pub_end = pubrun[y+2:][:4].strip()
                                         if len(pub_end) == 0 and len(pub_start) == 0:
                                             chkyear = False
@@ -416,7 +416,7 @@ def GetComicInfo(comicid, dom, safechk=None, series=False):
                                             if int(pub_end[:4]) > int(comic['ComicYear'])  > int(pub_start[:4]):
                                                 found = True
                                             else:
-                                                pub_end_month = pub_end[pub_end.find('.'):].strip()
+                                                pub_end_month = pubrun[y+2:][pubrun.find('.',y+2)+1:].strip()
                                                 if any([ int(pub_end[:4]) == int(comic['ComicYear']), int(pub_start[:4]) == int(comic['ComicYear']) ]):
                                                     quick_chk = getComic(comicid=None, rtype='imprints_first', issueid=comic['FirstIssueID'])
                                                     if quick_chk:
@@ -445,7 +445,7 @@ def GetComicInfo(comicid, dom, safechk=None, series=False):
                                                             else:
                                                                 start_month = sdate
                                                             if int(pub_start_month) <= int(start_month):
-                                                                logger.fdebug('[Year:%s] publication month of %s is after the end imprint date of %s' % (comic['ComicYear'], start_month, pub_start_month))
+                                                                logger.fdebug('[Year:%s] issue publication month of %s is after the start imprint date of %s' % (comic['ComicYear'], start_month, pub_start_month))
                                                                 found = True
                                                             else:
                                                                 found = False
@@ -466,7 +466,7 @@ def GetComicInfo(comicid, dom, safechk=None, series=False):
                                                 publisherImprint = i['name']
                                                 found = True
                                                 break
-                                    elif all([f != 'imprints', f != 'publication_run']) and h is not None:
+                                    elif all([f != 'imprints', f != 'publication_run']) and h is not None and found is not True:
                                         if h.lower() == comic['ComicPublisher'].lower():
                                             logger.info('imprint matched: %s ---> %s' % (d, h))
                                             comicPublisher = d
