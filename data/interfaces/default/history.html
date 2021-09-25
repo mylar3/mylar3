@@ -143,7 +143,13 @@
                                    dline = '<a href="detailStoryArc?StoryArcID=' + full[5] + '">' + full[1] + '</a>';
                                }
                            } else {
-                               dline = '<a href="comicDetails?ComicID=' + full[5] + '">' + full[1] + '</a>';
+                              if (full[10] !== null){
+                                   // exists as a one-off (pull)
+                                   vs = full[10].split('-');
+                                   dline = '<a href="pullist?week=' + vs[0] + '&year=' + vs[1] + '#' +full[4] + '">' + full[1] + '</a> <b>[One-Off]</b></a>';
+                              } else {
+                                   dline = '<a href="comicDetails?ComicID=' + full[5] + '">' + full[1] + '</a>';
+                              }
                            }
                            return dline;
                        }

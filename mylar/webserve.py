@@ -3304,10 +3304,11 @@ class WebInterface(object):
 
     def loadhistory(self, iDisplayStart=0, iDisplayLength=100, iSortCol_0=5, sSortDir_0="desc", sSearch="", **kwargs):
         myDB = db.DBConnection()
-        r_list = myDB.select("select b.StoryArcID, b.StoryArc, b.IssueArcID, a.* from snatched a left join storyarcs b on b.issueid=a.issueid order by DateAdded DESC")
+        r_list = myDB.select("select b.StoryArcID, b.StoryArc, b.IssueArcID, a.*, c.weeknumber, c.year from snatched a left join storyarcs b on b.issueid=a.issueid left join oneoffhistory c on a.issueid=c.issueid order by DateAdded DESC")
         iDisplayStart = int(iDisplayStart)
         iDisplayLength = int(iDisplayLength)
         resultlist = []
+        watchlist = helpers.listLibrary()
         for rt in r_list:
             tmplist = {'StoryArc': rt['StoryArc'],
                        'StoryArcID': rt['StoryArcID'],
@@ -3318,7 +3319,10 @@ class WebInterface(object):
                        'DateAdded': rt['DateAdded'],
                        'Provider': rt['Provider'],
                        'IssueID': rt['IssueID'],
-                       'ComicID': rt['ComicID']}
+                       'ComicID': rt['ComicID'],
+                       'weeknumber': rt['weeknumber'],
+                       'weekyear': rt['year'],
+                       'Oneoff':  None}
 
             if rt['IssueID'] is not None and all(['_' in rt['IssueID'], rt['StoryArc'] is None]):
                 tmp = myDB.selectone("Select StoryArc FROM storyarcs where IssueArcID=?", [re.sub('S', '', rt['IssueID'])]).fetchone()
@@ -3352,8 +3356,15 @@ class WebInterface(object):
         #filtered.sort(key= itemgetter(sortcolumn2, sortcolumn), reverse=sSortDir_0 == "desc")
 
         filtered.sort(key=lambda x: (x[sortcolumn] is None, x[sortcolumn] == '', x[sortcolumn]), reverse=sSortDir_0 == "asc")
-        rows = filtered[iDisplayStart:(iDisplayStart + iDisplayLength)]
-        rows = [[row['DateAdded'], row['ComicName'], row['Issue_Number'], row['Status'], row['IssueID'], row['ComicID'], row['Provider'], row['StoryArc'], row['IssueArcID'], row['StoryArcID']] for row in rows]
+        trows = filtered[iDisplayStart:(iDisplayStart + iDisplayLength)]
+        rows = []
+        for r in trows:
+            tmpr = r
+            if all([r['ComicID'] not in watchlist, r['weeknumber'] is not None, r['StoryArc'] is None]):
+                tmpr['Oneoff'] = '%s-%s' % (r['weeknumber'], r['weekyear'])
+            rows.append(tmpr)
+
+        rows = [[row['DateAdded'], row['ComicName'], row['Issue_Number'], row['Status'], row['IssueID'], row['ComicID'], row['Provider'], row['StoryArc'], row['IssueArcID'], row['StoryArcID'], row['Oneoff']] for row in rows]
         return json.dumps({
             'iTotalDisplayRecords': len(filtered),
             'iTotalRecords': len(resultlist),

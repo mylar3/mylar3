@@ -1702,6 +1702,7 @@ class PostProcessor(object):
                         ctrlVal = {"IssueArcID":  ml['IssueArcID']}
                         logger.fdebug('writing: %s -- %s' % (newVal, ctrlVal))
                         myDB.upsert("storyarcs", newVal, ctrlVal)
+                        updater.foundsearch(ComicID=ml['ComicID'], mode='story_arc', IssueID=ml['IssueID'], IssueArcID=ml['IssueArcID'], down='PP', module=module)
                         if all([mylar.CONFIG.STORYARCDIR is True, mylar.CONFIG.COPY2ARCDIR is True]):
                             logger.fdebug('%s [%s] Post-Processing completed for: %s' % (module, ml['StoryArc'], grab_dst))
                         else:
