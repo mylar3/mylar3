@@ -65,7 +65,7 @@ def search_init(
     ComicVersion=None,
     SARC=None,
     IssueArcID=None,
-    mode=None,
+    smode=None,
     rsscheck=None,
     ComicID=None,
     manualsearch=None,
@@ -82,7 +82,7 @@ def search_init(
     mylar.COMICINFO = []
     unaltered_ComicName = None
     if filesafe:
-        if filesafe != ComicName and mode != 'want_ann':
+        if filesafe != ComicName and smode != 'want_ann':
             logger.info(
                 '[SEARCH] Special Characters exist within Series Title. Enabling'
                 ' search-safe Name : %s' % filesafe
@@ -112,9 +112,9 @@ def search_init(
     else:
         logger.fdebug('Issue Title not found. Setting to None.')
 
-    if mode == 'want_ann':
+    if smode == 'want_ann':
         logger.info('Annual/Special issue search detected. Appending to issue #')
-        # anything for mode other than None indicates an annual.
+        # anything for smode other than None indicates an annual.
         #if all(['annual' not in ComicName.lower(), 'special' not in ComicName.lower()]):
         #    ComicName = '%s Annual' % ComicName
         if '2021 annual' in ComicName.lower():
@@ -130,7 +130,7 @@ def search_init(
         ):
             AlternateSearch = '%s Annual' % AlternateSearch
 
-    if mode == 'pullwant' or IssueID is None:
+    if smode == 'pullwant' or IssueID is None:
         # one-off the download.
         logger.fdebug('One-Off Search parameters:')
         logger.fdebug('ComicName: %s' % ComicName)
@@ -468,6 +468,7 @@ def search_init(
                         booktype=booktype,
                         chktpb=chktpb,
                         ignore_booktype=ignore_booktype,
+                        smode=smode,
                     )
                     if findit['status'] is False:
                         if AlternateSearch is not None and AlternateSearch != "None":
@@ -510,6 +511,7 @@ def search_init(
                                     booktype=booktype,
                                     chktpb=chktpb,
                                     ignore_booktype=ignore_booktype,
+                                    smode=smode,
                                 )
                                 if findit['status'] is True:
                                     break
@@ -551,6 +553,7 @@ def search_init(
                         booktype=booktype,
                         chktpb=chktpb,
                         ignore_booktype=ignore_booktype,
+                        smode=smode,
                     )
                     if all(
                            [
@@ -606,6 +609,7 @@ def search_init(
                                     booktype=booktype,
                                     chktpb=chktpb,
                                     ignore_booktype=ignore_booktype,
+                                    smode=smode,
                                 )
                                 if findit['status'] is True:
                                     break
@@ -735,6 +739,7 @@ def NZB_SEARCH(
     booktype=None,
     chktpb=0,
     ignore_booktype=False,
+    smode=None
 ):
 
     if any([allow_packs == 1, allow_packs == '1']) and all(
@@ -2594,7 +2599,7 @@ def NZB_SEARCH(
                         oneoff=oneoff,
                     )
                     updater.foundsearch(
-                        ComicID, isid['issueid'], mode='series', provider=tmpprov
+                        ComicID, isid['issueid'], mode=smode, provider=tmpprov
                     )
                 notify_snatch(
                     sent_to,
@@ -2653,7 +2658,7 @@ def NZB_SEARCH(
                 updater.foundsearch(
                     ComicID,
                     IssueID,
-                    mode=mode,
+                    mode=smode, #'series',
                     provider=tmpprov,
                     SARC=SARC,
                     IssueArcID=IssueArcID
@@ -3013,7 +3018,7 @@ def searchforissue(issueid=None, new=False, rsscheck=None, manual=False):
                         )
                         continue
 
-                    mode = result['mode']
+                    smode = result['mode']
                     foundNZB, prov = search_init(
                         comicname,
                         result['Issue_Number'],
@@ -3028,7 +3033,7 @@ def searchforissue(issueid=None, new=False, rsscheck=None, manual=False):
                         ComicVersion,
                         SARC=result['SARC'],
                         IssueArcID=result['IssueArcID'],
-                        mode=mode,
+                        smode=smode,
                         rsscheck=rsscheck,
                         ComicID=result['ComicID'],
                         filesafe=Comicname_filesafe,
@@ -3043,7 +3048,7 @@ def searchforissue(issueid=None, new=False, rsscheck=None, manual=False):
                         updater.foundsearch(
                             result['ComicID'],
                             result['IssueID'],
-                            mode=mode,
+                            mode=smode,
                             provider=prov,
                             SARC=result['SARC'],
                             IssueArcID=result['IssueArcID'],
@@ -3072,7 +3077,7 @@ def searchforissue(issueid=None, new=False, rsscheck=None, manual=False):
                         'seriesyear': SeriesYear,
                         'issueid': result['IssueID'],
                         'comicid': result['ComicID'],
-                        'mode': mode,
+                        'smode': smode,
                         'booktype': booktype,
                     }
 
@@ -3093,24 +3098,24 @@ def searchforissue(issueid=None, new=False, rsscheck=None, manual=False):
                 result = myDB.selectone(
                     'SELECT * FROM issues where IssueID=?', [issueid]
                 ).fetchone()
-                mode = 'want'
+                smode = 'want'
                 oneoff = False
                 if result is None:
                     result = myDB.selectone(
                         'SELECT * FROM annuals where IssueID=? AND NOT Deleted', [issueid]
                     ).fetchone()
-                    mode = 'want_ann'
+                    smode = 'want_ann'
                     if result is None:
                         result = myDB.selectone(
                             'SELECT * FROM storyarcs where IssueArcID=?', [issueid]
                         ).fetchone()
-                        mode = 'story_arc'
+                        smode = 'story_arc'
                         oneoff = True
                         if result is None:
                             result = myDB.selectone(
                                 'SELECT * FROM weekly where IssueID=?', [issueid]
                             ).fetchone()
-                            mode = 'pullwant'
+                            smode = 'pullwant'
                             oneoff = True
                             if result is None:
                                 logger.fdebug(
@@ -3122,7 +3127,7 @@ def searchforissue(issueid=None, new=False, rsscheck=None, manual=False):
 
                 allow_packs = False
                 ComicID = result['ComicID']
-                if mode == 'story_arc':
+                if smode == 'story_arc':
                     ComicName = result['ComicName']
                     Comicname_filesafe = helpers.filesafe(ComicName)
                     SeriesYear = result['SeriesYear']
@@ -3140,7 +3145,7 @@ def searchforissue(issueid=None, new=False, rsscheck=None, manual=False):
                     TorrentID_32p = None
                     booktype = result['Type']
                     ignore_booktype = False
-                elif mode == 'pullwant':
+                elif smode == 'pullwant':
                     ComicName = result['COMIC']
                     Comicname_filesafe = helpers.filesafe(ComicName)
                     SeriesYear = result['seriesyear']
@@ -3162,7 +3167,7 @@ def searchforissue(issueid=None, new=False, rsscheck=None, manual=False):
                     comic = myDB.selectone(
                         'SELECT * FROM comics where ComicID=?', [ComicID]
                     ).fetchone()
-                    if mode == 'want_ann':
+                    if smode == 'want_ann':
                         ComicName = result['ReleaseComicName']
                         Comicname_filesafe = None
                         AlternateSearch = None
@@ -3211,7 +3216,7 @@ def searchforissue(issueid=None, new=False, rsscheck=None, manual=False):
                     ComicVersion,
                     SARC=SARC,
                     IssueArcID=IssueArcID,
-                    mode=mode,
+                    smode=smode,
                     rsscheck=rsscheck,
                     ComicID=ComicID,
                     filesafe=Comicname_filesafe,
@@ -3232,7 +3237,7 @@ def searchforissue(issueid=None, new=False, rsscheck=None, manual=False):
                     updater.foundsearch(
                         ComicID,
                         actissueid,
-                        mode=mode,
+                        mode=smode,
                         provider=prov,
                         SARC=SARC,
                         IssueArcID=IssueArcID,
@@ -3262,7 +3267,7 @@ def searchforissue(issueid=None, new=False, rsscheck=None, manual=False):
                     'seriesyear': SeriesYear,
                     'issueid': result['IssueID'],
                     'comicid': result['ComicID'],
-                    'mode': mode,
+                    'smode': smode,
                     'booktype': booktype,
                 }
 
