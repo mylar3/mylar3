@@ -146,7 +146,7 @@
                                         %else:
                                              %if weekly['HAVEIT'] == 'OneOff':
                                                  %if all([weekly['COMICID'] != '', weekly['COMICID'] is not None]):
-                                                     <a href="${weekly['LINK']}" target="_blank">${weekly['COMIC']}</a>
+                                                     <a href="${weekly['LINK']}" target="_blank" id="${weekly['ISSUEID']}">${weekly['COMIC']}</a>
                                                  %else:
                                                      ${weekly['COMIC']}
                                                  %endif
@@ -202,6 +202,15 @@
                                                         <span class="ui-icon ui-icon-plus"></span>Add
                                                     %endif
                                                     </a>
+                                                    %if all([weekly['HAVEIT'] == 'No', weekly['STATUS'] == 'Skipped']):
+                                                        <a href="#" onclick="doAjaxCall('queueit?ComicName=${weekly['COMIC'] | u}&ComicID=${weekly['COMICID']}&IssueID=${weekly['ISSUEID']}&ComicIssue=${weekly['ISSUE']}&mode=pullwant&Publisher=${weekly['PUBLISHER']}&pullinfo=${weekinfo['midweek']}&pullweek=${weekinfo['weeknumber']}&pullyear=${weekinfo['year']}&BookType=${weekly['FORMAT']}',$(this),'table')" data-success="Successfully submitted search request for ${weekly['COMIC']} #${weekly['ISSUE']}" title="One off download">
+                                                        %if mylar.CONFIG.SHOW_ICONS:
+                                                           <img style="margin: 0px 5px" src="images/search.png" height="25" width="25" class="highqual" />
+                                                        %else:
+                                                            <span class="ui-icon ui-icon-plus"></span>One-Off
+                                                        %endif
+                                                        </a>
+                                                     %endif
                                                 %elif weekly['COMICID'] == weekly['HAVEIT'] or weekly['HAVEIT'] == 'Yes':
                                                     <a href="#" title="mark this issue as Wanted" onclick="doAjaxCall('queueIssue?IssueID=${weekly['ISSUEID']}&ComicID=${weekly['COMICID']}&ComicIssue=${weekly['ISSUE']}&mode=want',$(this),'table')" data-success="${weekly['COMIC']} #${weekly['ISSUE']} has now been marked as Wanted.">
                                                     %if mylar.CONFIG.SHOW_ICONS:
@@ -231,15 +240,6 @@
                                                 <% dl = True %>
                                             %else:
                                                 <% dl = False %>
-                                            %endif
-                                            %if weekly['HAVEIT'] == 'No' and weekly['STATUS'] == 'Skipped':
-                                                <a href="#" onclick="doAjaxCall('queueit?ComicName=${weekly['COMIC'] | u}&ComicID=${weekly['COMICID']}&IssueID=${weekly['ISSUEID']}&ComicIssue=${weekly['ISSUE']}&mode=pullwant&Publisher=${weekly['PUBLISHER']}&pullinfo=${weekinfo['midweek']}&pullweek=${weekinfo['weeknumber']}&pullyear=${weekinfo['year']}&BookType=${weekly['FORMAT']}',$(this),'table')" data-success="Successfully submitted search request for ${weekly['COMIC']} #${weekly['ISSUE']}" title="One off download">
-                                                %if mylar.CONFIG.SHOW_ICONS:
-                                                    <img style="margin: 0px 5px" src="images/search.png" height="25" width="25" class="highqual" />
-                                                %else:
-                                                    <span class="ui-icon ui-icon-plus"></span>One-Off
-                                                %endif
-                                                </a>
                                             %endif
 <!--
                                             <a class="menu_link_edit" id="choose_specific_download" title="Choose Specific Download" href="javascript:void(0)" onclick="getAvailableDownloads('${weekly['ISSUEID']}', '${weekly['COMIC']}', '${weekly['COMICID']}', '${weekly['ISSUE']}', '${weekly['VOLUME']}', 'pullwant', '${weekly['PUBLISHER']}', '${weekinfo['midweek']}', '${weekinfo['weeknumber']}', '${weekinfo['year']}', '${dl}')">

@@ -232,7 +232,19 @@ def addComictoDB(comicid, mismatch=None, pullupd=None, imported=None, ogcname=No
         if all([mylar.CONFIG.SETDEFAULTVOLUME is True, comicVol is None]):
             comicVol = 'v1'
 
+    #try to account for CV not updating new issues as fast as GCD
+    #seems CV doesn't update total counts
+    #comicIssues = gcdinfo['totalissues']
+    comicIssues = comic['ComicIssues']
 
+    logger.fdebug('comicIssues: %s' % comicIssues)
+    logger.fdebug('seriesyear: %s / currentyear: %s' % (SeriesYear, helpers.today()[:4]))
+    logger.fdebug('comicType: %s' % comic['Type'])
+    if all([int(comicIssues) == 1, SeriesYear < helpers.today()[:4], comic['Type'] != 'One-Shot', comic['Type'] != 'TPB', comic['Type'] != 'HC', comic['Type'] != 'GN']):
+        logger.info('Determined to be a one-shot issue. Forcing Edition to One-Shot')
+        booktype = 'One-Shot'
+    else:
+        booktype = comic['Type']
 
     # setup default location here
     u_comicnm = comic['ComicName']
@@ -246,7 +258,7 @@ def addComictoDB(comicid, mismatch=None, pullupd=None, imported=None, ogcname=No
                         'PublisherImprint': comic['PublisherImprint'],
                         'ComicYear':        SeriesYear,
                         'ComicVersion':     comicVol,
-                        'Type':             comic['Type'],
+                        'Type':             booktype,
                         'Corrected_Type':   comic['Corrected_Type']}
 
         dothedew = filers.FileHandlers(comic=comic_values)
@@ -270,11 +282,6 @@ def addComictoDB(comicid, mismatch=None, pullupd=None, imported=None, ogcname=No
     else:
         logger.warn('Comic Location path has not been specified as required in your configuration. Aborting this process at this time.')
         return {'status': 'incomplete'}
-
-    #try to account for CV not updating new issues as fast as GCD
-    #seems CV doesn't update total counts
-    #comicIssues = gcdinfo['totalissues']
-    comicIssues = comic['ComicIssues']
 
     if not mylar.CONFIG.CV_ONLY:
         if gcdinfo['gcdvariation'] == "cv":
@@ -360,15 +367,6 @@ def addComictoDB(comicid, mismatch=None, pullupd=None, imported=None, ogcname=No
             aliases = comic['Aliases']
     else:
         aliases = aliases
-
-    logger.fdebug('comicIssues: %s' % comicIssues)
-    logger.fdebug('seriesyear: %s / currentyear: %s' % (SeriesYear, helpers.today()[:4]))
-    logger.fdebug('comicType: %s' % comic['Type'])
-    if all([int(comicIssues) == 1, SeriesYear < helpers.today()[:4], comic['Type'] != 'One-Shot', comic['Type'] != 'TPB', comic['Type'] != 'HC', comic['Type'] != 'GN']):
-        logger.info('Determined to be a one-shot issue. Forcing Edition to One-Shot')
-        booktype = 'One-Shot'
-    else:
-        booktype = comic['Type']
 
     #for description ...
     #Cdesc = helpers.cleanhtml(comic['ComicDescription'])

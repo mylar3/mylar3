@@ -248,7 +248,8 @@ def main():
                 shutil.copy(ogfile, back)
 
             except OSError as exception:
-                if exception.errno != errno.EXIST:
+                if exception.errno != errno.EEXIST:
+                    print('[AUTO-BACKUP] Error encountered: %s' % (exception,))
                     raise
 
             i += 1

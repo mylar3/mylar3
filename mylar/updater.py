@@ -854,7 +854,7 @@ def foundsearch(ComicID, IssueID, mode=None, down=None, provider=None, SARC=None
         if mode == 'story_arc':
             IssueNum = issue['IssueNumber']
             newsnatchValues = {"ComicName":       ComicName,
-                               "ComicID":         'None',
+                               "ComicID":         ComicID, #'None',
                                "Issue_Number":    IssueNum,
                                "DateAdded":       helpers.now(),
                                "Status":          "Snatched",
@@ -1393,10 +1393,15 @@ def forceRescan(ComicID, archive=None, module=None, recheck=False):
                                         multiplechk = True
                                         break
                                     if (ma['IssueYear'] in tmpfc['ComicFilename']) and (issyear == ma['IssueYear']):
-                                        logger.fdebug(module + ' Matched to year within filename : ' + str(issyear))
-                                        multiplechk = False
-                                        ANNComicID = ack['ReleaseComicID']
-                                        break
+                                        # make sure that the IssueYear discovered is not preceded by a volume so it matches correctly
+                                        vchk = tmpfc['ComicFilename'].find(ma['IssueYear'])
+                                        if tmpfc['ComicFilename'][vchk-1].lower() == 'v':
+                                            multiplechk = True
+                                        else:
+                                            logger.fdebug(module + ' Matched to year within filename : ' + str(issyear))
+                                            multiplechk = False
+                                            ANNComicID = ack['ReleaseComicID']
+                                            break
                                     else:
                                         logger.fdebug(module + ' Did not match to year within filename : ' + str(issyear))
                                         multiplechk = True

@@ -54,9 +54,9 @@ def pulldetails(comicid, rtype, issueid=None, offset=1, arclist=None, comicidlis
             cv_rtype = 'volume/' + str(comicid)
             searchset = 'name,count_of_issues,issues,start_year,site_detail_url,image,publisher,description,store_date'
         PULLURL = mylar.CVURL + str(cv_rtype) + '/?api_key=' + str(comicapi) + '&format=xml&' + str(searchset) + '&offset=' + str(offset)
-    elif any([rtype == 'image', rtype == 'firstissue']):
+    elif any([rtype == 'image', rtype == 'firstissue', rtype == 'imprints_first']):
         #this is used ONLY for CV_ONLY
-        PULLURL = mylar.CVURL + 'issues/?api_key=' + str(comicapi) + '&format=xml&filter=id:' + str(issueid) + '&field_list=cover_date,image'
+        PULLURL = mylar.CVURL + 'issues/?api_key=' + str(comicapi) + '&format=xml&filter=id:' + str(issueid) + '&field_list=cover_date,store_date,image'
     elif rtype == 'storyarc':
         PULLURL = mylar.CVURL + 'story_arcs/?api_key=' + str(comicapi) + '&format=xml&filter=name:' + str(issueid) + '&field_list=cover_date'
     elif rtype == 'comicyears':
@@ -172,7 +172,7 @@ def getComic(comicid, rtype, issueid=None, arc=None, arcid=None, arclist=None, c
     elif rtype == 'comic':
         dom = pulldetails(comicid, 'comic', None, 1)
         return GetComicInfo(comicid, dom, series=series)
-    elif any([rtype == 'image', rtype == 'firstissue']):
+    elif any([rtype == 'image', rtype == 'firstissue', rtype == 'imprints_first']):
         dom = pulldetails(comicid, rtype, issueid, 1)
         return Getissue(issueid, dom, rtype)
     elif rtype == 'storyarc':
@@ -366,6 +366,8 @@ def GetComicInfo(comicid, dom, safechk=None, series=False):
         logger.warn('Something went wrong retrieving from ComicVine. Ensure your API is up-to-date and that comicvine is accessible')
         return
 
+    comic['FirstIssueID'] = dom.getElementsByTagName('id')[0].firstChild.wholeText
+
     try:
         comic['ComicYear'] = dom.getElementsByTagName('start_year')[0].firstChild.wholeText
     except:
@@ -395,6 +397,7 @@ def GetComicInfo(comicid, dom, safechk=None, series=False):
                                         pubrun = h
                                         y = pubrun.find('-')
                                         pub_start = pubrun[:y][:4].strip()
+                                        pub_start_month = pubrun[:y][pubrun.find('.')+1:].strip()
                                         pub_end = pubrun[y+2:][:4].strip()
                                         if len(pub_end) == 0 and len(pub_start) == 0:
                                             chkyear = False
@@ -402,7 +405,7 @@ def GetComicInfo(comicid, dom, safechk=None, series=False):
                                             continue
                                         elif len(pub_end) == 0:
                                             pub_end = None
-                                            if int(comic['ComicYear']) < int(pub_start[:4]):
+                                            if int(comic['ComicYear']) <= int(pub_start[:4]):
                                                 logger.info('comic year of %s is prior to imprint publication date of %s' % (comic['ComicYear'], pub_start[:4]))
                                                 comic['ComicPublisher'] = None
                                                 comic['PublisherImprint'] = None
@@ -413,10 +416,45 @@ def GetComicInfo(comicid, dom, safechk=None, series=False):
                                             if int(pub_end[:4]) > int(comic['ComicYear'])  > int(pub_start[:4]):
                                                 found = True
                                             else:
-                                                logger.info('comic year of %s is not within the imprint publication date range of %s - %s' % (comic['ComicYear'], pub_start[:4], pub_end[:4]))
-                                                comicPublisher = None
-                                                publisherImprint = None
-                                                found = False
+                                                pub_end_month = pubrun[y+2:][pubrun.find('.',y+2)+1:].strip()
+                                                if any([ int(pub_end[:4]) == int(comic['ComicYear']), int(pub_start[:4]) == int(comic['ComicYear']) ]):
+                                                    quick_chk = getComic(comicid=None, rtype='imprints_first', issueid=comic['FirstIssueID'])
+                                                    if quick_chk:
+                                                        cdate = None
+                                                        sdate = None
+                                                        #quick_chk['store_date'], quick_chk['cover_date']
+                                                        if quick_chk['cover_date'] and quick_chk['cover_date'] != '0000':
+                                                            cdate = quick_chk['cover_date'][5:7]
+                                                        if quick_chk['store_date'] and quick_chk['store_date'] != '0000':
+                                                            sdate = quick_chk['store_date'][5:7]
+
+                                                        if int(pub_end[:4]) == int(comic['ComicYear']):
+                                                            if cdate != None:
+                                                                end_month = cdate
+                                                            else:
+                                                                end_month = sdate
+                                                            if int(pub_end_month) <= int(end_month):
+                                                                logger.fdebug('[Year;%s] publication month of %s is before the end imprint date of %s' % (comic['ComicYear'], end_month, pub_end_month))
+                                                                found = True
+                                                            else:
+                                                                found = False
+
+                                                        elif int(pub_start[:4]) == int(comic['ComicYear']):
+                                                            if cdate != None:
+                                                                start_month = cdate
+                                                            else:
+                                                                start_month = sdate
+                                                            if int(pub_start_month) <= int(start_month):
+                                                                logger.fdebug('[Year:%s] issue publication month of %s is after the start imprint date of %s' % (comic['ComicYear'], start_month, pub_start_month))
+                                                                found = True
+                                                            else:
+                                                                found = False
+
+                                                else:
+                                                    logger.info('comic year of %s is not within the imprint publication date range of %s - %s' % (comic['ComicYear'], pub_start[:4], pub_end[:4]))
+                                                    comicPublisher = None
+                                                    publisherImprint = None
+                                                    found = False
                                         chkyear = False
 
                                     elif f == 'imprints' and h is not None:
@@ -428,7 +466,7 @@ def GetComicInfo(comicid, dom, safechk=None, series=False):
                                                 publisherImprint = i['name']
                                                 found = True
                                                 break
-                                    elif all([f != 'imprints', f != 'publication_run']) and h is not None:
+                                    elif all([f != 'imprints', f != 'publication_run']) and h is not None and found is not True:
                                         if h.lower() == comic['ComicPublisher'].lower():
                                             logger.info('imprint matched: %s ---> %s' % (d, h))
                                             comicPublisher = d
@@ -738,7 +776,6 @@ def GetComicInfo(comicid, dom, safechk=None, series=False):
     except:
         comic['ComicImageThumbnail'] = 'None'
 
-    comic['FirstIssueID'] = dom.getElementsByTagName('id')[0].firstChild.wholeText
 
     #logger.info('comic: %s' % comic)
     return comic
@@ -877,17 +914,32 @@ def GetIssuesInfo(comicid, dom, arcid=None):
 
 def Getissue(issueid, dom, rtype):
     #if the Series Year doesn't exist, get the first issue and take the date from that
-    if rtype == 'firstissue':
+    if any([rtype == 'firstissue', rtype == 'imprints_first']):
         try:
             first_year = dom.getElementsByTagName('cover_date')[0].firstChild.wholeText
         except:
             first_year = '0000'
-            return first_year
+            if rtype == 'firstissue':
+                return first_year
 
-        the_year = first_year[:4]
-        the_month = first_year[5:7]
-        the_date = the_year + '-' + the_month
-        return the_year
+        if first_year != '0000':
+            the_year = first_year[:4]
+            the_month = first_year[5:7]
+            the_date = the_year + '-' + the_month
+
+        if rtype == 'firstissue':
+            return the_year
+        else:
+            try:
+                store_year = dom.getElementsByTagName('store_date')[0].firstChild.wholeText
+            except:
+                store_year = '0000'
+                return {'store_date': store_year, 'cover_date': first_year}
+
+            storeyear = store_year[:4]
+            store_month = store_year[5:7]
+            store_date = storeyear + '-' + store_month
+            return {'store_date': store_date, 'cover_date': the_date}
     else:
         try:
             image = dom.getElementsByTagName('super_url')[0].firstChild.wholeText

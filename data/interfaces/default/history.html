@@ -61,6 +61,45 @@
 	<script src="js/libs/jquery.dataTables.min.js"></script>
         <script src="js/libs/full_numbers_no_ellipses.js"></script>
         <script>
+        $(document).ready(function() {
+            // get the click value from the last column (options) where the filelisting option is present.
+            $('table.display').on('click', 'a', function() {
+                var action = this.id;
+                if (!action){
+                    return;
+                }
+                var dataline = $('#history_table').DataTable().row(this.closest('tr')).data();
+                if (action == 'retry'){
+                    retryit(dataline[1], dataline[5], dataline[4], dataline[2], 'history');
+                }
+            });
+        });
+
+        function retryit(comicname, comicid, issueid, issuenumber, redirect){
+            $.ajax({
+                 type: "GET",
+                 url: "retryissue",
+                 data: { ComicName: comicname, ComicID: comicid, IssueID: issueid , IssueNumber: issuenumber, redirect: redirect },
+                 success: function(response) {
+                    //console.log(response);
+                    obj = JSON.parse(response);
+                    $('#ajaxMsg').html("<div class='msg'><span class='ui-icon ui-icon-check'></span>"+obj['message']+"</div>");
+                    if (obj['status'] == 'success'){
+                        $('#ajaxMsg').addClass('success').fadeIn().delay(3000).fadeOut();
+                    } else {
+                        $('#ajaxMsg').addClass('error').fadeIn().delay(3000).fadeOut();
+                    }
+                 },
+                 error: function(data)
+                     {
+                       alert('ERROR'+data.responseText);
+                     },
+            });
+            var tables = $('table.display').DataTable();
+            tables.ajax.reload(null,false);
+        }
+
+
         $.fn.DataTable.ext.pager.numbers_length = 3;
 	function initThisPage() {
 	    $('#history_table').dataTable({
@@ -91,7 +130,28 @@
                        "targets": [ 2 ],
                        "visible": true,
                        "render":function (data,type,full) {
-                           return '<a href="comicDetails?ComicID=' + full[5] + '">' + full[1] + '</a>';
+                           //console.log(full);
+                           if ( full[4].includes('_') || full[8] !== null ){
+                               vals = full[4].split('_');
+                               if (full[4].includes('_') && full[7] !== null){
+                                   // exists only in storyarcs
+                                   dline = '<a href="detailStoryArc?StoryArcID=' + vals[0] + '">' + full[1] + ' <b>[' + full[7] + ']</b></a>';
+                               } else if (full[8] !== null){
+                                   // exists in both watchlist & storyarcs
+                                   dline = '<a href="comicDetails?ComicID=' + full[5] + '">' + full[1] + '</a> <b>[<a href="detailStoryArc?StoryArcID=' + full[9] + '">' + full[7] + ']</b></a>';
+                               } else {
+                                   dline = '<a href="detailStoryArc?StoryArcID=' + full[5] + '">' + full[1] + '</a>';
+                               }
+                           } else {
+                              if (full[10] !== null){
+                                   // exists as a one-off (pull)
+                                   vs = full[10].split('-');
+                                   dline = '<a href="pullist?week=' + vs[0] + '&year=' + vs[1] + '#' +full[4] + '">' + full[1] + '</a> <b>[One-Off]</b></a>';
+                              } else {
+                                   dline = '<a href="comicDetails?ComicID=' + full[5] + '">' + full[1] + '</a>';
+                              }
+                           }
+                           return dline;
                        }
                     },
                     {
@@ -118,8 +178,7 @@
                        "targets": [ 5 ],
                        "visible": true,
                        "render":function (data,type,full) {
-                           aline = "'retryit?ComicName=" + full[1] + "&ComicID=" + full[5] + "&IssueID=" + full[4] + "&IssueNumber=" + full[2] + "&redirect=history, $(this), 'table')"; 
-                           return '[<a href="#" onclick="doAjaxCall(' + aline + '" data-success="re-download submitted.">retry</a>]';
+                           return '[<a id="retry" name="retry" title="Retry search for issue" href="#">retry</a>]';
                        }
                     },
                 ],
