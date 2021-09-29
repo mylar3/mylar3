@@ -571,7 +571,7 @@ class PostProcessor(object):
                         #do some extra checks in here to ignore these types:
                         #check for Paused status /
                         #check for Ended status and 100% completion of issues.
-                        if wv['Status'] == 'Paused' or (wv['Have'] == wv['Total'] and not any(['Present' in wv['ComicPublished'], helpers.now()[:4] in wv['ComicPublished']])):
+                        if any([wv['Status'] == 'Paused', bool(wv['ForceContinuing']) is True]) or (wv['Have'] == wv['Total'] and not any(['Present' in wv['ComicPublished'], helpers.now()[:4] in wv['ComicPublished']])):
                             dbcheck = myDB.selectone('SELECT Status FROM issues WHERE ComicID=? and Int_IssueNumber=?', [wv['ComicID'], helpers.issuedigits(fl['issue_number'])]).fetchone()
                             if not dbcheck and mylar.CONFIG.ANNUALS_ON:
                                 dbcheck = myDB.selectone('SELECT Status FROM annuals WHERE ComicID=? and Int_IssueNumber=?', [wv['ComicID'], helpers.issuedigits(fl['issue_number'])]).fetchone()
@@ -601,6 +601,7 @@ class PostProcessor(object):
                         wv_agerating = wv['AgeRating']
                         wv_latestissue = wv['LatestIssue']
                         wv_intlatestissue = wv['intLatestIssue']
+                        wv_forcecontinuing = bool(wv['ForceContinuing'])
                         if mylar.CONFIG.FOLDER_SCAN_LOG_VERBOSE:
                             logger.fdebug('Queuing to Check: %s [%s] -- %s' % (wv['ComicName'], wv['ComicYear'], wv['ComicID']))
 
@@ -689,6 +690,7 @@ class PostProcessor(object):
                                           "LastUpdated":     wv['LastUpdated'],
                                           "WatchValues": {"SeriesYear":   wv_seriesyear,
                                                           "LatestDate":   latestdate,
+                                                          "ForceContinuing": wv_forcecontinuing,
                                                           "LatestIssue":  latestissue,
                                                           "LatestIssueInt":  latestissue_int,
                                                           "ComicVersion": wv_comicversion,
@@ -917,7 +919,7 @@ class PostProcessor(object):
                                                 logger.fdebug('week_dynamicname: %s / dynamic_seriesname: %s' % (week_dynamicname,dynamic_seriesname))
                                                 logger.fdebug('week_intissue: %s / fcdigit: %s' % (week_intissue, fcdigit))
                                                 if any([week_dynamicname == dynamic_seriesname, alt_listing]):
-                                                    if 'Present' in cs['ComicPublished']:
+                                                    if any(['Present' in cs['ComicPublished'], watch_values['ForceContinuing'] is True]):
                                                         if week_intissue == fcdigit:
                                                             logger.fdebug('Matched exactly on Series Title, IssueNumber, present on the pull.')
                                                             second_check = True
@@ -940,7 +942,7 @@ class PostProcessor(object):
                                                 else:
                                                     logger.fdebug('%s %s in filename don\'t match up to what\'s in the dB %s %s [%s]' % (watchmatch['series_name'], watchmatch['justthedigits'], week_comic, week_issue, cs['ComicID']))
                                             else:
-                                                if any(['Present' not in cs['ComicPublished'], helpers.now()[:4] not in cs['ComicPublished']]):
+                                                if any(['Present' not in cs['ComicPublished'], watch_values['ForceContinuing'] is True, helpers.now()[:4] not in cs['ComicPublished']]):
                                                     logger.fdebug('%s %s is not part of an ongoing publication. Bypassing this check and letting the dates verify below' % (watchmatch['series_name'],watchmatch['justthedigits']))
                                                     second_check = True
                                                 else:
