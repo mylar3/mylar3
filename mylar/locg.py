@@ -55,12 +55,16 @@ def locg(pulldate=None,weeknumber=None,year=None):
         try:
             r = requests.get(url, params=params, verify=True, headers={'User-Agent': mylar.USER_AGENT[:mylar.USER_AGENT.find('/')+7] + mylar.USER_AGENT[mylar.USER_AGENT.find('(')+1]})
         except requests.exceptions.RequestException as e:
-            logger.warn(e)
+            logger.warn('[PULL-LIST] Error encountered retrieving pull-list: %s' % (e,))
             mylar.BACKENDSTATUS_WS = 'down'
             return {'status': 'failure'}
 
         if str(r.status_code) == '619':
             logger.warn('[%s] No date supplied, or an invalid date was provided [%s]' % (r.status_code, pulldate))
+            return {'status': 'failure'}
+        elif str(r.status_code) == '522':
+            logger.warn('[%s] Walksoftly is currently offline. Data shown may be stale until it comes back online' % (r.status_code,))
+            mylar.BACKENDSTATUS_WS = 'down'
             return {'status': 'failure'}
         elif str(r.status_code) == '999' or str(r.status_code) == '111':
             logger.warn('[%s] Unable to retrieve data from site - this is a site.specific issue [%s]' % (r.status_code, pulldate))
@@ -98,6 +102,10 @@ def locg(pulldate=None,weeknumber=None,year=None):
             #clear out the upcoming table here so they show the new values properly.
             #if pulldate == '00000000':
             # 2021-07-03 -> we should always clear out the table to ensure we don't have old data mixed with fresh.
+            if len(pull) == 0:
+                logger.warn('[PULL-LIST] Weekly pull for week %s, %s has no data. This is probably a back-end related error of some kind.' % (weeknumber, year))
+                return {'status': 'failure'}
+
             logger.info('Re-creating pullist to ensure everything\'s fresh.')
             myDB.action('DELETE FROM weekly WHERE weeknumber=? AND year=?',[int(weeknumber), int(year)])
 

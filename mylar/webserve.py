@@ -1985,7 +1985,7 @@ class WebInterface(object):
             w_results = myDB.select("SELECT * from weekly WHERE weeknumber=? AND year=?", [int(weekinfo['weeknumber']),weekinfo['year']])
             if len(w_results) == 0:
                 logger.info('trying to repopulate to week: ' + str(weekinfo['weeknumber']) + '-' + str(weekinfo['year']))
-                repoll = self.manualpull(weeknumber=weekinfo['weeknumber'],year=weekinfo['year'])
+                repoll = self.pullrecreate(weeknumber=weekinfo['weeknumber'],year=weekinfo['year'])
                 if repoll['status'] == 'success':
                     w_results = myDB.select("SELECT * from weekly WHERE weeknumber=? AND year=?", [int(weekinfo['weeknumber']),weekinfo['year']])
                 else:
@@ -2285,17 +2285,25 @@ class WebInterface(object):
     manualpull.exposed = True
 
     def pullrecreate(self, weeknumber=None, year=None):
+        if mylar.BACKENDSTATUS_WS != 'up':
+            logger.warn('[PULL-LIST] Cannot re-create pull-list as walksoftly is currently offline. Retaining existing pull-data until it\'s back online')
+            return
+
         myDB = db.DBConnection()
         forcecheck = 'yes'
-        if weeknumber is None:
-            myDB.action("DROP TABLE weekly")
-            mylar.dbcheck()
-            logger.info("Deleted existing pull-list data. Recreating Pull-list...")
-        else:
-            myDB.action('DELETE FROM weekly WHERE weeknumber=? and year=?', [int(weeknumber), int(year)])
-            logger.info("Deleted existing pull-list data for week %s, %s. Now Recreating the Pull-list..." % (weeknumber, year))
-        weeklypull.pullit(forcecheck, weeknumber, year)
-        weeklypull.future_check()
+        #if weeknumber is None:
+        #    myDB.action("DROP TABLE weekly")
+        #    mylar.dbcheck()
+        #    logger.info("Deleted existing pull-list data. Recreating Pull-list...")
+        #else:
+        #    myDB.action('DELETE FROM weekly WHERE weeknumber=? and year=?', [int(weeknumber), int(year)])
+        #    logger.info("Deleted existing pull-list data for week %s, %s. Now Recreating the Pull-list..." % (weeknumber, year))
+        logger.info("[PULL-LIST] Now Recreating the Pull-list for week %s, %s..." % (weeknumber, year))
+        statchk = weeklypull.pullit(forcecheck, weeknumber, year)
+        if statchk:
+            if statchk['status'] == 'success':
+                weeklypull.future_check()
+        return
     pullrecreate.exposed = True
 
     def upcoming(self):

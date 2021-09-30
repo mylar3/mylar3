@@ -110,12 +110,13 @@ def pullit(forcecheck=None, weeknumber=None, year=None):
                 new_pullcheck(chk_locg['weeknumber'],chk_locg['year'])
             elif chk_locg['status'] == 'update_required':
                 logger.warn('[PULL-LIST] Your version of Mylar is not up-to-date. You MUST update before this works')
-                return
+                return {'status': 'failure'}
             else:
-                logger.info('[PULL-LIST] Unable to retrieve weekly pull-list. Dropping down to legacy method of PW-file')
-                mylar.PULLBYFILE = pull_the_file(newrl)
-                break
-        return
+                logger.warn('[PULL-LIST] Unable to retrieve weekly pull-list. Pull list for week %s, %s may be stale.' % (weeknumber_mod, year_mod))
+                return {'status': 'failure'}
+                #mylar.PULLBYFILE = pull_the_file(newrl)
+                #break
+        return {'status': 'success'}
 
     else:
         logger.info('[PULL-LIST] Populating & Loading pull-list data from file')
