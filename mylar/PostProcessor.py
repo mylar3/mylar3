@@ -1177,7 +1177,7 @@ class PostProcessor(object):
                                 else:
                                     try:
                                         if (any([v[i]['WatchValues']['Type'] == 'TPB', v[i]['WatchValues']['Type'] == 'GN', v[i]['WatchValues']['Type'] == 'HC']) and v[i]['WatchValues']['Total'] > 1) or all([v[i]['WatchValues']['Type'] == 'One-Shot', v[i]['WatchValues']['Total'] == 1]):
-                                            if watchmatch['series_volume'] is not None:
+                                            if arcmatch['series_volume'] is not None:
                                                 just_the_digits = re.sub('[^0-9]', '', arcmatch['series_volume']).strip()
                                             else:
                                                 just_the_digits = re.sub('[^0-9.]', '', arcmatch['justthedigits']).strip()
