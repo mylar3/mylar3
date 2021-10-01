@@ -428,7 +428,7 @@ def addComictoDB(comicid, mismatch=None, pullupd=None, imported=None, ogcname=No
         if updateddata['status'] == 'failure':
             logger.warn('Unable to properly retrieve issue details - this is usually due to either irregular issue numbering, or problems with CV')
             return {'status': 'incomplete'}
-    except Exeption:
+    except Exception:
         pass
 
     issuedata = updateddata['issuedata']
