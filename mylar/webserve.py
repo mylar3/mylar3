@@ -2983,10 +2983,10 @@ class WebInterface(object):
                 else:
                     next_run = None
                 if 'rss' in jb['JobName'].lower():
-                    if jb['Status'] == 'Waiting' and mylar.CONFIG.ENABLE_RSS is False:
-                        mylar.RSS_STATUS = 'Paused'
-                    elif jb['Status'] == 'Paused' and mylar.CONFIG.ENABLE_RSS is True:
-                        mylar.RSS_STATUS = 'Waiting'
+                    #if mylar.CONFIG.ENABLE_RSS is False:
+                    #    mylar.RSS_STATUS = 'Paused'
+                    #elif jb['Status'] == 'Paused' and mylar.CONFIG.ENABLE_RSS is True:
+                    #    mylar.RSS_STATUS = 'Waiting'
                     status = mylar.RSS_STATUS
                     interval = str(mylar.CONFIG.RSS_CHECKINTERVAL) + ' mins'
                 if 'weekly' in jb['JobName'].lower():
@@ -2994,20 +2994,32 @@ class WebInterface(object):
                     if mylar.CONFIG.ALT_PULL == 2: interval = '4 hrs'
                     else: interval = '24 hrs'
                 if 'search' in jb['JobName'].lower():
+                    #if mylar.CONFIG.NZB_STARTUP_SEARCH is False and jb['Status'] != 'Running':
+                    #    mylar.SEARCH_STATUS = 'Waiting'
+                    #elif jb['Status'] == 'Paused' and mylar.CONFIG.NZB_STARTUP_SEARCH is True:
+                    #    mylar.SEARCH_STATUS = 'Waiting'
                     status = mylar.SEARCH_STATUS
                     interval = str(mylar.CONFIG.SEARCH_INTERVAL) + ' mins'
                 if 'updater' in jb['JobName'].lower():
                     status = mylar.UPDATER_STATUS
                     interval = str(int(mylar.DBUPDATE_INTERVAL)) + ' mins'
                 if 'folder' in jb['JobName'].lower():
+                    #if mylar.CONFIG.ENABLE_CHECK_FOLDER is False:
+                    #    mylar.MONITOR_STATUS = 'Paused'
+                    #elif jb['Status'] == 'Paused' and mylar.CONFIG.ENABLE_CHECK_FOLDER is True:
+                    #    mylar.MONITOR_STATUS = 'Waiting'
                     status = mylar.MONITOR_STATUS
                     interval = str(mylar.CONFIG.DOWNLOAD_SCAN_INTERVAL) + ' mins'
                 if 'version' in jb['JobName'].lower():
+                    #if mylar.CONFIG.CHECK_GITHUB is False:
+                    #    mylar.VERSION_STATUS = 'Paused'
+                    #elif jb['Status'] == 'Paused' and mylar.CONFIG.CHECK_GITHUB is True:
+                    #    mylar.VERSION_STATUS = 'Waiting'
                     status = mylar.VERSION_STATUS
                     interval = str(mylar.CONFIG.CHECK_GITHUB_INTERVAL) + ' mins'
 
-                if status != jb['Status'] and not('rss' in jb['JobName'].lower()):
-                    status = jb['Status']
+                #if status != jb['Status'] and not('rss' in jb['JobName'].lower()):
+                #    status = jb['Status']
 
                 tmp.append({'prev_run_datetime':  prev_run,
                             'next_run_datetime': next_run,
@@ -3067,6 +3079,18 @@ class WebInterface(object):
             if jobid.lower() in str(jb).lower():
                 logger.info('[%s] Now force submitting job for jobid %s' % (jb, jobid))
                 if any([jobid == 'rss', jobid == 'weekly', jobid =='search', jobid == 'version', jobid == 'updater', jobid == 'monitor']):
+                    if jobid == 'rss':
+                        mylar.RSS_STATUS = 'Running'
+                    elif jobid == 'weekly':
+                        mylar.WEEKLY_STATUS = 'Running'
+                    elif jobid == 'search':
+                        mylar.SEARCH_STATUS = 'Running'
+                    elif jobid == 'version':
+                        mylar.VERSION_STATUS = 'Running'
+                    elif jobid == 'updater':
+                        mylar.UPDATER_STATUS = 'Running'
+                    elif jobid == 'monitor':
+                        mylar.MONITOR_STATUS = 'Running'
                     jb.modify(next_run_time=datetime.datetime.utcnow())
                     break
     schedulerForceCheck.exposed = True
