@@ -429,11 +429,11 @@ def start():
 
                     duration_diff = (helpers.utctimestamp() - search_timestamp)/60
                     if duration_diff >= int(CONFIG.SEARCH_INTERVAL):
-                        logger.fdebug('[AUTO-SEARCH]Auto-Search set to a delay of one minute before initialization as it has been %s minutes since the last run' % duration_diff)
-                        SCHED.add_job(func=ss.run, id='search', name='Auto-Search', trigger=IntervalTrigger(hours=0, minutes=CONFIG.SEARCH_INTERVAL, timezone='UTC'))
+                        logger.fdebug('[AUTO-SEARCH]Auto-Search set to an initial delay of 2 minutes before initialization as it has been %s minutes since the last run' % duration_diff)
+                        SCHED.add_job(func=ss.run, id='search', name='Auto-Search', next_run_time=(datetime.datetime.utcnow() + timedelta(minutes=2)), trigger=IntervalTrigger(hours=0, minutes=CONFIG.SEARCH_INTERVAL, timezone='UTC'))
                     else:
                         search_diff = datetime.datetime.utcfromtimestamp(helpers.utctimestamp() + ((int(CONFIG.SEARCH_INTERVAL) * 60)  - (duration_diff*60)))
-                        logger.fdebug('[AUTO-SEARCH] Scheduling next run @ %s every %s minutes' % (search_diff, CONFIG.SEARCH_INTERVAL))
+                        logger.fdebug('[AUTO-SEARCH] Scheduling next run @ %s (every %s minutes)' % (search_diff, CONFIG.SEARCH_INTERVAL))
                         SCHED.add_job(func=ss.run, id='search', name='Auto-Search', next_run_time=search_diff, trigger=IntervalTrigger(hours=0, minutes=CONFIG.SEARCH_INTERVAL, timezone='UTC'))
             else:
                 ss = searchit.CurrentSearcher()

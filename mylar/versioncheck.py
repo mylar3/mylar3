@@ -102,7 +102,7 @@ def getVersion():
         cur_commit_hash = output[:opp]
         cur_branch = output[opp:output.find('\n', opp+1)].strip()
 
-        if cur_commit_hash.startswith('v'):
+        if cur_commit_hash.startswith('v') and mylar.CONFIG.CHECK_GITHUB_ON_STARTUP is True:
             url2 = 'https://api.github.com/repos/%s/mylar3/tags' % (mylar.CONFIG.GIT_USER)
             try:
                 response = requests.get(url2, verify=True, auth=mylar.CONFIG.GIT_TOKEN)
@@ -209,7 +209,7 @@ def getVersion():
             except Exception as e:
                 logger.error('error: %s' % e)
 
-        if current_version_name is not None:
+        if current_version_name is not None and mylar.CONFIG.CHECK_GITHUB_ON_STARTUP is True:
             url2 = 'https://api.github.com/repos/%s/mylar3/releases/tags/%s' % (mylar.CONFIG.GIT_USER, current_version_name)
             try:
                 response = requests.get(url2, verify=True, auth=mylar.CONFIG.GIT_TOKEN)
