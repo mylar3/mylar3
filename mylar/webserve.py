@@ -1985,7 +1985,7 @@ class WebInterface(object):
             w_results = myDB.select("SELECT * from weekly WHERE weeknumber=? AND year=?", [int(weekinfo['weeknumber']),weekinfo['year']])
             if len(w_results) == 0:
                 logger.info('trying to repopulate to week: ' + str(weekinfo['weeknumber']) + '-' + str(weekinfo['year']))
-                repoll = self.manualpull(weeknumber=weekinfo['weeknumber'],year=weekinfo['year'])
+                repoll = self.pullrecreate(weeknumber=weekinfo['weeknumber'],year=weekinfo['year'])
                 if repoll['status'] == 'success':
                     w_results = myDB.select("SELECT * from weekly WHERE weeknumber=? AND year=?", [int(weekinfo['weeknumber']),weekinfo['year']])
                 else:
@@ -2285,17 +2285,25 @@ class WebInterface(object):
     manualpull.exposed = True
 
     def pullrecreate(self, weeknumber=None, year=None):
+        if mylar.BACKENDSTATUS_WS != 'up':
+            logger.warn('[PULL-LIST] Cannot re-create pull-list as walksoftly is currently offline. Retaining existing pull-data until it\'s back online')
+            return
+
         myDB = db.DBConnection()
         forcecheck = 'yes'
-        if weeknumber is None:
-            myDB.action("DROP TABLE weekly")
-            mylar.dbcheck()
-            logger.info("Deleted existing pull-list data. Recreating Pull-list...")
-        else:
-            myDB.action('DELETE FROM weekly WHERE weeknumber=? and year=?', [int(weeknumber), int(year)])
-            logger.info("Deleted existing pull-list data for week %s, %s. Now Recreating the Pull-list..." % (weeknumber, year))
-        weeklypull.pullit(forcecheck, weeknumber, year)
-        weeklypull.future_check()
+        #if weeknumber is None:
+        #    myDB.action("DROP TABLE weekly")
+        #    mylar.dbcheck()
+        #    logger.info("Deleted existing pull-list data. Recreating Pull-list...")
+        #else:
+        #    myDB.action('DELETE FROM weekly WHERE weeknumber=? and year=?', [int(weeknumber), int(year)])
+        #    logger.info("Deleted existing pull-list data for week %s, %s. Now Recreating the Pull-list..." % (weeknumber, year))
+        logger.info("[PULL-LIST] Now Recreating the Pull-list for week %s, %s..." % (weeknumber, year))
+        statchk = weeklypull.pullit(forcecheck, weeknumber, year)
+        if statchk:
+            if statchk['status'] == 'success':
+                weeklypull.future_check()
+        return
     pullrecreate.exposed = True
 
     def upcoming(self):
@@ -2975,10 +2983,10 @@ class WebInterface(object):
                 else:
                     next_run = None
                 if 'rss' in jb['JobName'].lower():
-                    if jb['Status'] == 'Waiting' and mylar.CONFIG.ENABLE_RSS is False:
-                        mylar.RSS_STATUS = 'Paused'
-                    elif jb['Status'] == 'Paused' and mylar.CONFIG.ENABLE_RSS is True:
-                        mylar.RSS_STATUS = 'Waiting'
+                    #if mylar.CONFIG.ENABLE_RSS is False:
+                    #    mylar.RSS_STATUS = 'Paused'
+                    #elif jb['Status'] == 'Paused' and mylar.CONFIG.ENABLE_RSS is True:
+                    #    mylar.RSS_STATUS = 'Waiting'
                     status = mylar.RSS_STATUS
                     interval = str(mylar.CONFIG.RSS_CHECKINTERVAL) + ' mins'
                 if 'weekly' in jb['JobName'].lower():
@@ -2986,20 +2994,32 @@ class WebInterface(object):
                     if mylar.CONFIG.ALT_PULL == 2: interval = '4 hrs'
                     else: interval = '24 hrs'
                 if 'search' in jb['JobName'].lower():
+                    #if mylar.CONFIG.NZB_STARTUP_SEARCH is False and jb['Status'] != 'Running':
+                    #    mylar.SEARCH_STATUS = 'Waiting'
+                    #elif jb['Status'] == 'Paused' and mylar.CONFIG.NZB_STARTUP_SEARCH is True:
+                    #    mylar.SEARCH_STATUS = 'Waiting'
                     status = mylar.SEARCH_STATUS
                     interval = str(mylar.CONFIG.SEARCH_INTERVAL) + ' mins'
                 if 'updater' in jb['JobName'].lower():
                     status = mylar.UPDATER_STATUS
                     interval = str(int(mylar.DBUPDATE_INTERVAL)) + ' mins'
                 if 'folder' in jb['JobName'].lower():
+                    #if mylar.CONFIG.ENABLE_CHECK_FOLDER is False:
+                    #    mylar.MONITOR_STATUS = 'Paused'
+                    #elif jb['Status'] == 'Paused' and mylar.CONFIG.ENABLE_CHECK_FOLDER is True:
+                    #    mylar.MONITOR_STATUS = 'Waiting'
                     status = mylar.MONITOR_STATUS
                     interval = str(mylar.CONFIG.DOWNLOAD_SCAN_INTERVAL) + ' mins'
                 if 'version' in jb['JobName'].lower():
+                    #if mylar.CONFIG.CHECK_GITHUB is False:
+                    #    mylar.VERSION_STATUS = 'Paused'
+                    #elif jb['Status'] == 'Paused' and mylar.CONFIG.CHECK_GITHUB is True:
+                    #    mylar.VERSION_STATUS = 'Waiting'
                     status = mylar.VERSION_STATUS
                     interval = str(mylar.CONFIG.CHECK_GITHUB_INTERVAL) + ' mins'
 
-                if status != jb['Status'] and not('rss' in jb['JobName'].lower()):
-                    status = jb['Status']
+                #if status != jb['Status'] and not('rss' in jb['JobName'].lower()):
+                #    status = jb['Status']
 
                 tmp.append({'prev_run_datetime':  prev_run,
                             'next_run_datetime': next_run,
@@ -3059,6 +3079,18 @@ class WebInterface(object):
             if jobid.lower() in str(jb).lower():
                 logger.info('[%s] Now force submitting job for jobid %s' % (jb, jobid))
                 if any([jobid == 'rss', jobid == 'weekly', jobid =='search', jobid == 'version', jobid == 'updater', jobid == 'monitor']):
+                    if jobid == 'rss':
+                        mylar.RSS_STATUS = 'Running'
+                    elif jobid == 'weekly':
+                        mylar.WEEKLY_STATUS = 'Running'
+                    elif jobid == 'search':
+                        mylar.SEARCH_STATUS = 'Running'
+                    elif jobid == 'version':
+                        mylar.VERSION_STATUS = 'Running'
+                    elif jobid == 'updater':
+                        mylar.UPDATER_STATUS = 'Running'
+                    elif jobid == 'monitor':
+                        mylar.MONITOR_STATUS = 'Running'
                     jb.modify(next_run_time=datetime.datetime.utcnow())
                     break
     schedulerForceCheck.exposed = True

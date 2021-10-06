@@ -3001,21 +3001,22 @@ def searchforissue(issueid=None, new=False, rsscheck=None, manual=False):
                     else:
                         DateAdded = result['DateAdded']
 
-                    if rsscheck is None and DateAdded >= mylar.SEARCH_TIER_DATE:
-                        logger.info(
-                            'adding: ComicID:%s  IssueiD: %s'
-                            % (result['ComicID'], result['IssueID'])
-                        )
-                        mylar.SEARCH_QUEUE.put(
-                            {
-                                'comicname': comicname,
-                                'seriesyear': SeriesYear,
-                                'issuenumber': result['Issue_Number'],
-                                'issueid': result['IssueID'],
-                                'comicid': result['ComicID'],
-                                'booktype': booktype,
-                            }
-                        )
+                    if rsscheck is None:
+                        if DateAdded >= mylar.SEARCH_TIER_DATE:
+                            logger.info(
+                                'adding: ComicID:%s  IssueiD: %s'
+                                % (result['ComicID'], result['IssueID'])
+                            )
+                            mylar.SEARCH_QUEUE.put(
+                                {
+                                    'comicname': comicname,
+                                    'seriesyear': SeriesYear,
+                                    'issuenumber': result['Issue_Number'],
+                                    'issueid': result['IssueID'],
+                                    'comicid': result['ComicID'],
+                                    'booktype': booktype,
+                                }
+                            )
                         continue
 
                     smode = result['mode']

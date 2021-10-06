@@ -424,6 +424,13 @@ def addComictoDB(comicid, mismatch=None, pullupd=None, imported=None, ogcname=No
     #move to own function so can call independently to only refresh issue data
     #issued is from cv.getComic, comic['ComicName'] & comicid would both be already known to do independent call.
     updateddata = updateissuedata(comicid, comic['ComicName'], issued, comicIssues, calledfrom, SeriesYear=SeriesYear, latestissueinfo=latestissueinfo, serieslast_updated=serieslast_updated)
+    try:
+        if updateddata['status'] == 'failure':
+            logger.warn('Unable to properly retrieve issue details - this is usually due to either irregular issue numbering, or problems with CV')
+            return {'status': 'incomplete'}
+    except Exception:
+        pass
+
     issuedata = updateddata['issuedata']
     anndata = updateddata['annualchk']
     nostatus = updateddata['nostatus']
@@ -1207,7 +1214,7 @@ def updateissuedata(comicid, comicname=None, issued=None, comicIssues=None, call
                 break
             except Exception as e:
                 logger.warn('Unable to parse issue details for series - ComicVine is probably having problems.')
-                return
+                return {'status': 'failure'}
             try:
                 cleanname = firstval['Issue_Name'] #helpers.cleanName(firstval['Issue_Name'])
             except:
@@ -1282,7 +1289,7 @@ def updateissuedata(comicid, comicname=None, issued=None, comicIssues=None, call
                     except ValueError:
                         logger.error('This has no issue # for me to get - Either a Graphic Novel or one-shot.')
                         updater.no_searchresults(comicid)
-                        return
+                        return {'status': 'failure'}
                 else:
                     try:
                         x = float(issnum)
@@ -1339,7 +1346,7 @@ def updateissuedata(comicid, comicname=None, issued=None, comicIssues=None, call
                                 int_issnum = ordtot
                             else:
                                 logger.fdebug('this does not have an issue # that I can parse properly.')
-                                return
+                                return {'status': 'failure'}
                         else:
                             # Matches "number -&/\ number"
                             match = re.match(r"(?P<first>\d+)\s?[-&/\\]\s?(?P<last>\d+)", issnum)
@@ -1376,7 +1383,7 @@ def updateissuedata(comicid, comicname=None, issued=None, comicIssues=None, call
                                 int_issnum = ordtot
                             else:
                                 logger.error(issnum + ' this has an alpha-numeric in the issue # which I cannot account for.')
-                                return
+                                return {'status': 'failure'}
             #get the latest issue / date using the date.
             #logger.fdebug('issue : ' + str(issnum))
             #logger.fdebug('latest date: ' + str(latestdate))

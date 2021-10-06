@@ -194,7 +194,10 @@ class SABnzbd(object):
                         tmp_path = os.path.abspath(os.path.join(hq['storage'], os.pardir))
                         tmp_path_b = tmp_path.split(os.path.sep)[:-1]
                         sub_dir = tmp_path.split(os.path.sep)[-1]
-                        rep_tmp_path_b = re.sub(os.path.sep.join(tmp_path_b), mylar.CONFIG.SAB_DIRECTORY, tmp_path).strip()
+                        if tmp_path == mylar.CONFIG.SAB_DIRECTORY:
+                            rep_tmp_path_b = mylar.CONFIG.SAB_DIRECTORY
+                        else:
+                            rep_tmp_path_b = re.sub(os.path.sep.join(tmp_path_b), mylar.CONFIG.SAB_DIRECTORY, tmp_path).strip()
 
                         try:
                             if os.path.exists(os.path.join( rep_tmp_path_b, os.path.sep.join(sub_dir), tmpfile )):

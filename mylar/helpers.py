@@ -3555,7 +3555,10 @@ def job_management(write=False, job=None, last_run_completed=None, current_run=N
             weekly_nextrun = None
             search_newstatus = 'Waiting'
             search_nextrun = None
-            version_newstatus = 'Waiting'
+            if mylar.CONFIG.CHECK_GITHUB is True:
+               version_newstatus = 'Waiting'
+            else:
+               version_newstatus = 'Paused'
             version_nextrun = None
             if mylar.CONFIG.ENABLE_CHECK_FOLDER is True:
                 monitor_newstatus = 'Waiting'
@@ -3570,37 +3573,37 @@ def job_management(write=False, job=None, last_run_completed=None, current_run=N
                     if mylar.SCHED_DBUPDATE_LAST is None:
                         mylar.SCHED_DBUPDATE_LAST = ji['prev_run_timestamp']
                     dbupdate_newstatus = ji['status']
-                    mylar.UPDATER_STATUS = dbupdate_newstatus
+                    #mylar.UPDATER_STATUS = dbupdate_newstatus
                     dbupdate_nextrun = ji['next_run_timestamp']
                 elif 'search' in ji['JobName'].lower():
                     if mylar.SCHED_SEARCH_LAST is None:
                         mylar.SCHED_SEARCH_LAST = ji['prev_run_timestamp']
                     search_newstatus = ji['status']
-                    mylar.SEARCH_STATUS = search_newstatus
+                    #mylar.SEARCH_STATUS = search_newstatus
                     search_nextrun = ji['next_run_timestamp']
                 elif 'rss' in ji['JobName'].lower():
                     if mylar.SCHED_RSS_LAST is None:
                         mylar.SCHED_RSS_LAST = ji['prev_run_timestamp']
                     rss_newstatus = ji['status']
-                    mylar.RSS_STATUS = rss_newstatus
+                    #mylar.RSS_STATUS = rss_newstatus
                     rss_nextrun = ji['next_run_timestamp']
                 elif 'weekly' in ji['JobName'].lower():
                     if mylar.SCHED_WEEKLY_LAST is None:
                         mylar.SCHED_WEEKLY_LAST = ji['prev_run_timestamp']
                     weekly_newstatus = ji['status']
-                    mylar.WEEKLY_STATUS = weekly_newstatus
+                    #mylar.WEEKLY_STATUS = weekly_newstatus
                     weekly_nextrun = ji['next_run_timestamp']
                 elif 'version' in ji['JobName'].lower():
                     if mylar.SCHED_VERSION_LAST is None:
                         mylar.SCHED_VERSION_LAST = ji['prev_run_timestamp']
                     version_newstatus = ji['status']
-                    mylar.VERSION_STATUS = version_newstatus
+                    #mylar.VERSION_STATUS = version_newstatus
                     version_nextrun = ji['next_run_timestamp']
                 elif 'monitor' in ji['JobName'].lower():
                     if mylar.SCHED_MONITOR_LAST is None:
                         mylar.SCHED_MONITOR_LAST = ji['prev_run_timestamp']
                     monitor_newstatus = ji['status']
-                    mylar.MONITOR_STATUS = monitor_newstatus
+                    #mylar.MONITOR_STATUS = monitor_newstatus
                     monitor_nextrun = ji['next_run_timestamp']
 
             monitors = {'weekly': mylar.SCHED_WEEKLY_LAST,
@@ -3618,28 +3621,34 @@ def job_management(write=False, job=None, last_run_completed=None, current_run=N
                     continue
                 elif 'update' in jobinfo.lower():
                     prev_run_timestamp = mylar.SCHED_DBUPDATE_LAST
-                    newstatus = dbupdate_newstatus
-                    mylar.UPDATER_STATUS = newstatus
+                    newstatus = mylar.UPDATER_STATUS
+                    #newstatus = dbupdate_newstatus
+                    #mylar.UPDATER_STATUS = newstatus
                 elif 'search' in jobinfo.lower():
                     prev_run_timestamp = mylar.SCHED_SEARCH_LAST
-                    newstatus = search_newstatus
-                    mylar.SEARCH_STATUS = newstatus
+                    newstatus = mylar.SEARCH_STATUS
+                    #newstatus = search_newstatus
+                    #mylar.SEARCH_STATUS = newstatus
                 elif 'rss' in jobinfo.lower():
                     prev_run_timestamp = mylar.SCHED_RSS_LAST
-                    newstatus = rss_newstatus
-                    mylar.RSS_STATUS = newstatus
+                    newstatus = mylar.RSS_STATUS
+                    #newstatus = rss_newstatus
+                    #mylar.RSS_STATUS = newstatus
                 elif 'weekly' in jobinfo.lower():
                     prev_run_timestamp = mylar.SCHED_WEEKLY_LAST
-                    newstatus = weekly_newstatus
-                    mylar.WEEKLY_STATUS = newstatus
+                    newstatus = mylar.WEEKLY_STATUS
+                    #newstatus = weekly_newstatus
+                    #mylar.WEEKLY_STATUS = newstatus
                 elif 'version' in jobinfo.lower():
                     prev_run_timestamp = mylar.SCHED_VERSION_LAST
-                    newstatus = version_newstatus
-                    mylar.VERSION_STATUS = newstatus
+                    newstatus = mylar.VERSION_STATUS
+                    #newstatus = version_newstatus
+                    #mylar.VERSION_STATUS = newstatus
                 elif 'monitor' in jobinfo.lower():
                     prev_run_timestamp = mylar.SCHED_MONITOR_LAST
-                    newstatus = monitor_newstatus
-                    mylar.MONITOR_STATUS = newstatus
+                    newstatus = mylar.MONITOR_STATUS
+                    #newstatus = monitor_newstatus
+                    #mylar.MONITOR_STATUS = newstatus
 
                 jobname = jobinfo[:jobinfo.find('(')-1].strip()
                 #logger.fdebug('jobinfo: %s' % jobinfo)
