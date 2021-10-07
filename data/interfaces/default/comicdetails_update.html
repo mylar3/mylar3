@@ -1,0 +1,1919 @@
+<%inherit file="base.html"/>
+<%!
+        import os, re
+        from mylar import db, helpers
+	import mylar
+%>
+
+<%def name="headerIncludes()">
+	<div id="subhead_container">
+		<div id="subhead_menu">
+                        <a id="menu_link_refresh" title="retrieve any new information for the series" onclick="refresh_series(${comic['ComicID']})" href="#">Refresh Comic</a>
+                        <a id="menu_link_delete" href="#">Delete Comic</a>
+                           <div id="dialog" title="Delete Series Confirmation" style="display:none" class="configtable">
+                              <form action="deleteSeries" method="GET" style="vertical-align: middle; text-align: center">
+                                  </br><input type="submit" value="Delete Series">
+                                  <div class="row checkbox left clearfix">
+                                      </br>
+                                      <input type="checkbox" style="vertical-align: middle; margin: 3px; margin-top: -1px;" name="delete_dir" id="deleteCheck" value="1" ${comicConfig['delete_dir']} /><label>Remove directory when deleting Series?</label>
+                                  </div>
+                                  <input type="hidden" name="ComicID" id="ComicID" value=${comic['ComicID']} />
+                              </form>
+                           </div>
+
+                        <input type="hidden" name="meta_enabled" id="meta_enabled" value=${mylar.CONFIG.ENABLE_META} />
+                        <input type="hidden" name="rename_enabled" id="rename_enabled" value=${mylar.CONFIG.RENAME_FILES} />
+                        %if mylar.CONFIG.RENAME_FILES:
+                            <a id="menu_link_refresh" tile="rename all files in a Downloaded status as per the folder format string" onclick="manual_rename(${comic['ComicID']})" href="#">Rename Files</a>
+                        %endif
+
+                            <a id="menu_link_refresh" title="Rescan local files" onclick="force_rescan(${comic['ComicID']})">Recheck Files</a>
+                        <a id="menu_link_searchmissing" onclick="doAjaxCall('searchformissing?ComicID=${comic['ComicID']}', $(this), 'table');" href="#" data-success="Now queueing missing items for ${comic['ComicName']}">Search-4-Missing</a>
+                        %if mylar.CONFIG.ENABLE_META:
+                            <a id="menu_link_refresh" href="#" title="perform metatagging on each Downloaded issue" onclick="group_metatag(${comic['ComicID']})">Manual MetaTagging</a>
+                        %endif
+
+                        %if comic['Status'] == 'Paused':
+                                <a id="menu_link_resume" href="#" onclick="doAjaxCall('resumeSeries?ComicID=${comic['ComicID']}',$(this),true);reload_tabs();" data-success="${comic['ComicName']} resumed">Resume Comic</a>
+                        %else:
+                                <a id="menu_link_pauze" href="#" onclick="doAjaxCall('pauseSeries?ComicID=${comic['ComicID']}',$(this),true);reload_tabs();" data-success="${comic['ComicName']} paused">Pause Comic</a>
+                        %endif
+
+                        %if annuals:
+                                <a id="menu_link_delete" href="annualDelete?comicid=${comic['ComicID']}">Delete Annuals</a>
+                        %endif
+<!--
+                        <a id="menu_link_addalltoRL" href="#" class="menu_link_addalltoRL">Add All to Readinglist</a>
+-->
+		</div>
+	</div>
+</%def>
+<%def name="body()">
+        <input type="hidden" id="page_name" value="series_detail" />
+	<div id="paddingheader">
+		<h1>
+                   </br>
+                        <span id="loading_spinner" style="display:none;">
+                                <img src="images/loader_black.gif" alt="loading" style="float:left; margin-right: 5px;"/>
+                        </span>
+                        <div id="seriesheader" class="row">
+                              <span id="series_line"></span>
+                              <span id="series_status" style="display:none;">
+                                    <h3><i>(Comic information is currently being loaded)</i></h3>
+                              </span>
+                        </div>
+                </h1>
+                             <div style="z-index:10; position: absolute; right: 0; top: 10;">
+                             % if 'Previous' in series:
+                             <a href="comicDetails?ComicID=${series['Previous']}"><img src="${icons['prev']}" width="16" height="18" /></a>
+                             % endif
+                             % if 'Next' in series:
+                             <a href="comicDetails?ComicID=${series['Next']}"><img src="${icons['next']}" width="16" height="18" /></a>
+                             % endif
+                             </div>
+
+	</div>
+
+	<div id="tabs">
+                     <input type="hidden" id="tab_comicname" value="${comic['ComicName']}" />
+                     <input type="hidden" id="tab_comicyear" value="${comic['ComicYear']}" />
+                     <input type="hidden" id="tab_comicdetailurl" value="${comic['DetailURL']}" />
+		<ul>
+			<li><a href="#tabs-1">Comic Details</a></li>
+                        <li><a href="#tabs-2">Edit Settings</a></li>
+                </ul>
+
+       <div id="tabs-1">
+
+         <table class="comictable" summary="Comic Details">
+
+            <tr>
+                <td id="mainimg">
+                   <fieldset>
+                       <div id="artistImg">
+                          <img src="${comicConfig['ComicImage']}" alt="" height="400px" width="263px" />
+                       </div>
+                   </fieldset>
+                         <%
+                                 if comicConfig['percent'] == 101:
+                                         css = '<div class=\"progress-container warning\">'
+                                 if comicConfig['percent'] == 100:
+                                         css = '<div class=\"progress-container complete\">'
+                                 if comicConfig['percent'] < 100:
+                                         css = '<div class=\"progress-container missing\">'
+                          %>
+                   <div style="display:table;position:relative;margin:auto;top:0px;"><span title="${comicConfig['percent']}"></span>${css}<div style="width:${comicConfig['percent']}%"><span class="progressbar-front-text">${comicConfig['haveissues']}/${comicConfig['totalissues']}</span></div></div></div>
+                   <%
+                        try:
+                            meta_color = 'red'
+                            meta_title = 'series.json not located in comic directory. Click here to generate a new one.'
+                            if mylar.CONFIG.SERIES_METADATA_LOCAL is True:
+                                if os.path.exists(os.path.join(comic['ComicLocation'], 'series.json')):
+                                    meta_color = 'yellow'
+                                    meta_title = 'series.json located in comic directory'
+                        except:
+                            pass
+                   %>
+                   %if mylar.CONFIG.SERIES_METADATA_LOCAL is True:
+                       <div class="outerglow" style="z-index: 10; position: absolute; float: right; bottom: 10px; right: -50px;">
+                           <a href="#" onclick="doAjaxCall('update_metadata?comicid=${comic['ComicID']}', $(this), 'tabs');" data-success="successfully generated series.json" data-error="nope.">
+                           <span title="${meta_title}" class="outerglow_shadow_${meta_color}">series.json</span>
+                           <span class="outerglow_text">series.json</span></a>
+                       </div>
+                   %endif
+
+                 </td>
+                 <td width="100%" padding="10">
+                         %if comicConfig['publisher_image'] is not None:
+                             <img src="${comicConfig['publisher_image']}" align="right" alt="${comicConfig['publisher_image_alt']}" height="${comicConfig['publisher_imageH']}" width="${comicConfig['publisher_imageW']}" />
+                         %endif
+                         %if all([comic['ComicVersion'] is not None, comic['ComicVersion'] != 'None']):
+                             <div style="position:relative;float:right;top:200px;right:35px;font-size:90px;font-family:impact;"><span class="watermark"><center>${comic['ComicVersion']}</center></span></div>
+                         %endif
+        		 <fieldset>
+                                <div>
+                                   <label><big>Publication Date: </big><norm>${comic['ComicPublished']}</norm></label>
+                                </div>
+                                <div>
+                                   <label><big>Publisher: </big><norm>${comic['ComicPublisher']}</norm></label>
+                                   %if all([comic['PublisherImprint'] is not None, comic['PublisherImprint'] != 'None']):
+                                       </br><label><big>Imprint: </big><norm>${comic['PublisherImprint']}</norm></label>
+                                   %endif
+	            		</div>
+                                <div>
+                                    <label><big>Status: </big><norm>${comic['Status']}</norm></label>
+                                    <input type="hidden" name="status_hidden" id="status_hidden" value=${comicConfig['Status']} />
+                                </div>
+                                <%
+                                      if any([comic['Type'] == 'None', comic['Type'] is None, comic['Type'] == 'Print']) and comic['Corrected_Type'] is None:
+                                          comictype = 'Print'
+                                      else:
+                                          if comic['Corrected_Type'] is not None:
+                                              comictype = comic['Corrected_Type']
+                                          else:
+                                              comictype = comic['Type']
+
+                                      if comictype == 'HC':
+                                          display_type = 'Hardcover'
+                                      elif comictype == 'GN':
+                                          display_type = 'Graphic Novel'
+                                      elif comictype == 'TPB':
+                                          display_type = 'Trade PaperBack'
+                                      else:
+                                          display_type = comictype
+
+                                %>
+                                <div>
+                                    <label><big>Edition: </big><norm>${display_type}</norm>
+                                    <% 
+                                        if comicConfig['issue_list'] is not None:
+                                            cnt = 0
+                                            line = ''
+                                            for x in comicConfig['issue_list']:
+                                                if x['comicid'] is not None:
+                                                    cid = helpers.listLibrary(x['comicid'])
+                                                    try:
+                                                        if cid[re.sub('4050-', '', x['comicid']).strip()]['comicid']:
+                                                            watch = "<a href='comicDetails?ComicID=%s' title='In Watchlist'>%s</a>" % (cid[re.sub('4050-', '', x['comicid']).strip()]['comicid'], x['series'])
+                                                    except:
+                                                            watch = "%s" % (x['series'])
+                                                else:
+                                                    watch = x['series']
+                                                if cnt == 0:
+                                                    if x['issues'] is not None:
+                                                        line += "<span style='display:inline-block;'>%s %s</span>" % (watch, x['issues'])
+                                                    else:
+                                                        line += "<span style='display:inline-block;'>%s</span>" % watch
+                                                else:
+                                                    if x['issues'] is not None:
+                                                        line += " / <span style='display:inline-block;'>%s %s</span>" % (watch, x['issues'])
+                                                    else:
+                                                        line += " / <span style='display:inline-block;'>%s</span>" % watch
+                                                cnt+=1
+
+                                    %>
+                                    %if comicConfig['issue_list'] is not None:
+                                        ( Collects: ${line} )
+                                    %endif
+                                    </label>
+                                </div>
+                                <div>
+                                    <label><big>Age Rating: </big><norm>${comic['AgeRating']}</norm></label>
+                                </div>
+                                <div>
+                                    <label><big>Last Updated: </big>
+                                %if comic['LastUpdated'] is None:
+                                    <norm>Never</norm>
+                                %else:
+                                    <norm>${comic['LastUpdated']}</norm>
+                                %endif
+                                </label>
+                                </div>
+                                <div>
+                                   <label><big>Issues in Series: </big><norm>${comic['Total']} issues</norm></label>
+                                </div>
+                                <div>
+                                    <%
+                                        arc_img = None
+                                        arc_tip = None
+                                        archive_path = None
+                                        if mylar.CONFIG.MULTIPLE_DEST_DIRS is not None and mylar.CONFIG.MULTIPLE_DEST_DIRS != 'None':
+                                            try:
+                                                archive_path = comicConfig['secondary_folders']
+                                            except Exception:
+                                                archive_path = 'None'
+
+                                            try:
+                                                arcstyle = "font-size:12px;"
+                                                if 60 > len(archive_path) > 100:
+                                                    arcstyle = "font-size:11px;"
+                                                elif len (archive_path) > 100:
+                                                    arcstyle = "font-size:10px;"
+                                                if os.path.exists(archive_path):
+                                                    arc_img = "images/success.png"
+                                                    arc_tip = "this directory currently exists"
+                                                else:
+                                                    arc_img = "images/x_red.png"
+                                                    arc_tip = "this directory does not currently exist"
+                                            except Exception:
+                                                arc_img = "imags/x_red.png"
+                                                arc_tip = "this directory does not currently exist"
+
+                                        try:
+                                            tmpstyle = "display:inline-block;float:left;"
+                                            if 60 > len(comic['ComicLocation']) > 100:
+                                                tmpstyle += "font-size:11px;"
+                                            elif len(comic['ComicLocation']) > 100:
+                                                tmpstyle += "font-size:10px;"
+                                            else:
+                                                tmpstyle += "font-size:12px;"
+
+                                            if os.path.exists(comic['ComicLocation']):
+                                                path_img = "images/success.png"
+                                                path_tip = "this directory currently exists"
+                                            else:
+                                                path_img = "images/x_red.png"
+                                                path_tip = "this directory does not currently exist"
+                                        except Exception:
+                                            path_img = "images/x_red.png"
+                                            path_tip = "this directory does not currently exist"
+                                    %>
+                                    <input type="hidden" id="og_com_location" value="${comic['ComicLocation']}">
+
+                                    %if archive_path is None:
+                                        <label><big>Directory:</big></label><br/>
+                                        <img src="${path_img}" title="${path_tip}" style="float:left;" height="15" width="15" padding="5"><span style="${tmpstyle}">${comic['ComicLocation']}</span>
+                                    %else:
+                                        %if os.path.exists(archive_path) and archive_path != comic['ComicLocation']:
+                                            <label><big>Directories:</big></label><br/>
+                                            <p><img style="float:left;" src="${path_img}" title="${path_tip}" height="15" width="15" padding="5"><span style="${tmpstyle}"> Primary: ${comic['ComicLocation']}</span><br/>
+                                            <img style="float:left;" src="${arc_img}" title="${arc_tip}" height="15" width="15" padding="5"><span style="${arcstyle}"> Secondary: ${archive_path}</span></label></p>
+                                        %else:
+                                            <label><big>Directory:</big><br/>
+                                            <img src="${path_img}" title="${path_tip}" style="float:left;" height="15" width="15" padding="5"><span style="${tmpstyle}">${comic['ComicLocation']}</span></label>
+                                        %endif
+                                    %endif
+                                    </br>
+                                </div>
+                                %if comicConfig['description']:
+                                    <%
+                                         comicDescription = re.sub(r'[\n\r]', '</br>', comicConfig['description']).strip()
+                                         if len(comicDescription) > 300:
+                                             cdescription = '%s <span id="dots">...</span><span id="more">%s</span><a href="#" onclick="moreMore()" style="color:yellow;" id="readMore"> more</a>' % (comicDescription[:300], comicDescription[300:])
+                                         else:
+                                             cdescription = comicDescription
+                                    %>
+                                    <div>
+                                        <br/><label><big>Description:</big></label><br/>
+                                        <small><input type="image" href="#" id="jeditable-activate" src="images/edit.png" height="15px" width="15px" title="Edit description" />
+                                        <span style="white-space: pre-wrap" class="description_edit" id="d${comic['ComicID']}">${cdescription}</span></small>
+                                    </div>
+                                %endif
+                         </fieldset>
+                </td>
+            </tr>
+        </table>
+	</div>
+        <div id="tabs-2">
+        <table class="comictable" summary="Edit Settings">
+            <tr>
+                <td id="mainimg">
+                   <fieldset>
+                       <div class="row" id="artistImg">
+                          <img src="${comicConfig['ComicImage']}" alt="" height="400" width="263" />
+                       </div>
+                   </fieldset>
+                   <div style="display:table;position:relative;margin:auto;top:0px;"><span title="${comicConfig['percent']}"></span>${css}<div style="width:${comicConfig['percent']}%"><span class="progressbar-front-text">${comicConfig['haveissues']}/${comicConfig['totalissues']}</span></div></div></div>
+                 </td>
+                 <td width="100%" padding="10">
+                 %if comicConfig['publisher_image'] is not None:
+                     <img src="${comicConfig['publisher_image']}" align="right" alt="${comicConfig['publisher_image_alt']}" height="${comicConfig['publisher_imageH']}" width="${comicConfig['publisher_imageW']}" />
+                 %endif
+                 <form action="comic_config" method="GET">
+                    <input type="hidden" name="ComicID" value=${comic['ComicID']} />
+                        <fieldset>
+                                <div class="row checkbox right clearfix">
+                                        <label>Age-Rating</label>
+                                        <select name="age_rating">
+                                        <%
+                                            ar_list = ['All Ages', '9+', '12+', '15+', '17+', 'Adult']
+                                        %>
+                                        %for arr in ar_list:
+                                                <%
+                                                        if comicConfig['age_rating'] == arr:
+                                                                outputselect = 'selected'
+                                                        else:
+                                                                outputselect = ''
+                                                %>
+                                                %if comicConfig['age_rating'] is None:
+                                                    %if arr == 'Select':
+                                                        <option value='' selected disabled hidden>Select...</option>
+                                                    %elif comic['AgeRating'] == arr:
+                                                        <option value=${arr} disabled>${arr}</option>
+                                                    %else:
+                                                        <option value=${arr} ${outputselect}>${arr}</option>
+                                                    %endif
+                                                %elif comicConfig['age_rating'] == arr:
+                                                    <option value=${arr} selected disabled>${arr}</option>
+                                                %else:
+                                                    <option value=${arr} ${outputselect}>${arr}</option>
+                                                %endif
+                                        %endfor
+                                        </select>
+                                </div>
+                                <div class="row checkbox right clearfix">
+                                   <label>Forcibly Mark as Continuing</label>
+                                   <input type="checkbox" style="vertical-align: bottom; margin: 3px; margin-top: -3px;" name="force_continuing" value="1" ${comicConfig['force_continuing']} />
+                                   <a href="#" title="Will forcibly mark this series as 'Continuing' regardless of actual status"><img src="images/info32.png" height="16" alt="" /></a>
+                                </div>
+                                <div class="row checkbox right clearfix">
+                                                <label>Force-Type (original:${comic['Type']})</label>
+                                                <select name="force_type">
+                                                <%
+                                                    ftt_list = ['Select', 'TPB', 'HC', 'GN', 'Digital', 'One-Shot', 'Print']
+                                                %>
+                                                %for ftt in ftt_list:
+                                                        <%
+                                                                if comicConfig['force_type'] == ftt:
+                                                                        outputselect = 'selected'
+                                                                else:
+                                                                        outputselect = ''
+                                                        %>
+                                                        %if comicConfig['force_type'] is None:
+                                                            %if ftt == 'Select':
+                                                                <option value='' selected disabled hidden>Select...</option>
+                                                            %elif comic['Type'] == ftt:
+                                                                <option value=${ftt} disabled>${ftt}</option>
+                                                            %else:
+                                                                <option value=${ftt} ${outputselect}>${ftt}</option>
+                                                            %endif
+                                                        %elif comicConfig['force_type'] == ftt:
+                                                            <option value=${ftt} selected disabled>${ftt}</option>
+                                                        %else:
+                                                            <option value=${ftt} ${outputselect}>${ftt}</option>
+                                                        %endif
+                                                %endfor
+                                                </select>
+                                                <a href="#" title="Will forcibly mark this series as selected in those instances where it assumes it's a ${comic['Type']}-based series"><img src="images/info32.png" height="16" alt="" /></a>
+                                </div>
+                                <div class="row checkbox right clearfix">
+                                   %if all([comic['Type'] != 'TPB', comic['Type'] != 'HC', comic['Type'] != 'GN']):
+                                       <label>Accept all booktype search matches</label>
+                                       <input type="checkbox" style="vertical-align: bottom; margin: 3px; margin-top: -3px;" name="ignore_type" value="1" ${comicConfig['ignore_type']} />
+                                       <a href="#" title="Will not restrict search matches to just being a matching Edition type (ie. One-Shots/Digitals will match against normal Issues."><img src="images/info32.png" height="16" alt="" /></a>
+                                   %endif
+                                </div>
+                                %if any([comic['ComicYear'] == '2099',comic['ComicYear'] == '0000', comic['ComicYear'] == '', comic['Corrected_SeriesYear']]):
+                                    <div class="row">
+                                        <label>Series Year</label>
+                                        <input type="text" title="The series year currently is probably incorrect. This option allows it to be manually changed." name="corrected_seriesyear" value="${comic['ComicYear']}" size="10">
+                                    </div>
+                                %endif
+                                <div class="row">
+                                    <label>Volume Number</label>
+                                    <input type="text" name="comic_version" value="${comic['ComicVersion']}" size="20">
+				    <small>Format: vN where N is a number 0-infinity</small>
+                                </div>
+
+                                   <div class="row">
+                                       <label>Directory Location</label>
+                                       <input type="text" id="com_location" name="com_location" value="${comic['ComicLocation']}" size="90">
+                                       <small>The directory where all the comics are located for this particular comic</small>
+                                   </div>
+
+                                   <div class="row">
+                                       <label>Alternate Search Names</label>
+                                       <input type="text" name="alt_search" value="${comic['AlternateSearch']}" size="90" />
+                                       <a href="#" title="Seperate multiple entries with ##"><img src="images/info32.png" height="16" alt="" /></a>
+                                       <small>Alternate comic names to be searched in case naming is different (ie. Hack/Slash = hack-slash)</small>
+                                   </div>
+
+                                   <div class="row">
+                                       <label>Alternate File-Naming</label>
+                                       <input type="text" name="alt_filename" value="${comic['AlternateFileName']}" size="90">
+                                       <a href="#" title="Alternate File Naming"><img src="images/info32.png" height="16" alt="" /></a>
+                                       <small>Alternate file-naming to be used when post-processing / renaming files instead of the actual title.</small>
+                                   </div>
+
+                                   <div class="row">
+                                       <label>Publication Imprint</label>
+                                       <input type="text" name="publisher_imprint" value="${comic['PublisherImprint']}" size="90">
+                                   </div>
+
+                                   <div class="row">
+                                        <%
+                                             year_options = "Default - Keep the Year as is\nYear Removal - Remove issue publication year from searches (dangerous)\nFuzzy the Year - Increase & Decrease the issue publication year by one"
+                                        %>
+                                        <label>Year Options</label>
+                                        <input type="radio" style="vertical-align: middle; margin: 3px; margin-top: -3px;" name="fuzzy_year" value="0" ${comicConfig['fuzzy_year0']} /> Default&nbsp;<input type="radio" style="vertical-align: middle; margin: 3px; margin-top: -3px;" name="fuzzy_year" value="1" ${comicConfig['fuzzy_year1']} /> Year Removal&nbsp;<input type="radio" style="vertical-align: middle; margin: 3px; margin-top: -3px;" name="fuzzy_year" value="2" ${comicConfig['fuzzy_year2']} /> Fuzzy the Year&nbsp;&nbsp;
+                                        <a href="#" title="${year_options}"><img src="images/info32.png" valign="bottom" height="16" alt="" /></a>
+                                   </div>
+
+                                   %if all([mylar.CONFIG.ENABLE_32P is True, mylar.CONFIG.ENABLE_TORRENT_SEARCH is True, mylar.CONFIG.MODE_32P == 1]):
+                                   <div class="row checkbox right clearfix">
+                                       <input type="checkbox" style="vertical-align: bottom; margin: 3px; margin-top: -3px;" name="allow_packs" value="1" ${comicConfig['allow_packs']} /><label>Enable Pack Downloads<a href="#" title="Will allow downloading of multiple issues in one file (packs), but will search individual issues first"><img src="images/info32.png" height="16" alt="" /></a></label>
+                                   </div>
+                                   <div class="row">
+                                       <label>Manual specify series ID for 32p</label>
+                                       <input type="text" name="torrentid_32p" placeholder="torrent id #" value="${comicConfig['torrentid_32p']}" size="40">
+                                   </div>
+                                   %endif
+                        </fieldset>
+                     <input type="submit" style="float:right;bottom:20px;" value="Update"/>
+                </form>
+               </td>
+             </tr>
+            </table>
+           </div>
+ </div>
+
+  <div>
+   <div id="btn_container">
+        <div id="btn_menu" style="float:right;padding-bottom:5px;">
+            <a id="menu_link_edit" onclick="display_date('click')" href="#"><span id="display_the_date" title="Change date values to display Store or Cover date">Show Store Date</span></a>
+        </div>
+   </div>
+
+   <div id="checkboxControls" name="checkboxControls" style="position:absolute;float: left; vertical-align: middle; margin: 5px 3px 3px 3px;">
+    <div style="padding-bottom: 5px;">
+        <label for="Wanted" class="checkbox inline Wanted" id="wantedlabel" style="display:none;"><input type="checkbox" name="Wanted" id="Wanted" checked="checked" /> Wanted: <b><span id="wantedcount"></span></b></label>
+        <label for="Archived" class="checkbox inline Archived" id="archivedlabel" style="display:none;"><input type="checkbox" name="Archived" id="Archived" checked="checked" /> Archived: <b><span id="archivedcount"></span></b></label>
+        <label for="Downloaded" class="checkbox inline Downloaded" id="downloadedlabel" style="display:none;"><input type="checkbox" name="Downloaded" id="Downloaded" checked="checked" /> Downloaded: <b><span id="downloadedcount"></span></b></label>
+        <label for="Skipped" class="checkbox inline Skipped" id="skippedlabel" style="display:none;"><input type="checkbox" name="Skipped" id="Skipped" checked="checked" /> Skipped: <b><span id="skippedcount"></span></b></label>
+        <label for="Ignored" class="checkbox inline Ignored" id="ignoredlabel" style="display:none;"><input type="checkbox" name="Ignored" id="Ignored" checked="checked" /> Ignored: <b><span id="ignoredcount"></span></b></label>
+        <label for="Snatched" class="checkbox inline Snatched" id="snatchedlabel" style="display:none;"><input type="checkbox" name="Snatched" id="Snatched" checked="checked" /> Snatched: <b><span id="snatchedcount"></span></b></label>
+        %if mylar.CONFIG.FAILED_DOWNLOAD_HANDLING:
+            <label for="Failed" class="checkbox inline Failed" id="failedlabel" style="display:none;"><input type="checkbox" name="Failed" id="Failed" checked="checked" /> Failed: <b><span id="failedcount"></span></b></label>
+        %endif
+    </div>
+   </div>
+  </div>
+
+     <div class="table_wrapper" id="issue_wrapper">
+       <h1><center>Issues</center></h1>
+       <form action="mark_the_issues" method="get" id="markissues" name="markissues">
+        <div style="position:absolute;float:left;display:none;" id="markissue">Mark selected issues as
+                <select name="action" id="mark_issues" onChange="mark_the_issues('issues')" data-success="selected issues marked">
+                        <option disabled="disabled" selected="selected">Choose...</option>
+                        <option value="Wanted">Wanted</option>
+                        <option value="Skipped">Skipped</option>
+                        <option value="Archived">Archived</option>
+                        <option value="Ignored">Ignored</option>
+                        %if mylar.CONFIG.FAILED_DOWNLOAD_HANDLING:
+                            <option value="Failed">Failed</option>
+                        %endif
+                </select>
+                <input type="hidden" value="Go">
+        </div>
+
+          <table class="display select" id="issue_table">
+                <thead>
+                        <tr>
+                                <th id="select" align="left"><input type="checkbox" name="select_all" value="1" id="issues-select-all" class="checkbox" /></th>
+                                <th id="issuenumber">#</th>
+                                <th id="issuename">Name</th>
+                                <th id="reldate">Cover Date</th>
+                                <th id="status">Status</th>
+                                <th id="options">Options</th>
+                        </tr>
+                </thead>
+                <tbody>
+                <div id="issue-box" class="issue-popup">
+                 <a href="#" class="close"><img src="images/close_pop.png" class="btn_close" title="Close Window" alt="Close" class="highqual" /></a>
+                 <div id="descript"><span></span></div>
+                 <div id="responsethis">
+                  <span><img src="images/loader_black.gif" alt="loading" style="float:left; margin-right: 5px;"/>LOADING....</span>
+                 </div>
+               </div>
+
+                </tbody>
+         </table>
+       </form>
+    </div>
+
+    <div class="table_wrapper" id="annual_wrapper">
+       <br />
+       <h1><center>Annuals</center></h1>
+       <br />
+       <form action="mark_the_issues" method="get" id="markannuals" name="markannuals">
+        <div style="position:relative;float:left;display:none;" id="markannual">Mark selected annuals as
+                <select name="action" id="mark_annuals" onChange="mark_the_issues('annuals')" data-success="selected annuals marked">
+                        <option disabled="disabled" selected="selected">Choose...</option>
+                        <option value="Wanted">Wanted</option>
+                        <option value="Skipped">Skipped</option>
+                        <option value="Archived">Archived</option>
+                        <option value="Ignored">Ignored</option>
+                        %if mylar.CONFIG.FAILED_DOWNLOAD_HANDLING:
+                            <option value="Failed">Failed</option>
+                        %endif
+                </select>
+                selected annuals
+                <input type="hidden" value="Go">
+        </div>
+            <table class="display select" id="annual_table">
+                <thead>
+                    <tr>
+                        <th id="aselect" align="left"><input type="checkbox" name="select-all" value="1" id="annuals-select-all" class="checkbox" /></th>
+                        <th id="agroup_name">Gname</th>
+                        <th id="aissuenumber">#</th>
+                        <th id="aissuename">Name</th>
+                        <th id="areldate">Cover Date</th>
+                        <th id="astatus">Status</th>
+                        <th id="aoptions">Options</th>
+                    </tr>
+                </thead>
+                <tbody>
+                </tbody>
+            </table>
+       </form>
+     </div>
+     <div>
+         %if mylar.CONFIG.ANNUALS_ON:
+             <div style="position:relative; width:960px; height:10px; margin:10px auto;">
+                 <form action="manual_annual_add" method="GET">
+                     <input type="hidden" name="comicid" value=${comic['ComicID']}>
+                     <input type="hidden" name="comicname" value=${comic['ComicName'] |u}>
+                     <input type="hidden" name="comicyear" value=${comic['ComicYear']}>
+                     <div style="position:absolute; top:30px; right:0px;">
+                         <center><label><strong><a href="#" title="Enter the ComicID of the annual(s) you want to add to the series"/>Comic ID</a></strong></label>
+                         <input type="text" name="manual_comicid" size="10"><input type="image" src="images/submit.png" height="25" width="25" class="highqual" /></center>
+                     </div>
+                 </form>
+             </div>
+         %endif
+     </div>
+</%def>
+
+<%def name="headIncludes()">
+        <link rel="stylesheet" type="text/css" href="interfaces/${interface}/css/data_table.css" />
+        // <link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/select/1.3.3/css/select.dataTables.min.css" />
+</%def>
+
+
+<%def name="javascriptIncludes()">
+        //<script src="https://cdn.datatables.net/v/dt/dt-1.10.25/datatables.min.js"></script>
+        //<script src="https://cdn.datatables.net/select/1.3.3/js/dataTables.select.min.js"></script>
+        <script src="js/libs/jquery.dataTables.min.js"></script>
+        <script src="js/libs/jquery.jeditable.js"></script>
+        <script src="js/libs/full_numbers_no_ellipses.js"></script>
+        <script src="js/libs/dataTables.rowGroup.min.js"></script>
+        <style>
+        .ui-autocomplete-loading {
+          background: white url('images/loader_black.gif') right center no-repeat;
+        }
+        </style>
+        <script>
+        var collapsedGroups = {};
+        $(document).ready(function() {
+            $("#jeditable-activate").click(function() {
+               $(this).prev().click();
+               $('.description_edit').trigger('custom_event');
+            });
+            $('.description_edit').editable('description_edit', {
+                loadurl: 'get_description',
+                type: 'textarea',
+                submit: '<button class="button btn btn-success" type="submit">Ok</button>',
+                cancel: '<button class="button btn btn-danger" type="cancel">Cancel</button>',
+                event: 'custom_event',
+                height: ($("span#edit").height() + 200) + "px",
+                width: ($("span#edit").width() + 350) + "px",
+                tooltip: '',
+                onreset: function(settings, original){
+                    //alert('reset:'+JSON.stringify(original));
+                    $("#jeditable-activate.hidden").removeClass('hidden');
+                    return($(this).html(original.revert));
+                },
+                onedit: function(){
+                    $(this).siblings("#jeditable-activate").addClass('hidden');
+                },
+                callback : function(value, settings) {
+                    $("#jeditable-activate.hidden").removeClass('hidden');
+                    console.log(this);
+                    console.log(value);
+                    console.log(settings);
+                    const regex = /\\n|\\r\\n|\\n\\r|\\r/g;
+                    value.replace(regex, '<br>');
+                    if (value.length > 300){
+                      spanline = value.substr(0,300)+'<span id="dots">...</span><span id="more">'+value.substr(301)+'</span><a href="#" onclick="moreMore()" style="color:yellow;" id="readMore"> more</a>';
+                    } else {
+                      spanline = value;
+                    }
+                    return($(this).html(spanline));
+                }
+            });
+        });
+
+        // ... more
+        function moreMore() {
+           var dots = document.getElementById("dots");
+           var moreText = document.getElementById("more");
+           var optText = document.getElementById("readMore");
+           if (dots.style.display == "none"){
+             dots.style.display = "inline";
+             optText.innerHTML = " more";
+             moreText.style.display = "none";
+           } else {
+             dots.style.display = "none";
+             optText.innerHTML = "  less";
+             moreText.style.display = "inline";
+           }
+        }
+        </script>
+        <script>
+        $(document).ready(function() {
+        $('a.issue-window').click(function() {
+
+                    //Getting the variable's value from a link
+            var issueBox = $(this).attr('href');
+
+            //Fade in the Popup
+            $(issueBox).fadeIn(300);
+
+            //Set the center alignment padding + border see css style
+            var popMargTop = ($(issueBox).height() + 24) / 2;
+            var popMargLeft = ($(issueBox).width() + 24) / 2;
+
+            $(issueBox).css({
+                'margin-top' : -popMargTop,
+                'margin-left' : -popMargLeft
+            });
+
+            // Add the mask to body
+            $('body').append('<div id="mask"></div>');
+            $('#mask').fadeIn(300);
+
+            return false;
+        });
+
+        // When clicking on the button close or the mask layer the popup closed
+        $('a.close, #mask').on('click', function() {
+          $('#mask , .issue-popup').fadeOut(300 , function() {
+            $('#mask').remove();
+        });
+        return false;
+        });
+
+        $('table.display').on('click', '.date_edit', function() {
+            $('.date_edit').editable('issue_edit', {
+                width: ($("span.#date_edit").width() + 20) + "px",
+                callback : function(value, settings) {
+                    console.log(this);
+                    console.log(value);
+                    console.log(settings);
+                    return(value);
+                }
+            });
+        });
+
+        // get the click value from the last column (options) where the filelisting option is present.
+        $('table.display').on('click', 'a', function() {
+            if (!action && this.id == 'annual_link'){
+                return;
+            }
+            var action = this.id;
+            if (action.startsWith('a')){
+                var dataline = $('#annual_table').DataTable().row(this.closest('tr')).data();
+                table_choice = 'annual';
+            } else {
+                var dataline = $('#issue_table').DataTable().row(this.closest('tr')).data();
+                table_choice = 'issue';
+            }
+            issueid = dataline[4];
+            comicid = dataline[7];
+            issuenumber = dataline[0];
+            if (action == 'listbox' || action == 'alistbox'){
+                //comicname = $('#impresults_table').DataTable().row( $(this) ).data()[0];
+                //comicname = dataline[8];
+                //issue = dataline[0];
+                //date = dataline[2];
+                //title = dataline[1];
+                runMetaIssue(issueid);
+                document.getElementById("issue-box").style.display = "block";
+                $("#issue-box").draggable();
+            } else if (action == 'metatag' || action == 'ametatag'){
+                run_single_metatag(issueid);
+            } else if (action == 'manqueueit' || action == 'amanqueueit'){
+                if (action == 'amanqueueit'){
+                    add_wanted(issueid, comicid, issuenumber, 'want_ann', true);
+                } else {
+                    add_wanted(issueid, comicid, issuenumber, 'want', true);
+                }
+            } else if (action == 'queueit' || action == 'aqueueit'){
+                if (action == 'aqueueit'){
+                    add_wanted(issueid, comicid, issuenumber, 'want_ann');
+                } else {
+                    add_wanted(issueid, comicid, issuenumber, 'want');
+                }
+            } else if (action == 'unqueueit' || action == 'aunqueueit' || action == 'retryit' || action == 'aretryit' || action == 'failit' || action == 'afailit'){
+                if (action == 'aunqueueit' || action == 'aretryit' || action == 'afailit'){
+                    rlscomicid = dataline[9];
+                } else {
+                    rlscomicid = null;
+                }
+                if (action == 'failit' || action == 'afailit'){
+                    unqueue_issue(issueid, comicid, 'failed', rlscomicid);
+                } else if (action == 'unqueueit' || action == 'aunqueueit'){
+                    unqueue_issue(issueid, comicid, 'skipped', rlscomicid);
+                } else if (action == 'retryit' || action == 'aretryit'){
+                    retry_issue(issueid, comicid, rlscomicid);
+                }
+            }
+            if (table_choice == 'annual'){
+                 $('#annual_table').DataTable().ajax.reload(null, false);
+            }
+        });
+        });
+        function mark_the_issues(tabletype){
+            if (tabletype == 'issues'){
+                var action=$("#mark_issues option:selected").val();
+                var checks = document.getElementsByName("issueid[]");
+            } else {
+                var action=$("#mark_annuals option:selected").val();
+                var checks = document.getElementsByName("aissueid[]");
+            }
+            var checkboxesChecked = [];
+            for (var i=0; i<checks.length; i++) {
+                if (checks[i].checked) {
+                    // console.log(checks[i].value);
+                    checkboxesChecked.push(checks[i].value);
+                }
+            }
+            // console.log(checkboxesChecked);
+            $.when($.ajax({
+                 type: "GET",
+                 url: "markissues",
+                 data: { action: action, issueids: checkboxesChecked },
+                 success: function(response) {
+                    obj = JSON.parse(response);
+                    //$('#ajaxMsg').html("<div class='msg'><span class='ui-icon ui-icon-check'></span>"+obj['message']+"</div>");
+                    //if (obj['status'] == 'success'){
+                    //    $('#ajaxMsg').addClass('success').fadeIn().delay(3000).fadeOut();
+                    //} else {
+                    //    $('#ajaxMsg').addClass('error').fadeIn().delay(3000).fadeOut();
+                    //}
+                 },
+                 error: function(data)
+                     {
+                       alert('ERROR'+data.responseText);
+                     },
+            })).done(function(data) {
+                 //reload_table();
+            });
+        }
+        function mark_the_annuals(){
+            var action=$("#mark_annuals option:selected").val();
+            var checks = document.getElementsByName("aissueid[]");
+            var checkboxesChecked = [];
+            for (var i=0; i<checks.length; i++) {
+                if (checks[i].checked) {
+                    // console.log(checks[i].value);
+                    checkboxesChecked.push(checks[i].value);
+                }
+            }
+            // console.log(checkboxesChecked);
+            $.when($.ajax({
+                 type: "GET",
+                 url: "markissues",
+                 data: { action: action, issueids: checkboxesChecked },
+                 success: function(response) {
+                    obj = JSON.parse(response);
+                    $('#ajaxMsg').html("<div class='msg'><span class='ui-icon ui-icon-check'></span>"+obj['message']+"</div>");
+                    if (obj['status'] == 'success'){
+                        $('#ajaxMsg').addClass('success').fadeIn().delay(3000).fadeOut();
+                    } else {
+                        $('#ajaxMsg').addClass('error').fadeIn().delay(3000).fadeOut();
+                    }
+                 },
+                 error: function(data)
+                     {
+                       alert('ERROR'+data.responseText);
+                     },
+            })).done(function(data) {
+                 reload_table();
+            });
+        }
+
+        function unqueue_issue(issueid, comicid, smode, rlscomicid){
+            $.when($.ajax({
+                 type: "GET",
+                 url: "unqueueissue",
+                 data: { IssueID: issueid, ComicID: comicid , smode: smode, ReleaseComicID: rlscomicid },
+                 success: function(response) {
+                    obj = JSON.parse(response);
+                    $('#ajaxMsg').html("<div class='msg'><span class='ui-icon ui-icon-check'></span>"+obj['message']+"</div>");
+                    if (obj['status'] == 'success'){
+                        $('#ajaxMsg').addClass('success').fadeIn().delay(3000).fadeOut();
+                    } else {
+                        $('#ajaxMsg').addClass('error').fadeIn().delay(3000).fadeOut();
+                    }
+                 },
+                 error: function(data)
+                     {
+                       alert('ERROR'+data.responseText);
+                     },
+            })).done(function(data) {
+                 reload_table();
+            });
+        }
+        function retry_issue(issueid, comicid, rlscomicid){
+            $.when($.ajax({
+                 type: "GET",
+                 url: "retryit",
+                 data: { IssueID: issueid, ComicID: comicid, ReleaseComicID: rlscomicid },
+                 success: function(response) {
+                    obj = JSON.parse(response);
+                    $('#ajaxMsg').html("<div class='msg'><span class='ui-icon ui-icon-check'></span>"+obj['message']+"</div>");
+                    if (obj['status'] == 'success'){
+                        $('#ajaxMsg').addClass('success').fadeIn().delay(3000).fadeOut();
+                    } else {
+                        $('#ajaxMsg').addClass('error').fadeIn().delay(3000).fadeOut();
+                    }
+                 },
+                 error: function(data)
+                     {
+                       alert('ERROR'+data.responseText);
+                     },
+            })).done(function(data) {
+                 reload_table();
+            });
+        }
+        function add_wanted(issueid, comicid, issuenumber, mode, msearch){
+            $.when($.ajax({
+                 type: "GET",
+                 url: "queueissue",
+                 data: { IssueID: issueid, mode: mode, ComicIssue: issuenumber, ComicID: comicid, manualsearch: msearch },
+                 success: function(response) {
+                    obj = JSON.parse(response);
+                    $('#ajaxMsg').html("<div class='msg'><span class='ui-icon ui-icon-check'></span>"+obj['message']+"</div>");
+                    if (obj['status'] == 'success'){
+                        $('#ajaxMsg').addClass('success').fadeIn().delay(3000).fadeOut();
+                    } else {
+                        $('#ajaxMsg').addClass('error').fadeIn().delay(3000).fadeOut();
+                    }
+                 },
+                 error: function(data)
+                     {
+                       alert('ERROR'+data.responseText);
+                     },
+            })).done(function(data) {
+                 //reload_table();
+            });
+        }                
+
+        function reload_table() {
+            var tables = $('table.display').DataTable();
+            tables.ajax.reload(null,false);
+        }
+
+        function reload_tabs() {
+            var url =  $(location).attr('href');
+            var tabId = $('.ui-tabs-panel:visible').attr("id");
+            $('.ui-tabs-panel:visible').load(url + " #"+ tabId, function() {
+                $("#tabs").tabs()
+            });
+        }
+
+        function refresh_series(comicid){
+              $('#ajaxMsg').removeClass();
+              $('#ajaxMsg').html("<div class='msg'><span class='ui-icon ui-icon-check'></span>Updating series...</div>");
+              $('#ajaxMsg').addClass('success').fadeIn().delay(3000).fadeOut();
+              $.when($.ajax({
+                 type: "GET",
+                 url: "refreshSeries",
+                 data: { ComicID: comicid },
+                 success: function(response) {
+                    obj = JSON.parse(response);
+                    //$('#ajaxMsg').html("<div class='msg'><span class='ui-icon ui-icon-check'></span>Successfully refreshed series.</div>");
+                    //if (obj['status'] == 'success'){
+                    //    $('#ajaxMsg').addClass('success').fadeIn().delay(3000).fadeOut();
+                    //} else {
+                    //    $('#ajaxMsg').addClass('error').fadeIn().delay(3000).fadeOut();
+                    //}
+                 },
+                 error: function(data)
+                     {
+                       alert('ERROR'+data.responseText);
+                     },
+              })).done(function(data) {
+                  //reload_tabs();
+                  //reload_table();
+              });
+        }
+
+        function manual_rename(comicid){
+              $('#ajaxMsg').html("<div class='msg'><span class='ui-icon ui-icon-check'></span>Mass Renaming files for series...</div>");
+              $('#ajaxMsg').addClass('success').fadeIn().delay(3000).fadeOut();
+              $('#ajaxMsg').removeClass();
+              $.when($.ajax({
+                 type: "GET",
+                 url: "manualRename",
+                 data: { comicid: comicid },
+                 success: function(response) {
+                    obj = JSON.parse(response);
+                    $('#ajaxMsg').html("<div class='msg'><span class='ui-icon ui-icon-check'></span>Successfully renamed series.</div>");
+                    if (obj['status'] == 'success'){
+                        $('#ajaxMsg').addClass('success').fadeIn().delay(3000).fadeOut();
+                    } else {
+                        $('#ajaxMsg').addClass('error').fadeIn().delay(3000).fadeOut();
+                    }
+                 },
+                 error: function(data)
+                     {
+                       alert('ERROR'+data.responseText);
+                     },
+              })).done(function(data) {
+                  //var url =  $(location).attr('href');
+                  //var tabId = $('.ui-tabs-panel:visible').attr("id");
+                  //$('.ui-tabs-panel:visible').load(url + " #"+ tabId, function() {
+                  //    $("#tabs").tabs()
+                  //});
+                  reload_tabs();
+                  reload_table();
+              });
+        }
+
+        function force_rescan(comicid){
+              $('#ajaxMsg').removeClass();
+              $('#ajaxMsg').html("<div class='msg'><span class='ui-icon ui-icon-check'></span>Updating file information for series...</div>");
+              $('#ajaxMsg').addClass('success').fadeIn().delay(3000).fadeOut();
+              $.when($.ajax({
+                 type: "GET",
+                 url: "forceRescan",
+                 data: { ComicID: comicid },
+                 success: function(response) {
+                    //obj = JSON.parse(response);
+                    //$('#ajaxMsg').html("<div class='msg'><span class='ui-icon ui-icon-check'></span>Successfully ReChecked Files for series.</div>");
+                    //if (obj['status'] == 'success'){
+                    //    $('#ajaxMsg').addClass('success').fadeIn().delay(3000).fadeOut();
+                    //} else {
+                    //    $('#ajaxMsg').addClass('error').fadeIn().delay(3000).fadeOut();
+                    //}
+                 },
+                 error: function(data)
+                     {
+                       alert('ERROR'+data.responseText);
+                     },
+              })).done(function(data) {
+                  //var url =  $(location).attr('href');
+                  //var tabId = $('.ui-tabs-panel:visible').attr("id");
+                  //$('.ui-tabs-panel:visible').load(url + " #"+ tabId, function() {
+                  //    $("#tabs").tabs()
+                  //});
+                  //reload_tabs();
+                  //reload_table();
+              });
+        }
+
+        function group_metatag(comicid){
+              $('#ajaxMsg').html("<div class='msg'><span class='ui-icon ui-icon-check'></span>Now metatagging complete series...</div>");
+              $('#ajaxMsg').addClass('success').fadeIn().delay(3000).fadeOut();
+              //$('#ajaxMsg').removeClass();
+              $.when($.ajax({
+                 type: "GET",
+                 url: "group_metatag",
+                 data: { ComicID: comicid },
+                 success: function(response) {
+                    obj = JSON.parse(response);
+                 },
+                 error: function(data)
+                     {
+                       alert('ERROR'+data.responseText);
+                     },
+              })).done(function(data) {
+                  reload_tabs();
+                  reload_table();
+              });
+        }
+
+        function run_single_metatag(issueid){
+              $.when($.ajax({
+                 type: "GET",
+                 url: "manual_metatag",
+                 data: { issueid: issueid },
+                 success: function(response) {
+                    obj = JSON.parse(response);
+                    $('#ajaxMsg').html("<div class='msg'><span class='ui-icon ui-icon-check'></span>"+obj['message']+"</div>");
+                    if (obj['status'] == 'success'){
+                        $('#ajaxMsg').addClass('success').fadeIn().delay(3000).fadeOut();
+                    } else {
+                        $('#ajaxMsg').addClass('error').fadeIn().delay(3000).fadeOut();
+                    }
+                 },
+                 error: function(data)
+                     {
+                       alert('ERROR'+data.responseText);
+                     },
+              })).done(function(data) {
+                 reload_table();
+              });
+        }
+
+        function runMetaIssue(issueid) {
+              $.ajax({
+                 type: "GET",
+                 url: "IssueInfo",
+                 data: { issueid: issueid },
+                 success: function(response) {
+                   obj = JSON.parse(response);
+                   if (obj['status'] == 'success'){
+                       obj_meta = obj['metadata'];
+                       line = '<table width="100%" style="border-collapse: collapse;"><tr style="position:relative;width:100%;"><td>';
+                       line += '<img style="float:left;padding-right:10px;padding-top:5px;padding-bottom:5px;" src="data:image/jpeg;base64,'+obj['IssueImage']+'" height="400" width="263">';
+                       line += '<span style="font-size:12px;">';
+                       if (obj_meta['issue_number']){
+                           line += '<h1><center><b>'+obj_meta['series']+'</br>#'+obj_meta['issue_number']+'</b></center></h1>';
+                       } else {
+                           line += '<h1><center><b>'+obj_meta['series']+'</b></center></h1>';
+                       }
+                       if (obj_meta['issue_title']){
+                           line += '</br><center>'+obj_meta['issue_title']+'</center>';
+                       }    
+                       if (obj_meta['issuedate']){
+                           line +='</br><p class="alignright">'+obj_meta['issuedate']+'</p>';
+                       }
+                       if (obj_meta['writers']){
+                           line +='</br>Writers:'+obj_meta['writers'];
+                       }
+                       if (obj_meta['inkers']){
+                           line +='</br>Inkers:'+obj_meta['inkers'];
+                       }
+                       if (obj_meta['pencillers']){
+                           line +='</br>Pencillers:'+obj_meta['pencillers'];
+                       }
+                       if (obj_meta['colorists']){
+                           line +='</br>Colorists:'+obj_meta['colorists'];
+                       }
+                       if (obj_meta['letterers']){
+                           line +='</br>Letterers:'+obj_meta['letterers'];
+                       }
+                       if (obj_meta['editors']){
+                           line +='</br>Editors:'+obj_meta['editors'];
+                       }
+                       if (obj_meta['cover_artists']){
+                           line +='</br>Cover Artists:'+obj_meta['cover_artists'];
+                       }
+                       if (obj_meta['pagecount']){
+                           line += '</br></br><p class="alignleft">...'+obj_meta['pagecount']+' pages</p>';
+                       }
+                       line += '</span>';
+                       line += '</td></tr></table>';
+                       desc_line = '<table width="100%">';
+                       if (obj_meta['summary']){
+                           desc_line += '<tr style="border-top: thin solid black;"><td style="font-size:11px;"><center>Summary: '+obj_meta['summary']+'</br></center></td></tr>';
+                       } else {
+                           desc_line += '<tr style="border-top: thin solid black;"><td style="font-size:11px;"><center>No summary available</br></center></td></tr>';
+                       }
+                       if (obj_meta['filename']){
+                           iss_filename = obj_meta['filename'];
+                       } else {
+                           iss_filename = 'No local filename present';
+                       }
+                       desc_line += '<tr style="border-top: thin solid black;border-bottom: thin solid black;font-size:11px;"><td><center>'+iss_filename+'</center></td></tr>';
+                       if (obj_meta['metadata_type'] || obj_meta['metadata_source']){
+                           desc_line += '<tr style="background-color:#4D4C4C;border-top: thin solid black;border-bottom: thin solid black;font-size:11px;">'
+                           if (obj_meta['metadata_type']){
+                               desc_line += '<td style="text-align:left;margin-left:5px;float:left;" title="metadata extracted from '+obj_meta['metadata_type']+'">'+obj_meta['metadata_type']+'</td>';
+                           }
+                           if (obj_meta['metadata_source']){
+                               desc_line += '<td style="text-align:right;margin-right:5px;float:right;" title="metadata source"><center>'+obj_meta['metadata_source']+'</center></td>';
+                           }
+                           desc_line += '</tr>';
+                       }
+                       desc_line += '</table>'; 
+                   } else {
+                        ErrorPNG = 'interfaces/default/images/symbol_exclamation.png';
+                        line = '<table width="300"><tr><td>';
+                        line += '<img style="float: left; padding-right: 10px" src=' + ErrorPNG + ' height="128" width="128">';
+                        desc_line = '<h1><center><b>ERROR</b></center></h1></br>';
+                        if (obj['filename']){
+                            desc_line += '<center>Unable to retrieve metadata from within cbz file</center></br>';
+                            desc_line += '<center>Maybe you should try and tag the file again?</center></br>';
+                        } else {
+                            desc_line += '<center>Unable to retrieve issue data from ComicVine</center></br>';
+                        }
+                        if (obj_meta['filename']){
+                            desc_line += '<tr><td><center>'+filename+'</center>';
+                        } else {
+                            desc_line += '<tr><td><center>[IssueID:'+issueid+'] '+obj_meta['series']+' #'+obj_meta['issue_number']+'</center>';
+                        }
+                        desc_line += '</td></tr></table>';
+                   }
+                   $('#descript').html(line);
+                   $('#responsethis').html(desc_line);
+                 },
+                 error: function(data)
+                     {
+                       alert('ERROR'+data.responseText);
+                     },
+              });
+        }
+        function collectgroup(){
+            $.ajax({
+                type: "GET",
+                url: "serieslisting",
+                success: function ( response ){
+                  var rspns = eval(response);
+                  callback(rspns);
+                }
+            });
+        };
+        </script>
+
+        <script>
+        function openDelete() {
+            $("#dialog").dialog({modal:true});
+        };
+        function deleteDirCheck() {
+            return document.getElementById("deleteCheck").checked;
+        };
+        </script>
+        <script>
+
+        $('#menu_link_addalltoRL').click(function(){
+          $('#issue_table tbody tr').each(function(){
+            $(this).find('a[title="Add to Reading List"]').click();
+          });
+        });
+
+        function getAvailableDownloads(issueid) {
+                ShowSpinner();
+                $('#ajaxMsg').html("<div class='msg'><span class='ui-icon ui-icon-check'></span>Now searching...</div>");
+                $('#ajaxMsg').addClass('success').fadeIn().delay(3000).fadeOut();
+                $.getJSON("choose_specific_download", {issueid: issueid}, function(data) {
+                        loader.remove();
+                        feedback.fadeOut();
+                        search_results = data;
+                        for( var i = 0, len = data.length; i < len; i++ ) {
+                                $('#downloads_table_body').append('<tr><td id="title"><a href="javascript:void(0)" onclick="downloadSpecificRelease('+i+');">'+data[i].nzbtitle+'</a></td><td id="provider">'+data[i].provider+'</td><td id="size">'+data[i].size+'</td><td id="kind">'+data[i].kind+'</td></tr>');
+                        }
+                        $('#downloads_table').dataTable({
+                                "aoColumns": [
+                                        null,
+                                        null,
+                                        null,
+                                        null
+                                ],
+                                "aaSorting": [[ 1, 'desc']],
+                                "bFilter": false,
+                                "bInfo": false,
+                                "bPaginate": false,
+                                "bDestroy": true
+                        });
+                $("#choose_specific_download_dialog").dialog({
+                        modal: true,
+                        width: "60%",
+                        maxHeight: 500
+                });
+                return false;
+                });
+        }
+
+        function downloadSpecificRelease(i){
+                name = search_results[i].nzbtitle;
+                prov = search_results[i].tmpprov;
+                nzbid = search_results[i].nzbid;
+                ShowSpinner();
+                $.get("download_specific_release", 
+                       { nzbid: nzbid, provider: prov, name: name },
+                       function(data) {
+                           if (data.error != undefined) {
+                               alert(data.error);
+                               return;
+                           }
+                           $('#ajaxMsg').html("<div class='msg'><span class='ui-icon ui-icon-check'></span>Successfully downloaded "+name+"</div>");
+                           if ( data.indexOf("success") > -1){
+                               $("#choose_specific_download_dialog").dialog.close();
+                           }
+                       $('#ajaxMsg').addClass('success').fadeIn().delay(3000).fadeOut();
+                       return false;
+               });
+        }
+
+        function ShowSpinner() {
+                feedback = $("#ajaxMsg");
+                update = $("#updatebar");
+                if ( update.is(":visible") ) {
+                        var height = update.height() + 35;
+                        feedback.css("bottom",height + "px");
+                } else {
+                        feedback.removeAttr("style");
+                }
+                loader = $("<i class='fa fa-refresh fa-spin'></i>");
+                feedback.prepend(loader);
+                feedback.fadeIn();
+        }
+
+        var loadingMessage = false;
+        var spinner_active = false;
+        var loadingtext_active = false;
+        var refreshInterval;
+
+        function retrieve_comicid() {
+            return document.getElementById("ComicID").value;
+        }
+
+        function display_date(action) {
+            if (action === null){
+                dd = "${default_dates}";
+            } else {
+                dd = document.getElementById("display_the_date").innerHTML;
+            }
+            issue_item = $('#issue_table').DataTable().column(3).header();
+            annual_item = $('#annual_table').DataTable().column(4).header();
+            if (dd == 'Show Cover Date'){ 
+                $(issue_item).html('Cover Date');
+                $(annual_item).html('Cover Date');
+                document.getElementById("display_the_date").innerHTML = 'Show Store Date';
+            } else {
+                $(issue_item).html('Store Date');
+                $(annual_item).html('Store Date');
+                document.getElementById("display_the_date").innerHTML = 'Show Cover Date';
+            }
+            reload_table();
+        }
+
+       function count_checks(tabletype){
+            if (tabletype == 'issues'){
+                var checks = document.getElementsByName("issueid[]");
+                cc = document.getElementById("markissue");
+            } else {
+                var checks = document.getElementsByName("aissueid[]");
+                cc = document.getElementById("markannual");
+            }
+            var checkfound = false;
+            for (var i=0; i<checks.length; i++) {
+                if (checks[i].checked) {
+                    checkfound = true;
+                    break;
+                }
+            }
+            if (checkfound == true){
+                cc.style.display = "block";
+            } else {
+                cc.style.display = "none";
+            }
+        }
+
+        function title_loading() {
+            s_status = document.getElementById("series_status");
+            s_status_spinner = document.getElementById("loading_spinner");
+            status_hidden = document.getElementById("status_hidden").value;
+            series_line = document.getElementById("series_line");
+            series_c_name = document.getElementById("tab_comicname").value;
+            series_c_year = document.getElementById("tab_comicyear").value;
+            series_c_url = document.getElementById("tab_comicdetailurl").value;
+            if (status_hidden == 'Loading'){
+                s_status.style.display = "block";
+                s_status_spinner.style.display = "block";
+            } else {
+                s_status.style.display = "none";
+                s_status_spinner.style.display = "none";
+            }
+            series_line.innerHTML = '<a href="'+series_c_url+'" target="_blank">'+series_c_name+' ('+series_c_year+')</a>';
+        }
+
+        function retrieve_filters() {
+            filters = []
+            filters.push({"name": "Wanted", "value": document.getElementById("Wanted").checked });
+            filters.push({"name": "Downloaded", "value": document.getElementById("Downloaded").checked });
+            filters.push({"name": "Archived", "value": document.getElementById("Archived").checked });
+            filters.push({"name": "Skipped", "value": document.getElementById("Skipped").checked });
+            filters.push({"name": "Snatched", "value": document.getElementById("Snatched").checked });
+            filters.push({"name": "Ignored", "value": document.getElementById("Ignored").checked });
+            filters.push({"name": "Failed", "value": document.getElementById("Failed").checked });
+            return JSON.stringify(filters);
+        }
+
+        function update_filters() {
+            var comicid = retrieve_comicid();
+            $.when($.ajax({
+                 type: "GET",
+                 url: "update_series_filters",
+                 data: { comicid: comicid },
+                 success: function(response) {
+                    obj = JSON.parse(response);
+                    if (obj['status'] == 'success'){
+                        obj_filters = obj['filters'];
+                        wantedcount = document.getElementById("wantedlabel");
+                        if (parseInt(obj_filters['wanted'], 10) > 0){
+                            wantedcount.style.display = "inline";
+                            document.getElementById("wantedcount").innerHTML = obj_filters['wanted'];
+                        } else if (parseInt(obj_filters['wanted'], 10) <= 0) {
+                            document.getElementById("wantedcount").innerHTML = "";
+                            wantedcount.style.display = "none";
+                        }
+                        downloadedcount = document.getElementById("downloadedlabel");
+                        if (parseInt(obj_filters['downloaded'], 10) > 0){
+                            downloadedcount.style.display = "inline";
+                            document.getElementById("downloadedcount").innerHTML = obj_filters['downloaded'];
+                        } else if (parseInt(obj_filters['downloaded'], 10) <= 0) {
+                            document.getElementById("downloadedcount").innerHTML = "";
+                            downloadedcount.style.display = "none";
+                        }
+                        skippedcount = document.getElementById("skippedlabel");
+                        if (parseInt(obj_filters['skipped'], 10) > 0){
+                            skippedcount.style.display = "inline";
+                            document.getElementById("skippedcount").innerHTML = obj_filters['skipped'];
+                        } else if (parseInt(obj_filters['skipped'], 10) <= 0) {
+                            document.getElementById("skippedcount").innerHTML = "";
+                            skippedcount.style.display = "none";
+                        }
+                        archivedcount = document.getElementById("archivedlabel");
+                        if (parseInt(obj_filters['archived'], 10) > 0){
+                            archivedcount.style.display = "inline";
+                            document.getElementById("archivedcount").innerHTML = obj_filters['archived'];
+                        } else if (parseInt(obj_filters['archived'], 10) <= 0) {
+                            document.getElementById("archivedcount").innerHTML = "";
+                            archivedcount.style.display = "none";
+                        }
+                        snatchedcount = document.getElementById("snatchedlabel");
+                        if (parseInt(obj_filters['snatched'], 10) > 0){
+                            snatchedcount.style.display = "inline";
+                            document.getElementById("snatchedcount").innerHTML = obj_filters['snatched'];
+                        } else if (parseInt(obj_filters['snatched'], 10) <= 0) {
+                            document.getElementById("snatchedcount").innerHTML = "";
+                            snatchedcount.style.display = "none";
+                        }
+                        ignoredcount = document.getElementById("ignoredlabel");
+                        if (parseInt(obj_filters['ignored'], 10) > 0){
+                            ignoredcount.style.display = "inline";
+                            document.getElementById("ignoredcount").innerHTML = obj_filters['ignored'];
+                        } else if (parseInt(obj_filters['ignored'], 10) <= 0) {
+                            document.getElementById("ignoredcount").innerHTML = "";
+                            ignoredcount.style.display = "none";
+                        }
+                        failedcount = document.getElementById("failedlabel");
+                        if (parseInt(obj_filters['failed'], 10) > 0){
+                            failedcount.style.display = "inline";
+                            document.getElementById("failedcount").innerHTML = obj_filters['failed'];
+                        } else if (parseInt(obj_filters['failed'], 10) <= 0) {
+                            document.getElementById("failedcount").innerHTML = "";
+                            failedcount.style.display = "none";
+                        }
+                    }
+                 },
+                 error: function(data)
+                     {
+                       alert('ERROR'+data.responseText);
+                     },
+            })).done(function(data) {
+                 console.log('finished counts updated.');
+            });           
+        }
+
+        function initThisPage(){
+                $( "#tabs" ).tabs();
+                $("#menu_link_delete").click(openDelete);
+                initActions();
+                $.fn.DataTable.ext.pager.numbers_length = 3;
+                $('#issue_table').dataTable( {
+                    "preDrawCallback": function (settings){
+                        pageScrollPos = $('#issue_table div.datatables_scrollBody').scrollTop();
+                        // make sure the filter counts are up-to-date
+                        update_filters();
+                        // reset the mark_issues dropdown so it won't keep the last selection
+                        dropdown = document.getElementById("mark_issues");
+                        dropdown.selectedIndex = 0;
+                        document.getElementById("markissue").style.display = "none";
+                        document.getElementById("issues-select-all").checked = false;
+                    },
+                    "sDom": '<"clear"f><"clear"lp><"clear">rt<"clear"ip>',
+                    "destroy": true,
+                    "processing": true,
+                    "serverSide": true,
+                    "ajax": {
+                        "data": function (d) {
+                            d.ComicID = retrieve_comicid();
+                            d.filters = retrieve_filters();
+                        }
+                    },
+                    "ajaxSource": "loadIssueDetails",
+                    "columnDefs": [
+                       {
+                           "sortable": false,
+                           "targets": [0],
+                           "visible": true,
+                           "render": function (data,type,full,meta){
+                              return '<input type="checkbox" name="issueid[]" value="' + $('<div/>').text(full[4]).html() + '">';
+                           },
+                       },
+                       {
+                           "sortable": true,
+                           "targets": [1],
+                           "visible": true,
+                           "render": function (data,type,full){
+                               return full[0];
+                           }
+                       },
+                       {
+                           "sortable": true,
+                           "targets": [2],
+                           "visible": true,
+                           "render": function (data,type,full){
+                               if (full[1]){
+                                   if (full[1].length > 65) {
+                                       response = '<span title="' + full[1] + '">' + full[1].substring(0,62) + '...</span>';
+                                   } else {
+                                       response = full[1];
+                                   }
+                               } else {
+                                   response = full[1];
+                               }
+                               return response;
+                           }
+                       },
+                       {
+                           "sortable": true,
+                           "targets": [3],
+                           "visible": true,
+                           "render": function (data,type,full){
+                               displaydate = document.getElementById("display_the_date").innerHTML;
+
+                               if (displaydate == 'Show Cover Date'){
+                                   issdate = full[10];
+                               } else {
+                                   issdate = full[2];
+                               }
+                               dateline = 'Publication Date (click to edit)';
+                               if (full[9] != '0000-00-00' && full[9] !== null ){
+                                   dateline += '\nDigital Release: '+full[9];
+                                   issdate += '**';
+                               }
+                               return '<span class="date_edit" title="'+dateline+'" style="vertical-align:middle;text-align:center;max-width:20px;" id="'+full[7]+'.'+full[4]+'">'+issdate+'</span>';
+                           }
+                       },
+                       {
+                           "sortable": true,
+                           "targets": [4],
+                           "visible": true,
+                           "render": function (data,type,full){
+                               if (full[3] == 'Downloaded' || full[3] == 'Archived'){
+                                   if (full[5] !== null){
+                                       response = '<center>' + full[3] + '<a href="#" title="' + full[5] + ' (' + full[6] + ')"><img src="images/info32.png" height="16" alt="" class="highqual" /></a></center>';
+                                       if (full[11] == 'secondary'){
+                                           response += '<div style="position:relative;"><span class="watermark"><center>SECONDARY</center></span></div>';
+                                       }
+                                   } else {
+                                       response = '<center>'+full[3]+'</center>';
+                                   }
+                               } else {
+                                   response = '<center>'+full[3]+'</center>';
+                               }
+                               return response;
+                           }
+                       },
+                       {
+                           "sortable": false,
+                           "targets": [5],
+                           "visible": true,
+                           "render": function (data,type,full){
+                               issueimg = '<img src="images/issueinfo_grey.png" height="25" width="25" title="Retrieve Issue Details" class="highqual" style="margin:2px 1px 3px 3px;" />';
+                               var displayline = '<a id="manqueueit" name="manqueueit" title="Search for issue" href="#"><img src="images/search.png" height="25" width="25" style="margin:2px 1px 3px 3px;" /></a>';
+                               if (full[3] == 'Skipped' || full[3] == 'Ignored'){
+                                   displayline += '<a id="queueit" name="queueit" title="Mark issue as Wanted" href="#"><img src="images/wanted_icon.png" height="25" width="25" style="margin:2px 1px 3px 3px;" /></a>';
+                               } else if (full[3] == 'Wanted'){
+                                   displayline += '<a id="unqueueit" name="unqueueit" title="Mark issue as Skipped" href="#"><img src="images/skipped_icon.png" height="25" width="25" style="margin:2px 1px 3px 3px;" /></a>';
+                               } else if (full[3] == 'Snatched'){
+                                   displayline += '<a id="queueit" name="queueit" title="Mark issue as Wanted" href="#"><img src="images/wanted_icon.png" height="25" width="25" style="margin:2px 1px 3px 3px;" /></a>';
+                                   displayline += '<a id="retryit" name="retryit" title="Retry the same download again" href="#"><img src="images/retry_icon.png" height="25" width="25" style="margin:2px 1px 3px 3px;" /></a>';
+                                   displayline += '<a id="unqueueit" name="queueit" title="Mark issue as Skipped" href="#"><img src="images/skipped_icon.png" height="25" width="25" style="margin:2px 1px 3px 3px;" /></a>';
+                                   displayline += '<a id="failit" name="failit" title="Mark issue as Failed" href="#"><img src="images/failed.png" height="25" width="25" style="margin:2px 1px 3px 3px;" /></a>';
+                               } else if (full[3] == 'Archived'){
+                                   displayline += '<a id="queueit" name="queueit" title="Mark issue as Wanted" href="#"><img src="images/wanted_icon.png" height="25" width="25" style="margin:2px 1px 3px 3px;" /></a>';
+                                   displayline += '<a id="unqueueit" name="queueit" title="Mark issue as Skipped" href="#"><img src="images/skipped_icon.png" height="25" width="25" style="margin:2px 1px 3px 3px;" /></a>';
+                               } else if (full[3] == 'Downloaded'){
+                                   displayline += '<a id="unqueueit" name="queueit" title="Mark issue as Skipped" href="#"><img src="images/skipped_icon.png" height="25" width="25" style="margin:2px 1px 3px 3px;" /></a>';
+                                   displayline += '<a id="failit" name="failit" title="Mark issue as Failed" href="#"><img src="images/failed.png" height="25" width="25" style="margin:2px 1px 3px 3px;" /></a>';
+                                   if (full[5]){
+                                        if (full[5].toLowerCase().indexOf('.cbz') >=0){
+                                            issueimg = '<img src="images/issueinfo_blue.png" height="25" width="25" title="View CBZ Issue Details" class="highqual" style="margin:2px 1px 3px 3px;" />';
+                                        } else if (full[5].toLowerCase().indexOf('.cbr') >=0){
+                                            issueimg = '<img src="images/issueinfo_orange.png" height="25" width="25" title="View CBR Issue Details" class="highqual" style="margin:2px 1px 3px 3px;" />';
+                                        }
+                                   }
+                                   if (document.getElementById("meta_enabled").value == 'True'){
+                                       displayline += '<a id="metatag" name="metatag" title="Manually meta-tag issue" href="#"><img src="images/comictagger.png" height="25" width="25" style="margin:2px 1px 3px 3px;" /></a>';
+                                   }
+                               }
+                               displayline += '<a id="listbox" name="listbox" href="#issue-box" class="issue-window">'+issueimg+'</a>';
+                               return displayline;
+                           }
+                       },
+                       {
+                          "sortable": false,
+                          "targets": [ 6 ],
+                          "visible": false,
+                          "render":function (data,type,full) {
+                               return full[5];
+                          }
+                       },
+                       {
+                          "sortable": false,
+                          "targets": [ 7 ],
+                          "visible": false,
+                          "render":function (data,type,full) {
+                              return full[8];
+                          }
+                       },
+                       {
+                          "sortable": false,
+                          "targets": [ 8 ],
+                          "visible": false,
+                          "render":function (data,type,full) {
+                              return full[4];
+                          }
+                       },
+                    ],
+                    "paginationType": "simple_numbers",
+                    "aaSorting": [[1, 'desc']],
+                    "displayLength": 25,
+                    "lengthMenu": [[10, 15, 25, 50, 100, 200, -1], [10, 15, 25, 50, 100, 200, 'All' ]],
+                    "language": {
+                         "search":"Filter:",
+                         "lengthMenu":"Show _MENU_ issues per page",
+                         "emptyTable": "No information available",
+                         "info":"Showing _START_ to _END_ of _TOTAL_ issues",
+                         "infoEmpty":"Showing 0 to 0 of 0 issues",
+                         "infoFiltered":"(filtered from _MAX_ total issues)"
+                    },
+                    "rowCallback": function (nRow, aData, iDisplayIndex, iDisplayIndexFull) {
+                         if (aData[3] === "Skipped") {
+                            $('td', nRow).closest('tr').addClass("Skipped gradeZ");
+                         } else if (aData[3] === "Wanted") {
+                            $('td', nRow).closest('tr').addClass("Wanted gradeX");
+                         } else if (aData[3] === "Downloaded") {
+                            $('td', nRow).closest('tr').addClass("Downloaded gradeA");
+                         } else if (aData[3] === "Snatched") {
+                            $('td', nRow).closest('tr').addClass("Snatched gradeC");
+                         } else if (aData[3] === "Archived") {
+                            $('td', nRow).closest('tr').addClass("Archived gradeI");
+                         } else if (aData[3] === "Ignored") {
+                            $('td', nRow).closest('tr').addClass("Ignored gradeZ");
+                         } else if (aData[3] === "Failed") {
+                            $('td', nRow).closest('tr').addClass("Failed gradeF");
+                         } else {
+                            $('td', nRow).closest('tr').addClass("gradeZ");
+                         }
+                         nRow.children[0].id = 'issuenumber';
+                         nRow.children[1].id = 'issuename';
+                         nRow.children[2].id = 'reldate';
+                         nRow.children[3].id = 'status';
+                         nRow.children[4].id = 'issueid';
+                         //[5] = location;
+                         //[6] = comicsize;
+                         //[7] = comicid;
+                         //[8] = comicname;
+                         //[9] = digitaldate;
+                         //[10] = storedate;
+                         //[11] = secondary;
+                         return nRow;
+                     },
+                     "drawCallback": function (settings) {
+                         // Jump to top of page
+                         $('#issue_table div.dataTables_scrollBody').scrollTop(pageScrollPos);
+                     },
+                     "serverData": function ( sSource, aoData, fnCallback ) {
+                                /* Add some extra data to the sender */
+                                aoData.push({"name": "Paging_ComicID", "value": retrieve_comicid() });
+                                aoData.push({"name": "filters", "value": retrieve_filters() });
+                                $.getJSON(sSource, aoData, function (json) {
+                                        fnCallback(json)
+                                });
+                     },
+                     "fnInitComplete": function(oSettings, json)
+                     {
+                     },
+                });
+                $('#annual_table').dataTable( {
+                    "preDrawCallback": function (settings){
+                        pageScrollPos = $('#annual_table div.datatables_scrollBody').scrollTop();
+                        // reset the mark_annuals dropdown so it won't keep the last selection
+                        dropdown = document.getElementById("mark_annuals");
+                        dropdown.selectedIndex = 0;
+                        document.getElementById("markannual").style.display = "none";
+                        document.getElementById("annuals-select-all").checked = false;
+                    },
+                    "sDom": '<"clear"><"clear"l><"clear">rt<"clear"i>',
+                    "destroy": true,
+                    "processing": true,
+                    "serverSide": true,
+                    "ajax": {
+                        "data": function (d) {
+                            d.ComicID = retrieve_comicid();
+                            d.filters = retrieve_filters();
+                        }
+                    },
+                    "ajaxSource": "loadAnnualDetails",
+                    "columnDefs": [
+                       {
+                           "sortable": false,
+                           "targets": [0],
+                           "visible": true,
+                           "render": function (data,type,full){
+                              return '<input type="checkbox" name="aissueid[]" value="' + $('<div/>').text(full[4]).html() + '">';
+                           }
+                       },
+                       {
+                           "sortable": false,
+                           "targets": [1],
+                           "visible": false,
+                       },
+                       {
+                           "sortable": true,
+                           "targets": [2],
+                           "visible": true,
+                           "render": function (data,type,full){
+                               return full[0];
+                           }
+                       },
+                       {
+                           "sortable": true,
+                           "targets": [3],
+                           "visible": true,
+                           "render": function (data,type,full){
+                               if (full[1]){
+                                   if (full[1].length > 65) {
+                                       response = full[1].substring(0,62) + '...';
+                                   } else {
+                                       response = full[1];
+                                   }
+                               } else {
+                                   response = full[1];
+                               }
+                               return response;
+                           }
+                       },
+                       {
+                           "sortable": true,
+                           "targets": [4],
+                           "visible": true,
+                           "render": function (data,type,full){
+                               dd = document.getElementById("display_the_date").innerHTML;
+                               if (dd == 'Show Cover Date'){
+                                   anndate = full[12];
+                               } else {
+                                   anndate = full[2];
+                               }
+                               dateline = 'Publication Date (click to edit)';
+                               if (full[13] != '0000-00-00' && full[13] !== null){
+                                   dateline += '\nDigital Release: '+full[13];
+                                   anndate += '**';
+                               }
+                               return '<span class="date_edit" title="'+dateline+'" style="vertical-align:middle;text-align:center;max-width:20px;" id="'+full[7]+'.'+full[4]+'">'+anndate+'</span>';
+                           }
+                       },
+                       {
+                           "sortable": true,
+                           "targets": [5],
+                           "visible": true,
+                           "render": function (data,type,full){
+                               if (full[3] == 'Downloaded' || full[3] == 'Archived'){
+                                   if (full[5] !== null){
+                                       response = '<center>'+full[3] + '<a href="#" title="' + full[5] + ' (' + full[6] + ')"><img src="images/info32.png" height="16" alt="" class="highqual" /></a></center>';
+                                   } else {
+                                       response = '<center>'+full[3] + '</center>';
+                                   }
+                               } else {
+                                   response = '<center>'+full[3]+'</center>';
+                               }
+                               return response;
+                           }
+                       },
+                       {
+                           "sortable": true,
+                           "targets": [6],
+                           "visible": true,
+                           "render": function (data,type,full){
+                               issueimg = '<img src="images/issueinfo_grey.png" height="25" width="25" title="Retrieve Issue Details" class="highqual" style="margin:2px 1px 3px 3px;" />';
+                               var displayline = '<a id="amanqueueit" name="amanqueueit" title="Search for issue" href="#"><img src="images/search.png" height="25" width="25" style="margin:2px 1px 3px 3px;" /></a>';
+                               if (full[3] == 'Skipped' || full[3] == 'Ignored'){
+                                   displayline += '<a id="aqueueit" name="aqueueit" title="Mark issue as Wanted" href="#"><img src="images/wanted_icon.png" height="25" width="25" style="margin:2px 1px 3px 3px;" /></a>';
+                               } else if (full[3] == 'Wanted'){
+                                   displayline += '<a id="aunqueueit" name="aunqueueit" title="Mark issue as Skipped" href="#"><img src="images/skipped_icon.png" height="25" width="25" style="margin:2px 1px 3px 3px;" /></a>';
+                               } else if (full[3] == 'Snatched'){
+                                   displayline += '<a id="aqueueit" name="aqueueit" title="Mark issue as Wanted" href="#"><img src="images/wanted_icon.png" height="25" width="25" style="margin:2px 1px 3px 3px;" /></a>';
+                                   displayline += '<a id="aretryit" name="aretryit" title="Retry the same download again" href="#"><img src="images/retry_icon.png" height="25" width="25" style="margin:2px 1px 3px 3px;" /></a>';
+                                   displayline += '<a id="aunqueueit" name="aqueueit" title="Mark issue as Skipped" href="#"><img src="images/skipped_icon.png" height="25" width="25" style="margin:2px 1px 3px 3px;" /></a>';
+                                   displayline += '<a id="afailit" name="afailit" title="Mark issue as Failed" href="#"><img src="images/failed.png" height="25" width="25" style="margin:2px 1px 3px 3px;" /></a>';
+                               } else if (full[3] == 'Downloaded'){
+                                   displayline += '<a id="aunqueueit" name="aqueueit" title="Mark issue as Skipped" href="#"><img src="images/skipped_icon.png" height="25" width="25" style="margin:2px 1px 3px 3px;" /></a>';
+                                   displayline += '<a id="afailit" name="afailit" title="Mark issue as Failed" href="#"><img src="images/failed.png" height="25" width="25" style="margin:2px 1px 3px 3px;" /></a>';
+                                   if (full[5]){
+                                        if (full[5].toLowerCase().indexOf('.cbz') >=0){
+                                            issueimg = '<img src="images/issueinfo_blue.png" height="25" width="25" title="View CBZ Issue Details" class="highqual" style="margin:2px 1px 3px 3px;" />';
+                                        } else if (full[5].toLowerCase().indexOf('.cbr') >=0){
+                                            issueimg = '<img src="images/issueinfo_orange.png" height="25" width="25" title="View CBR Issue Details" class="highqual" style="margin:2px 1px 3px 3px;" />';
+                                        }
+                                   }
+                                   if (document.getElementById("meta_enabled").value == 'True'){
+                                       displayline += '<a id="ametatag" name="ametatag" title="Manually meta-tag issue" href="#"><img src="images/comictagger.png" height="25" width="25" style="margin:2px 1px 3px 3px;" /></a>';
+                                   }
+                               }
+                               displayline += '<a id="alistbox" name="alistbox" href="#issue-box" class="issue-window">'+issueimg+'</a>';
+                               return displayline;
+                           }
+                       },
+                    ],
+                    "paging": false,
+                    "language": {
+                         "search":"Filter:",
+                         "lengthMenu":"Show _MENU_ annuals per page",
+                         "emptyTable": "No information available",
+                         "info":"Showing _START_ to _END_ of _TOTAL_ annuals",
+                         "infoEmpty":"Showing 0 to 0 of 0 annuals",
+                         "infoFiltered":"(filtered from _MAX_ total annuals)"
+                    },
+                    "rowGroup": {
+                         dataSrc: 10,
+                         startRender: function (rows, group) {
+                             var expanded = !!collapsedGroups[group];
+                             rows.nodes().each(function (r){
+                                 r.style.display = 'none';
+                                 icon = '+';
+                                 icon_title = 'expand';
+                                 if (expanded) {
+                                   r.style.display = '';
+                                   icon = '-';
+                                   icon_title = 'collapse';
+                                 }
+                             });
+                             return $('<tr/>')
+                               .append('<td align="center" title="'+icon_title+'" colspan="'+rows.columns()[0].length+'" style="background-color:#0A0A0A;"><div style="tex-align:center;"><a id="annual_link" href="https://comicvine.com/volume/4050-'+rows.data()[0][11]+'" title="View on ComicVine" target="_blank"><span style="font-size:15px;font-weight:bold;color:#f0f0f0;">'+rows.data()[0][10]+'</span></a>&nbsp('+rows.count()+')<div style="float:left;text-align:right;font-size:20px;font-weight:bold;">'+icon+'</div><div style="float:right;text-align:right;font-size:10px;"><a id="annualDelete" name="annualDelete" href="#" title="Remove '+rows.data()[0][10]+' from series"><img src="images/x_grey.png" height="10" width="10"/></a></div></div></td>')
+                               .attr('data-name', group)
+                               .toggleClass('collapsed', expanded);
+                         }
+                    },
+                    "rowCallback": function (nRow, aData, iDisplayIndex, iDisplayIndexFull) {
+                         if (aData[3] === "Skipped") {
+                            $('td', nRow).closest('tr').addClass("Skipped gradeZ");
+                         } else if (aData[3] === "Wanted") {
+                            $('td', nRow).closest('tr').addClass("Wanted gradeX");
+                         } else if (aData[3] === "Downloaded") {
+                            $('td', nRow).closest('tr').addClass("Downloaded gradeA");
+                         } else if (aData[3] === "Snatched") {
+                            $('td', nRow).closest('tr').addClass("Snatched gradeC");
+                         } else if (aData[3] === "Archived") {
+                            $('td', nRow).closest('tr').addClass("Archived gradeA");
+                         } else if (aData[3] === "Ignored") {
+                            $('td', nRow).closest('tr').addClass("Ignored gradeA");
+                         } else if (aData[3] === "Failed") {
+                            $('td', nRow).closest('tr').addClass("Failed gradeF");
+                         } else {
+                            $('td', nRow).closest('tr').addClass("gradeZ");
+                         }
+                         nRow.children[0].id = 'aissuenumber';
+                         nRow.children[1].id = 'aissuename';
+                         nRow.children[2].id = 'areldate';
+                         nRow.children[3].id = 'astatus';
+                         nRow.children[4].id = 'aissueid';
+                         //[5] = location;
+                         //[6] = comicsize;
+                         //[7] = comicid;
+                         //[8] = releasecomicname;
+                         //[9] = releasecomicid;
+                         //[10] = groupname;
+                         //[11] = groupcomicid;
+                         //[12] = storedate;
+                         //[13] = digitaldate;
+                         return nRow;
+                     },
+                     "drawCallback": function (settings) {
+                         // Jump to top of page
+                         $('#annual_table div.dataTables_scrollBody').scrollTop(pageScrollPos);
+                         if ($(this).find('.dataTables_empty').length == 1) {
+                             $('#annual_wrapper').hide();
+                         } else {
+                             $('#annual_wrapper').show();
+                         }
+                     },
+                     "serverData": function ( sSource, aoData, fnCallback ) {
+                                /* Add some extra data to the sender */
+                                aoData.push({"name": "Paging_ComicID", "value": retrieve_comicid() });
+                                aoData.push({"name": "filters", "value": retrieve_filters() });
+                                $.getJSON(sSource, aoData, function (json) {
+                                        fnCallback(json)
+                                });
+                     },
+                     "fnInitComplete": function(oSettings, json)
+                     {
+                     },
+                });
+        };
+        $(document).ready(function(){
+            initThisPage();
+            var tables = $('table.display').DataTable();
+            $('#annual_table').on('click', 'tr.dtrg-start', function() {
+                var name = $(this).data('name');
+                collapsedGroups[name] = !collapsedGroups[name];
+                $('#annual_table').DataTable().draw(false);
+            });
+
+            if ("${default_dates}" != document.getElementById("display_the_date").innerHTML){
+                document.getElementById("display_the_date").innerHTML = "${default_dates}";
+                display_date(null);
+            }
+
+            title_loading();
+            //document.getElementById("title_loading_page").value = 'true';
+
+            $(document).on("change", '#checkboxControls input[type="checkbox"]', function() {
+            //$('#checkboxControls input[type="checkbox"]').onchange(function(){
+                tables.ajax.reload();
+            });
+
+            // issues table
+            // Handle click on "Select all" control
+            $('#issues-select-all').on('click', function(){
+                // Get all rows with search applied
+                var rows = tables.rows({ 'search': 'applied' }).nodes();
+               // Check/uncheck checkboxes for all rows in the table
+               $('input[type="checkbox"]', rows).prop('checked', this.checked);
+               count_checks('issues');
+            });
+
+            // Handle click on checkbox to set state of "Select all" control
+            $('#issue_table tbody').on('change', 'input[type="checkbox"]', function(){
+                count_checks('issues');
+
+                // If checkbox is not checked
+                if(!this.checked){
+                    var el = $('#issue_table-select-all').get(0);
+                    // If "Select all" control is checked and has 'indeterminate' property
+                    if(el && el.checked && ('indeterminate' in el)){
+                        // Set visual state of "Select all" control
+                        // as 'indeterminate'
+                        el.indeterminate = true;
+                    }
+                }
+            });
+
+            // annuals table
+            // Handle click on "Select all" control
+            $('#annuals-select-all').on('click', function(){
+                // Get all rows with search applied
+                var rows = tables.rows({ 'search': 'applied' }).nodes();
+               // Check/uncheck checkboxes for all rows in the table
+               $('input[type="checkbox"]', rows).prop('checked', this.checked);
+               count_checks('annuals');
+            });
+
+            // Handle click on checkbox to set state of "Select all" control
+            $('#annual_table tbody').on('change', 'input[type="checkbox"]', function(){
+                count_checks('annuals');
+
+                // If checkbox is not checked
+                if(!this.checked){
+                    var el = $('#annual_table-select-all').get(0);
+                    // If "Select all" control is checked and has 'indeterminate' property
+                    if(el && el.checked && ('indeterminate' in el)){
+                        // Set visual state of "Select all" control
+                        // as 'indeterminate'
+                        el.indeterminate = true;
+                    }
+                }
+            });
+
+           // Handle form submission event
+           $('#markissues').on('submit', function(e){
+              var form = this;
+
+              // Iterate over all checkboxes in the table
+              tables.$('input[type="checkbox"]').each(function(){
+                 // If checkbox doesn't exist in DOM
+                 if(!$.contains(document, this)){
+                    // If checkbox is checked
+                    if(this.checked){
+                       // Create a hidden element
+                       $(form).append(
+                          $('<input>')
+                             .attr('type', 'hidden')
+                             .attr('name', this.name)
+                             .val(this.value)
+                       );
+                    }
+                 }
+              });
+           });
+        });
+      </script>
+</%def>

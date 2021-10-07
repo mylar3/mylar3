@@ -21,6 +21,7 @@ import cherrypy
 import random
 import os
 import re
+import shutil
 import urllib.request, urllib.error, urllib.parse
 from . import cache
 import imghdr
@@ -32,9 +33,9 @@ cmd_list = ['getIndex', 'getComic', 'getUpcoming', 'getWanted', 'getHistory',
             'getLogs', 'getAPI', 'clearLogs','findComic', 'addComic', 'delComic',
             'pauseComic', 'resumeComic', 'refreshComic', 'addIssue', 'recheckFiles',
             'queueIssue', 'unqueueIssue', 'forceSearch', 'forceProcess', 'changeStatus',
-            'getVersion', 'checkGithub','shutdown', 'restart', 'update',
+            'getVersion', 'checkGithub','shutdown', 'restart', 'update', 'changeBookType',
             'getComicInfo', 'getIssueInfo', 'getArt', 'downloadIssue',
-            'refreshSeriesjson', 'seriesjsonListing',
+            'refreshSeriesjson', 'seriesjsonListing', 'checkGlobalMessages',
             'listProviders', 'changeProvider', 'addProvider', 'delProvider',
             'downloadNZB', 'getReadList', 'getStoryArc', 'addStoryArc']
 
@@ -54,6 +55,7 @@ class Api(object):
         self.callback = None
         self.apitype = None
         self.comicrn = False
+        self.headers = "application/json"
 
     def _failureResponse(self, errorMessage, code = API_ERROR_CODE_DEFAULT):
         response = {
@@ -63,15 +65,48 @@ class Api(object):
                 'message': errorMessage
             }
         }
-        cherrypy.response.headers['Content-Type'] = "application/json"
+        cherrypy.response.headers['Content-Type'] = self.headers
         return json.dumps(response)
+
+    def _eventStreamResponse(self, results):
+        #data = 'retry: 200\ndata: ' + str( self.prog_output) + '\n\n'
+        #response = {
+        #    'success': True,
+        #    'data': results
+        #}
+        #{'status': mylar.GLOBAL_MESSAGES['status'], 'comicid': mylar.GLOBAL_MESSAGES['comicid'], 'tables': mylar.GLOBAL_MESSAGES['tables'], 'message': mylar.GLOBAL_MESSAGES['message']}
+        if results['status'] is not None:
+            if results['event'] == 'addbyid':
+                try:
+                    data = '\nevent: addbyid\ndata: {\ndata: "status": "' + results['status'] + '",\ndata: "comicid": "' + results['comicid']+ '",\ndata: "message": "' + results['message'] + '",\ndata: "tables": "' + results['tables'] + '",\ndata: "comicname": "' + results['comicname'] + + '",\ndata: "seriesyear": "' + results['seriesyear'] + '"\ndata: }\n\n'
+                except Exception:
+                    data = '\nevent: addbyid\ndata: {\ndata: "status": "' + results['status'] + '",\ndata: "comicid": "' + results['comicid']+ '",\ndata: "message": "' + results['message'] + '",\ndata: "tables": "' + results['tables'] + '"\ndata: }\n\n'
+            elif results['event'] == 'shutdown':
+                try:
+                    data = '\nevent: shutdown\ndata: {\ndata: "status": "' + results['status'] + '",\ndata: "message": "' + results['message'] + '"\ndata: }\n\n'
+                except Exception:
+                    data = '\nevent: shutdown\ndata: {\ndata: "status": "' + results['status'] + '",\ndata: "message": "' + results['message'] + '"\ndata: }\n\n'
+            else:
+                try:
+                    data = '\ndata: {\ndata: "status": "' + results['status'] + '",\ndata: "comicid": "' + results['comicid']+ '",\ndata: "message": "' + results['message'] + '",\ndata: "tables": "' + results['tables'] + '",\ndata: "comicname": "' + results['comicname'] + '",\ndata: "seriesyear": "' + results['seriesyear'] + '"\ndata: }\n\n'
+                except Exception as e:
+                    logger.warn('data_error: %s' % e)
+                    data = '\ndata: {\ndata: "status": "' + results['status'] + '",\ndata: "comicid": "' + results['comicid']+ '",\ndata: "message": "' + results['message'] + '",\ndata: "tables": "' + results['tables'] + '"\ndata: }\n\n'
+
+            #data = 'retry: 5000\ndata: '+str(results['message'])+'\n\n' # + str(results['message']) + '\n\n'
+        else:
+            data = '\ndata: \n\n' #'data: END-OF-STREAM\n\n'
+        cherrypy.response.headers['Content-Type'] = 'text/event-stream'
+        cherrypy.response.headers['Cache-Control'] = 'no-cache'
+        cherrypy.response.headers['Connection'] = 'keep-alive'
+        return data
 
     def _successResponse(self, results):
         response = {
             'success': True,
             'data': results
         }
-        cherrypy.response.headers['Content-Type'] = "application/json"
+        cherrypy.response.headers['Content-Type'] = self.headers
         return json.dumps(response)
 
     def _resultsFromQuery(self, query):
@@ -110,7 +145,6 @@ class Api(object):
                     self.apitype = 'normal'
                 elif kwargs['apikey'] == mylar.DOWNLOAD_APIKEY:
                     self.apitype = 'download'
-                logger.fdebug('Matched to key. Api set to : ' + self.apitype + ' mode.')
                 self.apikey = kwargs.pop('apikey')
 
             if not([mylar.CONFIG.API_KEY, mylar.DOWNLOAD_APIKEY]):
@@ -140,7 +174,8 @@ class Api(object):
     def fetchData(self):
 
         if self.data == 'OK':
-            logger.fdebug('Received API command: ' + self.cmd)
+            if self.cmd != 'checkGlobalMessages':
+                logger.fdebug('Received API command: ' + self.cmd)
             methodToCall = getattr(self, "_" + self.cmd)
             result = methodToCall(**self.kwargs)
             if 'callback' not in self.kwargs:
@@ -212,13 +247,13 @@ class Api(object):
 
     def _getAPI(self, **kwargs):
         if 'username' not in kwargs:
-           self.data = self._failureResponse('Missing parameter: username')
+           self.data = self._failureResponse('Missing parameter: username & password MUST be enabled.')
            return
         else:
             username = kwargs['username']
 
         if 'password' not in kwargs:
-           self.data = self._failureResponse('Missing parameter: password')
+           self.data = self._failureResponse('Missing parameter: username & password MUST be enabled.')
            return
         else:
             password = kwargs['password']
@@ -354,11 +389,47 @@ class Api(object):
             return
         else:
             self.id = kwargs['id']
+            if self.id.startswith('4050-'):
+                self.id = re.sub('4050-', '', self.id).strip()
 
-        myDB = db.DBConnection()
-        myDB.action('DELETE from comics WHERE ComicID="' + self.id + '"')
-        myDB.action('DELETE from issues WHERE ComicID="' + self.id + '"')
-        myDB.action('DELETE from upcoming WHERE ComicID="' + self.id + '"')
+        directory_del = False
+        if 'directory' in kwargs:
+            directory_del = kwargs['directory']
+            if all([directory_del != 'true', directory_del != 'false']):
+               self.data = self._failureResponse('directory value incorrect (valid: true / false)')
+               return
+
+            if any([directory_del == 'False', directory_del == 'false']):
+               directory_del = False
+            elif any([directory_del == 'True', directory_del == 'true']):
+               directory_del = True
+            else:
+               directory_del = False  #safeguard anything else here.
+
+        try:
+            myDB = db.DBConnection()
+            delchk = myDB.selectone('SELECT ComicName, ComicYear, ComicLocation FROM comics where ComicID="' + self.id + '"').fetchone()
+            if not delchk:
+                logger.error('ComicID %s not found in watchlist.' %  self.id)
+                self.data = self._failureResponse('ComicID %s not found in watchlist.' % self.id)
+                return
+            logger.fdebug('Deletion request received for %s (%s) [%s]' % (delchk['ComicName'], delchk['ComicYear'], self.id))
+            myDB.action('DELETE from comics WHERE ComicID="' + self.id + '"')
+            myDB.action('DELETE from issues WHERE ComicID="' + self.id + '"')
+            myDB.action('DELETE from upcoming WHERE ComicID="' + self.id + '"')
+            if directory_del is True:
+                if os.path.exists(delchk['ComicLocation']):
+                    shutil.rmtree(delchk['ComicLocation'])
+                    logger.fdebug('[API-delComic] Comic Location (%s) successfully deleted' % delchk['ComicLocation'])
+                else:
+                    logger.fdebug('[API-delComic] Comic Location (%s) does not exist - cannot delete' % delchk['ComicLocation'])
+
+        except Exception as e:
+            logger.error('Unable to delete ComicID: %s. Error returned: %s' % (self.id, e))
+            self.data = self._failureResponse('Unable to delete ComicID: %s' % self.id)
+        else:
+            logger.fdebug('[API-delComic] Successfully deleted %s (%s) [%s]' % (delchk['ComicName'], delchk['ComicYear'], self.id))
+            self.data = self._successResponse('Successfully deleted %s (%s) [%s]' % (delchk['ComicName'], delchk['ComicYear'], self.id))
 
     def _pauseComic(self, **kwargs):
         if 'id' not in kwargs:
@@ -390,13 +461,110 @@ class Api(object):
             return
         else:
             self.id = kwargs['id']
+            id_list = []
+            if ',' in self.id:
+                id_list = self.id.split(',')
+
+            else:
+                id_list.append(self.id)
+
+        watch = []
+        already_added = []
+        notfound = []
+        myDB = db.DBConnection()
+        for comicid in id_list:
+            if comicid.startswith('4050-'):
+                comicid = re.sub('4050-', '', comicid).strip()
+
+            chkdb = myDB.selectone('SELECT ComicName, ComicYear FROM comics WHERE ComicID="' + comicid + '"').fetchone()
+            if not chkdb:
+                notfound.append({'comicid': comicid})
+            else:
+                if comicid not in mylar.REFRESH_QUEUE.queue: #if not any(ext['comicid'] == comicid for ext in mylar.REFRESH_LIST):
+                    watch.append({"comicid": comicid, "comicname": chkdb['ComicName']})
+                else:
+                    already_added.append({'comicid': comicid, 'comicname': chkdb['ComicName']})
+
+        if len(notfound) > 0:
+            logger.info('Unable to locate the following requested ID\'s for Refreshing: %s' % (notfound,))
+            self.data = self._successResponse('Unable to locate the following ID\'s for Refreshing (%s)' % (notfound,))
+        if len(already_added) == 1:
+            self.data = self._successResponse('[%s] %s has already been queued for refresh in a queue of %s items.' % (already_added[0]['comicid'], already_added[0]['comicname'], mylar.REFRESH_QUEUE.qsize()))
+        elif len(already_added) > 1:
+            self.data = self._successResponse('%s items (%s) have already been queued for refresh in a queue of % items.' % (len(already_added), already_added, mylar.REFRESH_QUEUE.qsize()))
+
+        if len(watch) == 1:
+            logger.info('[SHIZZLE-WHIZZLE] Now queueing to refresh %s %s' % (chkdb['ComicName'], chkdb['ComicYear']))
+        elif len(watch) > 1:
+            logger.info('[SHIZZLE-WHIZZLE] Now queueing to refresh %s items (%s)' % (len(watch), watch))
+        else:
+            return
 
         try:
-            importer.addComictoDB(self.id)
+            refred = importer.refresh_thread(watch)
         except Exception as e:
-            self.data = e
+            logger.warn('[API-refreshComic] Unable to refresh ComicID %s. Error returned: %s' % (self.id, e))
+            return
+        else:
+            if len(watch) == 1:
+                ref_line = 'for ComicID %s' % (self.id)
+            else:
+                ref_line = 'for %s items (%s)' % (len(watch), watch)
+
+            logger.warn('[API-refreshComic] Successfully background submitted refresh %s' % (ref_line))
+            self.data = self._successResponse('Refresh successfully submitted %s.' % (self.id, ref_line))
 
         return
+
+    def _changeBookType(self, **kwargs):
+        #change booktype of series
+        #id = comicid
+        #booktype = specified booktype to force to (Print, Digital, TPB, GN, HC, One-Shot)
+        if 'id' not in kwargs:
+            self.data = self._failureResponse('Missing ComicID (field: id)')
+            return
+        self.id = kwargs['id']
+
+        if 'booktype' not in kwargs:
+            self.data = self._failureResponse('Missing BookType (field: booktype)')
+            return
+        booktype = kwargs['booktype']
+
+        if booktype.lower() not in ['hc','gn','tpb','print','one-shot','digital']:
+            self.data = self._failureResponse('Missing BookType format (allowed values: TPB, GN, HC, Print, One-Shot, Digital)')
+            return
+        else:
+            booktype = booktype.lower()
+
+        myDB = db.DBConnection()
+        btresp = myDB.selectone('SELECT ComicName, ComicYear, Type, Corrected_Type FROM Comics WHERE ComicID="' + self.id +'"').fetchone()
+        if not btresp:
+            self.data = self._failureResponse('Unable to locate ComicID %s within watchlist' % self.id)
+            return
+        else:
+            if btresp['Corrected_Type'] is not None:
+                if btresp['Corrected_Type'].lower() == booktype:
+                    self.data = self._successResponse('[%s] Forced Booktype is already set as %s.' % (self.id, booktype))
+                    return
+                if btresp['Type'].lower() == booktype and btresp['Corrected_Type'] == booktype:
+                    self.data = self._successResponse('[%s] Booktype is already set as %s.' % (self.id, booktype))
+                    return
+
+            for bt in ['HC', 'GN', 'TPB', 'One-Shot', 'Digital', 'Print']:
+                if bt.lower() == booktype:
+                    booktype = bt
+                    break
+
+            try:
+                newValue = {'Corrected_Type': booktype}
+                newWrite = {'ComicID': self.id}
+                myDB.upsert("comics", newValue, newWrite)
+            except Exception as e:
+                self.data = self._failureResponse('[%s] Unable to update Booktype for ComicID: %s. Error returned: %s' % (self.id, e))
+                return
+            else:
+                self.data = self._successResponse('[%s] Updated Booktype to %s.' % (self.id, booktype))
+                return
 
     def _changeStatus(self, **kwargs):
         #change status_from of every issue in series to specified status_to
@@ -410,7 +578,7 @@ class Api(object):
             self.status_from = kwargs['status_from']
 
         if 'id' not in kwargs:
-            self.data = self._failureResponse('Missing Status')
+            self.data = self._failureResponse('Missing ComicID (field: id)')
             return
         else:
             self.id = kwargs['id']
@@ -450,7 +618,7 @@ class Api(object):
 
         try:
             fc = webserve.WebInterface()
-            self.data= fc.forceRescan(ComicID=self.id, bulk=bulk, api=True)
+            self.data = fc.forceRescan(ComicID=self.id, bulk=bulk, api=True)
         except Exception as e:
             self.data = e
 
@@ -764,7 +932,7 @@ class Api(object):
             else:
                 self.data = self._failureResponse('Failed to return a image')
 
-    def _findComic(self, name, issue=None, type_=None, mode=None, explisit=None, serinfo=None):
+    def _findComic(self, name, issue=None, type_=None, mode=None, serinfo=None):
         # set defaults
         if type_ is None:
             type_ = 'comic'
@@ -777,13 +945,13 @@ class Api(object):
             return
 
         if type_ == 'comic' and mode == 'series':
-            searchresults, explisit = mb.findComic(name, mode, issue=issue)
+            searchresults = mb.findComic(name, mode, issue=issue)
         elif type_ == 'comic' and mode == 'pullseries':
-            pass
+            searchresults = mb.findComic(name, mode, issue=issue)
         elif type_ == 'comic' and mode == 'want':
-            searchresults, explisit = mb.findComic(name, mode, issue)
+            searchresults = mb.findComic(name, mode, issue=issue)
         elif type_ == 'story_arc':
-            searchresults, explisit = mb.findComic(name, mode, issue=None, explisit='explisit', search_type='story_arc')
+            searchresults = mb.findComic(name, mode, issue=None, search_type='story_arc')
 
         searchresults = sorted(searchresults, key=itemgetter('comicyear', 'issues'), reverse=True)
         self.data = searchresults
@@ -902,6 +1070,27 @@ class Api(object):
         logger.info("arclist: %s - arcid: %s - storyarcname: %s - storyarcissues: %s" % (arclist, self.id, storyarcname, issuecount))
         wi.addStoryArc_thread(arcid=self.id, storyarcname=storyarcname, storyarcissues=issuecount, arclist=arclist, **kwargs)
         return
+
+    def _checkGlobalMessages(self, **kwargs):
+        the_message = {'status': None, 'event': None, 'comicname': None, 'seriesyear': None, 'comicid': None, 'tables': None, 'message': None}
+        if mylar.GLOBAL_MESSAGES is not None:
+            try:
+                event = mylar.GLOBAL_MESSAGES['event']
+            except Exception:
+                event = None
+
+            if event is not None and event == 'shutdown':
+                the_message = {'status': mylar.GLOBAL_MESSAGES['status'], 'event': event, 'message': mylar.GLOBAL_MESSAGES['message']}
+            else:
+                the_message = {'status': mylar.GLOBAL_MESSAGES['status'], 'event': event, 'comicid': mylar.GLOBAL_MESSAGES['comicid'], 'tables': mylar.GLOBAL_MESSAGES['tables'], 'message': mylar.GLOBAL_MESSAGES['message']}
+                try:
+                    the_fields = {'comicname': mylar.GLOBAL_MESSAGES['comicname'], 'seriesyear': mylar.GLOBAL_MESSAGES['seriesyear']}
+                    the_message = dict(the_message, **the_fields)
+                except Exception as e:
+                    logger.warn('error: %s' % e)
+            #logger.fdebug('the_message added: %s' % (the_message,))
+            mylar.GLOBAL_MESSAGES = None
+        self.data = self._eventStreamResponse(the_message)
 
     def _listProviders(self, **kwargs):
         try:

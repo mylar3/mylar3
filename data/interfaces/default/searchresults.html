@@ -108,7 +108,7 @@
                                             %if search_type == 'story_arc':
 						<td class="add" nowrap="nowrap"><a href="addStoryArc?arcid=${result['comicid']}&cvarcid=${result['cvarcid']}&storyarcname=${result['name'] |u}&storyarcyear=${result['comicyear']}&storyarcpublisher=${result['publisher'] |u}&storyarcissues=${result['issues']}&arclist=${result['arclist']}&desc=${result['description']}&image=${result['comicimage']}"><span class="ui-icon ui-icon-plus"></span> Add this Story Arc</a></td>
                                             %else:
-						<td class="add" nowrap="nowrap"><a href="addComic?comicid=${result['comicid']}&comicname=${result['name'] |u}&comicyear=${result['comicyear']}&comicpublisher=${result['publisher'] |u}&comicimage=${result['comicimage']}&comicissues=${result['issues']}&imported=${imported}&ogcname=${ogcname}&serinfo=${serinfo}"><span class="ui-icon ui-icon-plus"></span> Add this Comic</a></td>
+                                                <td class="add" nowrap="nowrap"><a href="#" title="Add this comic" onclick="doAjaxCall('addbyid?comicid=${result['comicid']}&calledby=True&ogcname=${result['name']| u}',$(this),'table');return true;"><span class="ui-icon ui-icon-plus"></span> Add this Comic</a></td>
                                             %endif
 					%else:
                                             %if search_type == 'story_arc':

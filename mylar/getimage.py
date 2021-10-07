@@ -72,6 +72,7 @@ def scale_image(img, iformat, new_width, algorithm=Image.LANCZOS):
     if img.mode in ("RGBA", "P"):
         im = img.convert("RGB")
         img = im.resize((new_width, new_height), algorithm)
+        logger.info('converted to webp...')
     else:
         img = img.resize((new_width, new_height), algorithm)
 
@@ -208,3 +209,18 @@ def retrieve_image(url):
 
     return ComicImage
 
+def load_image(filename, resize=600):
+    logger.info('filename: %s' % filename)
+    # used to load an image from file for display using the getimage method (w/out extracting) ie. series detail cover page
+    with open(filename, 'rb') as i:
+        imagefile = i.read()
+    img = Image.open( BytesIO( imagefile) )
+    imdata = scale_image(img, "JPEG", resize)
+    try:
+        ComicImage = str(base64.b64encode(imdata), 'utf-8')
+        RawImage = imdata
+    except Exception as e:
+        ComicImage = str(base64.b64encode(imdata + "==="), 'utf-8')
+        RawImage = imdata + "==="
+
+    return ComicImage

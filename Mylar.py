@@ -370,10 +370,14 @@ def main():
             try:
                 time.sleep(1)
             except KeyboardInterrupt:
+                mylar.GLOBAL_MESSAGES = {'status': 'success', 'event': 'shutdown', 'message': 'Now shutting down system.'}
+                time.sleep(1)
                 mylar.SIGNAL = 'shutdown'
         else:
             logger.info('Received signal: ' + mylar.SIGNAL)
             if mylar.SIGNAL == 'shutdown':
+                mylar.GLOBAL_MESSAGES = {'status': 'success', 'event': 'shutdown', 'message': 'Now shutting down system.'}
+                time.sleep(2)
                 mylar.shutdown()
             elif mylar.SIGNAL == 'restart':
                 mylar.shutdown(restart=True)

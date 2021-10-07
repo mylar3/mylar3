@@ -8,20 +8,20 @@
 <!--[if IE 9 ]>    <html lang="en" class="no-js ie9"> <![endif]-->
 <!--[if (gt IE 9)|!(IE)]><!--> <html lang="en" class="no-js"> <!--<![endif]-->
 <head>
-	<meta charset="UTF-8">
-	<meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+	<meta charset="UTF-8" />
+	<meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1" />
 	
 	<title>Mylar - ${title}</title>
-	<meta name="description" content="Mylar 'default' interface - made by Elmar Kouwenhoven">
-	<meta name="author" content="Elmar Kouwenhoven">
+	<meta name="description" content="Mylar 'default' interface - made by Elmar Kouwenhoven" />
+	<meta name="author" content="Elmar Kouwenhoven" />
 	
-	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0" />
 	
-	<link rel="apple-touch-icon" href="images/mylarlogo.png">
-	<link rel="stylesheet" href="interfaces/${interface}/css/style.css">
+	<link rel="apple-touch-icon" href="images/mylarlogo.png" />
+        <link rel="stylesheet" type="text/css" href="interfaces/${interface}/css/style.css" />
 	<link rel="stylesheet" href="interfaces/${interface}/css/jquery-ui.css">
-        <link rel="icon" href="images/favicon.ico" type="image/x-icon">
-        <link rel="shortcut icon" href="images/favicon.ico" type="image/x-icon">
+	<link rel="icon" href="images/favicon.ico" type="image/x-icon" />
+	<link rel="shortcut icon" href="images/favicon.ico" type="image/x-icon" />
 	${next.headIncludes()}
 	
 	<script src="js/libs/modernizr-2.8.3.min.js"></script>
@@ -119,6 +119,7 @@
                                 </em>
 				(${mylar.CONFIG.GIT_BRANCH})
 			</div>	
+                        <p class="network-status info-box"></p>
 			<div id="backendstatus">
 				Status: CV 
                                     %if mylar.BACKENDSTATUS_CV == 'up':
@@ -156,7 +157,7 @@
 		<a href="#main" id="toTop"><span>Back to top</span></a>
 	</div>
 
-	<script src="js/libs/jquery-ui.min.js"></script> 
+        <script src="js/libs/jquery-ui.min.js"></script>
         <script src="js/common.js"></script>
 	
 	${next.javascriptIncludes()}
@@ -167,6 +168,153 @@
 	<script src="js/libs/dd_belatedpng.js"></script>
 	<script> DD_belatedPNG.fix('img, .png_bg');</script>
 	<![endif]-->
+        <script>
+        //var reconnectFrequencySeconds = 1;
+        //var evtSource;
+
+        // Putting these functions in extra variables is just for the sake of readability
+        //var waitFunc = function() { return reconnectFrequencySeconds * 1000 };
+        //var tryToSetupFunc = function() {
+        //    setupEventSource();
+        //    reconnectFrequencySeconds *= 2;
+        //    if (reconnectFrequencySeconds >= 64) {
+        //       reconnectFrequencySeconds = 64;
+        //    }
+        //};
+
+        //var reconnectFunc = function() { setTimeout(tryToSetupFunc, waitFunc()) };
+
+        //function setupEventSource() {
+        //    evtSource = new EventSource("api?cmd=checkGlobalMessages&apikey=4b4cb0507c4f6ca686480a3e8e17bd07") 
+        //    evtSource.onmessage = function(e) {
+        //        console.log(e);
+        //    };
+        //    evtSource.onopen = function(e) {
+        //        reconnectFrequencySeconds = 1;
+        //    };
+        //    evtSource.onerror = function(e) {
+        //        evtSource.close();
+        //        reconnectFunc();
+        //    };
+        //}
+
+        //setupEventSource();
+
+        const evtSource = new EventSource("api?cmd=checkGlobalMessages&apikey=4b4cb0507c4f6ca686480a3e8e17bd07")
+
+        evtSource.addEventListener("shutdown", function(e){
+            console.log('shutting down....');
+            evtSource.close();
+        }, false);
+
+        evtSource.addEventListener("addbyid", function(e){
+            if (e.data){
+                var data = JSON.parse(e.data);
+                console.log('addbyid:'+data.status, data.comicid, data.table, data.message);
+                $('#ajaxMsg').removeClass();
+                var dspline = '</br></br><input type="button" value="View Series" onclick="location.href=\'comicDetails?ComicID='+data.comicid+'\';"/>';
+                $('#ajaxMsg').html("<div class='msg'><center>"+data.message+dspline+"</center></div>");
+                $('#ajaxMsg').addClass('success').fadeIn().delay(3000).fadeOut();
+            }
+        }, false);
+
+        evtSource.addEventListener('message', function(e){
+            if ('END-OF-STREAM' == e.data) {
+                evtSource.close();
+            } else {
+                if(typeof(evtSource) === "undefined" || e.data === null){
+                   evtSource.close();
+                }
+                if (e.data){
+                    var data = JSON.parse(e.data);
+                    console.log(data.status, data.comicid, data.tables, data.message);
+                    $('#ajaxMsg').removeClass();
+                    $('#ajaxMsg').html("<div class='msg'><center>"+data.message+"</center></div>");
+                    var cid = retrieve_comicid();
+                    var tt = document.getElementById("page_name");
+                    if (data.status == 'success'){
+                        $('#ajaxMsg').addClass('success').fadeIn().delay(3000).fadeOut();
+                        console.log('data.comicid:'+data.comicid)
+                        if ( (data.tables == 'both' || data.tables == 'tables') && ( document.body.innerHTML.search(data.comicid) || tt.value == 'history') ){
+                            console.log('reloading table1...');
+                            reload_table();
+                        }
+                        else if ( (data.tables == 'both' || data.tables == 'tables') && (data.comicid == cid) ){
+                            console.log('reloading table2...');
+                            reload_table();
+                        }
+                        if (data.tables == 'both' || data.tables == 'tabs'){
+                            reload_tabs();
+                        }
+                        if( data.comicid == cid && document.getElementById("page_name").value == 'series_detail'){
+                            console.log('title_loading...');
+                            title_loadings(data.comicname, data.seriesyear, data.comicid, data.message);
+                        }
+                    } else if (data.status == 'failure') {
+                        $('#ajaxMsg').addClass('error').fadeIn().delay(3000).fadeOut();
+                        if( data.comicid == cid && document.getElementById("page_name").value == 'series_detail' ){
+                            title_loadings(data.comicname, data.seriesyear, data.comicid);
+                        }
+                    };
+                }
+            }
+        }, false);
+
+        function retrieve_comicid() {
+            try {
+                comicidval = document.getElementById("ComicID").value;
+            }
+            catch(err) {
+                comicidval = "00000";
+            }
+            finally {
+                return comicidval;
+            }
+        }
+
+        function reload_table() {
+            var tables = $('table.display').DataTable();
+            var tt = document.getElementById("page_name");
+            if(typeof(tt) != 'undefined' && tt != null){
+                if (tt.value != "weekly" && tt.value != "upcoming" && tt.value != "import_results" && tt.value != "manage_comics" && tt.value != "manage_issues" && tt.value != "manage_failed" && tt.value != "reading_list" && tt.value != "storyarcs_index" && tt.value != "storyarc_detail") {
+                    // this is required so it doesn't error if on the weekly page
+                    // once weekly & upcoming pages are converted to dynamic loading, this if can be removed
+                    tables.ajax.reload(null,false);
+                }
+            }
+        }
+        function reload_tabs() {
+            console.log('reloading tabs..');
+            var url =  $(location).attr('href');
+            var tabId = $('.ui-tabs-panel:visible').attr("id");
+            $('.ui-tabs-panel:visible').load(url + " #"+ tabId, function() {
+                $("#tabs").tabs()
+            });
+            $("#tabs").tabs();
+        }
+
+        function title_loadings(series_c_name,series_c_year, series_comicid, s_message) {
+            var tt = document.getElementById("page_name");
+            var series_c_url = 'comicDetails?ComicID='+series_comicid;
+            console.log('series_c_name:'+series_c_name);
+
+            var s_status = document.getElementById("series_status");
+            var s_status_spinner = document.getElementById("loading_spinner");
+            var status_hidden = document.getElementById("status_hidden").value;
+            console.log('status:'+status_hidden);
+            if (s_message.search("Successfully added") || s_message.search("Successfully refreshed")){
+                s_status.style.display = "none";
+                s_status_spinner.style.display = "none";
+            } else {
+                s_status.style.display = "block";
+                s_status_spinner.style.display = "block";
+            }
+            var series_line = document.getElementById("series_line");
+            series_line.innerHTML = '<a href="'+series_c_url+'" target="_blank">'+series_c_name+' ('+series_c_year+')</a>';
+            console.log(series_line.innerHTML);
+        }
+
+        </script>
 	<!-- This template is made by Elmar Kouwenhoven -->
 </body>
 </html>

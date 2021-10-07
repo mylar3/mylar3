@@ -48,15 +48,24 @@ def is_exists(comicid):
     else:
         return False
 
-def addvialist():
-    if mylar.ADD_LIST:
-        cnt = 1
-        for x in mylar.ADD_LIST:
-            logger.info('[MASS-ADD][%s/%s] Now adding %s [%s] to your watchlist' % (cnt, len(mylar.ADD_LIST), x['series'], x['comicid']))
-            addComictoDB(x['comicid'])
-            #mylar.ADD_LIST.pop(x)
-            cnt += 1
-        logger.info('[MASS-ADD] Succesfully added %s series to your watchlist' % (cnt-1))
+def addvialist(queue):
+    while True:
+        if queue.qsize() >= 1:
+            time.sleep(3)
+            item = queue.get(True)
+            if item == 'exit':
+                break
+            if item['comicname'] is not None:
+                logger.info('[MASS-ADD][1/%s] Now adding %s [%s] ' % (queue.qsize()+1, item['comicname'], item['comicid']))
+                mylar.GLOBAL_MESSAGES = {'status': 'success', 'event': 'addbyid', 'comicname': item['comicname'], 'seriesyear': None, 'comicid': item['comicid'], 'tables': 'None', 'message': 'Now adding %s' % (urllib.parse.unquote_plus(item['comicname']))}
+            else:
+                logger.info('[MASS-ADD][1/%s] Now adding ComicID: %s ' % (queue.qsize()+1, item['comicid']))
+                mylar.GLOBAL_MESSAGES = {'status': 'success', 'event': 'addbyid', 'comicname': item['comicname'], 'seriesyear': None, 'comicid': item['comicid'], 'tables': 'None', 'message': 'Now adding via ComicID %s' % (item['comicid'])}
+
+            addComictoDB(item['comicid'])
+        else:
+            mylar.ADD_LIST.put('exit')
+    return False
 
 def addComictoDB(comicid, mismatch=None, pullupd=None, imported=None, ogcname=None, calledfrom=None, annload=None, chkwant=None, issuechk=None, issuetype=None, latestissueinfo=None, csyear=None, fixed_type=None):
     myDB = db.DBConnection()
@@ -399,7 +408,7 @@ def addComictoDB(comicid, mismatch=None, pullupd=None, imported=None, ogcname=No
                     "DetailURL":          comic['ComicURL'],
                     "AlternateSearch":    aliases,
 #                    "ComicPublished":    gcdinfo['resultPublished'],
-                    "ComicPublished":     "Unknown",
+                    "ComicPublished":     None, #"Unknown",
                     "Type":               booktype,
                     "Corrected_Type":     comic['Corrected_Type'],
                     "Collects":           issue_list,
@@ -452,7 +461,7 @@ def addComictoDB(comicid, mismatch=None, pullupd=None, imported=None, ogcname=No
             statinfo = os.stat(cimage)
             coversize = statinfo.st_size
 
-        if FirstImageSize != 0 and (os.path.isfile(cimage) is True and FirstImageSize == coversize):
+        if os.path.isfile(cimage) and all([FirstImageSize != 0, FirstImageSize == coversize]):
             logger.fdebug('Cover already exists for series. Not redownloading.')
         else:
             image_it(comicid, importantdates['LatestIssueID'], comlocation, comic['ComicImage'])
@@ -596,6 +605,7 @@ def addComictoDB(comicid, mismatch=None, pullupd=None, imported=None, ogcname=No
         return
 
     if calledfrom == 'addbyid':
+        mylar.GLOBAL_MESSAGES = {'status': 'success', 'comicname': comic['ComicName'], 'seriesyear': SeriesYear, 'comicid': comicid, 'tables': 'both', 'message': 'Successfully added %s (%s)!' % (comic['ComicName'], SeriesYear)}
         logger.info('Sucessfully added %s (%s) to the watchlist by directly using the ComicVine ID' % (comic['ComicName'], SeriesYear))
         return {'status': 'complete'}
     elif calledfrom == 'maintenance':
@@ -604,6 +614,7 @@ def addComictoDB(comicid, mismatch=None, pullupd=None, imported=None, ogcname=No
                 'comicname': comic['ComicName'],
                 'year':      SeriesYear}
     else:
+        mylar.GLOBAL_MESSAGES = {'status': 'success', 'comicname': comic['ComicName'], 'seriesyear': SeriesYear, 'comicid': comicid, 'tables': 'both', 'message': 'Successfully added %s (%s)!' % (comic['ComicName'], SeriesYear)}
         logger.info('Sucessfully added %s (%s) to the watchlist' % (comic['ComicName'], SeriesYear))
         return {'status': 'complete'}
 
@@ -1788,16 +1799,47 @@ def importer_thread(serieslist):
     if type(serieslist) != list:
         serieslist  = [(serieslist)]
 
+    threaded_call = True
+
+    list(map(mylar.ADD_LIST.put, serieslist))
+
     try:
         if mylar.MASS_ADD.is_alive():
-            mylar.ADD_LIST += serieslist
             logger.info('[MASS-ADD] MASS_ADD thread already running. Adding an additional %s items to existing queue' % len(serieslist))
-            return
+            threaded_call = False
     except Exception:
         pass
 
-    logger.info('[MASS-ADD] MASS_ADD thread not started. Started & submitting.')
-    mylar.ADD_LIST += serieslist
-    mylar.MASS_ADD = threading.Thread(target=addvialist, name="mass-add")
-    mylar.MASS_ADD.start()
+    if threaded_call is True:
+        logger.info('[MASS-ADD] MASS_ADD thread not started. Started & submitting.')
+        mylar.MASS_ADD = threading.Thread(target=addvialist, args=(mylar.ADD_LIST,), name="mass-add")
+        mylar.MASS_ADD.start()
+        if not mylar.MASS_ADD:
+            mylar.MASS_ADD.join(5)
+
+
+def refresh_thread(serieslist):
+    # refresh thread to queue up series to be refreshed
+    # serieslist = (28991, 38391, 93810)
+
+    if type(serieslist) != list:
+        serieslist  = [(serieslist)]
+
+    threaded_call = True
+
+    list(map(mylar.REFRESH_QUEUE.put, serieslist))
+
+    try:
+        if mylar.MASS_REFRESH.is_alive():
+            logger.info('[MASS-REFRESH] MASS_REFRESH thread already running. Adding an additional %s items to existing queue' % len(serieslist))
+            threaded_call = False
+    except Exception:
+        pass
+
+    if threaded_call is True:
+        logger.info('[MASS-REFRESH] MASS_REFRESH thread not started. Started & submitting.')
+        mylar.MASS_REFRESH = threading.Thread(target=updater.addvialist, args=(mylar.REFRESH_QUEUE,), name="mass-refresh")
+        mylar.MASS_REFRESH.start()
+        if not mylar.MASS_REFRESH:
+            mylar.MASS_REFRESH.join(5)
 
