@@ -218,6 +218,20 @@
             }
         }, false);
 
+        evtSource.addEventListener("scheduler_message", function(e){
+            if (e.data){
+                var data = JSON.parse(e.data);
+                console.log('scheduler:'+data.status,data.message);
+                $('#ajaxMsg').removeClass();
+                $('#ajaxMsg').html("<div class='msg'><center>"+data.message+"</center></div>");
+                if (data.status == 'success'){
+                    $('#ajaxMsg').addClass('success').fadeIn().delay(3000).fadeOut();
+                } else {
+                    $('#ajaxMsg').addClass('error').fadeIn().delay(3000).fadeOut();
+                }
+            }
+        }, false);
+
         evtSource.addEventListener('message', function(e){
             if ('END-OF-STREAM' == e.data) {
                 evtSource.close();

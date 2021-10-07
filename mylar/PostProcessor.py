@@ -1472,7 +1472,7 @@ class PostProcessor(object):
                         if all(['0-Day Week' in self.nzb_name, mylar.CONFIG.PACK_0DAY_WATCHLIST_ONLY is True]):
                             pass
                         else:
-                            oneofflist = myDB.select("select s.Issue_Number, s.ComicName, s.IssueID, s.ComicID, s.Provider, w.format, w.PUBLISHER, w.weeknumber, w.year from snatched as s inner join nzblog as n on s.IssueID = n.IssueID inner join weekly as w on s.IssueID = w.IssueID WHERE n.OneOff = 1;") #(s.Provider ='32P' or s.Provider='WWT' or s.Provider='DEM') AND n.OneOff = 1;")
+                            oneofflist = myDB.select("select s.Issue_Number, s.ComicName, s.IssueID, s.ComicID, s.Provider, w.format, w.PUBLISHER, w.weeknumber, w.year from snatched as s inner join nzblog as n on s.IssueID = n.IssueID inner join weekly as w on s.IssueID = w.IssueID WHERE n.OneOff = 1 AND s.ComicName is not NULL;") #(s.Provider ='32P' or s.Provider='WWT' or s.Provider='DEM') AND n.OneOff = 1;")
                             #oneofflist = myDB.select("select s.Issue_Number, s.ComicName, s.IssueID, s.ComicID, s.Provider, w.PUBLISHER, w.weeknumber, w.year from snatched as s inner join nzblog as n on s.IssueID = n.IssueID and s.Hash is not NULL inner join weekly as w on s.IssueID = w.IssueID WHERE n.OneOff = 1;") #(s.Provider ='32P' or s.Provider='WWT' or s.Provider='DEM') AND n.OneOff = 1;")
                             if not oneofflist:
                                 pass #continue
@@ -1935,6 +1935,7 @@ class PostProcessor(object):
                         self.Process_next(comicid, issueid, issuenumOG, ml, stat)
                         dupthis = None
 
+                m_event = None
                 if self.failed_files == 0:
                     if all([self.comicid is not None, self.issueid is None]):
                         logger.info('%s post-processing of pack completed for %s issues.' % (module, i))
@@ -1953,15 +1954,25 @@ class PostProcessor(object):
                     else:
                         logger.info('%s Manual post-processing completed for %s issues.' % (module, i))
                         global_line = 'Manual post-processing completed for %s issues' % (i)
+                        m_event = 'scheduler_message'
+                        dspcname = None
+                        dspcyear = None
                 else:
+                    dspcname = None
+                    dspcyear = None
                     if self.comicid is not None:
                         logger.info('%s post-processing of pack completed for %s issues [FAILED: %s]' % (module, i, self.failed_files))
-                        global_line = 'Successfully post-processing of pack completed for %s issues' % (i)
+                        global_line = 'Successfully post-processing of pack completed for %s issues [FAILED: %s]' % (i, self.failed_files)
                     else:
                         logger.info('%s Manual post-processing completed for %s issues [FAILED: %s]' % (module, i, self.failed_files))
-                        global_line = 'Successfully post-processed %s issues' % (i)
+                        global_line = 'Successfully post-processed %s issues [FAILED: %s]' % (i, self.failed_files)
 
-                mylar.GLOBAL_MESSAGES = {'status': 'success', 'comicid': self.comicid, 'comicname': dspcname, 'seriesyear': dspcyear, 'tables': 'both', 'message': global_line}
+                d_line = {'status': 'success', 'comicid': self.comicid, 'comicname': dspcname, 'seriesyear': dspcyear, 'tables': 'both', 'message': global_line}
+
+                if m_event is not None:
+                    d_line['event'] = m_event
+
+                mylar.GLOBAL_MESSAGES = d_line
 
                 if mylar.APILOCK is True:
                     mylar.APILOCK = False

@@ -81,6 +81,11 @@ class Api(object):
                     data = '\nevent: addbyid\ndata: {\ndata: "status": "' + results['status'] + '",\ndata: "comicid": "' + results['comicid']+ '",\ndata: "message": "' + results['message'] + '",\ndata: "tables": "' + results['tables'] + '",\ndata: "comicname": "' + results['comicname'] + + '",\ndata: "seriesyear": "' + results['seriesyear'] + '"\ndata: }\n\n'
                 except Exception:
                     data = '\nevent: addbyid\ndata: {\ndata: "status": "' + results['status'] + '",\ndata: "comicid": "' + results['comicid']+ '",\ndata: "message": "' + results['message'] + '",\ndata: "tables": "' + results['tables'] + '"\ndata: }\n\n'
+            elif results['event'] == 'scheduler_message':
+                try:
+                    data = '\nevent: scheduler_message\ndata: {\ndata: "status": "' + results['status'] + '",\ndata: "message": "' + results['message'] + '"\ndata: }\n\n'
+                except Exception:
+                    data = '\nevent: scheduler_message\ndata: {\ndata: "status": "' + results['status'] + '",\ndata: "message": "' + results['message'] + '"\ndata: }\n\n'
             elif results['event'] == 'shutdown':
                 try:
                     data = '\nevent: shutdown\ndata: {\ndata: "status": "' + results['status'] + '",\ndata: "message": "' + results['message'] + '"\ndata: }\n\n'
