@@ -2278,16 +2278,14 @@ class WebInterface(object):
         logger.info('ALT_PULL: ' + str(mylar.CONFIG.ALT_PULL) + ' PULLBYFILE: ' + str(mylar.PULLBYFILE) + ' week: ' + str(weeknumber) + ' year: ' + str(year))
         if all([mylar.CONFIG.ALT_PULL == 2, mylar.PULLBYFILE is False]) and weeknumber:
             return mylar.locg.locg(weeknumber=weeknumber,year=year)
-            #raise cherrypy.HTTPRedirect("pullist?week=" + str(weeknumber) + "&year=" + str(year))
         else:
-            weeklypull.pullit()
-            return {'status' : 'success'}
+            return {'status' : 'failure'}
     manualpull.exposed = True
 
     def pullrecreate(self, weeknumber=None, year=None):
         if mylar.BACKENDSTATUS_WS != 'up':
             logger.warn('[PULL-LIST] Cannot re-create pull-list as walksoftly is currently offline. Retaining existing pull-data until it\'s back online')
-            return
+            return {'status': 'failure'}
 
         myDB = db.DBConnection()
         forcecheck = 'yes'
@@ -2302,8 +2300,13 @@ class WebInterface(object):
         statchk = weeklypull.pullit(forcecheck, weeknumber, year)
         if statchk:
             if statchk['status'] == 'success':
-                weeklypull.future_check()
-        return
+                weekinfo = helpers.weekly_info(weeknumber, year)
+                tmpcurrent = '%s%s' % (weekinfo['year'],weekinfo['current_weeknumber'])
+                tmppull = '%s%s' % (year, weeknumber)
+                if int(tmppull) <= int(tmpcurrent):
+                    weeklypull.future_check()
+                return {'status': 'success'}
+        return {'status': 'failure'}
     pullrecreate.exposed = True
 
     def upcoming(self):
