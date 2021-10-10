@@ -199,8 +199,9 @@
         //}
 
         //setupEventSource();
-
-        const evtSource = new EventSource("api?cmd=checkGlobalMessages&apikey=4b4cb0507c4f6ca686480a3e8e17bd07")
+        var sse_key = "${sse_key}";
+        var api_line = "api?cmd=checkGlobalMessages&apikey="+sse_key;
+        const evtSource = new EventSource(api_line)
 
         evtSource.addEventListener("shutdown", function(e){
             console.log('shutting down....');
@@ -214,7 +215,7 @@
                 $('#ajaxMsg').removeClass();
                 var dspline = '</br></br><input type="button" value="View Series" onclick="location.href=\'comicDetails?ComicID='+data.comicid+'\';"/>';
                 $('#ajaxMsg').html("<div class='msg'><center>"+data.message+dspline+"</center></div>");
-                $('#ajaxMsg').addClass('success').fadeIn().delay(3000).fadeOut();
+                $('#ajaxMsg').addClass('success').fadeIn().delay(5000).fadeOut();
             }
         }, false);
 

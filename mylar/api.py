@@ -138,11 +138,11 @@ class Api(object):
             self.apitype = 'normal'
         else:
             if not mylar.CONFIG.API_ENABLED:
-                if kwargs['apikey'] != mylar.DOWNLOAD_APIKEY:
+                if kwargs['apikey'] != mylar.DOWNLOAD_APIKEY or kwargs['apikey'] != mylar.SSE_KEY:
                     self.data = self._failureResponse('API not enabled')
                     return
 
-            if kwargs['apikey'] != mylar.CONFIG.API_KEY and all([kwargs['apikey'] != mylar.DOWNLOAD_APIKEY, mylar.DOWNLOAD_APIKEY != None]):
+            if kwargs['apikey'] != mylar.CONFIG.API_KEY and all([kwargs['apikey'] != mylar.SSE_KEY, kwargs['apikey'] != mylar.DOWNLOAD_APIKEY, mylar.DOWNLOAD_APIKEY != None]):
                 self.data = self._failureResponse('Incorrect API key')
                 return
             else:
@@ -150,9 +150,11 @@ class Api(object):
                     self.apitype = 'normal'
                 elif kwargs['apikey'] == mylar.DOWNLOAD_APIKEY:
                     self.apitype = 'download'
+                elif kwargs['apikey'] == mylar.SSE_KEY:
+                    self.apitype = 'sse'
                 self.apikey = kwargs.pop('apikey')
 
-            if not([mylar.CONFIG.API_KEY, mylar.DOWNLOAD_APIKEY]):
+            if not([mylar.CONFIG.API_KEY, mylar.DOWNLOAD_APIKEY, mylar.SSE_KEY]):
                 self.data = self._failureResponse('API key not generated')
                 return
 
@@ -163,11 +165,15 @@ class Api(object):
                 if self.apitype == 'download' and len(mylar.DOWNLOAD_APIKEY) != 32:
                     self.data = self._failureResponse('Download API key not generated correctly')
                     return
+                if self.apitype == 'sse' and len(mylar.SSE_KEY) != 32:
+                    self.data = self._failureResponse('SSE-API key not generated correctly')
+                    return
+
             else:
                 self.data = self._failureResponse('API key not generated correctly')
                 return
 
-        if kwargs['cmd'] not in cmd_list:
+        if kwargs['cmd'] not in cmd_list or (kwargs['cmd'] == 'checkGlobalMessags' and all([kwargs['apikey'] != mylar.SSE_KEY, self.apiktype != 'sse'])):
             self.data = self._failureResponse('Unknown command: %s' % kwargs['cmd'])
             return
         else:
