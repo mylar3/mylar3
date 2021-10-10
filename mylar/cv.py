@@ -549,7 +549,7 @@ def GetComicInfo(comicid, dom, safechk=None, series=False):
                 comic['Type'] = 'Print'
 
     if comic_desc != 'None' and comic['Type'] == 'None':
-        if 'print' in comic_desc[:60].lower() and all(['for the printed edition' not in comic_desc.lower(), 'print edition can be found' not in comic_desc.lower(), 'reprints' not in comic_desc.lower()]):
+        if 'print' in comic_desc[:60].lower() and all(['also available as a print' not in comic_desc.lower(), 'for the printed edition' not in comic_desc.lower(), 'print edition can be found' not in comic_desc.lower(), 'reprints' not in comic_desc.lower()]):
             comic['Type'] = 'Print'
         elif all(['digital' in comic_desc[:60].lower(), 'graphic novel' not in comic_desc[:60].lower(), 'digital edition can be found' not in comic_desc.lower()]):
             comic['Type'] = 'Digital'
@@ -562,7 +562,7 @@ def GetComicInfo(comicid, dom, safechk=None, series=False):
         elif any(['one-shot' in comic_desc[:60].lower(), 'one shot' in comic_desc[:60].lower()]) and any(['can be found' not in comic_desc.lower(), 'following the' not in comic_desc.lower(), 'after the' not in comic_desc.lower()]):
             i = 0
             comic['Type'] = 'One-Shot'
-            avoidwords = ['preceding', 'after the', 'following the']
+            avoidwords = ['preceding', 'after the', 'following the', 'continued from']
             while i < 2:
                 if i == 0:
                     cbd = 'one-shot'
@@ -1050,7 +1050,7 @@ def GetSeriesYears(dom):
                     tempseries['Type'] = 'Print'
 
         if comic_desc != 'None' and tempseries['Type'] == 'None':
-            if 'print' in comic_desc[:60].lower() and all(['for the printed edition' not in comic_desc.lower(), 'print edition can be found' not in comic_desc.lower(), 'reprints' not in comic_desc.lower()]):
+            if 'print' in comic_desc[:60].lower() and all(['also available as a print' not in comic_desc.lower(), 'for the printed edition' not in comic_desc.lower(), 'print edition can be found' not in comic_desc.lower(), 'reprints' not in comic_desc.lower()]):
                 tempseries['Type'] = 'Print'
             elif all(['digital' in comic_desc[:60].lower(), 'graphic novel' not in comic_desc[:60].lower(), 'digital edition can be found' not in comic_desc.lower()]):
                 tempseries['Type'] = 'Digital'
@@ -1063,7 +1063,7 @@ def GetSeriesYears(dom):
             elif any(['one-shot' in comic_desc[:60].lower(), 'one shot' in comic_desc[:60].lower()]) and any(['can be found' not in comic_desc.lower(), 'following the' not in comic_desc.lower()]):
                 i = 0
                 tempseries['Type'] = 'One-Shot'
-                avoidwords = ['preceding', 'after the special', 'following the']
+                avoidwords = ['preceding', 'after the special', 'following the', 'continued from']
                 while i < 2:
                     if i == 0:
                         cbd = 'one-shot'

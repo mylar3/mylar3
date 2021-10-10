@@ -403,7 +403,7 @@ table.display tr.even.gradeT2 {
         background-color: #A97D7B;
 }
 table.display tr.gradeL #status {
-	background: url("../images/loader_black.gif") no-repeat scroll 15px center transparent;
+	background: url("/../../../images/loader_black.gif") no-repeat scroll 15px center transparent;
 	font-size: 11px;
 	text-indent: -3000px;
 }
@@ -562,7 +562,7 @@ table.display_no_select tr.even.gradeT2 {
 }
 
 table.display_no_select tr.gradeL #status {
-        background: url("../images/loader_black.gif") no-repeat scroll 15px center transparent;
+        background: url("../../../images/loader_black.gif") no-repeat scroll 15px center transparent;
         font-size: 11px;
         text-indent: -3000px;
 }
@@ -578,6 +578,7 @@ table.display_no_select tr.gradeU td,
 table.display_no_select tr.gradeP td,
 table.display_no_select tr.gradeD td,
 table.display_no_select tr.gradeT td,
+table.display_no_select tr.gradeS td,
 table.display_no_select tr.gradeF td,
 table.display_no_select tr.gradeT1 td,
 table.display_no_select tr.gradeT2 td,

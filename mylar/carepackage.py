@@ -65,7 +65,8 @@ class carePackage(object):
                             ('AutoSnatch', 'pp_sshpasswd'),
                             ('AutoSnatch', 'pp_sshport'),
                             ('Email', 'email_password'),
-                            ('Email', 'email_user')
+                            ('Email', 'email_user'),
+                            ('DISCORD', 'discord_webhook_url')
                             }
         self.hostname_list = {
                             ('SABnzbd', 'sab_host'),

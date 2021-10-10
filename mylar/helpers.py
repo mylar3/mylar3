@@ -1548,18 +1548,21 @@ def IssueDetails(filelocation, IssueID=None, justinfo=False, comicname=None):
 
     issuedetails = []
     issuetag = None
-    if filelocation == 'None':
+    if any([filelocation == 'None', filelocation is None]):
         issue_data = mylar.cv.getComic(None, 'single_issue', IssueID)
         IssueImage = getimage.retrieve_image(issue_data['image'])
-        return {'metadata': issue_data, 'datamode': 'single_issue', 'IssueImage': IssueImage }
-    else:
-        filelocation = urllib.parse.unquote_plus(filelocation)
+        metadata_info = {'metadata_source': 'ComicVine',
+                         'metadata_type': None}
+        return {'metadata': issue_data, 'datamode': 'single_issue', 'IssueImage': IssueImage, 'metadata_source': metadata_info }
+    #else:
+    #    filelocation = urllib.parse.unquote_plus(filelocation)
     if justinfo is False:
         file_info = getimage.extract_image(filelocation, single=True, imquality='issue', comicname=comicname)
         IssueImage = file_info['ComicImage']
         data = file_info['metadata']
         if data:
             issuetag = 'xml'
+            metadata_type = 'comicinfo.xml'
     else:
         IssueImage = "None"
         try:
@@ -1569,10 +1572,13 @@ def IssueDetails(filelocation, IssueID=None, justinfo=False, comicname=None):
                         logger.fdebug('Found ComicInfo.xml - now retrieving information.')
                         data = inzipfile.read(infile)
                         issuetag = 'xml'
+                        metadata_type = 'comicinfo.xml'
                         break
         except:
+            metadata_info = {'metadata_source': None,
+                             'metadata_type': None}
             logger.info('ERROR. Unable to properly retrieve the cover for displaying. It\'s probably best to re-tag this file.')
-            return {'IssueImage': IssueImage, 'datamode': 'file', 'metadata': None}
+            return {'IssueImage': IssueImage, 'datamode': 'file', 'metadata': None, 'metadata_source': metadata_info}
 
 
     if issuetag is None:
@@ -1581,14 +1587,21 @@ def IssueDetails(filelocation, IssueID=None, justinfo=False, comicname=None):
             dz = zipfile.ZipFile(filelocation, 'r')
             data = dz.comment
         except:
+            metadata_info = {'metadata_source': 'ComicVine',
+                             'metadata_type': None}
             logger.warn('Unable to extract any metadata from within file.')
-            return {'IssueImage': IssueImage, 'datamode': 'file', 'metadata': None}
+            return {'IssueImage': IssueImage, 'datamode': 'file', 'metadata': None, 'metadata_source': metadata_info}
         else:
             if data:
                 issuetag = 'comment'
+                metadata_info = {'metadata_source': 'ComicVine',
+                                 'metadata_type': 'comicbooklover'}
+
             else:
+                metadata_info = {'metadata_source': None,
+                                  'metadata_type': None}
                 logger.warn('No metadata available in zipfile comment field.')
-                return {'IssueImage': IssueImage, 'datamode': 'file', 'metadata': None}
+                return {'IssueImage': IssueImage, 'datamode': 'file', 'metadata': None, 'metadata_source': metadata_info}
 
     logger.info('Tag returned as being: ' + str(issuetag))
 
@@ -1597,6 +1610,9 @@ def IssueDetails(filelocation, IssueID=None, justinfo=False, comicname=None):
         dom = parseString(data)
 
         results = dom.getElementsByTagName('ComicInfo')
+        metadata_info = {'metadata_source': None,
+                         'metadata_type': 'comicinfo.xml'}
+
         for result in results:
             try:
                 issue_title = result.getElementsByTagName('Title')[0].firstChild.wholeText
@@ -1628,6 +1644,15 @@ def IssueDetails(filelocation, IssueID=None, justinfo=False, comicname=None):
                 notes = result.getElementsByTagName('Notes')[0].firstChild.wholeText  #IssueID is in here
             except:
                 notes = "None"
+            else:
+                if 'CMXID' in notes:
+                    mtype = 'Comixology'
+                elif any(['cvdb' in notes.lower(), 'issue id' in notes.lower(), 'comic vine' in notes.lower()]):
+                    mtype = 'ComicVine'
+                else:
+                    mtype = None
+                metadata_info = {'metadata_source': mtype,
+                                 'metadata_type': 'comicinfo.xml'}
             try:
                 year = result.getElementsByTagName('Year')[0].firstChild.wholeText
             except:
@@ -1643,31 +1668,31 @@ def IssueDetails(filelocation, IssueID=None, justinfo=False, comicname=None):
             try:
                 writer = result.getElementsByTagName('Writer')[0].firstChild.wholeText
             except:
-                writer = "None"
+                writer = None
             try:
                 penciller = result.getElementsByTagName('Penciller')[0].firstChild.wholeText
             except:
-                penciller = "None"
+                penciller = None
             try:
                 inker = result.getElementsByTagName('Inker')[0].firstChild.wholeText
             except:
-                inker = "None"
+                inker = None
             try:
                 colorist = result.getElementsByTagName('Colorist')[0].firstChild.wholeText
             except:
-                colorist = "None"
+                colorist = None
             try:
                 letterer = result.getElementsByTagName('Letterer')[0].firstChild.wholeText
             except:
-                letterer = "None"
+                letterer = None
             try:
                 cover_artist = result.getElementsByTagName('CoverArtist')[0].firstChild.wholeText
             except:
-                cover_artist = "None"
+                cover_artist = None
             try:
                 editor = result.getElementsByTagName('Editor')[0].firstChild.wholeText
             except:
-                editor = "None"
+                editor = None
             try:
                 publisher = result.getElementsByTagName('Publisher')[0].firstChild.wholeText
             except:
@@ -1746,14 +1771,14 @@ def IssueDetails(filelocation, IssueID=None, justinfo=False, comicname=None):
         except:
             summary = "None"
 
-        editor = "None"
-        colorist = "None"
-        artist = "None"
+        editor = None
+        colorist = None
+        artist = None
         writer = None
-        letterer = "None"
-        cover_artist = "None"
-        penciller = "None"
-        inker = "None"
+        letterer = None
+        cover_artist = None
+        penciller = None
+        inker = None
 
         try:
             series_volume = dt['volume']
@@ -1763,15 +1788,7 @@ def IssueDetails(filelocation, IssueID=None, justinfo=False, comicname=None):
         try:
             t = dt['credits']
         except:
-            editor = None
-            colorist = None
-            artist = None
-            writer = None
-            letterer = None
-            cover_artist = None
-            penciller = None
-            inker = None
-
+            pass
         else:
             for cl in dt['credits']:
                 if cl['role'] == 'Editor':
@@ -1836,7 +1853,8 @@ def IssueDetails(filelocation, IssueID=None, justinfo=False, comicname=None):
              "webpage":      webpage,
              "pagecount":    pagecount},
              "IssueImage":   IssueImage,
-             "datamode":     'file'}
+             "datamode":     'file',
+             "metadata_source": metadata_info}
 
 def get_issue_title(IssueID=None, ComicID=None, IssueNumber=None, IssueArcID=None):
     #import db
@@ -3225,7 +3243,27 @@ def search_queue(queue):
 
             logger.info('[SEARCH-QUEUE] Now loading item from search queue: %s' % item)
             if mylar.SEARCHLOCK is False:
-                ss_queue = mylar.search.searchforissue(item['issueid'])
+                arcid = None
+                comicid = item['comicid']
+                issueid = item['issueid']
+                if issueid is not None:
+                    if '_' in issueid:
+                        arcid = issueid
+                        comicid = None # required for storyarcs to work
+                        issueid = None # required for storyarcs to work
+                mofo = mylar.filers.FileHandlers(ComicID=comicid, IssueID=issueid, arcID=arcid)
+                local_check = mofo.walk_the_walk()
+                if local_check['status'] is True:
+                    mylar.PP_QUEUE.put({'nzb_name':     local_check['filename'],
+                                        'nzb_folder':   local_check['filepath'],
+                                        'failed':       False,
+                                        'issueid':      item['issueid'],
+                                        'comicid':      item['comicid'],
+                                        'apicall':      True,
+                                        'ddl':          False,
+                                        'download_info': None})
+                else:
+                    ss_queue = mylar.search.searchforissue(item['issueid'])
                 time.sleep(5) #arbitrary sleep to let the process attempt to finish pp'ing
 
             if mylar.SEARCHLOCK is True:
@@ -3793,8 +3831,6 @@ def newznab_test(name, host, ssl, apikey):
             host += '/'
         host = urljoin(host, 'api')
         logger.fdebug('[TEST-NEWZNAB] Appending `api` to end of host: %s' % host)
-
-
     headers = {'User-Agent': str(mylar.USER_AGENT)}
     logger.info('host: %s' % host)
     try:
@@ -4191,6 +4227,11 @@ def publisherImages(publisher):
                           'publisher_image_alt':   'Wildstorm',
                           'publisher_imageH':      '75',
                           'publisher_imageW':      '75'}
+    elif publisher == 'AWA Studios':
+        comicpublisher = {'publisher_image':       'images/publisherlogos/logo-awa.png',
+                          'publisher_image_alt':   'AWA Studios',
+                          'publisher_imageH':      '75',
+                          'publisher_imageW':      '125'}
     else:
         comicpublisher = {'publisher_image':       None,
                           'publisher_image_alt':   'Nope',

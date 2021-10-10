@@ -24,6 +24,7 @@
 </%def>
 
 <%def name="body()">
+        <input type="hidden" id="page_name" value="storyarc_detail" />
          <h1 class="clearfix"><a href="storyarc_main"><img src="${icons['ReadingList-icon']}" height="26" width="26" align="left" alt="Story Arc Management"/></a></h1>
          %if storyarcbanner is not None:
              <img src="${storyarcbanner}" onload="resizeimage('${bannerheight}')" width="960" height="${bannerheight}" id="banner" style="text-decoration: none; position: relative; top: 40px;"/>
@@ -178,7 +179,7 @@
         %>
 
          <tr id="${item['ReadingOrder']}" class="grade${grade}">
-                <td class="edit" title="Change the order (click to edit)" id="${storyarcid}.${item['IssueArcID']}">${item['ReadingOrder']}</td>
+                <td id="readingorder"><span class="edit" title="Change the order (click to edit)" id="${storyarcid}.${item['IssueArcID']}">${item['ReadingOrder']}</span></td>
                 <td id="comicname" title="${item['IssueName']}">
                 %if haveit == "No":
                     ${displayname}
@@ -249,6 +250,7 @@
         <script>
         $(document).ready(function() {
             $('.edit').editable('order_edit', {
+                width: ($("span#edit").width() + 20) + "px",
                 callback : function(value, settings) {
                     console.log(this);
                     console.log(value);
