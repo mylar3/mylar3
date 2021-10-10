@@ -205,46 +205,47 @@ class WebInterface(object):
 
             run_them_down = False
 
-            if os.path.exists(comic['ComicLocation']):
-                # quick check to see if # of files in directory = haves. If not, rescan.
-                file_count = len(fnmatch.filter(os.listdir(comic['ComicLocation']), '*.cb?'))
-                if secondary_folders is not None:
-                    if os.path.exists(secondary_folders):
-                        logger.fdebug('secondary folders: %s' % (secondary_folders,))
-                        file_count += len(fnmatch.filter(os.listdir(secondary_folders), '*.cb?'))
+            if comic['ComicLocation'] is not None:
+                if os.path.exists(comic['ComicLocation']):
+                    # quick check to see if # of files in directory = haves. If not, rescan.
+                    file_count = len(fnmatch.filter(os.listdir(comic['ComicLocation']), '*.cb?'))
+                    if secondary_folders is not None:
+                        if os.path.exists(secondary_folders):
+                            logger.fdebug('secondary folders: %s' % (secondary_folders,))
+                            file_count += len(fnmatch.filter(os.listdir(secondary_folders), '*.cb?'))
 
-                if comic['Have'] is not None:
-                    logger.fdebug('file_count: %s / total: %s' % (file_count, int(comic['Have'])))
-                    if file_count != int(comic['Have']):
-                        logger.info('rescanning now..')
-                        run_them_down = True
+                    if comic['Have'] is not None:
+                        logger.fdebug('file_count: %s / total: %s' % (file_count, int(comic['Have'])))
+                        if file_count != int(comic['Have']):
+                            logger.info('rescanning now..')
+                            run_them_down = True
 
-                for dirname, subs, files in os.walk(comic['ComicLocation']):
-                    if run_them_down is True:
-                        break
+                    for dirname, subs, files in os.walk(comic['ComicLocation']):
+                        if run_them_down is True:
+                            break
 
-                    if dirname == dir:
-                        direc = None
-                    else:
-                        direc = dirname
+                        if dirname == dir:
+                            direc = None
+                        else:
+                            direc = dirname
 
-                    for fname in files:
-                        filename = fname
-                        if os.path.splitext(filename)[1].lower().endswith(comic_ext):
-                            if direc is None:
-                                try:
-                                    ctime = os.path.getmtime(dirname)
-                                except Exception as e:
-                                    continue
-                            else:
-                                try:
-                                    ctime = os.path.getmtime(dirname)
-                                except Exception as e:
-                                    continue
+                        for fname in files:
+                            filename = fname
+                            if os.path.splitext(filename)[1].lower().endswith(comic_ext):
+                                if direc is None:
+                                    try:
+                                        ctime = os.path.getmtime(dirname)
+                                    except Exception as e:
+                                        continue
+                                else:
+                                    try:
+                                        ctime = os.path.getmtime(dirname)
+                                    except Exception as e:
+                                        continue
 
-                            if ctime > filesupdated:
-                               run_them_down = True
-                               break
+                                if ctime > filesupdated:
+                                    run_them_down = True
+                                    break
 
             if run_them_down is True:
                 updater.forceRescan(ComicID)
