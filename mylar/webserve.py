@@ -1,3 +1,4 @@
+
 #  This file is part of Mylar.
 #
 #  Mylar is free software: you can redistribute it and/or modify
@@ -37,6 +38,7 @@ import csv
 import platform
 import urllib.request, urllib.parse, urllib.error
 import shutil
+import fnmatch
 
 import mylar
 
@@ -92,14 +94,14 @@ def serve_template(templatename, **kwargs):
     _hplookup = TemplateLookup(directories=[template_dir])
     try:
         template = _hplookup.get_template(templatename)
-        return template.render(http_root=mylar.CONFIG.HTTP_ROOT, interface=mylar.CONFIG.INTERFACE, icons=icons, **kwargs)
+        return template.render(http_root=mylar.CONFIG.HTTP_ROOT, interface=mylar.CONFIG.INTERFACE, icons=icons, gl_messages=mylar.GLOBAL_MESSAGES, **kwargs)
     except Exception as e:
         #default to base in case the html hasn't been changed in new interface.
         template_dir = os.path.join(str(interface_dir), 'default')
         _hplookup = TemplateLookup(directories=[template_dir])
         try:
             template = _hplookup.get_template(templatename)
-            return template.render(http_root=mylar.CONFIG.HTTP_ROOT, interface=mylar.CONFIG.INTERFACE, icons=icons, **kwargs)
+            return template.render(http_root=mylar.CONFIG.HTTP_ROOT, interface=mylar.CONFIG.INTERFACE, icons=icons, gl_messages=mylar.GLOBAL_MESSAGES, **kwargs)
         except:
             return exceptions.html_error_template().render()
 
@@ -182,6 +184,19 @@ class WebInterface(object):
         if comic is None:
             raise cherrypy.HTTPRedirect("home")
 
+        secondary_folders = None
+        if mylar.CONFIG.MULTIPLE_DEST_DIRS:
+            try:
+                if os.path.exists(os.path.join(mylar.CONFIG.MULTIPLE_DEST_DIRS, os.path.basename(comic['ComicLocation']))):
+                    secondary_folders = os.path.join(mylar.CONFIG.MULTIPLE_DEST_DIRS, os.path.basename(comic['ComicLocation']))
+                else:
+                    # when loading a new series initially the publisher value might not be written out the db yet.
+                    # pass this all on the initial load if it's not  - it'll catch it when the page finishes loading.
+                    ff = mylar.filers.FileHandlers(ComicID=ComicID)
+                    secondary_folders = ff.secondary_folders(comic['ComicLocation'])
+            except Exception:
+                pass
+
         if ComicID is not None:
             comic_ext = ('.cbr','.cbz','.cb7')
             filesupdated = 0
@@ -189,7 +204,20 @@ class WebInterface(object):
                 filesupdated = time.mktime(datetime.datetime.strptime(comic['FilesUpdated'], '%Y-%m-%d %H:%M:%S').timetuple())
 
             run_them_down = False
-            if comic['ComicLocation']:
+
+            if os.path.exists(comic['ComicLocation']):
+                # quick check to see if # of files in directory = haves. If not, rescan.
+                file_count = len(fnmatch.filter(os.listdir(comic['ComicLocation']), '*.cb?'))
+                if os.path.exists(secondary_folders):
+                    logger.info('secondary folders: %s' % (secondary_folders,))
+                    file_count += len(fnmatch.filter(os.listdir(secondary_folders), '*.cb?'))
+
+                if comic['Have'] is not None:
+                    logger.info('file_count: %s / total: %s' % (file_count, int(comic['Have'])))
+                    if file_count != int(comic['Have']):
+                        logger.info('rescanning now..')
+                        run_them_down = True
+
                 for dirname, subs, files in os.walk(comic['ComicLocation']):
                     if run_them_down is True:
                         break
@@ -266,37 +294,6 @@ class WebInterface(object):
                 series['Next'] = next
                 break
             i+=1
-
-        issues = myDB.select('SELECT * FROM issues WHERE ComicID=? order by Int_IssueNumber DESC', [ComicID])
-        isCounts = {}
-        isCounts[1] = 0   #1 skipped
-        isCounts[2] = 0   #2 wanted
-        isCounts[3] = 0   #3 archived
-        isCounts[4] = 0   #4 downloaded
-        isCounts[5] = 0   #5 ignored
-        isCounts[6] = 0   #6 failed
-        isCounts[7] = 0   #7 snatched
-        #isCounts[8] = 0   #8 read
-
-        for curResult in issues:
-            baseissues = {'skipped': 1, 'wanted': 2, 'archived': 3, 'downloaded': 4, 'ignored': 5, 'failed': 6, 'snatched': 7}
-            for seas in baseissues:
-                if curResult['Status'] is None:
-                   continue
-                else:
-                    if seas in curResult['Status'].lower():
-                        sconv = baseissues[seas]
-                        isCounts[sconv]+=1
-                        continue
-        isCounts = {
-                 "Skipped": str(isCounts[1]),
-                 "Wanted": str(isCounts[2]),
-                 "Archived": str(isCounts[3]),
-                 "Downloaded": str(isCounts[4]),
-                 "Ignored": str(isCounts[5]),
-                 "Failed": str(isCounts[6]),
-                 "Snatched": str(isCounts[7])
-               }
         usethefuzzy = comic['UseFuzzy']
         allowpacks = comic['AllowPacks']
         skipped2wanted = "0"
@@ -313,13 +310,12 @@ class WebInterface(object):
             if comic['Corrected_SeriesYear'] != comic['ComicYear']:
                 comic['ComicYear'] = comic['Corrected_SeriesYear']
 
-#        imagetopull = myDB.selectone('SELECT issueid from issues where ComicID=? AND Int_IssueNumber=?', [comic['ComicID'], helpers.issuedigits(comic['LatestIssue'])]).fetchone()
-#        imageurl = mylar.cv.getComic(comic['ComicID'], 'image', issueid=imagetopull[0])
-#        helpers.getImage(comic['ComicID'], imageurl)
         if comic['ComicImage'] is None:
             comicImage = 'cache/' + str(ComicID) + '.jpg'
         else:
-            comicImage = comic['ComicImage']
+            coverimage = os.path.join(mylar.CONFIG.CACHE_DIR, os.path.basename(comic['ComicImage']))
+            comicImage = "data:image/webp;base64,%s" % mylar.getimage.load_image(coverimage, 263)
+
         comicpublisher = helpers.publisherImages(comic['ComicPublisher'])
 
         if mylar.CONFIG.SERIES_METADATA_LOCAL is True:
@@ -370,7 +366,6 @@ class WebInterface(object):
             issues_list = json.loads(comic['Collects'])
         else:
             issues_list = None
-        #logger.info('issues_list: %s' % issues_list)
 
         if comic['Corrected_Type'] == comic['Type']:
             force_type = None
@@ -392,6 +387,24 @@ class WebInterface(object):
                     force_type = None
                 else:
                     force_type = comic['Corrected_Type']
+
+        secondary_folders = None
+        if mylar.CONFIG.MULTIPLE_DEST_DIRS:
+            try:
+                if os.path.exists(os.path.join(mylar.CONFIG.MULTIPLE_DEST_DIRS, os.path.basename(comic['ComicLocation']))):
+                    secondary_folders = os.path.join(mylar.CONFIG.MULTIPLE_DEST_DIRS, os.path.basename(comic['ComicLocation']))
+                else:
+                    # when loading a new series initially the publisher value might not be written out the db yet.
+                    # pass this all on the initial load if it's not  - it'll catch it when the page finishes loading.
+                    ff = mylar.filers.FileHandlers(ComicID=ComicID)
+                    secondary_folders = ff.secondary_folders(comic['ComicLocation'])
+            except Exception:
+                pass
+
+        if mylar.CONFIG.DEFAULT_DATES == 'store_date':
+            default_dates = 'Show Cover Date'
+        else:
+            default_dates = 'Show Store Date'
 
         comicConfig = {
                     "fuzzy_year0":                    helpers.radio(int(usethefuzzy), 0),
@@ -415,21 +428,215 @@ class WebInterface(object):
                     "publisher_imageW":               comicpublisher['publisher_imageW'],
                     "description":                    description,
                     "issue_list":                     issues_list,
-                    "ComicImage":                     comicImage + '?' + datetime.datetime.now().strftime('%y-%m-%d %H:%M:%S')
+                    "secondary_folders":              secondary_folders,
+                    "ComicImage":                     comicImage,
+                    "Status":                         comic['Status'],
+                    "ImageTime":                      '?' + datetime.datetime.now().strftime('%y-%m-%d %H:%M:%S')
                }
 
+        return serve_template(templatename="comicdetails_update.html", title=comic['ComicName'], comic=comic, comicConfig=comicConfig, series=series, default_dates=default_dates)
+    comicDetails.exposed = True
+
+    def update_series_filters(self, comicid):
+        isCounts = {}
+        isCounts[1] = 0   #1 skipped
+        isCounts[2] = 0   #2 wanted
+        isCounts[3] = 0   #3 archived
+        isCounts[4] = 0   #4 downloaded
+        isCounts[5] = 0   #5 ignored
+        isCounts[6] = 0   #6 failed
+        isCounts[7] = 0   #7 snatched
+        #isCounts[8] = 0   #8 read
+
+        myDB = db.DBConnection()
+        issues = myDB.select('SELECT Status FROM issues WHERE ComicID=? ORDER BY Int_IssueNumber DESC', [comicid])
         if mylar.CONFIG.ANNUALS_ON:
-            annuals = myDB.select("SELECT * FROM annuals WHERE ComicID=? AND NOT Deleted ORDER BY ComicID, Int_IssueNumber DESC", [ComicID])
-            #we need to load in the annual['ReleaseComicName'] and annual['ReleaseComicID']
-            #then group by ReleaseComicID, in an attempt to create seperate tables for each different annual series.
-            #this should allow for annuals, specials, one-shots, etc all to be included if desired.
-            acnt = 0
+            issues += myDB.select('SELECT Status FROM annuals WHERE ComicID=? AND NOT DELETED ORDER BY Int_IssueNumber DESC', [comicid])
+        for curResult in issues:
+            baseissues = {'skipped': 1, 'wanted': 2, 'archived': 3, 'downloaded': 4, 'ignored': 5, 'failed': 6, 'snatched': 7}
+            for seas in baseissues:
+                if curResult['Status'] is None:
+                   continue
+                else:
+                    if seas in curResult['Status'].lower():
+                        sconv = baseissues[seas]
+                        isCounts[sconv]+=1
+                        continue
+
+        isCounts = {
+                 "skipped": str(isCounts[1]),
+                 "wanted": str(isCounts[2]),
+                 "archived": str(isCounts[3]),
+                 "downloaded": str(isCounts[4]),
+                 "ignored": str(isCounts[5]),
+                 "failed": str(isCounts[6]),
+                 "snatched": str(isCounts[7])
+               }
+        return json.dumps({'status': 'success', 'filters': isCounts})
+    update_series_filters.exposed = True
+
+    def loadIssueDetails(self, ComicID=None, iDisplayStart=0, iDisplayLength=25, iSortCol_0='1', sSortDir_0="desc", sSearch="", **kwargs):
+        if ComicID is None:
+            ComicID = kwargs['Paging_ComicID']
+            #logger.fdebug('issue paging ID: %s' % ComicID)
+
+        try:
+            filters = json.loads(kwargs.get('filters'))
+        except Exception as e:
+            filters = []
+
+        myDB = db.DBConnection()
+        sortcolumn = 'b.Int_IssueNumber %s' % sSortDir_0
+        if iSortCol_0 == '1':
+            sortcolumn = 'b.Int_IssueNumber %s' % sSortDir_0
+        elif iSortCol_0 == '2':
+            sortcolumn = 'b.IssueName %s' % sSortDir_0
+        elif iSortCol_0 == '3':
+            sortcolumn = 'b.ReleaseDate %s' % sSortDir_0
+        elif iSortCol_0 == '4':
+            sortcolumn = 'b.Status %s' % sSortDir_0
+
+        #logger.info('sortcolumn: %s' % sortcolumn)
+        queryline = 'SELECT a.ComicLocation as ComicLocation, b.* FROM comics a LEFT JOIN issues b ON a.ComicID = b.ComicID WHERE a.ComicID=? ORDER BY %s' % sortcolumn
+        issueslist = myDB.select(queryline, [ComicID])
+        issues = []
+
+        secondary_folders = None
+        if mylar.CONFIG.MULTIPLE_DEST_DIRS:
+            try:
+                if os.path.exists(os.path.join(mylar.CONFIG.MULTIPLE_DEST_DIRS, os.path.basename(issueslist[0]['ComicLocation']))):
+                    secondary_folders = os.path.join(mylar.CONFIG.MULTIPLE_DEST_DIRS, os.path.basename(issueslist[0]['ComicLocation']))
+                else:
+                    # when loading a new series initially the publisher value might not be written out the db yet.
+                    # pass this all on the initial load if it's not  - it'll catch it when the page finishes loading.
+                    ff = mylar.filers.FileHandlers(ComicID=ComicID)
+                    secondary_folders = ff.secondary_folders(issueslist[0]['ComicLocation'])
+            except Exception:
+                pass
+
+
+        for x in issueslist:
+            # catch false entries here
+            if all([x['Int_IssueNumber'] is None, x['Issue_Number'] is None, x['IssueID'] is None]):
+                continue
+            comicsize= '0MB'
+            issue_location = x['Location']
+            secondary = False
+            if any([x['Status'] == 'Downloaded', x['Status'] == 'Archived']):
+                if x['Location'] is not None:
+                    if not os.path.exists(os.path.join(x['ComicLocation'], x['Location'])):
+                        if os.path.exists(os.path.join(secondary_folders, x['Location'])):
+                            issue_location = x['Location']
+                            secondary = 'secondary'
+                comicsize = helpers.human_size(x['ComicSize'])
+
+            foundfilter = False
+            for filter in filters:
+                if filter['name'] == x['Status']:
+                    if filter['value'] is False:
+                        foundfilter = True
+                        break
+            if foundfilter:
+                continue
+
+            issues.append({'IssueID': x['IssueID'],
+                           'Location': issue_location,
+                           'Secondary': secondary,
+                           'Issue_Number': x['Issue_Number'],
+                           'IssueDate': x['IssueDate'],
+                           'DigitalDate': x['DigitalDate'],
+                           'ReleaseDate': x['ReleaseDate'],
+                           'IssueName': x['IssueName'],
+                           'Status': x['Status'],
+                           'ComicSize': comicsize,
+                           'ComicID': x['ComicID'],
+                           'ComicName': x['ComicName']})
+
+        #logger.info('issues: %s' % (issues,))
+        iDisplayStart = int(iDisplayStart)
+        iDisplayLength = int(iDisplayLength)
+        filtered = []
+        if len(issues) > 0:
+            if sSearch == "" or sSearch is None:
+                filtered = issues[::]
+            else:
+                for row in issues:
+                    try:
+                        issname = row['IssueName']
+                        if issname is None:
+                            issname = ''
+                        if any([sSearch.lower() in issname.lower(), sSearch.lower() in row['Issue_Number'].lower(), sSearch.lower() in row['Status'], sSearch.lower() in row['IssueDate'].lower()]):
+                            filtered.append(row)
+                    except Exception as e:
+                        pass
+
+            rows = filtered[iDisplayStart:(iDisplayStart + iDisplayLength)]
+            rows = [[row['Issue_Number'], row['IssueName'], row['IssueDate'], row['Status'], row['IssueID'], row['Location'], row['ComicSize'], row['ComicID'], row['ComicName'], row['DigitalDate'], row['ReleaseDate'], row['Secondary']] for row in rows]
+        else:
+            rows = []
+
+        return json.dumps({
+            'iTotalDisplayRecords': len(filtered),
+            'iTotalRecords': len(issues),
+            'aaData': rows,
+        })
+    loadIssueDetails.exposed = True
+
+    def loadAnnualDetails(self, ComicID=None, iDisplayStart=0, iDisplayLength=25, iSortCol_0=0, sSortDir_0="desc", sSearch="", **kwargs):
+        #logger.info('comicid: %s' % ComicID)
+        if ComicID is None:
+            ComicID = kwargs['Paging_ComicID']
+            #logger.info('Annual paging ID: %s' % ComicID)
+
+        try:
+            filters = json.loads(kwargs.get('filters'))
+        except Exception as e:
+            filters = []
+
+        myDB = db.DBConnection()
+        annuals = []
+        if mylar.CONFIG.ANNUALS_ON:
+            annualslist = myDB.select("SELECT * FROM annuals WHERE ComicID=? AND NOT Deleted ORDER BY ReleaseDate ASC, Int_IssueNumber DESC", [ComicID])
+        #    #we need to load in the annual['ReleaseComicName'] and annual['ReleaseComicID']
+        #    #then group by ReleaseComicID, in an attempt to create seperate tables for each different annual series.
+        #    #this should allow for annuals, specials, one-shots, etc all to be included if desired.
             aName = []
-            annuals_list = []
             annualinfo = {}
             prevcomicid = None
-            for ann in annuals:
+            start_date = None
+            span = None
+            for ann in sorted(annualslist, key=itemgetter('ReleaseComicID', 'ReleaseDate', 'Int_IssueNumber'), reverse=False):
+                foundfilter = False
+                for filter in filters:
+                    if filter['name'] == ann['Status']:
+                        if filter['value'] is False:
+                            foundfilter = True
+                            break
+                if foundfilter:
+                    continue
                 if not any(d.get('annualComicID', None) == str(ann['ReleaseComicID']) for d in aName):
+                    if start_date is not None:
+                        end_date = previssdate
+                        if end_date[:4] == start_date[:4]:
+                            spanline = start_date[:4]
+                        else:
+                            spanline = '%s - %s' % (start_date[:4], end_date[:4])
+                        span = {'span':     spanline,
+                                'comicid':  prevcomicid}
+                        start_date = ann['IssueDate']
+                        end_date = None
+                    else:
+                        start_date = ann['IssueDate']
+
+                    if len(aName) > 0 and span is not None:
+                        cnt = 0
+                        for f in aName:
+                            if f['annualComicID'] == span['comicid']:
+                                aName[cnt]['span'] = span['span']
+                                break
+                            cnt+=1
+                        span = None
+
                     aName.append({"annualComicName":   ann['ReleaseComicName'],
                                   "annualComicID":     ann['ReleaseComicID']})
 
@@ -438,30 +645,72 @@ class WebInterface(object):
                     if len(ann['IssueName']) > 75:
                         issuename = '%s...' % ann['IssueName'][:75]
 
-                annuals_list.append({"Issue_Number":      ann['Issue_Number'],
-                                     "Int_IssueNumber":   ann['Int_IssueNumber'],
-                                     "IssueName":         issuename,
-                                     "IssueDate":         ann['IssueDate'],
-                                     "DigitalDate":       ann['DigitalDate'],
-                                     "Status":            ann['Status'],
-                                     "Location":          ann['Location'],
-                                     "ComicID":           ann['ComicID'],
-                                     "IssueID":           ann['IssueID'],
-                                     "ReleaseComicID":    ann['ReleaseComicID'],
-                                     "ComicName":         ann['ComicName'],
-                                     "ComicSize":         ann['ComicSize'],
-                                     "ReleaseComicName":  ann['ReleaseComicName'],
-                                     "PrevComicID":       prevcomicid})
+                if ann['ReleaseDate'] == '0000-00-00':
+                    sort_date = int(re.sub('[^0-9]', '', ann['IssueDate']).strip())
+                else:
+                    sort_date = int(re.sub('[^0-9]', '', ann['ReleaseDate']).strip())
+                annuals.append({"Issue_Number":      ann['Issue_Number'],
+                                "Int_IssueNumber":   ann['Int_IssueNumber'],
+                                "IssueName":         issuename,
+                                "IssueDate":         ann['IssueDate'],
+                                "ReleaseDate":       ann['ReleaseDate'],
+                                "DigitalDate":       ann['DigitalDate'],
+                                "SortDate":          sort_date,
+                                "Status":            ann['Status'],
+                                "Location":          ann['Location'],
+                                "ComicID":           ann['ComicID'],
+                                "IssueID":           ann['IssueID'],
+                                "ReleaseComicID":    ann['ReleaseComicID'],
+                                "ComicName":         ann['ComicName'],
+                                "ComicSize":         ann['ComicSize'],
+                                "ReleaseComicName":  ann['ReleaseComicName'],
+                                "PrevComicID":       prevcomicid})
 
                 prevcomicid = ann['ReleaseComicID']
-                acnt+=1
+                previssdate = ann['IssueDate']
+
+            if len(aName) > 0: # and span is not None:
+                end_date = previssdate  #make sure to take the last looped value as the last issue date
+                if end_date[:4] == start_date[:4]:
+                    spanline = start_date[:4]
+                else:
+                    spanline = '%s - %s' % (start_date[:4], end_date[:4])
+                cnt = 0
+                for f in aName:
+                    if f['annualComicID'] == prevcomicid:
+                        aName[cnt]['span'] = spanline
+                        break
+                    cnt+=1
+            #now we loop through the annual_list matching up to aName and appending the grouped display name for easier displaying in the GUI.
+            for f in aName:
+                cnt = 0
+                for ab in annuals:
+                    if f['annualComicID'] == ab['ReleaseComicID']:
+                        annuals[cnt]['GroupName'] = '%s [%s]' % (ab['ReleaseComicName'],f['span'])
+                        annuals[cnt]['annualComicID'] = str(f['annualComicID'])
+                    cnt+=1
+
             annualinfo = aName
-            #annualinfo['count'] = acnt
         else:
-            annuals_list = None
-            aName = None
-        return serve_template(templatename="comicdetails.html", title=comic['ComicName'], comic=comic, issues=issues, comicConfig=comicConfig, isCounts=isCounts, series=series, annuals=annuals_list, annualinfo=aName)
-    comicDetails.exposed = True
+            annuals = None
+
+        iDisplayStart = int(iDisplayStart)
+        iDisplayLength = int(iDisplayLength)
+        filtered = 0
+        rows = []
+        if annuals is not None:
+            if len(annuals) > 0:
+                #final_list = sorted(annuals, key=itemgetter('ReleaseComicID', 'SortDate', 'Int_IssueNumber'))
+                final_list = sorted(annuals, key=lambda k: (-k['SortDate'], k['Int_IssueNumber']))
+                rows = [[row['Issue_Number'], row['IssueName'], row['IssueDate'], row['Status'], row['IssueID'], row['Location'], row['ComicSize'], row['ComicID'], row['ReleaseComicName'], row['ReleaseComicID'], row['GroupName'], row['annualComicID'], row['ReleaseDate'], row['DigitalDate']] for row in final_list]
+                filtered = len(rows)
+
+        return json.dumps({
+            'iTotalDisplayRecords': filtered,
+            'iTotalRecords': len(rows),
+            'aaData': rows,
+        })
+    loadAnnualDetails.exposed = True
 
     def searchit(self, name, issue=None, mode=None, search_type=None, serinfo=None):
         if search_type is None: search_type = 'comic'  # let's default this to comic search only for the time being (will add story arc, characters, etc later)
@@ -487,8 +736,9 @@ class WebInterface(object):
                 mismatch = "no"
                 comicid = re.sub('4050-', '', name)
                 logger.info('Attempting to add directly by ComicVineID: ' + str(comicid) + '. I sure hope you know what you are doing.')
-                threading.Thread(target=importer.addComictoDB, args=[comicid, mismatch, None]).start()
-                raise cherrypy.HTTPRedirect("comicDetails?ComicID=%s" % comicid)
+                self.addbyid(comicid, calledby=False, nothread=False)
+                #threading.Thread(target=importer.addComictoDB, args=[comicid, mismatch, None]).start()
+                #raise cherrypy.HTTPRedirect("comicDetails?ComicID=%s" % comicid)
             try:
                 searchresults = mb.findComic(name, mode, issue=None)
             except TypeError:
@@ -636,10 +886,27 @@ class WebInterface(object):
         logger.info('Attempting to add directly by ComicVineID: ' + str(comicid))
         if comicid.startswith('4050-'): comicid = re.sub('4050-', '', comicid)
         if nothread is False:
-            threading.Thread(target=importer.addComictoDB, args=[comicid, mismatch, None, imported, ogcname]).start()
+            watch = []
+            #if not any(ext['comicid'] == ComicID for ext in mylar.REFRESH_LIST):
+            if not {"comicid": comicid, "comicname": ogcname} in mylar.ADD_LIST.queue:
+                watch.append({"comicid": comicid, "comicname": ogcname})
+
+            if len(watch) > 0:
+                logger.info('[SHIZZLE-WHIZZLE] Now queueing to add %s [%s]' % (ogcname, comicid))
+                try:
+                    importer.importer_thread(watch)
+                except Exception:
+                    pass
+
+            #threading.Thread(target=importer.addComictoDB, args=[comicid, mismatch, None, imported, ogcname]).start()
         else:
             return importer.addComictoDB(comicid, mismatch, None, imported, ogcname)
+
+        #mylar.GLOBAL_MESSAGES = {'status': 'success', 'event': 'addbyid', 'comicname': ogcname, 'seriesyear': None, 'comicid': comicid, 'tables': 'None', 'message': 'Now adding %s' % (urllib.parse.unquote_plus(c_name))}
         if calledby == True or calledby == 'True':
+           #c_name = 'ComicID: %s' % comicid
+           #if ogcname is not None:
+           #    c_name = ogcname
            return
         elif calledby == 'web-import':
            raise cherrypy.HTTPRedirect("importResults")
@@ -1033,6 +1300,12 @@ class WebInterface(object):
                          logger.warn('error: %s' % e)
                          pp_fail = True
                  else:
+                     if mylar.CONFIG.MANUAL_PP_FOLDER != nzb_folder:
+                         mylar.CONFIG.MANUAL_PP_FOLDER = nzb_folder
+                         mylar.CONFIG.configure(update=True)
+                         # Write the config
+                         logger.info('Now updating config...')
+                         mylar.CONFIG.writeconfig(values={'manual_pp_folder': mylar.CONFIG.MANUAL_PP_FOLDER})
                      yield json.dumps({'status': 'success', 'message': 'Successfully submitted %s for manual post-processing...' % (nzb_folder)})
 
         if pp_fail is True:
@@ -1197,12 +1470,21 @@ class WebInterface(object):
     wipenzblog.exposed = True
 
     def refreshSeries(self, ComicID):
-        comicsToAdd = [ComicID]
-        logger.fdebug("Refreshing comic: %s" % comicsToAdd)
-        #myDB = db.DBConnection()
-        #myDB.upsert('comics', {'Status': 'Loading'}, {'ComicID': ComicID})
-        #threading.Thread(target=updater.dbUpdate, args=[comicsToAdd,'refresh']).start()
-        updater.dbUpdate(comicsToAdd, 'refresh')
+        watch = []
+        myDB = db.DBConnection()
+        chkdb = myDB.selectone("SELECT ComicName, ComicYear FROM comics WHERE ComicID=?", [ComicID]).fetchone()
+        #if not any(ext['comicid'] == ComicID for ext in mylar.REFRESH_LIST):
+        if not {"comicid": ComicID, "comicname": chkdb['ComicName']} in mylar.REFRESH_QUEUE.queue:
+            watch.append({"comicid": ComicID, "comicname": chkdb['ComicName']})
+
+        if len(watch) > 0:
+            logger.info('[SHIZZLE-WHIZZLE] Now queueing to refresh %s %s' % (chkdb['ComicName'], chkdb['ComicYear']))
+            try:
+                importer.refresh_thread(watch)
+            except Exception:
+                pass
+
+        return json.dumps({'status': 'success'})
     refreshSeries.exposed = True
 
     def description_edit(self, id, value):
@@ -1290,32 +1572,56 @@ class WebInterface(object):
         else:
             newaction = action
 
+        issuelist = []
+
+        comicid = None
+        for k,v in list(args.items()):
+            if k == 'issueids[]':
+                issuelist = v
+                if type(issuelist) != list:
+                    issuelist = [issuelist]
+            if k == 'comicid':
+                comicid = v
+            if k == 'comicname':
+                comicname = v
+            if k == 'comicyear':
+                comicyear = v
+
+        if len(issuelist) > 0:
+            args = issuelist
+
         for IssueID in args:
             if any([IssueID is None, 'issue_table' in IssueID, 'history_table' in IssueID, 'manage_issues' in IssueID, 'issue_table_length' in IssueID, 'issues' in IssueID, 'annuals' in IssueID, 'annual_table_length' in IssueID]):
                 continue
             else:
-                mi = myDB.selectone("SELECT * FROM issues WHERE IssueID=?", [IssueID]).fetchone()
+                mi = myDB.selectone("SELECT a.ComicYear, b.* FROM issues b LEFT JOIN comics a ON a.ComicID=b.ComicID WHERE b.IssueID=?", [IssueID]).fetchone()
                 arcs = False
                 annchk = 'no'
+                seriesyear = None
                 if mi is None:
                     if mylar.CONFIG.ANNUALS_ON:
-                        mi = myDB.selectone("SELECT * FROM annuals WHERE IssueID=? AND NOT Deleted", [IssueID]).fetchone()
+                        mi = myDB.selectone("SELECT a.ComicYear, b.* FROM annuals b LEFT JOIN comics a ON a.ComicID=b.ComicID WHERE b.IssueID=? AND NOT b.Deleted", [IssueID]).fetchone()
                         if mi is not None:
                             comicname = mi['ReleaseComicName']
                             issuenumber = mi['Issue_Number']
                             annchk = 'yes'
+                            comicid = mi['ComicID']
+                            seriesyear = mi['ComicYear']
                         else:
                             mi = myDB.selectone("SELECT * FROM storyarcs WHERE IssueArcID=?", [IssueID]).fetchone()
                             if mi is not None:
                                 arcs = True
                                 comicname = mi['ComicName']
                                 issuenumber = mi['IssueNumber']
+                                comicid = mi['ComicID']
                             else:
                                 logger.warn('unable to reference issueid: %s' % IssueID)
                                 continue
                 else:
                     comicname = mi['ComicName']
                     issuenumber = mi['Issue_Number']
+                    comicid = mi['ComicID']
+                    seriesyear = mi['ComicYear']
 
                 if action == 'OppositeTier':
                     try:
@@ -1381,13 +1687,15 @@ class WebInterface(object):
             logger.info('[TIER-REARRANGER] %s' % tierline)
         if action == 'Failed' and mylar.CONFIG.FAILED_DOWNLOAD_HANDLING:
             self.failed_handling(failedcomicid, failedissueid)
-        if len(issuestoArchive) > 0:
+        elif len(issuestoArchive) > 0:
             updater.forceRescan(mi['ComicID'])
-        if len(issuesToAdd) > 0:
+        elif len(issuesToAdd) > 0:
             logger.fdebug("Marking issues: %s as Wanted" % (issuesToAdd))
             threading.Thread(target=search.searchIssueIDList, args=[issuesToAdd]).start()
-
-        #raise cherrypy.HTTPRedirect("comicDetails?ComicID=%s" % mi['ComicID'])
+        else:
+            updater.forceRescan(mi['ComicID'])
+        mylar.GLOBAL_MESSAGES = {'status': 'success', 'comicname': comicname, 'seriesyear': seriesyear, 'comicid': comicid, 'tables': 'both', 'message': 'Successfully changed status of %s issues to %s' % (len(issuelist), action)}
+        return json.dumps({'status': 'success'})
     markissues.exposed = True
 
     def markentries(self, action=None, **args):
@@ -1410,10 +1718,8 @@ class WebInterface(object):
         threading.Thread(target=self.retryissue, kwargs=kwargs).start()
     retryit.exposed = True
 
-    def retryissue(self, ComicName, ComicID, IssueID, IssueNumber, ReleaseComicID=None, ComicYear=None, redirect=None):
+    def retryissue(self, IssueID, ComicID, ComicName=None, IssueNumber=None, ReleaseComicID=None, ComicYear=None, redirect=None):
 
-        logger.info('ComicID:' + str(ComicID))
-        logger.info('Retrying : ' + str(IssueID))
         # mode = either series or annual (want vs. want_ann)
         #To retry the exact download again - we already have the nzb/torrent name stored in the nzblog.
         #0 - Change status to Retrying.
@@ -1573,16 +1879,17 @@ class WebInterface(object):
                     IssueDate = chkthis['IssueDate']
                     ComicVersion = chkthis['ComicVersion']
                 comicinfo = [{"ComicName":     chkthis['ComicName'],
-                             "ComicVolume":   ComicVersion,
-                             "IssueNumber":   chkthis['Issue_Number'],
-                             "comyear":       chkthis['ComicYear'],
-                             "IssueDate":     IssueDate,
-                             "pack":          False,
-                             "modcomicname":  modcomicname,
-                             "oneoff":        oneoff}]
+                              "ComicVolume":   ComicVersion,
+                              "IssueNumber":   chkthis['Issue_Number'],
+                              "comyear":       chkthis['ComicYear'],
+                              "IssueDate":     IssueDate,
+                              "pack":          False,
+                              "modcomicname":  modcomicname,
+                              "oneoff":        oneoff}]
 
                 newznabinfo = None
                 link = None
+
                 if fullprov == 'nzb.su':
                     if not mylar.CONFIG.NZBSU:
                         logger.error('nzb.su is not enabled - unable to process retry request until provider is re-enabled.')
@@ -1808,18 +2115,19 @@ class WebInterface(object):
 
         #s = mylar.SEARCH_QUEUE.put({'issueid': IssueID, 'comicname': ComicName, 'seriesyear': SeriesYear, 'comicid': ComicID, 'issuenumber': ComicIssue, 'booktype': BookType})
         s = mylar.SEARCH_QUEUE.put(passinfo)
-        if manualsearch:
-            # if it's a manual search, return to null here so the thread will die and not cause http redirect errors.
-            return
+        #if manualsearch:
+        #    # if it's a manual search, return to null here so the thread will die and not cause http redirect errors.
+        #    return
         if ComicID:
-            return cherrypy.HTTPRedirect("comicDetails?ComicID=%s" % ComicID)
+            return json.dumps({'status': 'success', 'comicid': ComicID, 'comicname': ComicName, 'seriesyear': SeriesYear, 'tables': 'table', 'message': 'Successfully submitted search for %s #%s...' % (ComicName, ComicIssue)})
         else:
             return
-            #raise cherrypy.HTTPRedirect(redirect)
     queueissue.exposed = True
 
-    def unqueueissue(self, IssueID, ComicID, ComicName=None, Issue=None, FutureID=None, mode=None, ReleaseComicID=None):
+    def unqueueissue(self, IssueID, ComicID, ComicName=None, Issue=None, smode=None, ReleaseComicID=None):
         myDB = db.DBConnection()
+        if ReleaseComicID == 'null':
+            ReleaseComicID = None
         if ComicName is None:
             if ReleaseComicID is None:  #ReleaseComicID is used for annuals.
                 issue = myDB.selectone('SELECT * FROM issues WHERE IssueID=?', [IssueID]).fetchone()
@@ -1842,7 +2150,7 @@ class WebInterface(object):
                 IssueNumber = issue['Issue_Number']
 
             controlValueDict = {"IssueID": IssueID}
-            if mode == 'failed' and mylar.CONFIG.FAILED_DOWNLOAD_HANDLING:
+            if smode == 'failed' and mylar.CONFIG.FAILED_DOWNLOAD_HANDLING:
                 logger.info("Marking " + ComicName + " issue # " + IssueNumber + " as Failed...")
                 newValueDict = {"Status": "Failed"}
                 myDB.upsert("failed", newValueDict, controlValueDict)
@@ -1858,30 +2166,7 @@ class WebInterface(object):
                    myDB.upsert("annuals", newValueDict, controlValueDict)
                 else:
                    myDB.upsert("issues", newValueDict, controlValueDict)
-        else:
-            #if ComicName is not None, then it's from the FuturePull list that we're 'unwanting' an issue.
-            #ComicID may be present if it's a watch from the Watchlist, otherwise it won't exist.
-            if ComicID is not None and ComicID != 'None':
-                logger.info('comicid present:' + str(ComicID))
-                thefuture = myDB.selectone('SELECT * FROM future WHERE ComicID=?', [ComicID]).fetchone()
-            else:
-                logger.info('FutureID: ' + str(FutureID))
-                logger.info('no comicid - ComicName: ' + str(ComicName) + ' -- Issue: #' + Issue)
-                thefuture = myDB.selectone('SELECT * FROM future WHERE FutureID=?', [FutureID]).fetchone()
-            if thefuture is None:
-                logger.info('Cannot find the corresponding issue in the Futures List for some reason. This is probably an Error.')
-            else:
-
-                logger.info('Marking ' + thefuture['COMIC'] + ' issue # ' + thefuture['ISSUE']  + ' as skipped...')
-                if ComicID is not None and ComicID != 'None':
-                    cVDict = {"ComicID": thefuture['ComicID']}
-                else:
-                    cVDict = {"FutureID": thefuture['FutureID']}
-                nVDict = {"Status": "Skipped"}
-                logger.info('cVDict:' + str(cVDict))
-                logger.info('nVDict:' + str(nVDict))
-                myDB.upsert("future", nVDict, cVDict)
-
+        return json.dumps({'status': 'success', 'message': 'Successfully changed status of %s #%s to %s' % (ComicName, IssueNumber, smode)})
     unqueueissue.exposed = True
 
     def failed_handling(self, ComicID, IssueID):
@@ -2149,97 +2434,15 @@ class WebInterface(object):
         myDB.action("DELETE FROM futureupcoming WHERE ComicName=? AND IssueDate=? AND Status='Wanted'", [comicname, release])
     removeautowant.exposed = True
 
-    def futurepull(self):
-        from mylar import solicit
-        #get month-year here, and self-populate in future
-        now = datetime.datetime.now()
-        if len(str(now.month)) != 2:
-            month = '0' + str(now.month)
-        else:
-            month = str(now.month)
-        year = str(now.year)
-        logger.fdebug('month = ' + str(month))
-        logger.fdebug('year = ' + str(year))
-        threading.Thread(target=solicit.solicit, args=[month, year]).start()
-        raise cherrypy.HTTPRedirect("futurepulllist")
-    futurepull.exposed = True
-
-    def futurepulllist(self):
-        myDB = db.DBConnection()
-        futureresults = []
-        watchresults = []
-        popthis = myDB.select("SELECT * FROM sqlite_master WHERE name='futureupcoming' and type='table'")
-        if popthis:
-            l_results = myDB.select("SELECT * FROM futureupcoming WHERE Status='Wanted'")
-            for lres in l_results:
-                watchresults.append({
-                                      "ComicName":   lres['ComicName'],
-                                      "IssueNumber": lres['IssueNumber'],
-                                      "ComicID":     lres['ComicID'],
-                                      "IssueDate":   lres['IssueDate'],
-                                      "Publisher":   lres['Publisher'],
-                                      "Status":      lres['Status']
-                                    })
-            logger.fdebug('There are ' + str(len(watchresults)) + ' issues that you are watching for but are not on your watchlist yet.')
-
-        popit = myDB.select("SELECT * FROM sqlite_master WHERE name='future' and type='table'")
-        if popit:
-            f_results = myDB.select("SELECT SHIPDATE, PUBLISHER, ISSUE, COMIC, EXTRA, STATUS, ComicID, FutureID from future")
-            for future in f_results:
-                x = None
-                if future['ISSUE'] is None: break
-                try:
-                    x = float(future['ISSUE'])
-                except ValueError as e:
-                    if any(ext in future['ISSUE'].upper() for ext in mylar.ISSUE_EXCEPTIONS):
-                        x = future['ISSUE']
-
-                if future['EXTRA'] == 'N/A' or future['EXTRA'] == '':
-                    future_extra = ''
-                else:
-                    future_extra = future['EXTRA']
-                    if '(of' in future['EXTRA'].lower():
-                        future_extra = re.sub('[\(\)]', '', future['EXTRA'])
-
-                if x is not None:
-                    #here we check the status to make sure it's ok since we loaded all the Watch For earlier.
-                    chkstatus = future['STATUS']
-
-                    for wr in watchresults:
-                        if wr['ComicName'] == future['COMIC'] and wr['IssueNumber'] == future['ISSUE']:
-                            logger.info('matched on Name: ' + wr['ComicName'] + ' to ' + future['COMIC'])
-                            logger.info('matched on Issue: #' + wr['IssueNumber'] + ' to #' + future['ISSUE'])
-                            logger.info('matched on ID: ' + str(wr['ComicID']) + ' to ' + str(future['ComicID']))
-                            chkstatus = wr['Status']
-                            break
-
-                    futureresults.append({
-                                           "SHIPDATE": future['SHIPDATE'],
-                                           "PUBLISHER": future['PUBLISHER'],
-                                           "ISSUE": future['ISSUE'],
-                                           "COMIC": future['COMIC'],
-                                           "EXTRA": future_extra,
-                                           "STATUS": chkstatus,
-                                           "COMICID": future['ComicID'],
-                                           "FUTUREID": future['FutureID']
-                                         })
-            futureresults = sorted(futureresults, key=itemgetter('SHIPDATE', 'PUBLISHER', 'COMIC'), reverse=False)
-        else:
-            logger.error('No results to post for upcoming issues...something is probably wrong')
-            return
-        return serve_template(templatename="futurepull.html", title="future Pull", futureresults=futureresults, pullfilter=True)
-
-    futurepulllist.exposed = True
-
-    def add2futurewatchlist(self, ComicName, Issue, Publisher, ShipDate, weeknumber, year, FutureID=None):
+    def add2futurewatchlist(self, ComicName, Issue, Publisher, ShipDate, weeknumber, year):
         #ShipDate is just weekinfo['midweek'] #a tuple ('weeknumber','startweek','midweek','endweek','year')
         myDB = db.DBConnection()
         logger.info(ShipDate)
-        if FutureID is not None:
-            chkfuture = myDB.selectone('SELECT * FROM futureupcoming WHERE ComicName=? AND IssueNumber=? WHERE weeknumber=? AND year=?', [ComicName, Issue, weeknumber, year]).fetchone()
-            if chkfuture is not None:
-                logger.info('Already on Future Upcoming list - not adding at this time.')
-                return
+
+        chkfuture = myDB.selectone('SELECT * FROM futureupcoming WHERE ComicName=? AND IssueNumber=? AND weeknumber=? AND year=?', [ComicName, Issue, weeknumber, year]).fetchone()
+        if chkfuture is not None:
+            logger.info('Already on Future Upcoming list - not adding at this time.')
+            return
 
         logger.info('Adding ' + ComicName + ' # ' + str(Issue) + ' [' + Publisher + '] to future upcoming watchlist')
         newCtrl = {"ComicName":   ComicName,
@@ -2252,11 +2455,6 @@ class WebInterface(object):
                   "year":         year}
 
         myDB.upsert("futureupcoming", newVal, newCtrl)
-
-        if FutureID is not None:
-            fCtrl = {"FutureID":  FutureID}
-            fVal = {"Status":    "Wanted"}
-            myDB.upsert("future", fVal, fCtrl)
 
     add2futurewatchlist.exposed = True
 
@@ -2947,6 +3145,7 @@ class WebInterface(object):
             updater.forceRescan(cid)
         if len(comiclist) > 1:
             logger.info('[RENAMER] %s series have been renamed.' % len(comiclist))
+        return json.dumps({'status': 'success'})
     manualRename.exposed = True
 
     def searchScan(self, name):
@@ -3111,7 +3310,6 @@ class WebInterface(object):
             issues += myDB.select("SELECT * from annuals WHERE Status=? AND NOT Deleted", [status])
         else:
             issues = myDB.select("SELECT * from issues WHERE Status=?", [status])
-
         return serve_template(templatename="manageissues.html", title="Manage " + str(status) + " Issues", issues=issues, status=status)
     manageIssues.exposed = True
 
@@ -3314,17 +3512,21 @@ class WebInterface(object):
                         updater.forceRescan(cid)
                     cnt+=1
                 logger.info('[MASS BATCH][RECHECK-FILES] I have completed rechecking files for ' + str(len(ComicID)) + ' series.')
+                mylar.GLOBAL_MESSAGES = {'status': 'success', 'comicid': None, 'tables': None, 'message': 'Finished Rechecking files for %s series' % (len(ComicID))}
             else:
                 for cid in ComicID:
                     logger.info('[MASS BATCH][METATAGGING-FILES][' + str(cnt) + '/' + str(len(ComicID)) + '] Now Preparing to metatag series for ' + cid['ComicName'] + '(' + str(cid['ComicYear']) + ')')
-                    self.group_metatag(ComicID=cid['ComicID'])
+                    self.group_metatag(ComicID=cid['ComicID'], threaded=True)
                     cnt+=1
                 logger.info('[MASS BATCH][METATAGGING-FILES] I have completed metatagging files for ' + str(len(ComicID)) + ' series.')
-
+                mylar.GLOBAL_MESSAGES = {'status': 'success', 'comicid': comicinfo['ComicID'], 'tables': 'both', 'message': 'Finished complete series (re)tagging of %s of %s (%s)' % (issueline, comicinfo['ComicName'], comicinfo['ComicYear'])}
         else:
-            threading.Thread(target=updater.forceRescan, args=[ComicID]).start()
-        #if api is True:
-        #    return 'Successfully submitted Recheck Files request for designated IDs'
+            myDB = db.DBConnection()
+            cline = myDB.selectone("SELECT ComicName, ComicYear FROM comics WHERE ComicID=?", [ComicID]).fetchone()
+            if cline:
+                updater.forceRescan(ComicID)
+                mylar.GLOBAL_MESSAGES = {'status': 'success', 'comicname': cline['ComicName'], 'seriesyear': cline['ComicYear'], 'comicid': ComicID, 'tables': 'both', 'message': 'Recheck Files completed for %s (%s)' % (cline['ComicName'], cline['ComicYear'])}
+
     forceRescan.exposed = True
 
     def checkGithub(self):
@@ -3603,7 +3805,13 @@ class WebInterface(object):
         return serve_template(templatename=template, title="Detailed Arc list", readlist=arcinfo, storyarcname=StoryArcName, storyarcid=StoryArcID, cvarcid=cvarcid, sdir=sdir, arcdetail=arcdetail, storyarcbanner=storyarcbanner, bannerheight=bannerheight, bannerwidth=bannerwidth, spanyears=spanyears)
     detailStoryArc.exposed = True
 
-    def order_edit(self, id, value):
+    def order_edit(self, **kwargs): #id, value):
+        for k, v in kwargs.items():
+            if 'id' in k:
+                id = v
+            elif 'value' in k:
+                value = v
+
         storyarcid = id[:id.find('.')]
         issuearcid = id[id.find('.') +1:]
         readingorder = value
@@ -3684,24 +3892,23 @@ class WebInterface(object):
         logger.fdebug('new reading order: %s' % new_readorder)
         #newrl = 0
         for rl in sorted(new_readorder, key=itemgetter('ReadingOrder'), reverse=False):
-
-            if rl['filename'] is not None:
-                try:
+            try:
+                if rl['filename'] is not None:
                     if int(rl['ReadingOrder']) != int(rl['filename'][:rl['filename'].find('-')]) and mylar.CONFIG.READ2FILENAME is True:
                         logger.fdebug('Order-Change: %s TO %s' % (int(rl['filename'][:rl['filename'].find('-')]), int(rl['ReadingOrder'])))
                     logger.fdebug('%s to %s' % (rl['filename'], helpers.renamefile_readingorder(rl['ReadingOrder']) + '-' + rl['filename'][rl['filename'].find('-')+1:]))
-                except:
-                    pass
 
-            rl_ctrl = {"IssueID":           rl['IssueID'],
-                       "IssueArcID":        rl['IssueArcID'],
-                       "StoryArcID":        storyarcid}
+                rl_ctrl = {"IssueID":           rl['IssueID'],
+                           "IssueArcID":        rl['IssueArcID'],
+                           "StoryArcID":        storyarcid}
 
-            r1_new = {"ReadingOrder":       rl['ReadingOrder']}
+                r1_new = {"ReadingOrder":       rl['ReadingOrder']}
 
-            myDB.upsert("storyarcs", r1_new, rl_ctrl)
+                myDB.upsert("storyarcs", r1_new, rl_ctrl)
+            except Exception as e:
+                logger.warn('error: %s' % (e,))
 
-        logger.info('Updated Issue Date for issue #' + str(issuenumber))
+        logger.info('Successfully changed reading order sequence')
         return value
 
     order_edit.exposed = True
@@ -5746,6 +5953,7 @@ class WebInterface(object):
     def comic_config(self, com_location, ComicID, alt_search=None, fuzzy_year=None, comic_version=None, force_continuing=None, force_type=None, alt_filename=None, allow_packs=None, corrected_seriesyear=None, torrentid_32p=None, ignore_type=None, age_rating=None, publisher_imprint=None):
         myDB = db.DBConnection()
         chk1 = myDB.selectone('SELECT ComicLocation, Type, Corrected_Type, PublisherImprint FROM comics WHERE ComicID=?', [ComicID]).fetchone()
+
         if chk1[0] is None:
             orig_location = com_location
         else:
@@ -5872,7 +6080,6 @@ class WebInterface(object):
             newcom_location = x.folder_create(booktype=mod_booktype, imprint=mod_imprint)
             if newcom_location['comlocation'] is not None:
                 com_location = newcom_location['comlocation']
-
 
         if allow_packs is None:
             newValues['AllowPacks'] = 0
@@ -6323,14 +6530,39 @@ class WebInterface(object):
 
     downloadthis.exposed = True
 
-    def IssueInfo(self, filelocation, comicname=None, issue=None, date=None, title=None, issueid=None):
-        issuedetails = helpers.IssueDetails(filelocation, IssueID=issueid)
+    def IssueInfo(self, issueid): #filelocation, comicname=None, issue=None, date=None, title=None, issueid=None):
+        myDB = db.DBConnection()
+        metadata_db = myDB.selectone('SELECT a.ComicLocation, b.* FROM comics a LEFT JOIN issues b ON a.comicid=b.comicid where b.IssueID=?', [issueid]).fetchone()
+        if metadata_db is None:
+            metadata_db = myDB.selectone('SELECT a.ComicLocation, b.* FROM comics a LEFT JOIN annuals b ON a.comicid=b.comicid where b.IssueID=? AND NOT b.Deleted', [issueid]).fetchone()
+            if not metadata_db:
+                metadata_db = None
+
+        filepath = None
+        if metadata_db:
+            filelocation = metadata_db['Location']
+            if filelocation is not None:
+                tmpfilepath = os.path.join(metadata_db['ComicLocation'],filelocation)
+                if not os.path.isfile(tmpfilepath):
+                    if all([mylar.CONFIG.MULTIPLE_DEST_DIRS is not None, mylar.CONFIG.MULTIPLE_DEST_DIRS != 'None']):
+                        if os.path.exists(os.path.join(mylar.CONFIG.MULTIPLE_DEST_DIRS, os.path.basename(metadata_db['ComicLocation']))):
+                            secondary_folders = os.path.join(mylar.CONFIG.MULTIPLE_DEST_DIRS, os.path.basename(metadata_db['ComicLocation']))
+                        else:
+                            ff = mylar.filers.FileHandlers(ComicID=metadata_db['ComicID'])
+                            secondary_folders = ff.secondary_folders(metadata_db['ComicLocation'])
+                        filepath = os.path.join(secondary_folders, filelocation)
+                else:
+                    filepath = tmpfilepath
+
+        issuedetails = helpers.IssueDetails(filepath, IssueID=issueid)
+
         issuewriter = []
         issuepenciller = []
         issueletterer = []
         issueeditor = []
         issueinker = []
         issuecolorist = []
+        issuecoverartist = []
         seriestitle = None
         meta_data = issuedetails['metadata']
         if issuedetails['datamode'] == 'single_issue':
@@ -6362,9 +6594,12 @@ class WebInterface(object):
                     issueletterer.append(xi['name'])
                 if xi['role'] == 'editor':
                     issueeditor.append(xi['name'])
+                if xi['role'] == 'cover artist':
+                    issuecoverartist.append(xi['name'])
             pagecount = None
         elif all([seriestitle is None, meta_data is None]): # and 'series' not in meta_data:
             myDB = db.DBConnection()
+            logger.info('issueid: %s' % (issueid))
             meta_data = myDB.selectone('SELECT * FROM issues where IssueID=?', [issueid]).fetchone()
             if meta_data is None:
                 meta_data = myDB.selectone('SELECT * FROM annuals where IssueID=? AND NOT Deleted', [issueid]).fetchone()
@@ -6383,20 +6618,23 @@ class WebInterface(object):
             issueyear = issue_rls[:4]
             issuesummary = None
         else:
+            logger.info('meta_data: %s' % (meta_data,))
             myDB = db.DBConnection()
             metadata_db = myDB.selectone('SELECT * FROM issues where IssueID=?', [issueid]).fetchone()
             if metadata_db is None:
                 metadata_db = myDB.selectone('SELECT * FROM annuals where IssueID=? AND NOT Deleted', [issueid]).fetchone()
+                if not metadata_db:
+                    metadata_db = None
             seriestitle = meta_data['series']
-            if any([seriestitle == 'None', seriestitle is None]):
+            if any([seriestitle == 'None', seriestitle is None]) and metadata_db is not None:
                 seriestitle = metadata_db['ComicName']
 
             issuenumber = meta_data['issue_number']
-            if any([issuenumber == 'None', issuenumber is None]):
+            if any([issuenumber == 'None', issuenumber is None]) and metadata_db is not None:
                 issuenumber = metadata_db['Issue_Number']
 
             issuetitle = meta_data['title']
-            if any([issuetitle == 'None', issuetitle is None]):
+            if any([issuetitle == 'None', issuetitle is None]) and metadata_db is not None:
                 issuetitle = metadata_db['IssueName']
             else:
                 issuetitle = issuetitle
@@ -6407,89 +6645,139 @@ class WebInterface(object):
             issueday = meta_data['day']
             issuemonth = meta_data['month']
             issueyear = meta_data['year']
+
             if meta_data['writer'] is not None:
-                issuewriter.append(meta_data['writer'])
+                issuewriter = meta_data['writer']
             if meta_data['penciller'] is not None:
-                issuepenciller.append(meta_data['penciller'])
+                issuepenciller = meta_data['penciller']
             if meta_data['inker'] is not None:
-                issueinker.append(meta_data['inker'])
+                issueinker = meta_data['inker']
             if meta_data['colorist'] is not None:
-                issuecolorist.append(meta_data['colorist'])
+                issuecolorist = meta_data['colorist']
             if meta_data['letterer'] is not None:
-                issueletterer.append(meta_data['letterer'])
+                issueletterer = meta_data['letterer']
             if meta_data['editor'] is not None:
-                issueeditor.append(meta_data['editor'])
+                issueeditor = meta_data['editor']
+            if meta_data['cover_artist'] is not None:
+                issuecoverartist = meta_data['cover_artist']
             issuesummary = meta_data['summary']
         if meta_data is not None:
-            issueinfo = '<table width="500"><tr><td>'
-            issueinfo += '<img style="float: left; padding-right: 10px" src="data:image/jpeg;base64,%s" height="400" width="263">' % issuedetails['IssueImage']
-            if all([issuenumber is not None, issuenumber != 'None']):
-                issueinfo += '<h1><center><b>%s</br>[#%s]</b></center></h1>' % (seriestitle, issuenumber)
-            else:
-                issueinfo += '<h1><center><b>%s</b></center></h1>' % (seriestitle)
-            if all([issuetitle is not None, issuetitle != 'None']):
-                issueinfo += '<center>"%s"</center></br>' % (issuetitle)
-            if all([pagecount is not None, pagecount != 'None']):
-                issueinfo += '</br><p class="alignleft">' + pagecount + ' pages</p>'
+            iss_filename = None
+            if filelocation is not None:
+                iss_filename = os.path.split(filelocation)[1]
+
             if all([issueday is None, issuemonth is None, issueyear is None]):
-                issueinfo += '<p class="alignright">(' + str(date) + ')</p></br>'
+                iss_date = date
             else:
-                issueinfo += '<p class="alignright">(%s-%s-%s)</p></br>' % (issueyear, issuemonth, issueday)
+                iss_date = '%s-%s-%s' % (issueyear, issuemonth, issueday)
+
+            if issuetitle == 'None':
+                issuetitle = None
+            writers = None
+            pencillers = None
+            inkers = None
+            colorists = None
+            letterers = None
+            editors = None
+            coverartists = None
             if len(issuewriter) > 0:
-                issueinfo += 'Writer(s): ' + ', '.join(issuewriter) + '</br>'
+                writers = issuewriter
+                if type(issuewriter) == list:
+                    writers = ', '.join(issuewriter).strip()
             if len(issuepenciller) > 0:
-                issueinfo += 'Penciller(s): ' + ', '.join(issuepenciller) + '</br>'
+                pencillers = issuepenciller
+                if type(issuepenciller) == list:
+                    pencillers = ', '.join(issuepenciller).strip()
             if len(issueinker) > 0:
-                issueinfo += 'Inker(s): ' + ', '.join(issueinker) + '</br>'
+                inkers = issueinker
+                if type(issueinker) == list:
+                    inkers = ', '.join(issueinker).strip()
             if len(issuecolorist) > 0:
-                issueinfo += 'Colorist(s): ' + ', '.join(issuecolorist) + '</br>'
+                colorists = issuecolorist
+                if type(issuecolorist) == list:
+                    colorists = ', '.join(issuecolorist).strip()
             if len(issueletterer) > 0:
-                issueinfo += 'Letterer(s): ' + ', '.join(issueletterer) + '</br>'
+                letterers = issueletterer
+                if type(issueletterer) == list:
+                    letterers = ', '.join(issueletterer).strip()
             if len(issueeditor) > 0:
-                issueinfo += 'Editor(s): ' + ', '.join(issueeditor) + '</br>'
-            issueinfo += '</td></tr>'
-            #issueinfo += '<img src="interfaces/default/images/rename.png" height="25" width="25"></td></tr>'
+                editors = issueeditor
+                if type(issueeditor) == list:
+                    editors = ', '.join(issueeditor).strip()
+            if len(issuecoverartist) > 0:
+                coverartists = issuecoverartist
+                if type(issuecoverartist) == list:
+                    coverartists = ', '.join(issuecoverartist).strip()
+
             issuesumm = None
             if any([issuesummary == 'None', issuesummary is None]):
                 issuesumm = 'No summary available within metatagging.'
-                issueinfo += '<tr><td><center>Summary: ' + issuesumm + '</center></td></tr>'
             else:
                 if len(issuesummary) > 1000:
                     issuesumm = issuesummary[:1000] + '...'
                 else:
                     issuesumm = issuesummary
-                issueinfo += '<tr><td>Summary: ' + issuesumm + '</br></td></tr>'
-            if all([filelocation is not None, filelocation != 'None']):
-                issueinfo += '<tr><td><center>' +  os.path.split(urllib.parse.unquote_plus(filelocation))[1] + '</center>'
-            issueinfo += '</td></tr></table>'
-        else:
-            ErrorPNG = 'interfaces/default/images/symbol_exclamation.png'
-            issueinfo = '<table width="300"><tr><td>'
-            issueinfo += '<img style="float: left; padding-right: 10px" src=' + ErrorPNG + ' height="128" width="128">'
-            issueinfo += '<h1><center><b>ERROR</b></center></h1></br>'
-            issueinfo += '<center>Unable to retrieve metadata from within cbz file</center></br>'
-            issueinfo += '<center>Maybe you should try and tag the file again?</center></br>'
-            issueinfo += '<tr><td><center>' + os.path.split(filelocation)[1] + '</center>'
-            issueinfo += '</td></tr></table>'
 
-        return issueinfo
+            meta_success = 'success'
+
+            issue_meta = {'series': seriestitle,
+                          'issue_number': issuenumber,
+                          'issue_title': issuetitle,
+                          'pagecount': pagecount,
+                          'issuedate': iss_date,
+                          'filename': iss_filename,
+                          'summary': issuesumm,
+                          'writers': writers,
+                          'pencillers': pencillers,
+                          'inkers': inkers,
+                          'colorists': colorists,
+                          'letterers': letterers,
+                          'editors': editors,
+                          'cover_artists': coverartists,
+                          'metadata_source': issuedetails['metadata_source']['metadata_source'],
+                          'metadata_type': issuedetails['metadata_source']['metadata_type']}
+        else:
+            meta_success = 'failure'
+            issue_meta = {'series': seriestitle,
+                          'issue_number': issuenumber,
+                          'filename': iss_filename}
+
+        return json.dumps({'status': meta_success, 'metadata': issue_meta, 'IssueImage': issuedetails['IssueImage']})
 
     IssueInfo.exposed = True
 
-    def manual_metatag(self, dirName, issueid, filename, comicid, comversion, seriesyear=None, group=False, agerating=None):
+    def manual_metatag(self, issueid, group=False): #dirName, issueid, filename, comicid, comversion, seriesyear=None, group=False, agerating=None):
         module = '[MANUAL META-TAGGING]'
-        if not os.path.exists(filename):
-            if all([mylar.CONFIG.MULTIPLE_DEST_DIRS is not None, mylar.CONFIG.MULTIPLE_DEST_DIRS != 'None']):
-                if os.path.exists(os.path.join(mylar.CONFIG.MULTIPLE_DEST_DIRS, os.path.basename(dirName))):
-                    secondary_folder = os.path.join(mylar.CONFIG.MULTIPLE_DEST_DIRS, os.path.basename(dirName))
-                else:
-                    ff = mylar.filers.FileHandlers(ComicID=comicid)
-                    secondary_folder = ff.secondary_folders(dirName)
-
-                if os.path.join(secondary_folder, os.path.basename(filename)):
-                    dirName = secondary_folder
-                    filename = os.path.join(secondary_folder, os.path.basename(filename))
         try:
+            myDB = db.DBConnection()
+            issuedata = myDB.selectone('SELECT a.ComicVersion, a.ComicLocation, a.ComicYear, a.AgeRating, b.* FROM comics a LEFT JOIN issues b ON a.ComicID=b.ComicID WHERE b.IssueID=?', [issueid]).fetchone()
+            if not issuedata:
+                issuedata = myDB.selectone('SELECT a.ComicVersion, a.ComicLocation, a.ComicYear, a.AgeRating, b.* FROM comics a LEFT JOIN annuals b ON a.ComicID=b.ComicID WHERE b.IssueID=? AND NOT b.Deleted', [issueid]).fetchone()
+                if not issuedata:
+                    return json.dumps({'status': 'failure', 'message': 'Unable to locate corresponding issueid: %s' % issueid})
+
+            else:
+                comversion = issuedata['ComicVersion']
+                dirName = issuedata['ComicLocation']
+                filename = os.path.join(dirName, issuedata['Location'])
+
+                if not os.path.exists(filename):
+                    if all([mylar.CONFIG.MULTIPLE_DEST_DIRS is not None, mylar.CONFIG.MULTIPLE_DEST_DIRS != 'None']):
+                        if os.path.exists(os.path.join(mylar.CONFIG.MULTIPLE_DEST_DIRS, os.path.basename(dirName))):
+                            secondary_folder = os.path.join(mylar.CONFIG.MULTIPLE_DEST_DIRS, os.path.basename(dirName))
+                        else:
+                            ff = mylar.filers.FileHandlers(ComicID=issuedata['ComicID'])
+                            secondary_folder = ff.secondary_folders(dirName)
+
+                        if os.path.join(secondary_folder, os.path.basename(filename)):
+                            dirName = secondary_folder
+                            filename = os.path.join(secondary_folder, os.path.basename(filename))
+
+                comicid = issuedata['ComicID']
+                seriesyear = issuedata['ComicYear']
+                agerating = issuedata['AgeRating']
+                comicname = issuedata['ComicName']
+
             from . import cmtagmylar
             if mylar.CONFIG.CMTAG_START_YEAR_AS_VOLUME:
                 if all([seriesyear is not None, seriesyear != 'None']):
@@ -6501,8 +6789,7 @@ class WebInterface(object):
                 vol_label = comversion
 
             if all([issueid is not None, comicid is not None]):
-                myDB = db.DBConnection()
-                roders = myDB.select('SELECT ComicName, IssueNumber, StoryArcID, ReadingOrder from storyarcs WHERE ComicID=? AND IssueID=?', [comicid, issueid])
+                roders = myDB.select('SELECT StoryArc, ReadingOrder from storyarcs WHERE ComicID=? AND IssueID=?', [comicid, issueid])
                 readingorder = None
                 if roders is not None:
                     readingorder = []
@@ -6517,17 +6804,18 @@ class WebInterface(object):
 
         if metaresponse == "fail":
             logger.fdebug(module + ' Unable to write metadata successfully - check mylar.log file.')
-            return
+            return json.dumps({'status': 'failure', 'message': 'Unable to write metadatata - there was errors. Check the log file.'})
         elif metaresponse == "unrar error":
             logger.error(module + ' This is a corrupt archive - whether CRC errors or it is incomplete. Marking as BAD, and retrying a different copy.')
-            return
+            return json.dumps({'status': 'failure', 'message': '[%s] Corrupt archive detected. %s' % filename})
             #launch failed download handling here.
         else:
-            dst = os.path.join(dirName, os.path.split(metaresponse)[1])
+            dst_filename = os.path.split(metaresponse)[1]
+            dst = os.path.join(dirName, dst_filename)
             fail = False
             try:
                 shutil.copy(metaresponse, dst)
-                logger.info('%s Sucessfully wrote metadata to .cbz (%s) - Continuing..' % (module, os.path.split(metaresponse)[1]))
+                logger.info('%s Sucessfully wrote metadata to .cbz (%s) - Continuing..' % (module, dst_filename))
             except Exception as e:
                 if str(e.errno) == '2':
                     try:
@@ -6546,53 +6834,80 @@ class WebInterface(object):
                 else:
                     logger.warn('%s [%s] Unable to complete metatagging : %s [%s]' % (module, dst, e, e.errno))
                     fail = True
-
-            cache_dir = os.path.split(metaresponse)[0]
-            if os.path.isfile(metaresponse):
-                try:
-                    os.remove(metaresponse)
-                except OSError:
-                    pass
-
-            if not os.listdir(cache_dir):
-                logger.fdebug('%s Tidying up. Deleting temporary cache directory: %s' % (module, cache_dir))
-                try:
-                    shutil.rmtree(cache_dir)
-                except Exception as e:
-                    logger.warn(module + ' Unable to remove temporary directory: %s' % cache_dir)
-            else:
-                logger.fdebug('Failed to remove temporary directory: %s' % cache_dir)
-
-            if filename is not None:
-                if os.path.isfile(filename) and os.path.split(filename)[1].lower() != os.path.split(metaresponse)[1].lower():
+            if not fail:
+                cache_dir = os.path.split(metaresponse)[0]
+                if os.path.isfile(metaresponse):
                     try:
-                        logger.fdebug('%s Removing original filename: %s' % (module, filename))
-                        os.remove(filename)
+                        os.remove(metaresponse)
                     except OSError:
                         pass
 
-        if any([group is False, fail is False]):
+                if not os.listdir(cache_dir):
+                    logger.fdebug('%s Tidying up. Deleting temporary cache directory: %s' % (module, cache_dir))
+                    try:
+                        shutil.rmtree(cache_dir)
+                    except Exception as e:
+                        logger.warn(module + ' Unable to remove temporary directory: %s' % cache_dir)
+                else:
+                    logger.fdebug('Failed to remove temporary directory: %s' % cache_dir)
+
+                if filename is not None:
+                    if os.path.isfile(filename) and os.path.split(filename)[1].lower() != dst_filename.lower():
+                        try:
+                            logger.fdebug('%s Removing original filename: %s' % (module, filename))
+                            os.remove(filename)
+                        except OSError:
+                            pass
+
+        if all([group is False, fail is False]):
             updater.forceRescan(comicid)
+            if group is False:
+                return json.dumps({'status': 'success', 'message': 'Successfully meta-tagged %s' % dst_filename})
+        elif all([group is False, fail is True]):
+            return json.dumps({'status': 'failure', 'message': '[%s] Metatagging was not successful for %s' % dst_filename})
 
     manual_metatag.exposed = True
 
-    def group_metatag(self, ComicID, dirName=None):
+    def group_metatag(self, ComicID, threaded=False):
         myDB = db.DBConnection()
         cinfo = myDB.selectone('SELECT ComicLocation, ComicVersion, ComicYear, ComicName, AgeRating FROM comics WHERE ComicID=?', [ComicID]).fetchone()
-        groupinfo = myDB.select('SELECT * FROM issues WHERE ComicID=? and Location is not NULL', [ComicID])
+
+        comicinfo = {'ComicID': ComicID,
+                     'ComicName': cinfo['ComicName'],
+                     'ComicYear': cinfo['ComicYear'],
+                     'ComicVersion': cinfo['ComicVersion'],
+                     'AgeRating': cinfo['AgeRating'],
+                     'meta_dir': cinfo['ComicLocation']}
+
+        groupinfo = myDB.select('SELECT IssueID, Location FROM issues WHERE ComicID=? and Location is not NULL', [ComicID])
         if groupinfo is None:
             logger.warn('No issues physically exist within the series directory for me to (re)-tag.')
             return
-        if dirName is None:
-            meta_dir = cinfo['ComicLocation']
-        else:
-            meta_dir = dirName
+
+        issueinfo = []
         for ginfo in groupinfo:
-            #if multiple_dest_dirs is in effect, metadir will be pointing to the wrong location and cause a 'Unable to create temporary cache location' error message
-            self.manual_metatag(meta_dir, ginfo['IssueID'], os.path.join(meta_dir, ginfo['Location']), ComicID, comversion=cinfo['ComicVersion'], seriesyear=cinfo['ComicYear'], group=True, agerating=cinfo['AgeRating'])
-        updater.forceRescan(ComicID)
-        logger.info('[SERIES-METATAGGER][' + cinfo['ComicName'] + ' (' + cinfo['ComicYear'] + ')] Finished doing a complete series (re)tagging of metadata.')
+            issueinfo.append({'IssueID': ginfo['IssueID'],
+                              'Location': ginfo['Location']})
+
+        if threaded is False:
+            threading.Thread(target=self.thread_that_meta, args=[comicinfo, issueinfo]).start()
+            return json.dumps({'status': 'success'})
+        else:
+            self.thread_that_meta(comicinfo, issueinfo)
+            return json.dumps({'status': 'success'})
     group_metatag.exposed = True
+
+    def thread_that_meta(self, comicinfo, issueinfo):
+        for ginfo in issueinfo:
+            #if multiple_dest_dirs is in effect, metadir will be pointing to the wrong location and cause a 'Unable to create temporary cache location' error message
+            self.manual_metatag(ginfo['IssueID'], group=True)
+        updater.forceRescan(comicinfo['ComicID'])
+        logger.info('[SERIES-METATAGGER][%s (%s)] Finished complete series (re)tagging of metadata.' % (comicinfo['ComicName'], comicinfo['ComicYear']))
+        issueline = '%s issues' % len(issueinfo)
+        if len(issueinfo) == 1:
+            issueline = '1 issue'
+        mylar.GLOBAL_MESSAGES = {'status': 'success', 'comicname': comicinfo['ComicName'], 'seriesyear': comicinfo['ComicYear'], 'comicid': comicinfo['ComicID'], 'tables': 'both', 'message': 'Finished complete series (re)tagging of %s of %s (%s)' % (issueline, comicinfo['ComicName'], comicinfo['ComicYear'])}
+    thread_that_meta.exposed = True
 
     def CreateFolders(self, createfolders=None):
         if createfolders:
@@ -7529,3 +7844,42 @@ class WebInterface(object):
         return json.dumps(x)
     get_the_pubs.exposed = True
 
+    def list_the_directories(self, foldername=None, iDisplayStart=0, iDisplayLength=25, iSortCol_0='1', sSortDir_0="desc", sSearch="", **kwargs):
+        if foldername is None or not os.path.exists(foldername):
+             return json.dumps({'status': 'fail', 'message': '%s does not exist - please verify!' % (foldername)})
+
+        flc = filechecker.FileChecker(foldername, justparse=True, pp_mode=True)
+        fl = flc.listFiles()
+
+        rows = fl['comiclist'] #[iDisplayStart:(iDisplayStart + iDisplayLength)]
+        rows = [[row['series_name'], row['issue_number'], row['comicfilename']] for row in rows]
+
+        return json.dumps({
+            'iTotalDisplayRecords': len(rows),
+            'iTotalRecords': fl['comiccount'],
+            'aaData': rows,
+        })
+
+    list_the_directories.exposed = True
+
+    def serieslisting(self, comicid=None):
+        comiclist = []
+        myDB = db.DBConnection()
+        if comicid is not None:
+            thelist = myDB.select("SELECT ComicName, ComicVersion, ComicYear, ComicID FROM comics WHERE ComicID=?", [comicid])
+        else:
+            thelist = myDB.select("SELECT ComicName, ComicVersion, ComicYear, ComicID FROM comics ORDER BY ComicName ASC")
+        for ts in thelist:
+            if any([ts['ComicVersion'] is None, ts['ComicVersion'] == 'v1']):
+                cm_cv = ''
+            else:
+                cm_cv = ts['ComicVersion']
+            comiclist.append({"name":       "%s %s (%s)" % (ts['ComicName'], cm_cv, ts['ComicYear']),
+                              "comicid":    ts['ComicID']})
+        logger.info('comiclist: %s' % (comiclist,))
+        return json.dumps(comiclist)
+    serieslisting.exposed=True
+
+    def post_selections(self, foldername):
+        return serve_template(templatename="post_processing.html", title="Interactive Post-Processing", foldername=foldername)
+    post_selections.exposed = True

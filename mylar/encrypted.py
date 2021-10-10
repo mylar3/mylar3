@@ -23,8 +23,9 @@ import mylar
 from mylar import logger
 
 class Encryptor(object):
-    def __init__(self, password, chk_password=None):
+    def __init__(self, password, chk_password=None, logon=False):
         self.password = password
+        self.logon = logon
 
     def encrypt_it(self):
        #self.password = self.password.encode('utf-8')
@@ -42,7 +43,8 @@ class Encryptor(object):
     def decrypt_it(self):
        try:
            if not self.password.startswith('^~$z$'):
-               logger.warn('Error not an encryption that I recognize.')
+               if self.logon is False:
+                   logger.warn('Error not an encryption that I recognize.')
                return {'status': False}
            passd = base64.b64decode(self.password[5:]) #(base64.decodestring(self.password))
            saltedhash = [bytes(passd[-8:])]

@@ -37,7 +37,7 @@ def check_credentials(username, password):
     # Adapt to your needs
     forms_user = cherrypy.request.config['auth.forms_username']
     forms_pass = cherrypy.request.config['auth.forms_password']
-    edc = encrypted.Encryptor(forms_pass)
+    edc = encrypted.Encryptor(forms_pass, logon=True)
     ed_chk = edc.decrypt_it()
     if mylar.CONFIG.ENCRYPT_PASSWORDS is True:
         if username == forms_user and all([ed_chk['status'] is True, ed_chk['password'] == password]):

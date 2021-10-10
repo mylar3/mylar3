@@ -271,7 +271,7 @@ def run(dirName, nzbName=None, issueid=None, comversion=None, manual=None, filen
                 initial_ctrun = False
             elif initial_ctrun:
                 initial_ctrun = False
-                if 'file is not expected size' in out:
+                if any(['file is not expected size' in out, 'Failed the read' in out]):
                     logger.fdebug('%s Output: %s' % (module,out))
                     tidyup(og_filepath, new_filepath, new_folder, manualmeta)
                     return 'corrupt'

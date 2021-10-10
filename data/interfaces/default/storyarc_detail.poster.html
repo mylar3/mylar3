@@ -25,6 +25,7 @@
 </%def>
 
 <%def name="body()">
+        <input type="hidden" id="page_name" value="storyarc_detail" />
          </br></br>
               <div id="tabs" width="100%">
                 <ul>
@@ -176,7 +177,7 @@
         %>
 
          <tr id="${item['ReadingOrder']}" class="grade${grade}">
-                <td class="edit" title="Change the order (click to edit)" id="${storyarcid}.${item['IssueArcID']}">${item['ReadingOrder']}</td>
+                <td id="readingorder"><span class="edit" title="Change the order (click to edit)" id="${storyarcid}.${item['IssueArcID']}">${item['ReadingOrder']}</span></td>
                 <td id="comicname" title="${item['IssueName']}">
                 %if haveit == "No":
                      ${displayname}
@@ -249,6 +250,7 @@
         $(document).ready(function() {
             $('.edit').editable('order_edit', {
                 callback : function(value, settings) {
+                width: ($("span#edit").width() + 20) + "px",
                     console.log(this);
                     console.log(value);
                     console.log(settings);

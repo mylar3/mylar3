@@ -918,6 +918,7 @@ class PostProcessor(object):
                                                 week_intissue = helpers.issuedigits(week_issue)
                                                 logger.fdebug('week_dynamicname: %s / dynamic_seriesname: %s' % (week_dynamicname,dynamic_seriesname))
                                                 logger.fdebug('week_intissue: %s / fcdigit: %s' % (week_intissue, fcdigit))
+                                                logger.fdebug('last issue for series listed as #%s in week %s, %s' % (week_issue, test[3], test[4]))
                                                 if any([week_dynamicname == dynamic_seriesname, alt_listing]):
                                                     if any(['Present' in cs['ComicPublished'], watch_values['ForceContinuing'] is True]):
                                                         if week_intissue == fcdigit:
@@ -1057,6 +1058,7 @@ class PostProcessor(object):
                                                             "ComicName":       cs['ComicName'],
                                                             "AgeRating":       cs['WatchValues']['AgeRating'],
                                                             "Series":          watchmatch['series_name'],
+                                                            "SeriesYear":      cs['WatchValues']['SeriesYear'],
                                                             "AltSeries":       watchmatch['alt_series'],
                                                             "One-Off":         False,
                                                             "ForcedMatch":     False})
@@ -1423,6 +1425,7 @@ class PostProcessor(object):
                                                                                "StoryArc":        v[i]['ArcValues']['StoryArc'],
                                                                                "StoryArcID":      v[i]['ArcValues']['StoryArcID'],
                                                                                "IssueArcID":      v[i]['ArcValues']['IssueArcID'],
+                                                                               "SeriesYear":      v[i]['WatchValues']['SeriesYear'],
                                                                                "Publisher":       arcpublisher,
                                                                                "ReadingOrder":    v[i]['ArcValues']['ReadingOrder'],
                                                                                "ComicName":       k})
@@ -1469,7 +1472,7 @@ class PostProcessor(object):
                         if all(['0-Day Week' in self.nzb_name, mylar.CONFIG.PACK_0DAY_WATCHLIST_ONLY is True]):
                             pass
                         else:
-                            oneofflist = myDB.select("select s.Issue_Number, s.ComicName, s.IssueID, s.ComicID, s.Provider, w.format, w.PUBLISHER, w.weeknumber, w.year from snatched as s inner join nzblog as n on s.IssueID = n.IssueID inner join weekly as w on s.IssueID = w.IssueID WHERE n.OneOff = 1;") #(s.Provider ='32P' or s.Provider='WWT' or s.Provider='DEM') AND n.OneOff = 1;")
+                            oneofflist = myDB.select("select s.Issue_Number, s.ComicName, s.IssueID, s.ComicID, s.Provider, w.format, w.PUBLISHER, w.weeknumber, w.year from snatched as s inner join nzblog as n on s.IssueID = n.IssueID inner join weekly as w on s.IssueID = w.IssueID WHERE n.OneOff = 1 AND s.ComicName is not NULL;") #(s.Provider ='32P' or s.Provider='WWT' or s.Provider='DEM') AND n.OneOff = 1;")
                             #oneofflist = myDB.select("select s.Issue_Number, s.ComicName, s.IssueID, s.ComicID, s.Provider, w.PUBLISHER, w.weeknumber, w.year from snatched as s inner join nzblog as n on s.IssueID = n.IssueID and s.Hash is not NULL inner join weekly as w on s.IssueID = w.IssueID WHERE n.OneOff = 1;") #(s.Provider ='32P' or s.Provider='WWT' or s.Provider='DEM') AND n.OneOff = 1;")
                             if not oneofflist:
                                 pass #continue
@@ -1484,7 +1487,7 @@ class PostProcessor(object):
                                                        "AlternateSearch": None,
                                                        "ComicID":         ofl['ComicID'],
                                                        "IssueID":         ofl['IssueID'],
-                                                       "WatchValues": {"SeriesYear":   None,
+                                                       "WatchValues": {"SeriesYear":   ofl['year'],
                                                                        "LatestDate":   None,
                                                                        "ComicVersion": None,
                                                                        "Publisher":    ofl['PUBLISHER'],
@@ -1563,6 +1566,7 @@ class PostProcessor(object):
                                                                  "IssueID":         ofv['IssueID'],
                                                                  "IssueNumber":     ofv['Issue_Number'],
                                                                  "ComicName":       ofv['ComicName'],
+                                                                 "SeriesYear":      ofv['WatchValues']['SeriesYear'],
                                                                  "One-Off":         True})
                                         self.oneoffinlist = True
                                     else:
@@ -1776,7 +1780,7 @@ class PostProcessor(object):
                     sarc = nzbiss['SARC']
                     self.oneoff = nzbiss['OneOff']
                     logger.fdebug('sarc: %s / oneoff: %s' % (sarc, self.oneoff))
-                    tmpiss = myDB.selectone('SELECT * FROM issues WHERE IssueID=?', [issueid]).fetchone()
+                    tmpiss = myDB.selectone('SELECT a.ComicYear, b.* FROM comics as a LEFT JOIN issues as b ON a.ComicID=b.ComicID WHERE IssueID=?', [issueid]).fetchone()
                     if tmpiss is None:
                         tmpiss = myDB.selectone('SELECT * FROM annuals WHERE IssueID=? AND NOT Deleted', [issueid]).fetchone()
                     comicid = None
@@ -1786,6 +1790,7 @@ class PostProcessor(object):
                         ppinfo.append({'comicid':       tmpiss['ComicID'],
                                        'issueid':       issueid,
                                        'comicname':     tmpiss['ComicName'],
+                                       'seriesyear':    tmpiss['ComicYear'],
                                        'issuenumber':   tmpiss['Issue_Number'],
                                        'comiclocation': None,
                                        'publisher':     None,
@@ -1808,6 +1813,7 @@ class PostProcessor(object):
                                 self.oneoff = True
                             ppinfo.append({'comicid':       oneinfo['ComicID'],
                                            'comicname':     oneinfo['ComicName'],
+                                           'seriesyear':    oneinfo['ComicYear'],
                                            'issuenumber':   oneinfo['IssueNumber'],
                                            'publisher':     oneinfo['IssuePublisher'],
                                            'comiclocation': None,
@@ -1830,13 +1836,16 @@ class PostProcessor(object):
                                 OComicname = oneinfo['ComicName']
                                 OIssue = oneinfo['IssueNumber']
                                 OPublisher = None
+                                OSeriesYear = oneinfo['ComicYear']
                         else:
                             OComicname = oneinfo['COMIC']
                             OIssue = oneinfo['ISSUE']
                             OPublisher = oneinfo['PUBLISHER']
+                            OSeriesYear = oneoff['SHIPDATE'][:4]
 
                         ppinfo.append({'comicid':       oneinfo['ComicID'],
                                        'comicname':     OComicname,
+                                       'seriesyear':    OSeriesYear,
                                        'issuenumber':   OIssue,
                                        'publisher':     OPublisher,
                                        'comiclocation': None,
@@ -1854,6 +1863,7 @@ class PostProcessor(object):
                             if oneinfo is not None:
                                 ppinfo.append({'comicid':       oneinfo['ComicID'],
                                                'comicname':     oneinfo['COMIC'],
+                                               'seriesyear':    oneinfo['SHIPDATE'][:4],
                                                'issuenumber':   oneinfo['ISSUE'],
                                                'publisher':     oneinfo['PUBLISHER'],
                                                'issueid':       x['IssueID'],
@@ -1894,6 +1904,8 @@ class PostProcessor(object):
                     comicid = ml['ComicID']
                     issueid = ml['IssueID']
                     issuenumOG = ml['IssueNumber']
+                    dspcname = ml['ComicName']
+                    dspcyear = ml['SeriesYear']
                     #check to see if file is still being written to.
                     waiting = True
                     while waiting is True:
@@ -1923,24 +1935,44 @@ class PostProcessor(object):
                         self.Process_next(comicid, issueid, issuenumOG, ml, stat)
                         dupthis = None
 
+                m_event = None
                 if self.failed_files == 0:
                     if all([self.comicid is not None, self.issueid is None]):
                         logger.info('%s post-processing of pack completed for %s issues.' % (module, i))
+                        global_line = 'Successfully post-processed pack for %s issues' % (i)
                     if self.issueid is not None:
                         if ml['AnnualType'] is not None:
                             logger.info('%s direct post-processing of issue completed for %s %s #%s.' % (module, ml['ComicName'], ml['AnnualType'], ml['IssueNumber']))
+                            global_line = 'Successfully post-processed</br> %s %s %s' % (ml['ComicName'], ml['AnnualType'], ml['IssueNumber'])
                         else:
                             if ml['IssueNumber'] is not None:
                                 logger.info('%s direct post-processing of issue completed for %s #%s.' % (module, ml['ComicName'], ml['IssueNumber']))
+                                global_line = 'Successfully post-processed</br> %s #%s' % (ml['ComicName'], ml['IssueNumber'])
                             else:
                                 logger.info('%s direct post-processing of issue completed for %s.' % (module, ml['ComicName']))
+                                global_line = 'Successfully post-processed</br> %s' % (ml['ComicName'])
                     else:
                         logger.info('%s Manual post-processing completed for %s issues.' % (module, i))
+                        global_line = 'Manual post-processing completed for %s issues' % (i)
+                        m_event = 'scheduler_message'
+                        dspcname = None
+                        dspcyear = None
                 else:
+                    dspcname = None
+                    dspcyear = None
                     if self.comicid is not None:
                         logger.info('%s post-processing of pack completed for %s issues [FAILED: %s]' % (module, i, self.failed_files))
+                        global_line = 'Successfully post-processing of pack completed for %s issues [FAILED: %s]' % (i, self.failed_files)
                     else:
                         logger.info('%s Manual post-processing completed for %s issues [FAILED: %s]' % (module, i, self.failed_files))
+                        global_line = 'Successfully post-processed %s issues [FAILED: %s]' % (i, self.failed_files)
+
+                d_line = {'status': 'success', 'comicid': self.comicid, 'comicname': dspcname, 'seriesyear': dspcyear, 'tables': 'both', 'message': global_line}
+
+                if m_event is not None:
+                    d_line['event'] = m_event
+
+                mylar.GLOBAL_MESSAGES = d_line
 
                 if mylar.APILOCK is True:
                     mylar.APILOCK = False
@@ -1959,6 +1991,7 @@ class PostProcessor(object):
             issueid = tinfo['issueid']
             comicid = tinfo['comicid']
             comicname = tinfo['comicname']
+            seriesyear = tinfo['seriesyear']
             issuearcid = None
             issuenumber = tinfo['issuenumber']
             publisher = tinfo['publisher']
