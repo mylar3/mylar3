@@ -208,12 +208,13 @@ class WebInterface(object):
             if os.path.exists(comic['ComicLocation']):
                 # quick check to see if # of files in directory = haves. If not, rescan.
                 file_count = len(fnmatch.filter(os.listdir(comic['ComicLocation']), '*.cb?'))
-                if os.path.exists(secondary_folders):
-                    logger.info('secondary folders: %s' % (secondary_folders,))
-                    file_count += len(fnmatch.filter(os.listdir(secondary_folders), '*.cb?'))
+                if secondary_folders is not None:
+                    if os.path.exists(secondary_folders):
+                        logger.fdebug('secondary folders: %s' % (secondary_folders,))
+                        file_count += len(fnmatch.filter(os.listdir(secondary_folders), '*.cb?'))
 
                 if comic['Have'] is not None:
-                    logger.info('file_count: %s / total: %s' % (file_count, int(comic['Have'])))
+                    logger.fdebug('file_count: %s / total: %s' % (file_count, int(comic['Have'])))
                     if file_count != int(comic['Have']):
                         logger.info('rescanning now..')
                         run_them_down = True
