@@ -310,7 +310,7 @@
                      <img src="${comicConfig['publisher_image']}" align="right" alt="${comicConfig['publisher_image_alt']}" height="${comicConfig['publisher_imageH']}" width="${comicConfig['publisher_imageW']}" />
                  %endif
                  <form action="comic_config" method="GET">
-                    <input type="hidden" name="ComicID" value=${comic['ComicID']} />
+                    <input type="hidden" name="ComicID" id="ComicID" value=${comic['ComicID']} />
                         <fieldset>
                                 <div class="row checkbox right clearfix">
                                         <label>Age-Rating</label>
