@@ -138,7 +138,7 @@ class Api(object):
             self.apitype = 'normal'
         else:
             if not mylar.CONFIG.API_ENABLED:
-                if kwargs['apikey'] != mylar.DOWNLOAD_APIKEY or kwargs['apikey'] != mylar.SSE_KEY:
+                if kwargs['apikey'] != mylar.DOWNLOAD_APIKEY and kwargs['apikey'] != mylar.SSE_KEY:
                     self.data = self._failureResponse('API not enabled')
                     return
 
