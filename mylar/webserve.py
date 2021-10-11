@@ -312,11 +312,18 @@ class WebInterface(object):
             if comic['Corrected_SeriesYear'] != comic['ComicYear']:
                 comic['ComicYear'] = comic['Corrected_SeriesYear']
 
-        if comic['ComicImage'] is None:
-            comicImage = 'cache/' + str(ComicID) + '.jpg'
-        else:
+        comicImage = None
+        if comic['ComicImage'] is not None:
             coverimage = os.path.join(mylar.CONFIG.CACHE_DIR, os.path.basename(comic['ComicImage']))
-            comicImage = "data:image/webp;base64,%s" % mylar.getimage.load_image(coverimage, 263)
+            if os.path.exists(coverimage):
+                comicImage = "data:image/webp;base64,%s" % mylar.getimage.load_image(coverimage, 263)
+        if not comicImage:
+            if os.path.exists(os.path.join(mylar.CONFIG.CACHE_DIR, ComicID + '.jpg')):
+                comicImage = "data:image/webp;base64,%s" % mylar.getimage.load_image(os.path.join(mylar.CONFIG.CACHE_DIR, ComicID + '.jpg'), 263)
+            elif os.path.exists(os.path.join(mylar.CONFIG.CACHE_DIR, ComicID + '.png')):
+                comicImage = "data:image/webp;base64,%s" % mylar.getimage.load_image(os.path.join(mylar.CONFIG.CACHE_DIR, ComicID + '.png'), 263)
+            else:
+                comicImage = "data:image/gif;base64,%s" % mylar.getimage.load_image(os.path.join(mylar.PROG_DIR, 'data', 'images', 'blank.gif'),263)
 
         comicpublisher = helpers.publisherImages(comic['ComicPublisher'])
 
@@ -5583,7 +5590,7 @@ class WebInterface(object):
     pretty_git.exposed = True
     #---
     def config(self):
-        interface_dir = os.path.join(mylar.PROG_DIR, 'data/interfaces/')
+        interface_dir = os.path.join(mylar.PROG_DIR, 'data', 'interfaces')
         interface_list = [name for name in os.listdir(interface_dir) if os.path.isdir(os.path.join(interface_dir, name))]
 #----
 # to be implemented in the future.
