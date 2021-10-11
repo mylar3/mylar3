@@ -2781,11 +2781,16 @@ class WebInterface(object):
             if fromupdate is None:
                 logger.info("Marking issues: %s as Wanted" % issuesnumwant)
                 threading.Thread(target=search.searchIssueIDList, args=[issuestowanted]).start()
+                line_message = 'Successfully changed %s issues from Skipped 2 Wanted' % len(issuestowanted)
+                line_status = 'success'
             else:
                 logger.info('Marking issues: %s as Wanted' & issuesnumwant)
                 logger.info('These will be searched for on next Search Scan / Force Check')
                 return
-        raise cherrypy.HTTPRedirect("comicDetails?ComicID=%s" % [comicid])
+        else:
+            line_message = 'No issues are marked as Skipped'
+            line_status = 'failure'
+        return json.dumps({'status': line_status, 'message': line_message})
     skipped2wanted.exposed = True
 
     def annualDelete(self, comicid, ReleaseComicID=None):
