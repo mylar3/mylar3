@@ -451,6 +451,7 @@
    <div id="btn_container">
         <div id="btn_menu" style="float:right;padding-bottom:5px;">
             <a id="menu_link_edit" onclick="display_date('click')" href="#"><span id="display_the_date" title="Change date values to display Store or Cover date">Show Store Date</span></a>
+            <div id="skipped_2_enabled"><a id="menu_link_edit" onclick="skipped2wanted()" href="#"><span id="skipped_2_wanted" title="Change the status of all Skipped issues to Wanted">Change All Skipped to Wanted</span></a></div>
         </div>
    </div>
 
@@ -1228,6 +1229,30 @@
             return document.getElementById("ComicID").value;
         }
 
+        function skipped2wanted() {
+            var comicid = retrieve_comicid();
+            $.when($.ajax({
+                 type: "GET",
+                 url: "skipped2wanted",
+                 data: { comicid: comicid },
+                 success: function(response) {
+                    obj = JSON.parse(response);
+                    $('#ajaxMsg').html("<div class='msg'><span class='ui-icon ui-icon-check'></span>"+obj['message']+"</div>");
+                    if (obj['status'] == 'success'){
+                        $('#ajaxMsg').addClass('success').fadeIn().delay(3000).fadeOut();
+                    } else {
+                        $('#ajaxMsg').addClass('error').fadeIn().delay(3000).fadeOut();
+                    }
+                },
+                 error: function(data)
+                     {
+                       alert('ERROR'+data.responseText);
+                     },
+            })).done(function(data) {
+                 reload_table();
+            });
+        }
+
         function display_date(action) {
             if (action === null){
                 dd = "${default_dates}";
@@ -1330,9 +1355,11 @@
                         if (parseInt(obj_filters['skipped'], 10) > 0){
                             skippedcount.style.display = "inline";
                             document.getElementById("skippedcount").innerHTML = obj_filters['skipped'];
+                            document.getElementById("skipped_2_enabled").style.display = "inline";
                         } else if (parseInt(obj_filters['skipped'], 10) <= 0) {
                             document.getElementById("skippedcount").innerHTML = "";
                             skippedcount.style.display = "none";
+                            document.getElementById("skipped_2_enabled").style.display = "none";
                         }
                         archivedcount = document.getElementById("archivedlabel");
                         if (parseInt(obj_filters['archived'], 10) > 0){
