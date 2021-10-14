@@ -534,9 +534,10 @@ class WebInterface(object):
             if any([x['Status'] == 'Downloaded', x['Status'] == 'Archived']):
                 if x['Location'] is not None:
                     if not os.path.exists(os.path.join(x['ComicLocation'], x['Location'])):
-                        if os.path.exists(os.path.join(secondary_folders, x['Location'])):
-                            issue_location = x['Location']
-                            secondary = 'secondary'
+                        if secondary_folders is not None:
+                            if os.path.exists(os.path.join(secondary_folders, x['Location'])):
+                                issue_location = x['Location']
+                                secondary = 'secondary'
                 comicsize = helpers.human_size(x['ComicSize'])
 
             foundfilter = False
