@@ -105,9 +105,13 @@ class SABnzbd(object):
                     #    return {'status': 'double-pp', 'failed': False}
 
                     #logger.fdebug('queue_params: %s' % self.params['queue'])
-                    queue_resp = requests.get(self.sab_url, params=self.params['queue'], verify=False)
-                    queueresp = queue_resp.json()
-                    queueinfo = queueresp['queue']
+                    tmp_queue = self.params['queue']
+                    tmp_queue.pop('search')
+                    tmp_queue['nzo_ids'] = self.params['nzo_id']
+                    #logger.fdebug('tmp_queue: %s' % (tmp_queue,))
+                    queue_resp = requests.get(self.sab_url, params=tmp_queue, verify=False)
+                    queueresponse = queue_resp.json()
+                    queueinfo = queueresponse['queue']
                     logger.fdebug('status: %s' % queueinfo['status'])
                     logger.fdebug('mbleft: %s' % queueinfo['mbleft'])
                     logger.fdebug('timeleft: %s' % queueinfo['timeleft'])
