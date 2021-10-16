@@ -130,7 +130,7 @@ def torrents(pickfeed=None, seriesname=None, issue=None, feedinfo=None):
         elif pickfeed == "5" and srchterm is not None:  # demonoid search / non-RSS
             feed = mylar.DEMURL + "files/?category=10&subcategory=All&language=0&seeded=2&external=2&query=" + str(srchterm) + "&uid=0&out=rss"
             verify = bool(mylar.CONFIG.PUBLIC_VERIFY)
-        elif pickfeed == "6":    # demonoid rss feed 
+        elif pickfeed == "6":    # demonoid rss feed
             feed = mylar.DEMURL + 'rss/10.xml'
             feedtype = ' from the New Releases RSS Feed from Demonoid'
             verify = bool(mylar.CONFIG.PUBLIC_VERIFY)
@@ -780,7 +780,7 @@ def torrentdbsearch(seriesname, issue, comicid=None, nzbprov=None, oneoff=False)
     torinfo = {}
 
     for tor in tresults:
-        #&amp; have been brought into the title field incorretly occassionally - patched now, but to include those entries already in the 
+        #&amp; have been brought into the title field incorretly occassionally - patched now, but to include those entries already in the
         #cache db that have the incorrect entry, we'll adjust.
         torTITLE = re.sub('&amp;', '&', tor['Title']).strip()
 
@@ -1037,7 +1037,7 @@ def torsend2client(seriesname, issue, seriesyear, linkit, site, pubhash=None):
             auth_key = mylar.KEYS_32P['auth']
             pass_key = mylar.KEYS_32P['passkey']
         else:
-            #authkey_32p & passkey_32p are set for legacy mode 
+            #authkey_32p & passkey_32p are set for legacy mode
             auth_key = mylar.AUTHKEY_32P
             pass_key = mylar.CONFIG.PASSKEY_32P
         payload = {'action':       'download',
@@ -1127,6 +1127,7 @@ def torsend2client(seriesname, issue, seriesyear, linkit, site, pubhash=None):
                 if url.startswith('magnet'):
                     logger.info("Magnet url do not scrape.")
                     linkit = filepath = url
+                    logger.fdebug('Grabbed magnet link: %s' + linkit)
                 else:
                     r = scraper.get(url, params=payload, verify=verify, stream=True, headers=headers, allow_redirects=False)
                     if r.status_code in REDIRECT_STATUS_CODES:
@@ -1134,6 +1135,7 @@ def torsend2client(seriesname, issue, seriesyear, linkit, site, pubhash=None):
                         if redir_url.startswith('magnet'):
                             logger.info("Got a magnet url from redirect.")
                             linkit = filepath = redir_url
+                            logger.fdebug('Grabbed magnet link: %s' + linkit)
                         else:
                             r = scraper.get(redir_url, stream=True)
         except Exception as e:
@@ -1207,10 +1209,11 @@ def torsend2client(seriesname, issue, seriesyear, linkit, site, pubhash=None):
 
     if mylar.USE_UTORRENT:
         uTC = utorrent.utorrentclient()
-        #if site == 'TPSE':
-        #    ti = uTC.addurl(linkit)
-        #else:
-        ti = uTC.addfile(filepath, filename)
+        if linkit.startswith('magnet'):
+            logger.fdebug('Sending magnet to uTorrent: %s' % linkit)
+            ti = uTC.addurl(linkit)
+        else:
+            ti = uTC.addfile(filepath, filename)
         if ti == 'fail':
             return ti
         else:
