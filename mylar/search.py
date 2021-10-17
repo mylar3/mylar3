@@ -752,17 +752,16 @@ def NZB_SEARCH(
     untouched_name = None
     if nzbprov == 'nzb.su':
         apikey = mylar.CONFIG.NZBSU_APIKEY
-        verify = bool(mylar.CONFIG.NZBSU_VERIFY)
+        verify = bool(int(mylar.CONFIG.NZBSU_VERIFY))
     elif nzbprov == 'dognzb':
         apikey = mylar.CONFIG.DOGNZB_APIKEY
-        verify = bool(mylar.CONFIG.DOGNZB_VERIFY)
+        verify = bool(int(mylar.CONFIG.DOGNZB_VERIFY))
     elif nzbprov == 'experimental':
         apikey = 'none'
-        verify = False
     elif nzbprov == 'torznab':
         name_torznab = torznab_host[0].rstrip()
         host_torznab = torznab_host[1].rstrip()
-        verify = bool(torznab_host[2])
+        verify = bool(int(torznab_host[2]))
         apikey = torznab_host[3].rstrip()
         category_torznab = torznab_host[4]
         if any([category_torznab is None, category_torznab == 'None']):
@@ -783,7 +782,7 @@ def NZB_SEARCH(
             name_newznab = name_newznab[:-10].strip()
             newznab_local = False
         apikey = newznab_host[3].rstrip()
-        verify = bool(newznab_host[2])
+        verify = bool(int(newznab_host[2]))
         if '#' in newznab_host[4].rstrip():
             catstart = newznab_host[4].find('#')
             category_newznab = re.sub('#', ',', newznab_host[4][catstart + 1 :]).strip()
@@ -3766,7 +3765,7 @@ def searcher(
             # experimental - direct link.
             down_url = link
             headers = None
-            verify = False
+            verify = True
 
         if payload is None:
             tmp_line = down_url

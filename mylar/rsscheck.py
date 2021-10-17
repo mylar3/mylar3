@@ -510,7 +510,7 @@ def nzbs(provider=None, forcerss=False):
             params = {'sort': 'agedesc',
                       'max':   max_entries,
                       'more':  '1'}
-            check = _parse_feed('experimental', 'http://nzbindex.nl/rss/alt.binaries.comics.dcp', False, params)
+            check = _parse_feed('experimental', 'https://nzbindex.nl/rss/alt.binaries.comics.dcp', True, params)
             if check == 'disable':
                 helpers.disable_provider(site)
 
@@ -521,7 +521,7 @@ def nzbs(provider=None, forcerss=False):
                       'i':         mylar.CONFIG.NZBSU_UID,
                       'r':         mylar.CONFIG.NZBSU_APIKEY,
                       'num_items': num_items}
-            check = _parse_feed('nzb.su', 'https://api.nzb.su/rss', mylar.CONFIG.NZBSU_VERIFY, params)
+            check = _parse_feed('nzb.su', 'https://api.nzb.su/rss', bool(int(mylar.CONFIG.NZBSU_VERIFY)), params)
             if check == 'disable':
                 helpers.disable_provider(site)
 
@@ -533,7 +533,7 @@ def nzbs(provider=None, forcerss=False):
                       't':          'search',
                       'dl':         '1'}
 
-            check = _parse_feed('dognzb', 'https://api.dognzb.cr/api', mylar.CONFIG.DOGNZB_VERIFY, params)
+            check = _parse_feed('dognzb', 'https://api.dognzb.cr/api', bool(int(mylar.CONFIG.DOGNZB_VERIFY)), params)
             if check == 'disable':
                 helpers.disable_provider(site)
 
@@ -551,7 +551,7 @@ def nzbs(provider=None, forcerss=False):
                           'dl':        '1',
                           'apikey':    newznab_host[3].rstrip(),
                           'num':       '100'}
-                check = _parse_feed(site, url, bool(newznab_host[2]), params)
+                check = _parse_feed(site, url, bool(int(newznab_host[2])), params)
             else:
                 url = newznab_host[1].rstrip() + '/rss'
                 params = {'t':         str(newznabcat),
@@ -560,7 +560,7 @@ def nzbs(provider=None, forcerss=False):
                           'r':         newznab_host[3].rstrip(),
                           'num':       '100'}
 
-                check = _parse_feed(site, url, bool(newznab_host[2]), params)
+                check = _parse_feed(site, url, bool(int(newznab_host[2])), params)
                 if check is False and 'rss' in url[-3:]:
                     logger.fdebug('RSS url returning 403 error. Attempting to use API to get most recent items in lieu of RSS feed')
                     url = newznab_host[1].rstrip() + '/api'
@@ -569,7 +569,7 @@ def nzbs(provider=None, forcerss=False):
                               'dl':        '1',
                               'apikey':    newznab_host[3].rstrip(),
                               'num':       '100'}
-                    check = _parse_feed(site, url, bool(newznab_host[2]), params)
+                    check = _parse_feed(site, url, bool(int(newznab_host[2])), params)
                 if check == 'disable':
                     helpers.disable_provider(site)
 
