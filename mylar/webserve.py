@@ -5017,7 +5017,7 @@ class WebInterface(object):
                     else:
                         #logger.fdebug('result: %s' % result)
                         comicstoIMP.append(result['ComicLocation']) #.decode(mylar.SYS_ENCODING, 'replace'))
-                        getiss = result['IssueNumber']
+                        getiss = result['IssueNumber'] or ''
                         #logger.fdebug('getiss: %s' % getiss)
                         if 'annual' in getiss.lower():
                             tmpiss = re.sub('[^0-9]','', getiss).strip()
