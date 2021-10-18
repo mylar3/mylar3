@@ -6416,30 +6416,48 @@ class WebInterface(object):
             protocol = 'http'
             nzbgethost = nzbhost[7:]
 
-        url = '%s://'
-        nzbparams = protocol,
+        url = '%s://%s:%s'
+        nzbparams = (protocol,nzbgethost,nzbport,)
+        logon_info = ''
         if all([nzbusername is not None, nzbpassword is not None]):
-            url = url + '%s:%s@'
-            nzbparams = nzbparams + (nzbusername, nzbpassword)
+            logon_info = '%s:%s'
+            nzbparams = nzbparams + (nzbusername, nzbpassword,)
         elif nzbusername is not None:
-            url = url + '%s@'
+            logon_info = '%s:'
             nzbparams = nzbparams + (nzbusername,)
-        url = url + '%s:%s/xmlrpc'
-        nzbparams = nzbparams + (nzbgethost, nzbport,)
+        if logon_info != '':
+            url = url + '/' + logon_info
+        url = url + '/xmlrpc'
         nzb_url = (url % nzbparams)
+        logger.info('nzb_url: %s' % (nzb_url,))
 
-        import xmlrpc.client
+        import xmlrpc.client, http.client, socket
         nzbserver = xmlrpc.client.ServerProxy(nzb_url)
+        socket.setdefaulttimeout(5)
 
         try:
             r = nzbserver.status()
+            socket.setdefaulttimeout(None)
+        except http.client.socket.error as e:
+            #err = re.sub(nzbpassword, 'REDACTED', str(e))
+            logger.error('Please check your NZBget host and port (if it is running). Error returned: %s' % e)
+            return 'Invalid NZBGET host / port'
+        except xmlrpc.client.ProtocolError as e:
+            logger.info(e,)
+            err = re.sub(nzbpassword, 'REDACTED', e.errmsg)
+            if e.errmsg == "Unauthorized":
+                logger.error('Unauthorized username / password provided: %s' % err)
+                return 'NZBGet username/password is incorrect'
+            else:
+                logger.error('Protocol Error: %s' % re.sub(nzbpassword, 'REDACTED', err))
+                return 'NZBGet protocol error'
         except Exception as e:
-            if all([nzbpassword is not None, nzbpassword in e]):
-                e = re.sub(nzbpassword, 'REDACTED', e)
-            logger.warn('Error fetching data: %s' % e)
-            return 'Unable to retrieve data from NZBGet'
-        logger.info('Successfully verified connection to NZBGet at %s:%s' % (nzbgethost, nzbport))
-        return "Successfully verified connection to NZBGet"
+            #err = re.sub(nzbpassword, 'REDACTED', str(e))
+            logger.error('Unable to retrieve data from nzbget. Error returned: %s' % e)
+            return 'NZBGet protocol error'
+        else:
+            logger.info('Successfully verified connection to NZBGet')
+            return "Successfully verified connection to NZBGet"
     NZBGet_test.exposed = True
 
     def carepackage(self):
@@ -6448,9 +6466,9 @@ class WebInterface(object):
         from cherrypy.lib.static import serve_download
         cppb = os.path.join(mylar.CONFIG.LOG_DIR, "carepackage.zip")
         return serve_download(cppb)
-    
+
     carepackage.exposed = True
-    
+
     def shutdown(self):
         mylar.SIGNAL = 'shutdown'
         message = 'Shutting Down...'

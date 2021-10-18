@@ -2999,6 +2999,11 @@ class PostProcessor(object):
 
             try:
                 if ml['IssueArcID']:
+                    pass
+            except Exception as e:
+                pass
+            else:
+                try:
                     logger.info('Watchlist Story Arc match detected.')
                     logger.info(ml)
                     arcsforever = myDB.select('SELECT * FROM storyarcs where ComicID=? AND IssueID=?', [ml['ComicID'], ml['IssueID']])
@@ -3068,8 +3073,8 @@ class PostProcessor(object):
                         myDB.upsert("storyarcs", newVal, ctrlVal)
                         logger.fdebug('%s [%s] Post-Processing completed for: %s' % (module, arcinfo['StoryArc'], grab_dst))
 
-            except Exception as e:
-                logger.error('error encountered: %s' % e)
+                except Exception as e:
+                    logger.error('error encountered: %s' % e)
 
             if mylar.CONFIG.WEEKFOLDER or mylar.CONFIG.SEND2READ:
                 #mylar.CONFIG.WEEKFOLDER = will *copy* the post-processed file to the weeklypull list folder for the given week.
