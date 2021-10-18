@@ -3738,11 +3738,11 @@ def searcher(
                         payload = {'r': str(apikey)}
                         if uid is not None:
                             payload['i'] = uid
-                    verify = bool(newznab[2])
+                    verify = bool(int(newznab[2]))
             else:
                 down_url = 'https://api.nzb.su/api'
                 apikey = mylar.CONFIG.NZBSU_APIKEY
-                verify = bool(mylar.CONFIG.NZBSU_VERIFY)
+                verify = bool(int(mylar.CONFIG.NZBSU_VERIFY))
 
             if nzbhydra is True:
                 down_url = link
@@ -3759,7 +3759,7 @@ def searcher(
         elif nzbprov == 'dognzb':
             # dognzb - need to add back in the dog apikey
             down_url = urljoin(link, str(mylar.CONFIG.DOGNZB_APIKEY))
-            verify = bool(mylar.CONFIG.DOGNZB_VERIFY)
+            verify = bool(int(mylar.CONFIG.DOGNZB_VERIFY))
 
         else:
             # experimental - direct link.
