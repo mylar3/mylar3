@@ -169,7 +169,10 @@ class WebInterface(object):
             filtered.sort(key=lambda x: (x['percent'] is None, x['percent'] == '', x['percent']), reverse=sSortDir_0 == "desc")
         else:
             filtered.sort(key=lambda x: (x[sortcolumn] is None, x[sortcolumn] == '', x[sortcolumn]), reverse=sSortDir_0 == "desc")
-        rows = filtered[iDisplayStart:(iDisplayStart + iDisplayLength)]
+        if iDisplayLength != -1:
+            rows = filtered[iDisplayStart:(iDisplayStart + iDisplayLength)]
+        else:
+            rows = filtered
         rows = [[row['ComicPublisher'], row['ComicName'], row['ComicYear'], row['LatestIssue'], row['LatestDate'], row['recentstatus'], row['Status'], row['percent'], row['haveissues'], row['totalissues'], row['ComicID'], row['displaytype'], row['ComicVolume']] for row in rows]
         return json.dumps({
             'iTotalDisplayRecords': len(filtered),
@@ -579,8 +582,10 @@ class WebInterface(object):
                             filtered.append(row)
                     except Exception as e:
                         pass
-
-            rows = filtered[iDisplayStart:(iDisplayStart + iDisplayLength)]
+            if iDisplayLength != -1:
+                rows = filtered[iDisplayStart:(iDisplayStart + iDisplayLength)]
+            else:
+                rows = filtered
             rows = [[row['Issue_Number'], row['IssueName'], row['IssueDate'], row['Status'], row['IssueID'], row['Location'], row['ComicSize'], row['ComicID'], row['ComicName'], row['DigitalDate'], row['ReleaseDate'], row['Secondary']] for row in rows]
         else:
             rows = []
@@ -3043,7 +3048,10 @@ class WebInterface(object):
         elif iSortCol_0 == '5':
             sortcolumn = 'updated_date'
         filtered.sort(key=lambda x: (x[sortcolumn] is None, x[sortcolumn] == '', x[sortcolumn]), reverse=sSortDir_0 == "desc")
-        rows = filtered[iDisplayStart:(iDisplayStart + iDisplayLength)]
+        if iDisplayLength != -1:
+            rows = filtered[iDisplayStart:(iDisplayStart + iDisplayLength)]
+        else:
+            rows = filtered
         rows = [[row['comicid'], row['series'], row['size'], row['progress'], row['status'], row['updated_date'], row['queueid']] for row in rows]
         #rows = [{'comicid': row['comicid'], 'series': row['series'], 'size': row['size'], 'progress': row['progress'], 'status': row['status'], 'updated_date': row['updated_date']} for row in rows]
         #logger.info('rows: %s' % rows)
@@ -3608,6 +3616,10 @@ class WebInterface(object):
         #filtered.sort(key= itemgetter(sortcolumn2, sortcolumn), reverse=sSortDir_0 == "desc")
 
         filtered.sort(key=lambda x: (x[sortcolumn] is None, x[sortcolumn] == '', x[sortcolumn]), reverse=sSortDir_0 == "asc")
+        if iDisplayLength != -1:
+            trows = filtered[iDisplayStart:(iDisplayStart + iDisplayLength)]
+        else:
+            trows = filtered
         trows = filtered[iDisplayStart:(iDisplayStart + iDisplayLength)]
         rows = []
         for r in trows:
@@ -4788,8 +4800,10 @@ class WebInterface(object):
         elif iSortCol_0 == '2':
             sortcolumn = 1
         filtered.sort(key=lambda x: x[sortcolumn], reverse=sSortDir_0 == "desc")
-
-        rows = filtered[iDisplayStart:(iDisplayStart + iDisplayLength)]
+        if iDisplayLength != -1:
+            rows = filtered[iDisplayStart:(iDisplayStart + iDisplayLength)]
+        else:
+            rows = filtered
         rows = [[row[0], row[2], row[1]] for row in rows]
         return json.dumps({
             'iTotalDisplayRecords': len(filtered),
