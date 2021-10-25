@@ -132,12 +132,17 @@ class WebInterface(object):
         if sSearch == "" or sSearch == None:
             filtered = resultlist[::]
         else:
+            searchname = sSearch.split()
+            searchname = '*'.join(searchname)
+            searchname = re.sub('[\:\-\%\$\#\@\!\.\,\;\/\(\)\+\=\?]','*', sSearch.lower())
+            searchpattern = '*%s*' % re.sub('\s','*', searchname.lower())
             for row in resultlist:
                 try:
                     lat_iss = row['LatestIssue']
                     if lat_iss is None:
                         lat_iss = ''
-                    if any([sSearch.lower() in row['ComicPublisher'].lower(), sSearch.lower() in row['ComicName'].lower(), sSearch.lower() in row['ComicYear'], sSearch.lower() in lat_iss, sSearch.lower() in row['recentstatus'].lower()]):
+                    searchname = fnmatch.fnmatch(row['ComicName'].lower(), searchpattern)
+                    if any([sSearch.lower() in row['ComicPublisher'].lower(), searchname is True, sSearch.lower() in row['ComicYear'], sSearch.lower() in lat_iss, sSearch.lower() in row['recentstatus'].lower()]):
                         filtered.append(row)
                     elif row['displaytype'] is not None and sSearch.lower() in row['displaytype'].lower():
                         filtered.append(row)
@@ -3595,12 +3600,19 @@ class WebInterface(object):
         if sSearch == "" or sSearch == None:
             filtered = resultlist[::]
         else:
+            searchname = sSearch.split()
+            searchname = '*'.join(searchname)
+            searchname = re.sub('[\:\-\%\$\#\@\!\.\,\;\/\(\)\+\=\?]','*', sSearch.lower())
+            searchpattern = '*%s*' % re.sub('\s','*', searchname.lower())
             for row in resultlist:
+                searchname = fnmatch.fnmatch(row['ComicName'].lower(), searchpattern)
                 if row['StoryArc'] is not None:
-                    if any([sSearch.lower() in row['ComicName'].lower(), sSearch.lower() in row['StoryArc'].lower(), sSearch.lower() in row['Status'].lower(), sSearch.lower() in row['DateAdded'], sSearch.lower() in row['Issue_Number']]):
+                    if not searchname:
+                        searchname = fnmatch.fnmatch(row['StoryArc'].lower(), searchpattern)
+                    if any([searchname is True, sSearch.lower() in row['Status'].lower(), sSearch.lower() in row['DateAdded'], sSearch.lower() in row['Issue_Number']]):
                         filtered.append(row)
                 else:
-                    if any([sSearch.lower() in row['ComicName'].lower(), sSearch.lower() in row['Status'].lower(), sSearch.lower() in row['DateAdded'], sSearch.lower() in row['Issue_Number']]):
+                    if any([searchname is True, sSearch.lower() in row['Status'].lower(), sSearch.lower() in row['DateAdded'], sSearch.lower() in row['Issue_Number']]):
                         filtered.append(row)
 
         sortcolumn = 'DateAdded'
@@ -3620,7 +3632,6 @@ class WebInterface(object):
             trows = filtered[iDisplayStart:(iDisplayStart + iDisplayLength)]
         else:
             trows = filtered
-        trows = filtered[iDisplayStart:(iDisplayStart + iDisplayLength)]
         rows = []
         for r in trows:
             tmpr = r
