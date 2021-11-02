@@ -100,8 +100,15 @@ class FileHandlers(object):
         comicdir = comicname_filesafe
 
         series = comicdir
-        if series[-1:] == '.':
-            series[:-1]
+        if any([series.endswith('.'), series.endswith('..'), series.endswith('...'), series.endswith('....')]):
+            if series.endswith('....'):
+                series = series[:-4]
+            elif series.endswith('...'):
+                series = series[:-3]
+            elif series.endswith('..'):
+                series = series[:-2]
+            elif series.endswith('.'):
+                series = series[:-1]
 
         publisher = re.sub('!', '', self.comic['ComicPublisher']) # thanks Boom!
         publisher = helpers.filesafe(publisher)
