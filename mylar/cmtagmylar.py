@@ -226,8 +226,8 @@ def run(dirName, nzbName=None, issueid=None, comversion=None, manual=None, filen
             # use subprocess to run the command and capture output
             p = subprocess.Popen(script_cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
             out, err = p.communicate()
-            logger.info(out)
-            logger.info(err)
+            #logger.info(out)
+            #logger.info(err)
             if out is not None:
                 out = out.decode('utf-8')
             if err is not None:
@@ -271,7 +271,7 @@ def run(dirName, nzbName=None, issueid=None, comversion=None, manual=None, filen
                 initial_ctrun = False
             elif initial_ctrun:
                 initial_ctrun = False
-                if 'file is not expected size' in out:
+                if any(['file is not expected size' in out, 'Failed the read' in out]):
                     logger.fdebug('%s Output: %s' % (module,out))
                     tidyup(og_filepath, new_filepath, new_folder, manualmeta)
                     return 'corrupt'

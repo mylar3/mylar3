@@ -18,6 +18,8 @@ import optparse
 import xmlrpc.client
 from base64 import standard_b64encode
 from xml.dom.minidom import parseString
+import xmlrpc.client
+import http.client
 import os
 import sys
 import re
@@ -37,20 +39,23 @@ class NZBGet(object):
         else:
             logger.warn('[NZB-GET] You need to specify the protocol for your nzbget instance (ie. http:// or https://). You provided: %s' % (mylar.CONFIG.NZBGET_HOST))
             return {'status': False}
-        url = '%s://'
-        val = (protocol,)
+        url = '%s://%s:%s'
+        val = (protocol,nzbget_host,mylar.CONFIG.NZBGET_PORT)
+        logon_info = ''
         if mylar.CONFIG.NZBGET_USERNAME is not None:
-            url = url + '%s:'
+            logon_info = '%s:'
             val = val + (mylar.CONFIG.NZBGET_USERNAME,)
         if mylar.CONFIG.NZBGET_PASSWORD is not None:
-            url = url + '%s'
+            if logon_info == '':
+                logon_info = ':%s'
+            else:
+                logon_info += '%s'
             val = val + (mylar.CONFIG.NZBGET_PASSWORD,)
-        if any([mylar.CONFIG.NZBGET_USERNAME, mylar.CONFIG.NZBGET_PASSWORD]):
-            url = url + '@%s:%s/xmlrpc'
-        else:
-            url = url + '%s:%s/xmlrpc'
-        val = val + (nzbget_host,mylar.CONFIG.NZBGET_PORT,)
-        self.display_url = '%s://%s/xmlrpc' % (protocol, nzbget_host)
+        if logon_info != '':
+            url = url + '/' + logon_info
+        url = url + '/xmlrpc'
+        #val = val + (nzbget_host,mylar.CONFIG.NZBGET_PORT,)
+        self.display_url = '%s://%s:%s/xmlrpc' % (protocol, nzbget_host, mylar.CONFIG.NZBGET_PORT)
         self.nzb_url = (url % val)
         self.server = xmlrpc.client.ServerProxy(self.nzb_url) #,allow_none=True)
 
@@ -81,8 +86,22 @@ class NZBGet(object):
             else:
                 nzb_category = mylar.CONFIG.NZBGET_CATEGORY
             sendresponse = self.server.append(filename, nzbcontent64, nzb_category, nzbgetpriority, False, False, '', 0, 'SCORE')
+        except http.client.socket.error as e:
+            nzb_url = re.sub(mylar.CONFIG.NZBGET_PASSWORD, 'REDACTED', str(e))
+            logger.error('Please check your NZBget host and port (if it is running). Tested against: %s' % nzb_url)
+            return {'status': False}
+        except xmlrpc.client.ProtocolError as e:
+            logger.info(e,)
+            if e.errmsg == "Unauthorized":
+                err = re.sub(mylar.CONFIG.NZBGET_PASSWORD, 'REDACTED', e.errmsg)
+                logger.error('Unauthorized username / password provided: %s' % err)
+                return {'status': False}
+            else:
+                err = "Protocol Error: %s" % re.sub(mylar.CONFIG.NZBGET_PASSWORD, 'REDACTED', e.errmsg)
+                logger.error('Protocol error returned: %s' % err)
+                return {'status': False}
         except Exception as e:
-            logger.warn('uh-oh: %s' % e)
+            logger.warn('uh-oh: %s' % re.sub(mylar.CONFIG.NZBGET_PASSWORD, 'REDACTED', str(e)))
             return {'status': False}
         else:
             if sendresponse <= 0:

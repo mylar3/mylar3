@@ -19,17 +19,26 @@ import re
 import os
 import pathlib
 import json
+import shutil
+import calendar
+import datetime
+import time
 import mylar
-from mylar import helpers, db, logger
+from mylar import helpers, db, logger, filechecker
 
 class FileHandlers(object):
 
-    def __init__(self, comic=None, issue=None, ComicID=None, IssueID=None):
+    def __init__(self, comic=None, issue=None, ComicID=None, IssueID=None, arcID=None):
 
         self.myDB = db.DBConnection()
+        self.weekly = None
         if ComicID is not None:
             self.comicid = ComicID
             self.comic = self.myDB.selectone('SELECT * FROM comics WHERE ComicID=?', [ComicID]).fetchone()
+            if not self.comic:
+                self.weekly = self.myDB.selectone('SELECT * FROM weekly WHERE ComicID=? AND IssueID=?', [ComicID, IssueID]).fetchone()
+                if not self.weekly:
+                    self.comic = None
         elif comic is not None:
             self.comic = comic
             self.comicid = None
@@ -39,13 +48,25 @@ class FileHandlers(object):
 
         if IssueID is not None:
             self.issueid = IssueID
-            self.issue = self.myDB.select('SELECT * FROM issues WHERE IssueID=?', [IssueID])
+            self.issue = self.myDB.selectone('SELECT * FROM issues WHERE IssueID=?', [IssueID]).fetchone()
+            if not self.issue:
+                if mylar.CONFIG.ANNUALS_ON:
+                    self.issue = self.myDB.selectone('SELECT * FROM annuals WHERE IssueID=?', [IssueID]).fetchone()
+                if not self.issue:
+                    self.issue = None
         elif issue is not None:
             self.issue = issue
             self.issueid = None
         else:
             self.issue = None
             self.issueid = None
+
+        if arcID is not None:
+            self.arcid = arcID
+            self.arc = self.myDB.selectone('SELECT * FROM storyarcs WHERE IssueArcID=?', [arcID]).fetchone()
+        else:
+            self.arc = None
+            self.arcid = None
 
     def folder_create(self, booktype=None, update_loc=None, secondary=None, imprint=None):
         # dictionary needs to passed called comic with
@@ -238,23 +259,23 @@ class FileHandlers(object):
             bb2 = bb[0]
             bb.pop(0)
             bb_tuple = pathlib.PurePath(os.path.sep.join(bb))
-            logger.fdebug('bb_tuple: %s' % bb_tuple)
+            #logger.fdebug('bb_tuple: %s' % bb_tuple)
             if mylar.OS_DETECT == 'Windows':
                 p_path = pathlib.PureWindowsPath(pathlib.PurePath(bb2).joinpath(bb_tuple))
             else:
                 p_path = pathlib.PurePosixPath(pathlib.PurePath(bb2).joinpath(bb_tuple))
 
-            logger.fdebug('p_path: %s' % p_path)
+            #logger.fdebug('p_path: %s' % p_path)
 
             first = helpers.replace_all(chunk_folder_format, values)
-            logger.fdebug('first-1: %s' % first)
+            #logger.fdebug('first-1: %s' % first)
 
             if mylar.CONFIG.REPLACE_SPACES:
                 first = first.replace(' ', mylar.CONFIG.REPLACE_CHAR)
-            logger.fdebug('first-2: %s' % first)
+            #logger.fdebug('first-2: %s' % first)
             comlocation = str(p_path.joinpath(first))
             com_parentdir = str(p_path.joinpath(first).parent)
-            logger.fdebug('comlocation: %s' % comlocation)
+            #logger.fdebug('comlocation: %s' % comlocation)
 
             #try:
             #    if folder_format == '':
@@ -710,3 +731,140 @@ class FileHandlers(object):
                 secondaryfolders = tmpath
 
         return secondaryfolders
+
+    def walk_the_walk(self):
+        folder_location = mylar.CONFIG.FOLDER_CACHE_LOCATION
+        if folder_location is None:
+            return {'status': False}
+
+        logger.info('checking locally...')
+        filelist = None
+
+        logger.info('check_folder_cache: %s' % (mylar.CHECK_FOLDER_CACHE))
+        if mylar.CHECK_FOLDER_CACHE is not None:
+            rd = mylar.CHECK_FOLDER_CACHE #datetime.datetime.utcfromtimestamp(mylar.CHECK_FOLDER_CACHE)
+            rd_mins = rd + datetime.timedelta(seconds = 600)  #10 minute cache retention
+            rd_now = datetime.datetime.utcfromtimestamp(time.time())
+            if calendar.timegm(rd_mins.utctimetuple()) > calendar.timegm(rd_now.utctimetuple()):
+                # if < 10 minutes since last check, use cached listing
+                logger.info('using cached folder listing since < 10 minutes since last file check.')
+                filelist = mylar.FOLDER_CACHE
+
+        if filelist is None:
+            logger.info('generating new directory listing for folder_cache')
+            flc = filechecker.FileChecker(folder_location, justparse=True, pp_mode=True)
+            mylar.FOLDER_CACHE = flc.listFiles()
+            mylar.CHECK_FOLDER_CACHE = datetime.datetime.utcfromtimestamp(helpers.utctimestamp())
+
+        local_status = False
+        filepath = None
+        filename = None
+        for fl in mylar.FOLDER_CACHE['comiclist']:
+            logger.info('fl: %s' % (fl,))
+            if self.arc is not None:
+                comicname = self.arc['ComicName']
+                corrected_type = None
+                alternatesearch = None
+                booktype = self.arc['Type']
+                publisher = self.arc['Publisher']
+                issuenumber = self.arc['IssueNumber']
+                issuedate = self.arc['IssueDate']
+                issuename = self.arc['IssueName']
+                issuestatus = self.arc['Status']
+            elif self.comic is not None:
+                comicname = self.comic['ComicName']
+                booktype = self.comic['Type']
+                corrected_type = self.comic['Corrected_Type']
+                alternatesearch = self.comic['AlternateSearch']
+                publisher = self.comic['ComicPublisher']
+                issuenumber = self.issue['Issue_Number']
+                issuedate = self.issue['IssueDate']
+                issuename = self.issue['IssueName']
+                issuestatus = self.issue['Status']
+            else:
+                # weekly - (one/off)
+                comicname = self.weekly['COMIC']
+                booktype = self.weekly['format']
+                corrected_type = None
+                alternatesearch = None
+                publisher = self.weekly['PUBLISHER']
+                issuenumber = self.weekly['ISSUE']
+                issuedate = self.weekly['SHIPDATE']
+                issuename = None
+                issuestatus = self.weekly['STATUS']
+
+            if booktype is not None:
+                if (all([booktype != 'Print', booktype != 'Digital', booktype != 'None', booktype is not None]) and corrected_type != 'Print') or any([corrected_type == 'TPB', corrected_type == 'GN', corrected_type == 'HC']):
+                    if booktype == 'One-Shot' and corrected_type is None:
+                        booktype = 'One-Shot'
+                    else:
+                        if booktype == 'GN' and corrected_type is None:
+                            booktype = 'GN'
+                        elif booktype == 'HC' and corrected_type is None:
+                            booktype = 'HC'
+                        else:
+                            booktype = 'TPB'
+
+            wm = filechecker.FileChecker(watchcomic=comicname, Publisher=publisher, AlternateSearch=alternatesearch)
+            watchmatch = wm.matchIT(fl)
+
+            logger.info('watchmatch: %s' % (watchmatch,))
+
+            # this is all for a really general type of match - if passed, the post-processing checks will do the real brunt work
+            if watchmatch['process_status'] == 'fail':
+                continue
+
+            if watchmatch['justthedigits'] is not None:
+                temploc= watchmatch['justthedigits'].replace('_', ' ')
+                if "Director's Cut" not in temploc:
+                    temploc = re.sub('[\#\']', '', temploc)
+            else:
+                if any([booktype == 'TPB', booktype =='GN', booktype == 'HC', booktype == 'One-Shot']):
+                    temploc = '1'
+                else:
+                    temploc = None
+                    continue
+
+            int_iss = helpers.issuedigits(issuenumber)
+            issyear = issuedate[:4]
+            old_status = issuestatus
+            issname = issuename
+
+
+            if temploc is not None:
+                fcdigit = helpers.issuedigits(temploc)
+            elif any([booktype == 'TPB', booktype == 'GN', booktype == 'GC', booktype == 'One-Shot']) and temploc is None:
+                fcdigit = helpers.issuedigits('1')
+
+            if int(fcdigit) == int_iss:
+                logger.fdebug('[%s] Issue match - #%s' % (self.issueid, self.issue['Issue_Number']))
+                local_status = True
+                if watchmatch['sub'] is None:
+                    filepath = watchmatch['comiclocation']
+                    filename = watchmatch['comicfilename']
+                else:
+                    filepath = os.path.join(watchmatch['comiclocation'], watchmatch['sub'])
+                    filename = watchmatch['comicfilename']
+                break
+
+
+        #if local_status is True:
+            #try:
+            #    copied_folder = os.path.join(mylar.CONFIG.CACHE_DIR, 'tmp_filer')
+            #    if os.path.exists(copied_folder):
+            #        shutil.rmtree(copied_folder)
+            #    os.mkdir(copied_folder)
+            #    logger.info('created temp directory: %s' % copied_folder)
+            #    shutil.copy(os.path.join(filepath, filename), copied_folder)
+
+            #except Exception as e:
+            #    logger.error('[%s] error: %s' % (e, filepath))
+            #    filepath = None
+            #    local_status = False
+            #else:
+            #filepath = os.path.join(copied_folder, filename)
+            #logger.info('Successfully copied file : %s' % filepath)
+
+        return {'status': local_status,
+                'filename': filename,
+                'filepath': filepath}

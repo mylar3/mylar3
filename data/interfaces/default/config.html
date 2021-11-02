@@ -28,6 +28,7 @@
 	</div>
 </%def>
 <%def name="body()">
+        <input type="hidden" id="page_name" value="config" />
 
         <%
              mylar.DONATEBUTTON = False
@@ -255,15 +256,13 @@
                     		 </fieldset>
                          <fieldset>
                              <legend>Annual Handling</legend>
-                                <div>
-                                    <small class="heading"><span style="float: left; margin-right: .3em; margin-top: 4px;" class="ui-icon ui-icon-info"></span>Series need to be Refreshed for annuals to appear</small>
-                                </div>
                              <div class="row checkbox">
-                                 <input type="checkbox" name="annuals_on" value="1" ${config['annuals_on']} /><label>Enable Series-Annual Integration</label>
+                                 <input type="checkbox" name="annuals_on" id="annuals_on" value="1" ${config['annuals_on']} /><label>Enable Series-Annual Integration</label>
                              </div>
-                                 </br><small>Enabled: Annuals are tracked as part of the series it belongs to</small></br>
-                                 <small>Disabled: Annuals are tracked independently and will appear on your watchlist as a series</small>
                          </fieldset>
+                             <div style="text-align:center;">
+                                 <span id="annuals_info" style="display:none;text-align:center;"></span>
+                             </div>
             	</td>
 
                 <td>          
@@ -439,40 +438,28 @@
                                                 %endfor
                                                 </select>
                                 </div>
+                                </br>
 
-                                <div class="row checkbox left clearfix">
-                                    <input id="sab_to_mylar" type="checkbox" onclick="initConfigCheckbox($(this));" name="sab_to_mylar" value="1" ${config['sab_to_mylar']} /><label>Are Mylar / SABnzbd on separate machines</label>
-                                    <small class="heading"><span style="float: left; margin-right: .3em; margin-top: 4px;" class="ui-icon ui-icon-info"></span>This is *ONLY* required if Mylar and SABnzbd are on separate machines, otherwise don't touch it</small>
+                               <div class="row checkbox left clearfix">
+                                    <input type="checkbox" id="sab_client_post_processing" name="sab_client_post_processing" value="1" ${config['sab_client_post_processing']} /><label>Enable Completed Download Handling</label>
                                 </div>
-                                <div class="config">
-                                    <div class="row">
-                                        <label>SABnzbd Download Directory</label>
-                                        <input type="text" name="sab_directory" value="${config['sab_directory']}" size="36" />
-                                        <small>Where your SAB downloads go (required for PP)</small>
+
+                                <div class="row">
+                                    <div class="row checkbox left clearfix">
+                                       <input id="sab_to_mylar" type="checkbox" name="sab_to_mylar" onClick="initConfigCheckbox($(this));" value="1" ${config['sab_to_mylar']} /><label>Are Mylar / SABnzbd on separate machines</label>
                                     </div>
-                                </div>
-
-                                <div class="row checkbox left clearfix" id="sab_cdh" style="display:unset;">
-                                    <input type="checkbox" id="sab_client_post_processing" onclick="initConfigCheckbox($(this));" name="sab_client_post_processing" value="1" ${config['sab_client_post_processing']} /><label>Enable Completed Download Handling</label>
-                                    <div id="sabcompletedinfo">
+                                    <div class="config">
                                        <div class="row">
-                                           <small class="heading"><span style="float: left; margin-right: .3em; margin-top: 4px;" class="ui-icon ui-icon-info"></span>
-                                           ComicRN script cannot be used with this enabled & required SAB version > 0.8.0</small>
+                                          <label>SABnzbd Download Directory</label>
+                                          <input type="text" name="sab_directory" value="${config['sab_directory']}" size="36">
                                        </div>
                                     </div>
                                 </div>
-                                <div class="row checkbox left clearfix" id="sab_nocdh" style="display:none;">
-                                    <div>
-                                       <div class="row">
-                                           <small class="heading"><span style="float: left; margin-right: .3em; margin-top: 4px;" class="ui-icon ui-icon-info"></span>
-                                           Completed Download Handling is not available as your version of SABnzbd is not above 0.8.0</small>
-                                       </div>
-                                    </div>
-                                </div>
+                                </br>
                                 <div align="center" class="row">
                                      <img name="sabnzbd_statusicon" id="sabnzbd_statusicon" src="images/success.png" style="float:right;visibility:hidden;" height="20" width="20" />
                                      <input type="button" value="Test SABnzbd" id="test_sab" style="float:center" /></br>
-                                     <input type="text" name="sabstatus" style="text-align:center; font-size:11px;" id="sabstatus" size="50" DISABLED />
+                                     <input type="text" name="sabstatus" style="text-align:center;font-size:11px;color:white;" id="sabstatus" size="50" DISABLED />
                                      <div name="sabversion" id="sabversion" style="font-size:11px;" align="center">
                                         <%
                                                if mylar.CONFIG.SAB_VERSION is not None:
@@ -529,18 +516,12 @@
 
                             <div class="row checkbox left clearfix">
                                 <input type="checkbox" id="nzbget_client_post_processing" onclick="initConfigCheckbox($(this));" name="nzbget_client_post_processing" value="1" ${config['nzbget_client_post_processing']} /><label>Enable Completed Download Handling</label>
-                                <div id="nzbgetcompletedinfo">
-                                   <div class="row">
-                                       <small class="heading"><span style="float: left; margin-right: .3em; margin-top: 4px;" class="ui-icon ui-icon-info"></span>
-                                       ComicRN script cannot be used with this enabled</small>
-                                   </div>
-                                </div>
                             </div>
 
                             <div align="center" class="row">
                                  <img name="nzbget_statusicon" id="nzbget_statusicon" src="images/success.png" style="float:right;visibility:hidden;" height="20" width="20" />
                                  <input type="button" value="Test NZBGet" id="test_nzbget" style="float:center" /></br>
-                                 <input type="text" name="nzbgetstatus" style="text-align:center; font-size:11px;" id="nzbgetstatus" size="50" DISABLED />
+                                 <input type="text" name="nzbgetstatus" style="text-align:center; font-size:11px;color:white;" id="nzbgetstatus" size="50" DISABLED />
                             </div>
                          
                          </fieldset>
@@ -1125,7 +1106,7 @@
                         <fieldset>
                             <legend>Duplicate Dump Folder</legend>
                              <div class="row checkbox left clearfix">
-                                 <input type="checkbox" id="ddump" onclick="initConfigCheckbox($this));" name="ddump" value="1" ${config['ddump']} /><label>Enable Duplicate Dump Folder</label>
+                                 <input type="checkbox" id="ddump" onclick="initConfigCheckbox($(this));" name="ddump" value="1" ${config['ddump']} /><label>Enable Duplicate Dump Folder</label>
                              </div>
                                 <div class="config">
                                     <div class="row"">
@@ -1137,7 +1118,7 @@
                         <fieldset>
                              <legend>Failed Download Handling</legend>
                              <div class="row checkbox left clearfix">
-                                 <input type="checkbox" id="enable_failed" onclick="initConfigCheckbox($this));" name="failed_download_handling" value="1" ${config['failed_download_handling']} /><label>Enable Failed Download Handling</label>
+                                 <input type="checkbox" id="enable_failed" onclick="initConfigCheckbox($(this));" name="failed_download_handling" value="1" ${config['failed_download_handling']} /><label>Enable Failed Download Handling</label>
                              </div>
                                 <div class="config">
                                     <div class="row checkbox left clearfix">
@@ -1151,7 +1132,7 @@
                         <fieldset>
                                 <legend>Post-Processing</legend>
                                 <div class="row checkbox left clearfix">
-                                     <input type="checkbox" id="post_processing" onclick="initConfigCheckbox($this));" name="post_processing" value="1" ${config['post_processing']} /><label>Enable Post-Processing<small> (not checked = NO post-processing/post-management)</small></label>
+                                     <input type="checkbox" id="post_processing" onclick="initConfigCheckbox($(this));" name="post_processing" value="1" ${config['post_processing']} /><label>Enable Post-Processing<small> (not checked = NO post-processing/post-management)</small></label>
                                 </div>
                                 <div class="config">
                                     <div class="row left">
@@ -1176,7 +1157,7 @@
                                     </div>
                                     <br/>
                                     <div class="row checkbox left clearfix">
-                                        <input type="checkbox" id="enable_check_folder" onclick="initConfigCheckbox($this));" name="enable_check_folder" value="1" ${config['enable_check_folder']} /><label>Enable Folder Monitoring<small></label>
+                                        <input type="checkbox" id="enable_check_folder" onclick="initConfigCheckbox($(this));" name="enable_check_folder" value="1" ${config['enable_check_folder']} /><label>Enable Folder Monitoring<small></label>
                                     </div>
                                     <div class="config">
                                        <div class="row">
@@ -1193,7 +1174,7 @@
                                     </div>
                                 </div>
                                 <div class="row checkbox left clearfix">
-                                    <input type="checkbox" id="enable_pre_scripts" onclick="initConfigCheckbox($this));" name="enable_pre_scripts" value="1" ${config['enable_pre_scripts']} /><label>Run script BEFORE Post-Processing</label>
+                                    <input type="checkbox" id="enable_pre_scripts" onclick="initConfigCheckbox($(this));" name="enable_pre_scripts" value="1" ${config['enable_pre_scripts']} /><label>Run script BEFORE Post-Processing</label>
                                 </div>
                                 <div class="config">
                                    <div class="row">
@@ -1203,7 +1184,7 @@
                                    </div>
                                 </div>
                                 <div class="row checkbox left clearfix">
-                                    <input type="checkbox" id="enable_snatch_script" onclick="initConfigCheckbox($this));" name="enable_snatch_script" value="1" ${config['enable_snatch_script']} /><label>Run script AFTER an item has been snatched and sent to client</label>
+                                    <input type="checkbox" id="enable_snatch_script" onclick="initConfigCheckbox($(this));" name="enable_snatch_script" value="1" ${config['enable_snatch_script']} /><label>Run script AFTER an item has been snatched and sent to client</label>
                                 </div>
                                 <div class="config">
                                     <div class="row">
@@ -1213,7 +1194,7 @@
                                     </div>
                                 </div>
                                 <div class="row checkbox left clearfix">
-                                    <input type="checkbox" id="enable_extra_scripts" onclick="initConfigCheckbox($this));" name="enable_extra_scripts" value="1" ${config['enable_extra_scripts']} /><label>Run script AFTER Post-Processing</label>
+                                    <input type="checkbox" id="enable_extra_scripts" onclick="initConfigCheckbox($(this));" name="enable_extra_scripts" value="1" ${config['enable_extra_scripts']} /><label>Run script AFTER Post-Processing</label>
                                 </div>
                                 <div class="config">
                                     <div class="row">
@@ -1768,6 +1749,19 @@
                });
         }
 
+        function annuals_integration(){
+            var aob = document.getElementById("annuals_info");
+            if ($("#annuals_on").is(":checked")){
+                console.log('on');
+                aob.style = "display:block;";
+                aob.innerHTML = '<small>Annuals will be tracked as part of the series it belongs to</small>';
+            } else {
+                console.log('off');
+                aob.style = "display:block;";
+                aob.innerHTML = '<small>Annuals will be tracked independently</br>( will appear on your watchlist as individual series )</small>';
+            }
+        }
+
         </script>
 	<script>
 	function initThisPage() 
@@ -1791,44 +1785,6 @@
                         else
                         {
                                 $("#apioptions").slideUp();
-                        }
-                });
-                if ($("#sab_client_post_processing").is(":checked"))
-                        {
-                                $("#sabcompletedinfo").show();
-                        }
-                else
-                        {
-                                $("#sabcompletedinfo").hide();
-                        }
-
-                $("#sab_client_post_processing").click(function(){
-                        if ($("#sab_client_post_processing").is(":checked"))
-                        {
-                                $("#sabcompletedinfo").slideDown();
-                        }
-                        else
-                        {
-                                $("#sabcompletedinfo").slideUp();
-                        }
-                });
-                if ($("#nzbget_client_post_processing").is(":checked"))
-                        {
-                                $("#nzbgetcompletedinfo").show();
-                        }
-                else
-                        {
-                                $("#nzbgetcompletedinfo").hide();
-                        }
-
-                $("#nzbget_client_post_processing").click(function(){
-                        if ($("#nzbget_client_post_processing").is(":checked"))
-                        {
-                                $("#nzbgetcompletedinfo").slideDown();
-                        }
-                        else
-                        {
-                                $("#nzbgetcompletedinfo").slideUp();
                         }
                 });
                 if ($("#opds_enable").is(":checked"))
@@ -2333,19 +2289,6 @@
                             vsab = numberWithDecimals(versionsab);
                             $('#sabstatus').val(obj['message']);
                             $('#sabversion span').text('SABnzbd version: '+versionsab);
-                            if ( vsab < "0.8.0" ){
-                                scdh = document.getElementById("sab_cdh");
-                                scdh.style.display = "none";
-                                nocdh = document.getElementById("sab_nocdh");
-                                nocdh.style.display = "unset";
-                                scdh_line = document.getElementById("sab_client_post_processing");
-                                scdh_line.value = 0;
-                            } else {
-                                scdh = document.getElementById("sab_cdh");
-                                scdh.style.display = "unset";
-                                nocdh = document.getElementById("sab_nocdh");
-                                nocdh.style.display = "none";
-                            }
                             $('#ajaxMsg').removeClass();
                             $('#ajaxMsg').html("<div class='msg'><span class='ui-icon ui-icon-check'></span>"+obj['message']+"</div>");
                             if (obj['status']){
@@ -2360,6 +2303,10 @@
                                 $('#ajaxMsg').addClass('error').fadeIn().delay(3000).fadeOut();
                             }
                     });
+                });
+
+                $('#annuals_on').click(function () {
+                    annuals_integration();
                 });
 
                 $('#test_nzbget').click(function () {
@@ -2382,13 +2329,14 @@
                                 imagechk.src = "";
                                 imagechk.src = "images/success.png";
                                 imagechk.style.visibility = "visible";
+                                $('#ajaxMsg').addClass('success').fadeIn().delay(3000).fadeOut();
                             } else {
                                 imagechk.src = "";
                                 imagechk.src = "images/x_red.png";
                                 imagechk.style.visibility = "visible";
+                                $('#ajaxMsg').addClass('error').fadeIn().delay(3000).fadeOut();
                             }
                     });
-                    $('#ajaxMsg').addClass('success').fadeIn().delay(3000).fadeOut();
                 });
 
                 if ($("#enable_https").is(":checked"))
@@ -2891,6 +2839,7 @@
 	}
 	$(document).ready(function() {
 		initThisPage();
+                annuals_integration()
 	});
 	
 	</script>

@@ -90,6 +90,8 @@ _CONFIG_DEFINITIONS = OrderedDict({
     'BACKFILL_TIMESPAN': (int, 'General', 10),   # minutes
     'PROBLEM_DATES': (str, 'General', []),
     'PROBLEM_DATES_SECONDS': (int, 'General', 60),
+    'DEFAULT_DATES': (str, 'General', 'store_date'),
+    'FOLDER_CACHE_LOCATION': (str, 'General', None),
 
     'RSS_CHECKINTERVAL': (int, 'Scheduler', 20),
     'SEARCH_INTERVAL': (int, 'Scheduler', 360),
@@ -232,6 +234,8 @@ _CONFIG_DEFINITIONS = OrderedDict({
     'PRE_SCRIPTS': (str, 'PostProcess', None),
     'ENABLE_CHECK_FOLDER':  (bool, 'PostProcess', False),
     'CHECK_FOLDER': (str, 'PostProcess', None),
+    'MANUAL_PP_FOLDER': (str, 'PostProcess', None),
+    'FOLDER_CACHE_LOCATION': (str, 'PostProcess', None),
 
     'PROVIDER_ORDER': (str, 'Providers', None),
     'USENET_RETENTION': (int, 'Providers', 1500),

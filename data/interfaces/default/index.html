@@ -6,6 +6,7 @@
 %>
 
 <%def name="body()">
+        <input type="hidden" id="page_name" value="index" />
         <div class="table_wrapper">
 	<table class="display" id="series_table">
 	    <thead>
@@ -105,7 +106,21 @@
                                  cn = '#' + full[3];
                                }
                                return cn;
+                            } else {
+                               return 'N/A';
                             }
+                       }
+                    },
+                    {
+                       "sortable": true,
+                       "targets": [ 4 ],
+                       "visible": true,
+                       "render":function (data,type,full) {
+                           if (full[4].includes('Unknown')){
+                               return 'N/A';
+                           } else {
+                               return full[4];
+                           }
                        }
                     },
                     {
