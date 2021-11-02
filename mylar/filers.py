@@ -159,6 +159,8 @@ class FileHandlers(object):
         if ccf != -1:
             chunk_folder_format = chunk_folder_format[:ccf+1] + chunk_folder_format[ccf+2:]
 
+        chunk_folder_format = re.sub(r'\s+', ' ', chunk_folder_format)
+
         #do work to generate folder path
         values = {'$Series':        series,
                   '$Publisher':     publisher,
