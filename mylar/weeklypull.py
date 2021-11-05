@@ -1350,9 +1350,9 @@ def mass_publishers(publishers, weeknumber, year):
 
     if watchlist:
         for wt in watchlist:
-            if wt['comicid'] not in watchlibrary and wt['comicid'] is not None:
-                if not any(ext['comicid'] == wt['comicid'] for ext in mylar.ADD_LIST):
-                    watch.append({'comicid': wt['comicid'], 'series': wt['comic']})
+            if wt['ComicID'] not in watchlibrary and wt['ComicID'] is not None:
+                if not {"comicid": wt['ComicID'], "comicname": wt['COMIC']} in mylar.ADD_LIST.queue:
+                    watch.append({"comicid": wt['ComicID'], "comicname": wt['COMIC']})
 
     if len(watch) > 0:
          logger.info('[SHIZZLE-WHIZZLE] Now queueing to mass add %s new series to your watchlist' % len(watch))
