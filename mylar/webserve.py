@@ -27,6 +27,7 @@ import re
 import json
 import copy
 import ntpath
+from pathlib import Path
 
 from mako.template import Template
 from mako.lookup import TemplateLookup
@@ -207,53 +208,42 @@ class WebInterface(object):
 
         if ComicID is not None:
             comic_ext = ('.cbr','.cbz','.cb7')
-            filesupdated = 0
-            if comic['FilesUpdated']:
-                filesupdated = time.mktime(datetime.datetime.strptime(comic['FilesUpdated'], '%Y-%m-%d %H:%M:%S').timetuple())
-
             run_them_down = False
+            if comic['FilesUpdated']:
+                filesupdated = datetime.datetime.strptime(comic['FilesUpdated'], '%Y-%m-%d %H:%M:%S')
+            else:
+                run_them_down = True
 
-            if comic['ComicLocation'] is not None:
-                if os.path.exists(comic['ComicLocation']):
-                    # quick check to see if # of files in directory = haves. If not, rescan.
-                    file_count = len(fnmatch.filter(os.listdir(comic['ComicLocation']), '*.cb?'))
-                    if secondary_folders is not None:
-                        if os.path.exists(secondary_folders):
-                            logger.fdebug('secondary folders: %s' % (secondary_folders,))
-                            file_count += len(fnmatch.filter(os.listdir(secondary_folders), '*.cb?'))
+            if run_them_down is False:
+                if comic['ComicLocation'] is not None:
+                    if os.path.exists(comic['ComicLocation']):
+                        # quick check to see if # of files in directory = haves. If not, rescan.
+                        #file_count = len(fnmatch.filter(os.listdir(comic['ComicLocation']), '*.cb?'))
+                        #if secondary_folders is not None:
+                        #    if os.path.exists(secondary_folders):
+                        #        logger.fdebug('secondary folders: %s' % (secondary_folders,))
+                        #        file_count += len(fnmatch.filter(os.listdir(secondary_folders), '*.cb?'))
 
-                    if comic['Have'] is not None:
-                        logger.fdebug('file_count: %s / total: %s' % (file_count, int(comic['Have'])))
-                        if file_count != int(comic['Have']):
-                            logger.info('rescanning now..')
-                            run_them_down = True
+                        #if comic['Have'] is not None:
+                        #    logger.fdebug('file_count: %s / total: %s' % (file_count, int(comic['Have'])))
+                        #    if file_count != int(comic['Have']):
+                        #        logger.info('rescanning now..')
+                        #        run_them_down = True
 
-                    for dirname, subs, files in os.walk(comic['ComicLocation']):
-                        if run_them_down is True:
-                            break
-
-                        if dirname == dir:
-                            direc = None
-                        else:
-                            direc = dirname
-
-                        for fname in files:
-                            filename = fname
-                            if os.path.splitext(filename)[1].lower().endswith(comic_ext):
-                                if direc is None:
-                                    try:
-                                        ctime = os.path.getmtime(dirname)
-                                    except Exception as e:
-                                        continue
-                                else:
-                                    try:
-                                        ctime = os.path.getmtime(dirname)
-                                    except Exception as e:
-                                        continue
-
+                        if run_them_down is False:
+                            fl_start = datetime.datetime.now()
+                            file_listing = list(Path(comic['ComicLocation']).rglob('*.cb?'))
+                            sd_start = datetime.datetime.now()
+                            if secondary_folders is not None:
+                                if os.path.exists(secondary_folders):
+                                    file_listing.extend(list(Path(secondary_folders).rglob('*.cb?')))
+                            if len(file_listing) > 0:
+                                cp_start = datetime.datetime.now()
+                                file_listing.sort(key=os.path.getmtime ,reverse=True)
+                                filepath = file_listing[0]
+                                ctime = datetime.datetime.fromtimestamp(os.path.getmtime(filepath))
                                 if ctime > filesupdated:
                                     run_them_down = True
-                                    break
 
             if run_them_down is True:
                 updater.forceRescan(ComicID)
@@ -682,7 +672,7 @@ class WebInterface(object):
                                 "IssueID":           ann['IssueID'],
                                 "ReleaseComicID":    ann['ReleaseComicID'],
                                 "ComicName":         ann['ComicName'],
-                                "ComicSize":         ann['ComicSize'],
+                                "ComicSize":         helpers.human_size(ann['ComicSize']),
                                 "ReleaseComicName":  ann['ReleaseComicName'],
                                 "PrevComicID":       prevcomicid})
 
@@ -6804,7 +6794,7 @@ class WebInterface(object):
 
     IssueInfo.exposed = True
 
-    def manual_metatag(self, issueid, group=False): #dirName, issueid, filename, comicid, comversion, seriesyear=None, group=False, agerating=None):
+    def manual_metatag(self, issueid, comicid=None, group=False): #dirName, issueid, filename, comicid, comversion, seriesyear=None, group=False, agerating=None):
         module = '[MANUAL META-TAGGING]'
         try:
             myDB = db.DBConnection()
@@ -6812,29 +6802,39 @@ class WebInterface(object):
             if not issuedata:
                 issuedata = myDB.selectone('SELECT a.ComicVersion, a.ComicLocation, a.ComicYear, a.AgeRating, b.* FROM comics a LEFT JOIN annuals b ON a.ComicID=b.ComicID WHERE b.IssueID=? AND NOT b.Deleted', [issueid]).fetchone()
                 if not issuedata:
-                    return json.dumps({'status': 'failure', 'message': 'Unable to locate corresponding issueid: %s' % issueid})
+                    mylar.GLOBAL_MESSAGES = {'status': 'failure', 'comicname': None, 'seriesyear': None, 'comicid': comicid, 'tables': 'both', 'message': 'Unable to locate corresponding issueid: %s' % issueid}
+                    return
 
-            else:
-                comversion = issuedata['ComicVersion']
-                dirName = issuedata['ComicLocation']
-                filename = os.path.join(dirName, issuedata['Location'])
+            comversion = issuedata['ComicVersion']
+            dirName = issuedata['ComicLocation']
+            filename = os.path.join(dirName, issuedata['Location'])
+            if not os.path.exists(filename):
+                file_check = list(Path(dirName).rglob('*'+issuedata['Location']))
+                if len(file_check) > 0:
+                    filename = str(file_check[0])
+                    dirName = str(Path(filename).parent.absolute())
 
-                if not os.path.exists(filename):
-                    if all([mylar.CONFIG.MULTIPLE_DEST_DIRS is not None, mylar.CONFIG.MULTIPLE_DEST_DIRS != 'None']):
-                        if os.path.exists(os.path.join(mylar.CONFIG.MULTIPLE_DEST_DIRS, os.path.basename(dirName))):
-                            secondary_folder = os.path.join(mylar.CONFIG.MULTIPLE_DEST_DIRS, os.path.basename(dirName))
-                        else:
-                            ff = mylar.filers.FileHandlers(ComicID=issuedata['ComicID'])
-                            secondary_folder = ff.secondary_folders(dirName)
+            if not os.path.exists(filename):
+                if all([mylar.CONFIG.MULTIPLE_DEST_DIRS is not None, mylar.CONFIG.MULTIPLE_DEST_DIRS != 'None']):
+                    if os.path.exists(os.path.join(mylar.CONFIG.MULTIPLE_DEST_DIRS, os.path.basename(dirName))):
+                        secondary_folder = os.path.join(mylar.CONFIG.MULTIPLE_DEST_DIRS, os.path.basename(dirName))
+                    else:
+                        ff = mylar.filers.FileHandlers(ComicID=issuedata['ComicID'])
+                        secondary_folder = ff.secondary_folders(dirName)
 
-                        if os.path.join(secondary_folder, os.path.basename(filename)):
-                            dirName = secondary_folder
-                            filename = os.path.join(secondary_folder, os.path.basename(filename))
+                    if os.path.join(secondary_folder, os.path.basename(filename)):
+                        dirName = secondary_folder
+                        filename = os.path.join(secondary_folder, os.path.basename(filename))
+                        if not os.path.exists(filename):
+                            file_check = list(Path(dirName).rglob('*'+issuedata['Location']))
+                            if len(file_check) > 0:
+                                filename = str(file_check[0])
+                                dirName = str(Path(filename).parent.absolute())
 
-                comicid = issuedata['ComicID']
-                seriesyear = issuedata['ComicYear']
-                agerating = issuedata['AgeRating']
-                comicname = issuedata['ComicName']
+            comicid = issuedata['ComicID']
+            seriesyear = issuedata['ComicYear']
+            agerating = issuedata['AgeRating']
+            comicname = issuedata['ComicName']
 
             from . import cmtagmylar
             if mylar.CONFIG.CMTAG_START_YEAR_AS_VOLUME:
@@ -6862,10 +6862,12 @@ class WebInterface(object):
 
         if metaresponse == "fail":
             logger.fdebug(module + ' Unable to write metadata successfully - check mylar.log file.')
-            return json.dumps({'status': 'failure', 'message': 'Unable to write metadatata - there was errors. Check the log file.'})
+            mylar.GLOBAL_MESSAGES = {'status': 'failure', 'comicname': comicname, 'seriesyear': seriesyear, 'comicid': comicid, 'tables': 'both', 'message': 'Unable to write metadata - there were errors. Check the log files'}
+            return
         elif metaresponse == "unrar error":
             logger.error(module + ' This is a corrupt archive - whether CRC errors or it is incomplete. Marking as BAD, and retrying a different copy.')
-            return json.dumps({'status': 'failure', 'message': '[%s] Corrupt archive detected. %s' % filename})
+            mylar.GLOBAL_MESSAGES = {'status': 'failure', 'comicname': comicname, 'seriesyear': seriesyear, 'comicid': comicid, 'tables': 'both', 'message': '%s is a corrupt archive.' % dst_filename}
+            return
             #launch failed download handling here.
         else:
             dst_filename = os.path.split(metaresponse)[1]
@@ -6920,9 +6922,9 @@ class WebInterface(object):
         if all([group is False, fail is False]):
             updater.forceRescan(comicid)
             if group is False:
-                return json.dumps({'status': 'success', 'message': 'Successfully meta-tagged %s' % dst_filename})
+                mylar.GLOBAL_MESSAGES = {'status': 'success', 'comicname': comicname, 'seriesyear': seriesyear, 'comicid': comicid, 'tables': 'both', 'message': 'Successfully meta-tagged %s' % dst_filename}
         elif all([group is False, fail is True]):
-            return json.dumps({'status': 'failure', 'message': '[%s] Metatagging was not successful for %s' % dst_filename})
+            mylar.GLOBAL_MESSAGES = {'status': 'failure', 'comicname': comicname, 'seriesyear': seriesyear, 'comicid': comicid, 'tables': 'both', 'message': 'Metatagging was not successful for %s' % dst_filename}
 
     manual_metatag.exposed = True
 
