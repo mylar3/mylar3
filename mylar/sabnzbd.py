@@ -104,9 +104,12 @@ class SABnzbd(object):
                     #    logger.warn('Either disable Completed Download Handling for SABnzbd within Mylar, or remove ComicRN from your category script in SABnzbd.')
                     #    return {'status': 'double-pp', 'failed': False}
 
-                    #logger.fdebug('queue_params: %s' % self.params['queue'])
+                    logger.fdebug('queue_params: %s' % self.params['queue'])
                     tmp_queue = self.params['queue']
-                    tmp_queue.pop('search')
+                    try:
+                        tmp_queue.pop('search')
+                    except Exception as e:
+                        logger.fdebug('unable to pop search term - possibly already done/finished/does not exist')
                     tmp_queue['nzo_ids'] = self.params['nzo_id']
                     #logger.fdebug('tmp_queue: %s' % (tmp_queue,))
                     queue_resp = requests.get(self.sab_url, params=tmp_queue, verify=False)

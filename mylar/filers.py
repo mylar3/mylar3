@@ -100,8 +100,15 @@ class FileHandlers(object):
         comicdir = comicname_filesafe
 
         series = comicdir
-        if series[-1:] == '.':
-            series[:-1]
+        if any([series.endswith('.'), series.endswith('..'), series.endswith('...'), series.endswith('....')]):
+            if series.endswith('....'):
+                series = series[:-4]
+            elif series.endswith('...'):
+                series = series[:-3]
+            elif series.endswith('..'):
+                series = series[:-2]
+            elif series.endswith('.'):
+                series = series[:-1]
 
         publisher = re.sub('!', '', self.comic['ComicPublisher']) # thanks Boom!
         publisher = helpers.filesafe(publisher)
@@ -151,6 +158,8 @@ class FileHandlers(object):
         ccf = chunk_folder_format.find('\ ')
         if ccf != -1:
             chunk_folder_format = chunk_folder_format[:ccf+1] + chunk_folder_format[ccf+2:]
+
+        chunk_folder_format = re.sub(r'\s+', ' ', chunk_folder_format)
 
         #do work to generate folder path
         values = {'$Series':        series,

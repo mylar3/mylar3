@@ -159,7 +159,7 @@ DDL_LOCK = False
 CMTAGGER_PATH = None
 STATIC_COMICRN_VERSION = "1.01"
 STATIC_APC_VERSION = "2.04"
-ISSUE_EXCEPTIONS = ['AU', 'AI', 'INH', 'NOW', 'MU', 'HU', 'LR', 'A', 'B', 'C', 'X', 'O','SUMMER', 'SPRING', 'FALL', 'WINTER', 'PREVIEW', 'OMEGA', "DIRECTOR'S CUT", "(DC)"]
+ISSUE_EXCEPTIONS = ['AU', 'AI', 'INH', 'NOW', 'BEY', 'MU', 'HU', 'LR', 'A', 'B', 'C', 'X', 'O','SUMMER', 'SPRING', 'FALL', 'WINTER', 'PREVIEW', 'OMEGA', "DIRECTOR'S CUT", "(DC)"]
 SAB_PARAMS = None
 TMP_PROV = None
 EXT_IP = None
@@ -1449,6 +1449,7 @@ def dbcheck():
 #        c.execute('ALTER TABLE importresults ADD COLUMN MetaData TEXT')
 
     #let's delete errant comics that are stranded (ie. Comicname = Comic ID: )
+    logger.info('Ensuring DB integrity - Removing all Erroneous Comics (ie. named None)')
     c.execute("DELETE from comics WHERE ComicName='None' OR ComicName LIKE 'Comic ID%' OR ComicName is NULL OR ComicName like '%Fetch%failed%'")
     c.execute("DELETE from issues WHERE ComicName='None' OR ComicName LIKE 'Comic ID%' OR ComicName is NULL")
     c.execute("DELETE from issues WHERE ComicID is NULL")
@@ -1457,10 +1458,14 @@ def dbcheck():
     c.execute("DELETE from importresults WHERE ComicName='None' OR ComicName is NULL")
     c.execute("DELETE from storyarcs WHERE StoryArcID is NULL OR StoryArc is NULL")
     c.execute("DELETE from Failed WHERE ComicName='None' OR ComicName is NULL OR ID is NULL")
-    logger.info('Ensuring DB integrity - Removing all Erroneous Comics (ie. named None)')
 
     logger.info('Correcting Null entries that make the main page break on startup.')
     c.execute("UPDATE Comics SET LatestDate='Unknown' WHERE LatestDate='None' or LatestDate is NULL")
+
+    try:
+        c.execute("DELETE FROM weekly WHERE Publisher is NULL AND COMIC IS NOT NULL")
+    except Exception:
+        pass
 
     job_listing = c.execute('SELECT * FROM jobhistory')
     job_history = []

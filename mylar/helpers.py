@@ -992,6 +992,14 @@ def issuedigits(issnum):
                     int_issnum = (int(issnum[:-3]) * 1000) + ord('n') + ord('o') + ord('w')
                 else:
                     int_issnum = (int(issnum[:-4]) * 1000) + ord('n') + ord('o') + ord('w')
+            elif 'bey' in issnum.lower():
+                remdec = issnum.find('.')  #find the decimal position.
+                if remdec == -1:
+                #if no decimal, it's all one string
+                #remove the last 3 characters from the issue # (BEY)
+                    int_issnum = (int(issnum[:-3]) * 1000) + ord('b') + ord('e') + ord('y')
+                else:
+                    int_issnum = (int(issnum[:-4]) * 1000) + ord('b') + ord('e') + ord('y')
             elif 'mu' in issnum.lower():
                 remdec = issnum.find('.')
                 if remdec == -1:
@@ -1445,26 +1453,29 @@ def havetotals(refreshit=None):
             elif comic['ForceContinuing'] == 1:
                 recentstatus = 'Continuing'
             elif 'present' in comic['ComicPublished'].lower() or (today()[:4] in comic['LatestDate']):
-                latestdate = comic['LatestDate']
-                #pull-list f'd up the date by putting '15' instead of '2015' causing 500 server errors
-                if '-' in latestdate[:3]:
-                    st_date = latestdate.find('-')
-                    st_remainder = latestdate[st_date+1:]
-                    st_year = latestdate[:st_date]
-                    year = '20' + st_year
-                    latestdate = str(year) + '-' + str(st_remainder)
-                    #logger.fdebug('year set to: ' + latestdate)
-                c_date = datetime.date(int(latestdate[:4]), int(latestdate[5:7]), 1)
-                n_date = datetime.date.today()
-                recentchk = (n_date - c_date).days
-                if comic['NewPublish'] is True:
-                    recentstatus = 'Continuing'
+                if 'Err' in comic['LatestDate']:
+                    recentstatus = 'Loading'
                 else:
-                    #do this just incase and as an extra measure of accuracy hopefully.
-                    if recentchk < 55:
+                    latestdate = comic['LatestDate']
+                    #pull-list f'd up the date by putting '15' instead of '2015' causing 500 server errors
+                    if '-' in latestdate[:3]:
+                        st_date = latestdate.find('-')
+                        st_remainder = latestdate[st_date+1:]
+                        st_year = latestdate[:st_date]
+                        year = '20' + st_year
+                        latestdate = str(year) + '-' + str(st_remainder)
+                        #logger.fdebug('year set to: ' + latestdate)
+                    c_date = datetime.date(int(latestdate[:4]), int(latestdate[5:7]), 1)
+                    n_date = datetime.date.today()
+                    recentchk = (n_date - c_date).days
+                    if comic['NewPublish'] is True:
                         recentstatus = 'Continuing'
                     else:
-                        recentstatus = 'Ended'
+                        #do this just incase and as an extra measure of accuracy hopefully.
+                        if recentchk < 55:
+                            recentstatus = 'Continuing'
+                        else:
+                            recentstatus = 'Ended'
             else:
                 recentstatus = 'Ended'
 

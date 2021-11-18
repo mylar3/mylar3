@@ -1249,6 +1249,8 @@ def updateissuedata(comicid, comicname=None, issued=None, comicIssues=None, call
                     int_issnum = (int(issnum[:-4]) * 1000) + ord('i') + ord('n') + ord('h')
                 elif 'now' in issnum.lower():
                     int_issnum = (int(issnum[:-4]) * 1000) + ord('n') + ord('o') + ord('w')
+                elif 'bey' in issnum.lower():
+                    int_issnum = (int(issnum[:-4]) * 1000) + ord('b') + ord('e') + ord('y')
                 elif 'mu' in issnum.lower():
                     int_issnum = (int(issnum[:-3]) * 1000) + ord('m') + ord('u')
                 elif 'lr' in issnum.lower():
