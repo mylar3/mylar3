@@ -992,6 +992,14 @@ def issuedigits(issnum):
                     int_issnum = (int(issnum[:-3]) * 1000) + ord('n') + ord('o') + ord('w')
                 else:
                     int_issnum = (int(issnum[:-4]) * 1000) + ord('n') + ord('o') + ord('w')
+            elif 'bey' in issnum.lower():
+                remdec = issnum.find('.')  #find the decimal position.
+                if remdec == -1:
+                #if no decimal, it's all one string
+                #remove the last 3 characters from the issue # (BEY)
+                    int_issnum = (int(issnum[:-3]) * 1000) + ord('b') + ord('e') + ord('y')
+                else:
+                    int_issnum = (int(issnum[:-4]) * 1000) + ord('b') + ord('e') + ord('y')
             elif 'mu' in issnum.lower():
                 remdec = issnum.find('.')
                 if remdec == -1:

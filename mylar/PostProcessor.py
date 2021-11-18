@@ -2446,6 +2446,9 @@ class PostProcessor(object):
                 if '!' in issuenum: issuenum = re.sub('\!', '', issuenum)
                 issuenum = re.sub("[^0-9]", "", issuenum)
                 issue_except = '.NOW'
+            elif 'bey' in issuenum.lower() and issuenum[:1].isdigit():
+                issuenum = re.sub("[^0-9]", "", issuenum)
+                issue_except = '.BEY'
             elif 'mu' in issuenum.lower() and issuenum[:1].isdigit():
                 issuenum = re.sub("[^0-9]", "", issuenum)
                 issue_except = '.MU'
