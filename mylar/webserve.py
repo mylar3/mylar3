@@ -2809,6 +2809,8 @@ class WebInterface(object):
     skipped2wanted.exposed = True
 
     def annualDelete(self, comicid, ReleaseComicID=None):
+        if 'delete_' in comicid:
+            comicid = re.sub('delete_', '', comicid).strip()
         myDB = db.DBConnection()
         if ReleaseComicID is None:
             myDB.action("UPDATE annuals set Deleted=1 WHERE ComicID=?", [comicid])
@@ -2816,7 +2818,7 @@ class WebInterface(object):
         else:
             myDB.action("UPDATE annuals set Deleted=1 WHERE ReleaseComicID=?", [ReleaseComicID])
             logger.fdebug("Deleted selected annual from DB with a ComicID of " + str(ReleaseComicID))
-        raise cherrypy.HTTPRedirect("comicDetails?ComicID=%s" % [comicid])
+        return json.dumps({'status': 'success', 'message': 'Successfully removed annuals'})
 
     annualDelete.exposed = True
 
