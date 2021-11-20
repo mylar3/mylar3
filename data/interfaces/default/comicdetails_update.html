@@ -689,8 +689,20 @@
             }
             var action = this.id;
             if (action.startsWith('a')){
-                var dataline = $('#annual_table').DataTable().row(this.closest('tr')).data();
-                table_choice = 'annual';
+                if (action == 'annualDelete'){
+                    var a_name = $(this).attr("name");
+                    a_info = a_name.split("_");
+                    a_cid = a_info[1];
+                    a_rlsid = a_info[2];
+                    console.log('cid:'+a_cid);
+                    console.log('rlsid:'+a_rlsid);
+                    annual_delete(a_cid, a_rlsid);
+                    $('#annual_table').DataTable().ajax.reload(null, false);
+                    return;
+                } else {
+                    var dataline = $('#annual_table').DataTable().row(this.closest('tr')).data();
+                    table_choice = 'annual';
+                }
             } else {
                 var dataline = $('#issue_table').DataTable().row(this.closest('tr')).data();
                 table_choice = 'issue';
@@ -740,6 +752,30 @@
             }
         });
         });
+        function annual_delete(comicid, annualid){
+            $.when($.ajax({
+                 type: "GET",
+                 url: "annualDelete",
+                 data: { comicid: comicid, ReleaseComicID: annualid },
+                 success: function(response) {
+                    obj = JSON.parse(response);
+                    $('#ajaxMsg').html("<div class='msg'><span class='ui-icon ui-icon-check'></span>"+obj['message']+"</div>");
+                    if (obj['status'] == 'success'){
+                        $('#ajaxMsg').addClass('success').fadeIn().delay(3000).fadeOut();
+                    } else {
+                        $('#ajaxMsg').addClass('error').fadeIn().delay(3000).fadeOut();
+                    }
+                 },
+                 error: function(data)
+                     {
+                       alert('ERROR'+data.responseText);
+                     },
+            })).done(function(data) {
+                 //reload_table();
+            });
+        }
+
+
         function mark_the_issues(tabletype){
             if (tabletype == 'issues'){
                 var action=$("#mark_issues option:selected").val();
@@ -1783,7 +1819,7 @@
                                  }
                              });
                              return $('<tr/>')
-                               .append('<td align="center" title="'+icon_title+'" colspan="'+rows.columns()[0].length+'" style="background-color:#0A0A0A;"><div style="tex-align:center;"><a id="annual_link" href="https://comicvine.com/volume/4050-'+rows.data()[0][11]+'" title="View on ComicVine" target="_blank"><span style="font-size:15px;font-weight:bold;color:#f0f0f0;">'+rows.data()[0][10]+'</span></a>&nbsp('+rows.count()+')<div style="float:left;text-align:right;font-size:20px;font-weight:bold;">'+icon+'</div><div style="float:right;text-align:right;font-size:10px;"><a id="annualDelete" name="annualDelete" href="#" title="Remove '+rows.data()[0][10]+' from series"><img src="images/x_grey.png" height="10" width="10"/></a></div></div></td>')
+                               .append('<td align="center" title="'+icon_title+'" colspan="'+rows.columns()[0].length+'" style="background-color:#0A0A0A;"><div style="tex-align:center;"><a id="annual_link" href="https://comicvine.com/volume/4050-'+rows.data()[0][11]+'" title="View on ComicVine" target="_blank"><span style="font-size:15px;font-weight:bold;color:#f0f0f0;">'+rows.data()[0][10]+'</span></a>&nbsp('+rows.count()+')<div style="float:left;text-align:right;font-size:20px;font-weight:bold;">'+icon+'</div><div style="float:right;text-align:right;font-size:10px;"><a id="annualDelete" href="#" name="delete_'+rows.data()[0][7]+'_'+rows.data()[0][11]+'" title="Remove '+rows.data()[0][10]+' from series"><img src="images/x_grey.png" height="10" width="10"/></a></div></div></td>')
                                .attr('data-name', group)
                                .toggleClass('collapsed', expanded);
                          }
