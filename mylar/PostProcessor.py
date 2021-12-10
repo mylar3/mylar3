@@ -1813,7 +1813,7 @@ class PostProcessor(object):
                                 self.oneoff = True
                             ppinfo.append({'comicid':       oneinfo['ComicID'],
                                            'comicname':     oneinfo['ComicName'],
-                                           'seriesyear':    oneinfo['ComicYear'],
+                                           'seriesyear':    oneinfo['SeriesYear'],
                                            'issuenumber':   oneinfo['IssueNumber'],
                                            'publisher':     oneinfo['IssuePublisher'],
                                            'comiclocation': None,
@@ -1836,7 +1836,7 @@ class PostProcessor(object):
                                 OComicname = oneinfo['ComicName']
                                 OIssue = oneinfo['IssueNumber']
                                 OPublisher = None
-                                OSeriesYear = oneinfo['ComicYear']
+                                OSeriesYear = oneinfo['year']
                         else:
                             OComicname = oneinfo['COMIC']
                             OIssue = oneinfo['ISSUE']
