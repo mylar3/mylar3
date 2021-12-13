@@ -3745,14 +3745,14 @@ class WebInterface(object):
             return arclist[0]
     storyarc_main.exposed = True
 
-    def detailStoryArc(self, StoryArcID, StoryArcName=None):
+    def detailStoryArc(self, StoryArcID, StoryArcName=None, **kwargs):
         myDB = db.DBConnection()
         arcinfo = myDB.select("SELECT * from storyarcs WHERE StoryArcID=? and NOT Manual IS 'deleted' order by ReadingOrder ASC", [StoryArcID])
         try:
             cvarcid = arcinfo[0]['CV_ArcID']
             arcpub = arcinfo[0]['Publisher']
-            if StoryArcName is None:
-                StoryArcName = arcinfo[0]['StoryArc']
+            #if StoryArcName is None:
+            StoryArcName = arcinfo[0]['StoryArc']
             lowyear = 9999
             maxyear = 0
             issref = []

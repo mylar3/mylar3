@@ -125,7 +125,7 @@
                                   %>
 
                             <tr class="grade${grade}">
-                                <td id="storyarc"><a href="detailStoryArc?StoryArcID=${item['StoryArcID']}&StoryArcName=${item['StoryArc']}">${item['StoryArc']}</a></td>
+                                <td id="storyarc"><a href="detailStoryArc?StoryArcID=${item['StoryArcID']}&StoryArcName=${item['StoryArc']| u}">${item['StoryArc']}</a></td>
                                 <td id="years">${item['SpanYears']}</td>
                                 <td id="have"><span title="${item['percent']}"></span>${css}<div style="width:${item['percent']}%"><span class="progressbar-front-text">${item['Have']}/${item['Total']}</span></div></td>
                                 <td id="options">
