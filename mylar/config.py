@@ -92,6 +92,7 @@ _CONFIG_DEFINITIONS = OrderedDict({
     'PROBLEM_DATES_SECONDS': (int, 'General', 60),
     'DEFAULT_DATES': (str, 'General', 'store_date'),
     'FOLDER_CACHE_LOCATION': (str, 'General', None),
+    'SCAN_ON_SERIES_CHANGES': (bool, 'General', True),
 
     'RSS_CHECKINTERVAL': (int, 'Scheduler', 20),
     'SEARCH_INTERVAL': (int, 'Scheduler', 360),

@@ -139,7 +139,9 @@ class FileChecker(object):
                 filename = files['filename']
                 filesize = files['comicsize']
                 if filename.startswith('.'):
-                    if all([self.watchcomic is not None, self.watchcomic.startswith('.')]):
+                    if self.watchcomic is None:
+                        continue
+                    elif self.watchcomic.startswith('.'):
                         pass
                     else:
                         continue

@@ -26,6 +26,7 @@ from datetime import timedelta, date
 import re
 import json
 import copy
+import stat
 import ntpath
 from pathlib import Path
 
@@ -209,45 +210,58 @@ class WebInterface(object):
         if ComicID is not None:
             comic_ext = ('.cbr','.cbz','.cb7')
             run_them_down = False
-            if comic['FilesUpdated']:
-                filesupdated = datetime.datetime.strptime(comic['FilesUpdated'], '%Y-%m-%d %H:%M:%S')
-            else:
-                run_them_down = True
+        if comic['FilesUpdated']:
+            filesupdated = datetime.datetime.strptime(comic['FilesUpdated'], '%Y-%m-%d %H:%M:%S')
+        else:
+            run_them_down = True
 
-            if run_them_down is False:
-                if comic['ComicLocation'] is not None:
-                    if os.path.exists(comic['ComicLocation']):
-                        # quick check to see if # of files in directory = haves. If not, rescan.
-                        #file_count = len(fnmatch.filter(os.listdir(comic['ComicLocation']), '*.cb?'))
-                        #if secondary_folders is not None:
-                        #    if os.path.exists(secondary_folders):
-                        #        logger.fdebug('secondary folders: %s' % (secondary_folders,))
-                        #        file_count += len(fnmatch.filter(os.listdir(secondary_folders), '*.cb?'))
+        if all([run_them_down is False, comic['ComicLocation'] is not None, mylar.CONFIG.SCAN_ON_SERIES_CHANGES is True]):
+            if os.path.exists(comic['ComicLocation']):
+                if run_them_down is False:
+                    file_listing = []
+                    filepaths = [comic['ComicLocation']]
+                    if secondary_folders is not None:
+                        if os.path.exists(secondary_folders):
+                            filepaths.append(secondary_folders)
 
-                        #if comic['Have'] is not None:
-                        #    logger.fdebug('file_count: %s / total: %s' % (file_count, int(comic['Have'])))
-                        #    if file_count != int(comic['Have']):
-                        #        logger.info('rescanning now..')
-                        #        run_them_down = True
-
-                        if run_them_down is False:
-                            fl_start = datetime.datetime.now()
-                            file_listing = list(Path(comic['ComicLocation']).rglob('*.cb?'))
-                            sd_start = datetime.datetime.now()
-                            if secondary_folders is not None:
-                                if os.path.exists(secondary_folders):
-                                    file_listing.extend(list(Path(secondary_folders).rglob('*.cb?')))
-                            if len(file_listing) > 0:
-                                cp_start = datetime.datetime.now()
-                                file_listing.sort(key=os.path.getmtime ,reverse=True)
-                                filepath = file_listing[0]
-                                ctime = datetime.datetime.fromtimestamp(os.path.getmtime(filepath))
-                                if ctime > filesupdated:
+                    for rootpaths in filepaths:
+                        if os.stat(rootpaths)[stat.ST_MTIME] > filesupdated.timestamp():
+                            # this will pick up any file deletions, renames, additions
+                            logger.info('Detected root directory changes @ %s - running them down' % rootpaths)
+                            run_them_down = True
+                            break
+                        for root,dir,files in os.walk(rootpaths):
+                            if rootpaths == ''.join(dir):
+                                direc = None
+                            else:
+                                direc = ''.join(dir)
+                                if os.stat(os.path.join(root, direc))[stat.ST_MTIME] > filesupdated.timestamp():
+                                    logger.info('detected sub-directory changes in %s - running them down' % direc)
                                     run_them_down = True
+                                    break
+                            for file in files:
+                                if run_them_down is True:
+                                    break
+                                if file.endswith(tuple(['cbr', 'cbz', 'cb7'])):
+                                    mtime = os.path.getmtime(os.path.join(root, file))
+                                    if mylar.OS_DETECT == 'Windows':
+                                        ctime = os.path.getctime(os.path.join(root, file))
+                                    else:
+                                        ctime = 0
+                                    if mtime > ctime:
+                                        the_time = mtime
+                                    else:
+                                        the_time = ctime
+                                    if the_time > filesupdated.timestamp():
+                                        logger.info('NEW FILE DETECTED: %s - running them down' % file)
+                                        run_them_down = True
+                                        break
+                        if run_them_down is True:
+                            break
 
-            if run_them_down is True:
-                updater.forceRescan(ComicID)
-                comic = myDB.selectone('SELECT * FROM comics WHERE ComicID=?', [ComicID]).fetchone()
+        if run_them_down is True:
+            updater.forceRescan(ComicID)
+            comic = myDB.selectone('SELECT * FROM comics WHERE ComicID=?', [ComicID]).fetchone()
 
         totalissues = comic['Total']
         haveissues = comic['Have']
@@ -2795,6 +2809,8 @@ class WebInterface(object):
     skipped2wanted.exposed = True
 
     def annualDelete(self, comicid, ReleaseComicID=None):
+        if 'delete_' in comicid:
+            comicid = re.sub('delete_', '', comicid).strip()
         myDB = db.DBConnection()
         if ReleaseComicID is None:
             myDB.action("UPDATE annuals set Deleted=1 WHERE ComicID=?", [comicid])
@@ -2802,7 +2818,7 @@ class WebInterface(object):
         else:
             myDB.action("UPDATE annuals set Deleted=1 WHERE ReleaseComicID=?", [ReleaseComicID])
             logger.fdebug("Deleted selected annual from DB with a ComicID of " + str(ReleaseComicID))
-        raise cherrypy.HTTPRedirect("comicDetails?ComicID=%s" % [comicid])
+        return json.dumps({'status': 'success', 'message': 'Successfully removed annuals'})
 
     annualDelete.exposed = True
 
@@ -3729,14 +3745,14 @@ class WebInterface(object):
             return arclist[0]
     storyarc_main.exposed = True
 
-    def detailStoryArc(self, StoryArcID, StoryArcName=None):
+    def detailStoryArc(self, StoryArcID, StoryArcName=None, **kwargs):
         myDB = db.DBConnection()
         arcinfo = myDB.select("SELECT * from storyarcs WHERE StoryArcID=? and NOT Manual IS 'deleted' order by ReadingOrder ASC", [StoryArcID])
         try:
             cvarcid = arcinfo[0]['CV_ArcID']
             arcpub = arcinfo[0]['Publisher']
-            if StoryArcName is None:
-                StoryArcName = arcinfo[0]['StoryArc']
+            #if StoryArcName is None:
+            StoryArcName = arcinfo[0]['StoryArc']
             lowyear = 9999
             maxyear = 0
             issref = []
