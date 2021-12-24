@@ -471,6 +471,12 @@ def process_file_cli(filename, opts, settings, match_results):
                     match_results.fetchDataFailures.append(filename)
                     return
 
+            if all([opts.metadata is not None, cv_md is not None]):
+                try:
+                    if opts.metadata.storyArc.lower() != cv_md.storyArc.lower():
+                        cv_md.storyArc = md.storyArc
+                except Exception as e:
+                    pass
             md.overlay(cv_md)
 
         # ok, done building our metadata. time to save

@@ -14,7 +14,6 @@
 #  along with Mylar.  If not, see <http://www.gnu.org/licenses/>.
 import time
 import datetime
-from xml.dom.minidom import parseString
 import urllib.request, urllib.error, urllib.parse
 import shlex
 import operator
@@ -22,9 +21,23 @@ import re
 import os
 import itertools
 import sys
+import calendar
 
 import mylar
 from mylar import db, logger, helpers, filechecker
+
+def addvialist(queue):
+    while True:
+        if queue.qsize() >= 1:
+            time.sleep(3)
+            item = queue.get(True)
+            if item == 'exit':
+                break
+            logger.info('[MASS-REFRESH][1/%s] Now refreshing %s [%s] ' % (queue.qsize()+1, item['comicname'], item['comicid']))
+            dbUpdate([item['comicid']], calledfrom='refresh')
+        else:
+            mylar.REFRESH_QUEUE.put('exit')
+    return False
 
 def dbUpdate(ComicIDList=None, calledfrom=None, sched=False):
     if mylar.IMPORTLOCK:
@@ -134,9 +147,9 @@ def dbUpdate(ComicIDList=None, calledfrom=None, sched=False):
                 cchk = importer.addComictoDB(ComicID, mismatch)
         else:
             if mylar.CONFIG.CV_ONETIMER == 1:
-                if sched is True:
-                    helpers.job_management(write=True, job='DB Updater', current_run=helpers.utctimestamp(), status='Running')
-                    mylar.UPDATER_STATUS = 'Running'
+                #if sched is True:
+                #    helpers.job_management(write=True, job='DB Updater', current_run=helpers.utctimestamp(), status='Running')
+                #    mylar.UPDATER_STATUS = 'Running'
                 logger.fdebug("CV_OneTimer option enabled...")
                 #in order to update to JUST CV_ONLY, we need to delete the issues for a given series so it's a clea$
                 logger.fdebug("Gathering the status of all issues for the series.")
@@ -164,7 +177,7 @@ def dbUpdate(ComicIDList=None, calledfrom=None, sched=False):
                 if mylar.CONFIG.ANNUALS_ON:
                     #now we load the annuals into memory to pass through to importer when refreshing so that it can
                     #refresh even the manually added annuals.
-                    annual_load = myDB.select('SELECT * FROM annuals WHERE ComicID=?', [ComicID])
+                    annual_load = myDB.select('SELECT * FROM annuals WHERE ComicID=? AND NOT Deleted', [ComicID])
                     logger.fdebug('checking annual db')
                     for annthis in annual_load:
                         if not any(d['ReleaseComicID'] == annthis['ReleaseComicID'] for d in annload):
@@ -173,7 +186,8 @@ def dbUpdate(ComicIDList=None, calledfrom=None, sched=False):
                                   'ReleaseComicID':   annthis['ReleaseComicID'],
                                   'ReleaseComicName': annthis['ReleaseComicName'],
                                   'ComicID':          annthis['ComicID'],
-                                  'ComicName':        annthis['ComicName']
+                                  'ComicName':        annthis['ComicName'],
+                                  'Deleted':          bool(annthis['Deleted'])
                                   })
                             #print 'added annual'
                     issues += annual_load #myDB.select('SELECT * FROM annuals WHERE ComicID=?', [ComicID])
@@ -182,6 +196,14 @@ def dbUpdate(ComicIDList=None, calledfrom=None, sched=False):
                 #myDB.action('DELETE FROM issues WHERE ComicID=?', [ComicID])
                 #myDB.action('DELETE FROM annuals WHERE ComicID=?', [ComicID])
                 logger.fdebug("Refreshing the series and pulling in new data using only CV.")
+
+                lastissuedate = myDB.selectone('SELECT IssueDate, ReleaseDate FROM issues WHERE ComicID=? ORDER BY IssueDate DESC LIMIT 1', [ComicID]).fetchone()
+                if not lastissuedate:
+                    last_issuedate = '0000-00-00'  # set it to make sure every new issue gets autowanted if enabled.
+                else:
+                    last_issuedate = lastissuedate['IssueDate']
+                    if any([last_issuedate is None, last_issuedate == '0000-00-00']):
+                        last_issuedate = lastissuedate['ReleaseDate']
 
                 if whack == False:
                     chkstatus = mylar.importer.addComictoDB(ComicID, mismatch, calledfrom='dbupdate', annload=annload, csyear=csyear, fixed_type=fixed_type)
@@ -195,7 +217,8 @@ def dbUpdate(ComicIDList=None, calledfrom=None, sched=False):
                         if chkstatus['anndata'] is not None:
                             mylar.importer.manualAnnual(annchk=chkstatus['anndata'])
                     else:
-                        logger.warn('There was an error when refreshing this series - Make sure directories are writable/exist, etc')
+                        logger.warn('There was an error when refreshing this series - Make sure directories are writable/exist, and check the logs for any errors/problems.')
+                        mylar.GLOBAL_MESSAGES = {'status': 'failure', 'comicname': ComicName, 'seriesyear': dspyear , 'comicid': ComicID, 'tables': 'both', 'message': 'Failure refreshing %s (%s)' % (ComicName, dspyear)}
                         return
 
                     issues_new = myDB.select('SELECT * FROM issues WHERE ComicID=?', [ComicID])
@@ -249,7 +272,7 @@ def dbUpdate(ComicIDList=None, calledfrom=None, sched=False):
                                             dk = re.sub('-', '', issue['IssueDate']).strip()
                                         else:
                                             dk = re.sub('-', '', issuenew['ReleaseDate']).strip() # converts date to 20140718 format
-                                        if dk == '0000-00-00':
+                                        if dk == '00000000':
                                             logger.warn('Issue Data is invalid for Issue Number %s. Marking this issue as Skipped' % issue['Issue_Number'])
                                             newVAL = {"Status":  "Skipped"}
                                         else:
@@ -263,15 +286,23 @@ def dbUpdate(ComicIDList=None, calledfrom=None, sched=False):
                                                 logger.fdebug('Issue_week: %s -- now_week: %s' % (issue_week, now_week))
                                                 logger.fdebug('Issue date [%s] is in/beyond current week - marking as Wanted.' % dk)
                                                 newVAL = {"Status": "Wanted"}
+                                            elif all([int(re.sub('-', '', last_issuedate).strip()) < int(dk), mylar.CONFIG.AUTOWANT_UPCOMING is True]):
+                                                logger.info('Autowant upcoming triggered for issue #%s' % issuenew['Issue_Number'])
+                                                newVal = {"Status": "Wanted"}
                                             else:
                                                 newVAL = {"Status":  "Skipped"}
 
                                     if newVAL is not None:
-                                        if issue['IssueDate_Edit']:
-                                            logger.fdebug('[#' + str(issue['Issue_Number']) + '] detected manually edited Issue Date.')
-                                            logger.fdebug('new value : ' + str(issue['IssueDate']) + ' ... cv value : ' + str(issuenew['IssueDate']))
-                                            newVAL['IssueDate'] = issue['IssueDate']
-                                            newVAL['IssueDate_Edit'] = issue['IssueDate_Edit']
+                                        if issue['IssueDate_Edit'] is not None:
+                                            if issue['IssueDate_Edit'] == '0000-00-00':
+                                                logger.fdebug('[#%s] Reverting previously edited Issue Date and replacing with CV Issue Date.' % issue['Issue_Number'])
+                                                newVAL['IssueDate'] = issue['IssueDate']
+                                                newVAL['IssueDate_Edit'] = None
+                                            else:
+                                                logger.fdebug('[#%s] Detected manually edited Issue Date.' % issue['Issue_Number'])
+                                                logger.fdebug('new value : ' + str(issue['IssueDate']) + ' ... cv value : ' + str(issuenew['IssueDate']))
+                                                newVAL['IssueDate'] = issue['IssueDate']
+                                                newVAL['IssueDate_Edit'] = issue['IssueDate_Edit']
 
                                         if any(d['IssueID'] == str(issue['IssueID']) for d in ann_list):
                                             logger.fdebug("annual detected for " + str(issue['IssueID']) + " #: " + str(issue['Issue_Number']))
@@ -326,6 +357,11 @@ def dbUpdate(ComicIDList=None, calledfrom=None, sched=False):
                     logger.info('I have added ' + str(len(newiss)) + ' new issues for this series that were not present before.')
                     forceRescan(ComicID)
 
+                    #series.json updater here (after all data written out)
+                    if not calledfrom == 'json_api' and mylar.CONFIG.SERIES_METADATA_LOCAL is True:
+                        sm = mylar.series_metadata.metadata_Series(ComicID, bulk=False, api=False)
+                        sm.update_metadata()
+
                 else:
                     chkstatus = mylar.importer.addComictoDB(ComicID, mismatch, annload=annload, csyear=csyear)
                     #if cchk:
@@ -342,22 +378,38 @@ def dbUpdate(ComicIDList=None, calledfrom=None, sched=False):
                 chkstatus = mylar.importer.addComictoDB(ComicID, mismatch)
 
         cnt += 1
-        if all([sched is False, calledfrom != 'refresh']):
+        if all([sched is False, calledfrom != 'refresh', len(comiclist) > 1]):
             time.sleep(15) #pause for 15 secs so dont hammer CV and get 500 error
         else:
+            if calledfrom == 'refresh':
+                mylar.GLOBAL_MESSAGES = {'status': 'success', 'comicname': ComicName, 'seriesyear': dspyear , 'comicid': ComicID, 'tables': 'both', 'message': 'Successfully refreshed %s (%s)' % (ComicName, dspyear)}
             break
 
-    helpers.job_management(write=True, job='DB Updater', last_run_completed=helpers.utctimestamp(), status='Waiting')
-    mylar.UPDATER_STATUS = 'Waiting'
-    logger.info('Update complete')
+    #helpers.job_management(write=True, job='DB Updater', last_run_completed=helpers.utctimestamp(), status='Waiting')
+    #mylar.UPDATER_STATUS = 'Waiting'
+    logger.fdebug('Update complete')
 
-def latest_update(ComicID, LatestIssue, LatestDate):
+def latest_update(ComicID, LatestIssue, LatestDate, ReleaseComicID=None):
     # here we add to comics.latest
     logger.fdebug(str(ComicID) + ' - updating latest_date to : ' + str(LatestDate))
     myDB = db.DBConnection()
-    latestCTRLValueDict = {"ComicID":      ComicID}
+    cid = ComicID
+    if mylar.CONFIG.ANNUALS_ON:
+        logger.fdebug('checking for releasecomicid %s reference in annuals table' % ReleaseComicID)
+        db_check = myDB.selectone("SELECT ComicID from Annuals WHERE ReleaseComicID=?", [ReleaseComicID]).fetchone()
+        if not db_check:
+            logger.fdebug('Annual has not been added yet to series')
+        else:
+            cid = db_check[0][0]
+            logger.fdebug('ReleaseComicID found of %s linking to series %s' % (ReleaseComicID, cid))
+            if cid != ComicID:
+                cid = ComicID
+            #might have to set the issue to something like 'Annual %s' % LatestIssue ?
+
+    latestCTRLValueDict = {"ComicID":      cid}
     newlatestDict = {"LatestIssue":      str(LatestIssue),
-                    "LatestDate":       str(LatestDate)}
+                     "intLatestIssue":   helpers.issuedigits(LatestIssue),
+                     "LatestDate":       str(LatestDate)}
     myDB.upsert("comics", newlatestDict, latestCTRLValueDict)
 
 def upcoming_update(ComicID, ComicName, IssueNumber, IssueDate, forcecheck=None, futurepull=None, altissuenumber=None, weekinfo=None):
@@ -410,7 +462,7 @@ def upcoming_update(ComicID, ComicName, IssueNumber, IssueDate, forcecheck=None,
     if any(['annual' in ComicName.lower(), 'special' in ComicName.lower()]):
         if mylar.CONFIG.ANNUALS_ON:
             logger.info('checking: ' + str(ComicID) + ' -- issue#: ' + str(IssueNumber))
-            issuechk = myDB.selectone("SELECT * FROM annuals WHERE ComicID=? AND Issue_Number=?", [ComicID, IssueNumber]).fetchone()
+            issuechk = myDB.selectone("SELECT * FROM annuals WHERE ReleaseComicID=? AND Issue_Number=?", [ComicID, IssueNumber]).fetchone()
         else:
             logger.fdebug('Non-standard issue detected (annual/special/etc), but Annual Integration is not enabled. Ignoring result.')
             return
@@ -419,6 +471,98 @@ def upcoming_update(ComicID, ComicName, IssueNumber, IssueDate, forcecheck=None,
     if issuechk is None and altissuenumber is not None:
         logger.info('altissuenumber is : ' + str(altissuenumber))
         issuechk = myDB.selectone("SELECT * FROM issues WHERE ComicID=? AND Int_IssueNumber=?", [ComicID, helpers.issuedigits(altissuenumber)]).fetchone()
+
+    if issuechk is not None:
+        if issuechk['Issue_Number'] == IssueNumber or issuechk['Issue_Number'] == altissuenumber:
+            og_status = issuechk['Status']
+            #safety check - make sure the date for the issue in the db matches or is close to the one being polled against (ie. pull date)
+            wk_info = helpers.weekly_info(weekinfo['weeknumber'], weekinfo['year'])
+            if all([issuechk['ReleaseDate'] is not None, issuechk['ReleaseDate'] != '0000-00-00']):
+               issue_checkdate = issuechk['ReleaseDate']
+            elif all([issuechk['DigitalDate'] is not None, issuechk['DigitalDate'] != '0000-00-00']):
+               issue_checkdate = issuechk['DigitalDate']
+            else:
+               issue_checkdate = issuechk['IssueDate']
+
+            wkds = datetime.datetime.strptime(wk_info['startweek'], '%B %d, %Y')
+            wkstr = wkds - datetime.timedelta(days = 2)
+            wk_start = wkstr.strftime('%Y-%m-%d')
+
+            wkde = datetime.datetime.strptime(wk_info['endweek'], '%B %d, %Y')
+            wkend = wkde + datetime.timedelta(days = 2)
+            wk_end = wkend.strftime('%Y-%m-%d')
+
+            if issue_checkdate != '0000-00-00' and not ( re.sub('-', '', wk_end) >= re.sub('-', '', issue_checkdate) >= re.sub('-', '', wk_start) ):
+                logger.info('[IssueDate:%s] is not within the range of [Pulldate:%s - %s]. Incorrect match being imposed by WS - please log an issue if this has not fixed itself within a few hours' %(issue_checkdate, wk_info['startweek'], wk_info['endweek']))
+                if IssueNumber is not None:
+                    presentline = '%s #%s' % (ComicName, IssueNumber)
+                else:
+                    presentline = '%s' % (ComicName)
+                logger.info('[%s][comicid: %s][issueid: %s] ' % (presentline, ComicID, issuechk['IssueID'])
+)
+                # if it was previously marked as Wanted (prior to this patch) - let's revert so we don't download the wrong thing repeatidly
+                if issuechk['Status'] == 'Wanted':
+                    control = {"IssueID":   issuechk['IssueID']}
+                    newchk = {'Status': 'Skipped'}
+                    myDB.upsert("issues", newchk, control)
+                return {"Status":  'incorrect_match',
+                        "ComicID": ComicID,
+                        "IssueID": issuechk['IssueID']}
+                #return 'incorrect_match'
+            else:
+                #check for 'out-of-whack' series here.
+                whackness = dbUpdate([ComicID], calledfrom='weekly', sched=False)
+                if any([whackness == True, og_status is None]):
+                    if any([issuechk['Status'] == 'Downloaded', issuechk['Status'] == 'Archived', issuechk['Status'] == 'Snatched']):
+                        logger.fdebug('Forcibly maintaining status of : ' + og_status + ' for #' + issuechk['Issue_Number'] + ' to ensure integrity.')
+                    logger.fdebug('Comic series has an incorrect total count. Forcily refreshing series to ensure data is current.')
+                    dbUpdate([ComicID])
+                    issuechk = myDB.selectone("SELECT * FROM issues WHERE ComicID=? AND Int_IssueNumber=?", [ComicID, helpers.issuedigits(IssueNumber)]).fetchone()
+                    if issuechk['Status'] != og_status and (issuechk['Status'] != 'Downloaded' or issuechk['Status'] != 'Archived' or issuechk['Status'] != 'Snatched'):
+                        logger.fdebug('Forcibly changing status of %s back to %s for #%s to stop repeated downloads.' % (issuechk['Status'], og_status, issuechk['Issue_Number']))
+                    else:
+                        logger.fdebug('[%s] / [%s] Status has not changed during refresh or is marked as being Wanted/Skipped correctly.' % (issuechk['Status'], og_status))
+                        og_status = issuechk['Status']
+                else:
+                    logger.fdebug('Comic series already up-to-date ... no need to refresh at this time.')
+
+                logger.fdebug('Available to be marked for download - checking...' + adjComicName + ' Issue: ' + str(issuechk['Issue_Number']))
+                logger.fdebug('...Existing status: ' + og_status)
+                control = {"IssueID":   issuechk['IssueID']}
+                newValue['IssueID'] = issuechk['IssueID']
+                if og_status == "Snatched":
+                    values = {"Status":   "Snatched"}
+                    newValue['Status'] = "Snatched"
+                elif og_status == "Downloaded":
+                    values = {"Status":    "Downloaded"}
+                    newValue['Status'] = "Downloaded"
+                    #if the status is Downloaded and it's on the pullist - let's mark it so everyone can bask in the glory
+
+                elif og_status == "Wanted":
+                    values = {"Status":    "Wanted"}
+                    newValue['Status'] = "Wanted"
+                elif og_status == "Archived":
+                    values = {"Status":    "Archived"}
+                    newValue['Status'] = "Archived"
+                elif og_status == 'Failed':
+                    if mylar.CONFIG.FAILED_DOWNLOAD_HANDLING:
+                        if mylar.CONFIG.FAILED_AUTO:
+                            values = {"Status":   "Wanted"}
+                            newValue['Status'] = "Wanted"
+                        else:
+                            values = {"Status":   "Failed"}
+                            newValue['Status'] = "Failed"
+                    else:
+                        values = {"Status":   "Skipped"}
+                        newValue['Status'] = "Skipped"
+                else:
+                    values = {"Status":    "Skipped"}
+                    newValue['Status'] = "Skipped"
+                #was in wrong place :(
+        else:
+            logger.fdebug('Issues do not match for some reason...weekly new issue: %s' % IssueNumber)
+            return
+
     if issuechk is None:
         if futurepull is None:
             og_status = None
@@ -442,9 +586,9 @@ def upcoming_update(ComicID, ComicName, IssueNumber, IssueDate, forcecheck=None,
                 if hours > 5 or forcecheck == 'yes':
                     pullupd = "yes"
                     logger.fdebug('Now Refreshing comic ' + ComicName + ' to make sure it is up-to-date')
-                    if ComicID[:1] == "G": 
+                    if ComicID[:1] == "G":
                         mylar.importer.GCDimport(ComicID, pullupd)
-                    else: 
+                    else:
                         cchk = mylar.importer.updateissuedata(ComicID, ComicName, calledfrom='weeklycheck') #mylar.importer.addComictoDB(ComicID,mismatch,pullupd)
                 else:
                     logger.fdebug('It has not been longer than 5 hours since we last did this...we will wait so we do not hammer things.')
@@ -469,61 +613,6 @@ def upcoming_update(ComicID, ComicName, IssueNumber, IssueDate, forcecheck=None,
             nKey = {"ComicID": ComicID}
             nVal = {"Status": "Wanted"}
             myDB.upsert("future", nVal, nKey)
-            return
-    if issuechk is not None:
-        if issuechk['Issue_Number'] == IssueNumber or issuechk['Issue_Number'] == altissuenumber:
-            og_status = issuechk['Status']
-            #check for 'out-of-whack' series here.
-            whackness = dbUpdate([ComicID], calledfrom='weekly', sched=False)
-            if any([whackness == True, og_status is None]):
-                if any([issuechk['Status'] == 'Downloaded', issuechk['Status'] == 'Archived', issuechk['Status'] == 'Snatched']):
-                    logger.fdebug('Forcibly maintaining status of : ' + og_status + ' for #' + issuechk['Issue_Number'] + ' to ensure integrity.')
-                logger.fdebug('Comic series has an incorrect total count. Forcily refreshing series to ensure data is current.')
-                dbUpdate([ComicID])
-                issuechk = myDB.selectone("SELECT * FROM issues WHERE ComicID=? AND Int_IssueNumber=?", [ComicID, helpers.issuedigits(IssueNumber)]).fetchone()
-                if issuechk['Status'] != og_status and (issuechk['Status'] != 'Downloaded' or issuechk['Status'] != 'Archived' or issuechk['Status'] != 'Snatched'):
-                    logger.fdebug('Forcibly changing status of %s back to %s for #%s to stop repeated downloads.' % (issuechk['Status'], og_status, issuechk['Issue_Number']))
-                else:
-                    logger.fdebug('[%s] / [%s] Status has not changed during refresh or is marked as being Wanted/Skipped correctly.' % (issuechk['Status'], og_status))
-                    og_status = issuechk['Status']
-            else:
-                logger.fdebug('Comic series already up-to-date ... no need to refresh at this time.')
-
-            logger.fdebug('Available to be marked for download - checking...' + adjComicName + ' Issue: ' + str(issuechk['Issue_Number']))
-            logger.fdebug('...Existing status: ' + og_status)
-            control = {"IssueID":   issuechk['IssueID']}
-            newValue['IssueID'] = issuechk['IssueID']
-            if og_status == "Snatched":
-                values = {"Status":   "Snatched"}
-                newValue['Status'] = "Snatched"
-            elif og_status == "Downloaded":
-                values = {"Status":    "Downloaded"}
-                newValue['Status'] = "Downloaded"
-                #if the status is Downloaded and it's on the pullist - let's mark it so everyone can bask in the glory
-
-            elif og_status == "Wanted":
-                values = {"Status":    "Wanted"}
-                newValue['Status'] = "Wanted"
-            elif og_status == "Archived":
-                values = {"Status":    "Archived"}
-                newValue['Status'] = "Archived"
-            elif og_status == 'Failed':
-                if mylar.CONFIG.FAILED_DOWNLOAD_HANDLING:
-                    if mylar.CONFIG.FAILED_AUTO:
-                        values = {"Status":   "Wanted"}
-                        newValue['Status'] = "Wanted"
-                    else:
-                        values = {"Status":   "Failed"}
-                        newValue['Status'] = "Failed"
-                else:
-                    values = {"Status":   "Skipped"}
-                    newValue['Status'] = "Skipped"
-            else:
-                values = {"Status":    "Skipped"}
-                newValue['Status'] = "Skipped"
-            #was in wrong place :(
-        else:
-            logger.fdebug('Issues do not match for some reason...weekly new issue: %s' % IssueNumber)
             return
 
     if mylar.CONFIG.AUTOWANT_UPCOMING:
@@ -716,10 +805,12 @@ def foundsearch(ComicID, IssueID, mode=None, down=None, provider=None, SARC=None
 
     logger.fdebug(module + ' comicid: ' + str(ComicID))
     logger.fdebug(module + ' issueid: ' + str(IssueID))
+    seriesyear = None
     if mode != 'pullwant':
         if mode != 'story_arc':
             comic = myDB.selectone('SELECT * FROM comics WHERE ComicID=?', [ComicID]).fetchone()
             ComicName = comic['ComicName']
+            seriesyear = comic['ComicYear']
             if mode == 'want_ann':
                 issue = myDB.selectone('SELECT * FROM annuals WHERE IssueID=?', [IssueID]).fetchone()
                 if ComicName != issue['ReleaseComicName'] + ' Annual':
@@ -781,7 +872,7 @@ def foundsearch(ComicID, IssueID, mode=None, down=None, provider=None, SARC=None
         if mode == 'story_arc':
             IssueNum = issue['IssueNumber']
             newsnatchValues = {"ComicName":       ComicName,
-                               "ComicID":         'None',
+                               "ComicID":         ComicID, #'None',
                                "Issue_Number":    IssueNum,
                                "DateAdded":       helpers.now(),
                                "Status":          "Snatched",
@@ -850,7 +941,13 @@ def foundsearch(ComicID, IssueID, mode=None, down=None, provider=None, SARC=None
                     pass
 
             myDB.upsert("oneoffhistory", newValue, ctlVal)
+
+        global_line = 'Successfully snatched %s #%s' % (ComicName, IssueNum)
+        if IssueNum is None:
+            global_line = 'Successfully snatched %s' % (ComicName)
+
         logger.info('%s Updated the status (Snatched) complete for %s Issue: %s' % (module, ComicName, IssueNum))
+        mylar.GLOBAL_MESSAGES = {'status': 'success', 'comicname': ComicName, 'seriesyear': seriesyear, 'comicid': ComicID, 'tables': 'tables', 'message': global_line}
     else:
         if down == 'PP':
             logger.info(module + ' Setting status to Post-Processed in history.')
@@ -925,15 +1022,20 @@ def forceRescan(ComicID, archive=None, module=None, recheck=False):
     else:
         altnames = ''
 
-    if (all([rescan['Type'] != 'Print', rescan['Type'] != 'Digital', rescan['Type'] != 'None', rescan['Type'] is not None]) and rescan['Corrected_Type'] != 'Print') or rescan['Corrected_Type'] == 'TPB':
+    if (all([rescan['Type'] != 'Print', rescan['Type'] != 'Digital', rescan['Type'] != 'None', rescan['Type'] is not None]) and rescan['Corrected_Type'] != 'Print') or any([rescan['Corrected_Type'] == 'TPB', rescan['Corrected_Type'] == 'HC', rescan['Corrected_Type'] == 'GN']):
         if rescan['Type'] == 'One-Shot' and rescan['Corrected_Type'] is None:
             booktype = 'One-Shot'
         else:
-            booktype = 'TPB'
+            if rescan['Type'] == 'GN' and rescan['Corrected_Type'] is None:
+                booktype = 'GN'
+            elif rescan['Type'] == 'HC' and rescan['Corrected_Type'] is None:
+                booktype = 'HC'
+            else:
+                booktype = 'TPB'
     else:
         booktype = None
 
-    annscan = myDB.select('SELECT * FROM annuals WHERE ComicID=?', [ComicID])
+    annscan = myDB.select('SELECT * FROM annuals WHERE ComicID=? AND NOT Deleted', [ComicID])
     if annscan is None:
         pass
     else:
@@ -952,19 +1054,24 @@ def forceRescan(ComicID, archive=None, module=None, recheck=False):
         #logger.fdebug(module + 'comiccnt is:' + str(comiccnt))
         fca.append(tmpval)
         try:
-            if all([mylar.CONFIG.MULTIPLE_DEST_DIRS is not None, mylar.CONFIG.MULTIPLE_DEST_DIRS != 'None', os.path.join(mylar.CONFIG.MULTIPLE_DEST_DIRS, os.path.basename(rescan['ComicLocation'])) != rescan['ComicLocation'], os.path.exists(os.path.join(mylar.CONFIG.MULTIPLE_DEST_DIRS, os.path.basename(rescan['ComicLocation'])))]):
+            if all([mylar.CONFIG.MULTIPLE_DEST_DIRS is not None, mylar.CONFIG.MULTIPLE_DEST_DIRS != 'None']):
+                if os.path.exists(os.path.join(mylar.CONFIG.MULTIPLE_DEST_DIRS, os.path.basename(rescan['ComicLocation']))):
+                    secondary_folders = os.path.join(mylar.CONFIG.MULTIPLE_DEST_DIRS, os.path.basename(rescan['ComicLocation']))
+                else:
+                    ff = mylar.filers.FileHandlers(ComicID=ComicID)
+                    secondary_folders = ff.secondary_folders(rescan['ComicLocation'])
+
                 logger.fdebug(module + 'multiple_dest_dirs:' + mylar.CONFIG.MULTIPLE_DEST_DIRS)
                 logger.fdebug(module + 'dir: ' + rescan['ComicLocation'])
                 logger.fdebug(module + 'os.path.basename: ' + os.path.basename(rescan['ComicLocation']))
-                pathdir = os.path.join(mylar.CONFIG.MULTIPLE_DEST_DIRS, os.path.basename(rescan['ComicLocation']))
-                logger.info(module + ' Now checking files for ' + rescan['ComicName'] + ' (' + str(rescan['ComicYear']) + ') in :' + pathdir)
-                mvals = filechecker.FileChecker(dir=pathdir, watchcomic=rescan['ComicName'], Publisher=rescan['ComicPublisher'], AlternateSearch=altnames)
+                logger.info(module + ' Now checking files for ' + rescan['ComicName'] + ' (' + str(rescan['ComicYear']) + ') in :' + secondary_folders)
+                mvals = filechecker.FileChecker(dir=secondary_folders, watchcomic=rescan['ComicName'], Publisher=rescan['ComicPublisher'], AlternateSearch=altnames)
                 tmpv = mvals.listFiles()
-                #tmpv = filechecker.listFiles(dir=pathdir, watchcomic=rescan['ComicName'], Publisher=rescan['ComicPublisher'], AlternateSearch=altnames)
+                #tmpv = filechecker.listFiles(dir=secondary_dir, watchcomic=rescan['ComicName'], Publisher=rescan['ComicPublisher'], AlternateSearch=altnames)
                 logger.fdebug(module + 'tmpv filecount: ' + str(tmpv['comiccount']))
                 comiccnt += int(tmpv['comiccount'])
                 fca.append(tmpv)
-        except:
+        except Exception:
             pass
     else:
 #        files_arc = filechecker.listFiles(dir=archive, watchcomic=rescan['ComicName'], Publisher=rescan['ComicPublisher'], AlternateSearch=rescan['AlternateSearch'])
@@ -988,7 +1095,7 @@ def forceRescan(ComicID, archive=None, module=None, recheck=False):
                 break
 
             try:
-                if all([booktype == 'TPB', iscnt > 1]) or all([booktype == 'One-Shot', iscnt == 1, cla['JusttheDigits'] is None]):
+                if all([booktype == 'TPB', iscnt > 1]) or all([booktype == 'GN', iscnt > 1]) or all([booktype =='HC', iscnt > 1]) or all([booktype == 'One-Shot', iscnt == 1, cla['JusttheDigits'] is None]):
                     if cla['SeriesVolume'] is not None:
                         just_the_digits = re.sub('[^0-9]', '', cla['SeriesVolume']).strip()
                     else:
@@ -1009,7 +1116,7 @@ def forceRescan(ComicID, archive=None, module=None, recheck=False):
 
     havefiles = 0
     if mylar.CONFIG.ANNUALS_ON:
-        an_cnt = myDB.select("SELECT COUNT(*) FROM annuals WHERE ComicID=?", [ComicID])
+        an_cnt = myDB.select("SELECT COUNT(*) FROM annuals WHERE ComicID=? AND NOT Deleted", [ComicID])
         anncnt = an_cnt[0][0]
     else:
         anncnt = 0
@@ -1044,7 +1151,7 @@ def forceRescan(ComicID, archive=None, module=None, recheck=False):
     mc_annualnumber = []
 
     if mylar.CONFIG.ANNUALS_ON:
-        mult_ann_check = myDB.select('SELECT * FROM annuals WHERE ComicID=? GROUP BY Int_IssueNumber HAVING (COUNT(Int_IssueNumber) > 1)', [ComicID])
+        mult_ann_check = myDB.select('SELECT * FROM annuals WHERE ComicID=? AND NOT Deleted GROUP BY Int_IssueNumber HAVING (COUNT(Int_IssueNumber) > 1)', [ComicID])
 
         if len(mult_ann_check) == 0:
             logger.fdebug('[ANNUAL-CHK] No annuals with identical issue numbering across annual volumes were detected for this series')
@@ -1056,7 +1163,7 @@ def forceRescan(ComicID, archive=None, module=None, recheck=False):
 
         if not mc_annualnumber is None:
             for mcann in mc_annualnumber:
-                achk = myDB.select('SELECT * FROM annuals WHERE ComicID=? AND Int_IssueNumber=?', [ComicID, mcann['Int_IssueNumber']])
+                achk = myDB.select('SELECT * FROM annuals WHERE ComicID=? AND Int_IssueNumber=? AND NOT Deleted', [ComicID, mcann['Int_IssueNumber']])
                 for ack in achk:
                     mc_annual.append({"Int_IssueNumber":   ack['Int_IssueNumber'],
                                       "IssueYear":         ack['IssueDate'][:4],
@@ -1068,11 +1175,16 @@ def forceRescan(ComicID, archive=None, module=None, recheck=False):
 
     issID_to_ignore = []
     issID_to_ignore.append(str(ComicID))
+    annID_to_ignore = []
+    annID_to_ignore.append(str(ComicID))
     issID_to_write = []
     ANNComicID = None
+    d_annuals = []
+    d_issues = []
 
     reissues = myDB.select('SELECT * FROM issues WHERE ComicID=?', [ComicID])
 
+    a_start = datetime.datetime.now()
     while (fn < fccnt):
         haveissue = "no"
         issuedupe = "no"
@@ -1089,16 +1201,18 @@ def forceRescan(ComicID, archive=None, module=None, recheck=False):
 
         if tmpfc['JusttheDigits'] is not None:
             temploc= tmpfc['JusttheDigits'].replace('_', ' ')
-            temploc = re.sub('[\#\']', '', temploc)
+            if "Director's Cut" not in temploc:
+                temploc = re.sub('[\#\']', '', temploc)
             logger.fdebug('temploc: %s' % temploc)
         else:
             #assume 1 if not given
-            if any([booktype == 'TPB', booktype == 'One-Shot']):
+            if any([booktype == 'TPB', booktype == 'GN', booktype == 'HC', booktype == 'One-Shot']):
                 temploc = '1'
             else:
                 temploc = None
                 logger.warn('The filename [%s] does not have a valid issue number, and the Edition of the series is %s. You might need to Forcibly Mark the Series as TPB/GN and try this again.' % (tmpfc['ComicFilename'], rescan['Type']))
-                return
+                fn += 1
+                continue
 
         if all(['annual' not in temploc.lower(), 'special' not in temploc.lower()]):
             #remove the extension here
@@ -1107,7 +1221,8 @@ def forceRescan(ComicID, archive=None, module=None, recheck=False):
                 logger.fdebug(module + ' Removed extension for issue: ' + temploc)
                 temploc = temploc[:-4]
             fcnew_af = re.findall('[^\()]+', temploc)
-            fcnew = shlex.split(fcnew_af[0])
+            p = shlex.quote(fcnew_af[0])
+            fcnew = shlex.split(p)
 
             fcn = len(fcnew)
             n = 0
@@ -1126,7 +1241,7 @@ def forceRescan(ComicID, archive=None, module=None, recheck=False):
 
                 if temploc is not None:
                     fcdigit = helpers.issuedigits(temploc)
-                elif any([booktype == 'TPB', booktype == 'One-Shot']) and temploc is None:
+                elif any([booktype == 'TPB', booktype == 'GN', booktype == 'HC', booktype == 'One-Shot']) and temploc is None:
                     fcdigit = helpers.issuedigits('1')
 
                 if int(fcdigit) == int_iss:
@@ -1249,9 +1364,9 @@ def forceRescan(ComicID, archive=None, module=None, recheck=False):
             if tmpfc['AnnualComicID']:
                 ANNComicID = tmpfc['AnnualComicID']
                 logger.fdebug(module + ' Forcing ComicID to ' + str(ANNComicID) + ' in case of duplicate numbering across volumes.')
-                reannuals = myDB.select('SELECT * FROM annuals WHERE ComicID=? AND ReleaseComicID=?', [ComicID, ANNComicID])
+                reannuals = myDB.select('SELECT * FROM annuals WHERE ComicID=? AND ReleaseComicID=? AND NOT Deleted', [ComicID, ANNComicID])
             else:
-                reannuals = myDB.select('SELECT * FROM annuals WHERE ComicID=?', [ComicID])
+                reannuals = myDB.select('SELECT * FROM annuals WHERE ComicID=? AND NOT Deleted', [ComicID])
                 ANNComicID = ComicID
 
             if len(reannuals) == 0:
@@ -1302,10 +1417,15 @@ def forceRescan(ComicID, archive=None, module=None, recheck=False):
                                         multiplechk = True
                                         break
                                     if (ma['IssueYear'] in tmpfc['ComicFilename']) and (issyear == ma['IssueYear']):
-                                        logger.fdebug(module + ' Matched to year within filename : ' + str(issyear))
-                                        multiplechk = False
-                                        ANNComicID = ack['ReleaseComicID']
-                                        break
+                                        # make sure that the IssueYear discovered is not preceded by a volume so it matches correctly
+                                        vchk = tmpfc['ComicFilename'].find(ma['IssueYear'])
+                                        if tmpfc['ComicFilename'][vchk-1].lower() == 'v':
+                                            multiplechk = True
+                                        else:
+                                            logger.fdebug(module + ' Matched to year within filename : ' + str(issyear))
+                                            multiplechk = False
+                                            ANNComicID = ack['ReleaseComicID']
+                                            break
                                     else:
                                         logger.fdebug(module + ' Did not match to year within filename : ' + str(issyear))
                                         multiplechk = True
@@ -1424,7 +1544,6 @@ def forceRescan(ComicID, archive=None, module=None, recheck=False):
 
             if writeit == True and haveissue == 'yes':
                 #logger.fdebug(module + ' issueID to write to db:' + str(iss_id))
-                controlValueDict = {"IssueID": str(iss_id)}
 
                 #if Archived, increase the 'Have' count.
                 if archive:
@@ -1432,26 +1551,34 @@ def forceRescan(ComicID, archive=None, module=None, recheck=False):
                 else:
                     issStatus = "Downloaded"
 
-                newValueDict = {"Location":           isslocation,
-                                "ComicSize":          issSize,
-                                "Status":             issStatus
-                                }
-
-                issID_to_ignore.append(str(iss_id))
 
                 if ANNComicID:
-                    myDB.upsert("annuals", newValueDict, controlValueDict)
+                    d_annuals.append((issStatus, issSize, isslocation, iss_id))
+                    annID_to_ignore.append(str(iss_id))
                     ANNComicID = None
                 else:
-                    myDB.upsert("issues", newValueDict, controlValueDict)
+                    d_issues.append((issStatus, issSize, isslocation, iss_id))
+                    issID_to_ignore.append(str(iss_id))
             else:
                 ANNComicID = None
         fn+=1
+    logger.fdebug('[haves] issue_status_generation took %s' % (datetime.datetime.now() - a_start))
+
+    b_start = datetime.datetime.now()
+    try:
+        myDB.action("UPDATE issues SET Status=?, ComicSize=?, Location=? WHERE IssueID=?", d_issues, executemany=True)
+        if d_annuals:
+            myDB.action("UPDATE annuals SET Status=?, ComicSize=?, Location=? WHERE IssueID=?", d_annuals, executemany=True)
+    except Exception as e:
+        logger.warn('Error updating: %s' % e)
+    logger.fdebug('[haves] issue_status_writing took %s' % (datetime.datetime.now() - b_start))
 
     #here we need to change the status of the ones we DIDN'T FIND above since the loop only hits on FOUND issues.
     update_iss = []
+    update_ann = []
     #break this up in sequnces of 200 so it doesn't break the sql statement.
     cnt = 0
+    u_start = datetime.datetime.now()
     for genlist in helpers.chunker(issID_to_ignore, 200):
         tmpsql = "SELECT * FROM issues WHERE ComicID=? AND IssueID not in ({seq})".format(seq=','.join(['?'] *(len(genlist) -1)))
         chkthis = myDB.select(tmpsql, genlist)
@@ -1483,20 +1610,47 @@ def forceRescan(ComicID, archive=None, module=None, recheck=False):
                 #    issStatus = "Snatched"
                 #else:
                 #    issStatus = "Skipped"
-                update_iss.append({"IssueID": chk['IssueID'],
-                                   "Status":  issStatus})
+                update_iss.append((issStatus, chk['IssueID']))
+
+    for genlist in helpers.chunker(annID_to_ignore, 200):
+        tmpsql = "SELECT * FROM annuals WHERE ComicID=? AND NOT Deleted AND IssueID not in ({seq})".format(seq=','.join(['?'] *(len(genlist) -1)))
+        chkthis = myDB.select(tmpsql, genlist)
+        if chkthis is None:
+            pass
+        else:
+            for chk in chkthis:
+                if chk['IssueID'] in annID_to_ignore:
+                    continue
+
+                old_status = chk['Status']
+
+                if old_status == "Skipped":
+                    if mylar.CONFIG.AUTOWANT_ALL:
+                        issStatus = "Wanted"
+                    else:
+                        issStatus = "Skipped"
+                elif old_status == "Downloaded":
+                    issStatus = "Archived"
+                else:
+                    continue
+                update_ann.append((issStatus, chk['IssueID']))
+
+
+    logger.fdebug('[nothaves] issue_status_generation_time_taken: %s' % (datetime.datetime.now() - u_start))
 
     if len(update_iss) > 0:
-        i = 0
-        #do it like this to avoid DB locks...
-        for ui in update_iss:
-            controlValueDict = {"IssueID": ui['IssueID']}
-            newStatusValue = {"Status": ui['Status']}
-            myDB.upsert("issues", newStatusValue, controlValueDict)
-            i+=1
-        logger.info(module + ' Updated the status of ' + str(i) + ' issues for ' + rescan['ComicName'] + ' (' + str(rescan['ComicYear']) + ') that were not found.')
-
-    logger.info(module + ' Total files located: ' + str(havefiles))
+        r_start = datetime.datetime.now()
+        try:
+            myDB.action("UPDATE issues SET Status=? WHERE IssueID=?", update_iss, executemany=True)
+            myDB.action("UPDATE annuals SET Status=? WHERE IssueID=?", update_ann, executemany=True)
+        except Exception as e:
+            logger.warn('Error updating: %s' % e)
+        logger.fdebug('[nothaves] issue_status_writing took %s' % (datetime.datetime.now() - r_start))
+        logger.info(
+            '%s Updated the status of %s issues for %s (%s) that were not found.'
+            % (module, len(update_iss), rescan['ComicName'], rescan['ComicYear'])
+        )
+    logger.info('%s Total files located: %s' % (module, havefiles))
 
     foundcount = havefiles
     arcfiles = 0
@@ -1506,7 +1660,7 @@ def forceRescan(ComicID, archive=None, module=None, recheck=False):
     arcissues = myDB.select("SELECT count(*) FROM issues WHERE ComicID=? and Status='Archived'", [ComicID])
     if int(arcissues[0][0]) > 0:
         arcfiles = arcissues[0][0]
-    arcannuals = myDB.select("SELECT count(*) FROM annuals WHERE ComicID=? and Status='Archived'", [ComicID])
+    arcannuals = myDB.select("SELECT count(*) FROM annuals WHERE ComicID=? and Status='Archived' AND NOT Deleted", [ComicID])
     if int(arcannuals[0][0]) > 0:
         arcanns = arcannuals[0][0]
 
@@ -1514,22 +1668,31 @@ def forceRescan(ComicID, archive=None, module=None, recheck=False):
         if arcfiles > 0 or arcanns > 0:
             arcfiles = arcfiles + arcanns
             havefiles = havefiles + arcfiles
-            logger.fdebug(module + ' Adjusting have total to ' + str(havefiles) + ' because of this many archive files already in Archive status :' + str(arcfiles))
+            logger.fdebug(
+                '%s Adjusting have total to %s because of %s files already'
+                ' in an Archive status' % (module, havefiles, arcfiles)
+            )
     else:
         #if files exist in the given directory, but are in an archived state - the numbers will get botched up here.
         if (arcfiles + arcanns) > 0:
-            logger.fdebug(module + ' ' + str(int(arcfiles + arcanns)) + ' issue(s) are in an Archive status already. Increasing Have total from ' + str(havefiles) + ' to include these archives.') 
+            logger.fdebug(
+                '%s %s issue(s) are in an Archive status already.'
+                ' Increasing Have total from %s to include these archives.'
+                % (module, arcfiles + arcanns, havefiles)
+            )
             havefiles = havefiles + (arcfiles + arcanns)
 
     ignorecount = 0
     if mylar.CONFIG.IGNORE_HAVETOTAL:   # if this is enabled, will increase Have total as if in Archived Status
         ignoresi = myDB.select("SELECT count(*) FROM issues WHERE ComicID=? AND Status='Ignored'", [ComicID])
-        ignoresa = myDB.select("SELECT count(*) FROM annuals WHERE ComicID=? AND Status='Ignored'", [ComicID])
+        ignoresa = myDB.select("SELECT count(*) FROM annuals WHERE ComicID=? AND Status='Ignored' AND NOT Deleted", [ComicID])
         ignorecount = int(ignoresi[0][0]) + int(ignoresa[0][0])
         if ignorecount > 0:
             havefiles = havefiles + ignorecount
-            logger.fdebug(module + ' Adjusting have total to ' + str(havefiles) + ' because of this many Ignored files:' + str(ignorecount))
-
+            logger.fdebug(
+                '%s Adjusting have total to %s because of %s Ignored files.'
+                % (module, havefiles, ignorecount)
+            )
 
     snatchedcount = 0
     if mylar.CONFIG.SNATCHED_HAVETOTAL:   # if this is enabled, will increase Have total as if in Archived Status
@@ -1537,56 +1700,89 @@ def forceRescan(ComicID, archive=None, module=None, recheck=False):
         if int(snatches[0][0]) > 0:
             snatchedcount = snatches[0][0]
             havefiles = havefiles + snatchedcount
-            logger.fdebug(module + ' Adjusting have total to ' + str(havefiles) + ' because of this many Snatched files:' + str(snatchedcount))
+            logger.fdebug(
+                '%s Adjusting have total to %s because of %s Snatched files.'
+                % (module, havefiles, snatchedcount)
+            )
 
     #now that we are finished...
     #adjust for issues that have been marked as Downloaded, but aren't found/don't exist.
     #do it here, because above loop only cycles though found comics using filechecker.
-    downissues = myDB.select("SELECT * FROM issues WHERE ComicID=? and Status='Downloaded'", [ComicID])
-    downissues += myDB.select("SELECT * FROM annuals WHERE ComicID=? and Status='Downloaded'", [ComicID])
-    if downissues is None:
+    #downissues = "SELECT *, 0 as type FROM issues WHERE Status='Downloaded' and ComicID=? AND IssueID not in ({seq})".format(seq=','.join(['?'] *(len(issID_to_ignore) -1)))
+    #downchk = myDB.select(downissues, issID_to_ignore)
+    cnt = 0
+    downchk = None
+    for genlist in helpers.chunker(issID_to_ignore, 200):
+        tmpsql = "SELECT *, 0 as type FROM issues WHERE Status='Downloaded' and ComicID=? AND IssueID not in ({seq})".format(seq=','.join(['?'] *(len(genlist) -1)))
+        if cnt == 0:
+            downchk = myDB.select(tmpsql, genlist)
+        else:
+            downchk += myDB.select(tmpsql, genlist)
+        cnt += 1
+    #logger.info('downchklist: %s' % downchklist)
+    #downannuals = "SELECT *, 1 as type FROM annuals WHERE Status='Downloaded' and ComicID=? AND NOT Deleted AND IssueID not in ({seq})".format(seq=','.join(['?'] *(len(issID_to_ignore) -1)))
+    #downchk += myDB.select(downannuals, issID_to_ignore)
+    cnt = 0
+    for genlist in helpers.chunker(annID_to_ignore, 200):
+        annuals_sql = "SELECT *, 1 as type FROM annuals WHERE Status='Downloaded' and ComicID=? AND NOT Deleted AND IssueID not in ({seq})".format(seq=','.join(['?'] *(len(genlist) -1)))
+        if any([cnt == 0, downchk is None]):
+            downchk = myDB.select(annuals_sql, genlist)
+        else:
+            downchk += myDB.select(annuals_sql, genlist)
+        cnt += 1
+
+    if downchk is None:
         pass
     else:
         archivedissues = 0 #set this to 0 so it tallies correctly.
-        for down in downissues:
-            #print "downlocation:" + str(down['Location'])
-            #remove special characters from
-            #temploc = rescan['ComicLocation'].replace('_', ' ')
-            #temploc = re.sub('[\#\'\/\.]', '', temploc)
-            #print ("comiclocation: " + str(rescan['ComicLocation']))
-            #print ("downlocation: " + str(down['Location']))
+        dvalues = []
+
+        for down in downchk:
+            if down['type'] == 1:
+                dtable = 'annuals'
+            else:
+                dtable = 'issues'
+
             if down['Location'] is None:
-                logger.fdebug(module + ' Location does not exist which means file was not downloaded successfully, or was moved.')
+                logger.fdebug(
+                    '%s Location does not exist which means file was not downloaded'
+                    ' successfully, or was moved.' % (module)
+                )
                 controlValue = {"IssueID":  down['IssueID']}
                 newValue = {"Status":    "Archived"}
-                myDB.upsert("issues", newValue, controlValue)
+                myDB.upsert(dtable, newValue, controlValue)
                 archivedissues+=1
-                pass
             else:
-                comicpath = os.path.join(rescan['ComicLocation'], down['Location'])
-                if os.path.exists(comicpath):
-                    continue
-                    logger.fdebug('Issue exists - no need to change status.')
-                else:
-                    if mylar.CONFIG.MULTIPLE_DEST_DIRS is not None and mylar.CONFIG.MULTIPLE_DEST_DIRS != 'None':
-                        if os.path.exists(os.path.join(mylar.CONFIG.MULTIPLE_DEST_DIRS, os.path.basename(rescan['ComicLocation']))):
-                            #logger.fdebug('Issue(s) currently exist and found within multiple destination directory location')
-                            continue
-                    #print "Changing status from Downloaded to Archived - cannot locate file"
-                    controlValue = {"IssueID":   down['IssueID']}
-                    newValue = {"Status":    "Archived"}
-                    myDB.upsert("issues", newValue, controlValue)
+                tmp_location = [x['ComicLocation'] for x in fc['comiclist'] if x['ComicFilename'] == down['Location']]
+                if not tmp_location:
+                    logger.info(
+                        '[%s] Changing status of #%s from Downloaded to Archived -'
+                        ' cannot locate file %s' %
+                        (down['Issue_Number'], down['IssueID'], down['Location'])
+                    )
+                    try:
+                        controlValue = {"IssueID": down['IssueID']}
+                        newValue = {"Status": "Archived"}
+                        logger.info('[%s] %s : %s' % (dtable, newValue, controlValue))
+                        myDB.upsert(dtable, newValue, controlValue)
+                    except Exception as e:
+                        logger.error('error: %s' % e)
                     archivedissues+=1
-        if archivedissues > 0:
-            logger.fdebug(module + ' I have changed the status of ' + str(archivedissues) + ' issues to a status of Archived, as I now cannot locate them in the series directory.')
 
+        if archivedissues > 0:
+            logger.fdebug(
+                '%s I have changed the status of %s issues to a status of Archived,'
+                ' as I now cannot locate them in the series directory.'
+                % (module, len(dvalues))
+            )
         havefiles = havefiles + archivedissues  #arcfiles already tallied in havefiles in above segment
 
     #combined total for dispay total purposes only.
     combined_total = iscnt + anncnt
-    if mylar.CONFIG.IGNORE_TOTAL:   # if this is enabled, will increase Have total as if in Archived Status
+    if mylar.CONFIG.IGNORE_TOTAL:
+        # if this is enabled, will increase Have total as if in Archived Status
         ignoresa = myDB.select("SELECT count(*) FROM issues WHERE ComicID=? AND Status='Ignored'", [ComicID])
-        ignoresb = myDB.select("SELECT count(*) FROM annuals WHERE ComicID=? AND Status='Ignored'", [ComicID])
+        ignoresb = myDB.select("SELECT count(*) FROM annuals WHERE ComicID=? AND Status='Ignored' AND NOT Deleted", [ComicID])
         ignorecnt = ignoresa[0][0] + ignoresb[0][0]
 
         if ignorecnt > 0:
@@ -1620,7 +1816,7 @@ def totals(ComicID, havefiles=None, totalfiles=None, module=None, issueid=None, 
         else:
             hf = myDB.selectone("SELECT a.Have, a.Total, b.Status as IssStatus FROM comics AS a INNER JOIN issues as b ON a.ComicID=b.ComicID WHERE b.IssueID=?", [issueid]).fetchone()
             if hf is None:
-                hf = myDB.selectone("SELECT a.Have, a.Total, b.Status as IssStatus FROM comics AS a INNER JOIN annuals as b ON a.ComicID=b.ComicID WHERE b.IssueID=?", [issueid]).fetchone()
+                hf = myDB.selectone("SELECT a.Have, a.Total, b.Status as IssStatus FROM comics AS a INNER JOIN annuals as b ON a.ComicID=b.ComicID WHERE b.IssueID=? AND NOT b.Deleted", [issueid]).fetchone()
                 filetable = 'annuals'
             totalfiles = int(hf['Total'])
             logger.fdebug('totalfiles: %s' % totalfiles)
@@ -1645,7 +1841,8 @@ def totals(ComicID, havefiles=None, totalfiles=None, module=None, issueid=None, 
     #store just the total of issues, since annuals gets tracked seperately.
     controlValueStat = {"ComicID":     ComicID}
     newValueStat = {"Have":            havefiles,
-                    "Total":           totalfiles}
+                    "Total":           totalfiles,
+                    "FilesUpdated":    helpers.now()}
 
     myDB.upsert("comics", newValueStat, controlValueStat)
     if file is not None:
@@ -1653,3 +1850,228 @@ def totals(ComicID, havefiles=None, totalfiles=None, module=None, issueid=None, 
                             "ComicID":     ComicID}
         newValueStat = {"ComicSize":       os.path.getsize(file)}
         myDB.upsert(filetable, newValueStat, controlValueStat)
+
+
+def watchlist_updater(calledfrom=None, sched=False):
+    # this will retrieve the 'rss' from CV showing the last updated comicids
+    # btwn the last update & the current time. Any id's that fall into the existing
+    # watchlist, and whose last update time is before the update in the feed will
+    # then be queued to be updated. This is to replace the 5 minute auto-updater
+    # since that was very ineffecient.
+
+    myDB = db.DBConnection()
+
+    last_date = None
+    last_run = None
+
+    chk_time = myDB.selectone(
+                   "SELECT prev_run_datetime, last_run_completed, last_date,"
+                   " prev_run_timestamp from jobhistory WHERE JobName='DB Updater'"
+               ).fetchone()
+
+    last_runtimestamp = None
+    if chk_time:
+        # get the last updated time from the sqlitedb.
+        last_run = chk_time['last_date']
+        last_date = chk_time['prev_run_datetime']
+        last_runtimestamp = chk_time['prev_run_timestamp']
+    elif mylar.DB_BACKFILL is True:
+        ld = datetime.datetime.today()
+        lastrun = ld - datetime.timedelta(weeks = mylar.CONFIG.BACKFILL_LENGTH)
+        last_date = datetime.datetime.strftime(lastrun, '%Y-%m-%d %H:%M:%S')
+        logger.info(
+            '[BACKFILL-UPDATE][%s weeks] Setting backfill date to : %s. Anything that has '
+            ' been updated since this date will get refreshed. Let\'s GoOoo'
+            % (mylar.CONFIG.BACKFILL_LENGTH, last_date)
+        )
+
+    if last_run is not None:
+        # if last_run has a value, then the previous result set was > 1500
+        # so it's going thru the space-out process to backfill properly.
+        last_dater = datetime.datetime.utcfromtimestamp(last_run)
+        last_date = datetime.datetime.strftime(last_dater, '%Y-%m-%d %H:%M:%S')
+    elif last_runtimestamp is not None:
+        # check here to see if it's so it fires off no more than 15 minutes since last startup.
+        # this is to avoid constant checks if mylar is restarted several times.
+        rd = datetime.datetime.utcfromtimestamp(last_runtimestamp)
+        rd_mins = rd + datetime.timedelta(seconds = 900)
+        rd_now = datetime.datetime.utcfromtimestamp(time.time())
+        if calendar.timegm(rd_mins.utctimetuple()) > calendar.timegm(rd_now.utctimetuple()):
+            logger.info('[BACKFILL-UPDATE] Update ran < 15 minutes ago. Not running.')
+            return
+
+    # in order to make sure we update a bunch that probably haven't been updated
+    # on intially moving to this new update method, we need to backfill a certain
+    # amount. Set it to the last month which 'should' be enough. Note that this will
+    # get passed on config loading so it's set at that point
+
+    helpers.job_management(write=True, job='DB Updater', current_run=helpers.utctimestamp(), status='Running')
+    mylar.UPDATER_STATUS = 'Running'
+
+    logger.info('[BACKFILL-UPDATE] last date set to : %s' % last_date)
+
+    # the initial load to this new method will be LARGE. So we'll have to
+    # stagger the rss over a few hrs just to make sure.
+
+    # first we get the rss feed.
+    try:
+        update_list = mylar.cv.getComic(
+                          comicid=None, rtype='db_updater', dateinfo=last_date
+                      )
+        # if it returns just a boolean, problem encountered. handle it.
+        if update_list is False:
+            logger.warn(
+                '[BACKFILL-UPDATE] CV is having problems atm. Deferring backfill'
+                ' job until next db update scheduled run time.'
+            )
+            mylar.DB_BACKFILL = False
+            helpers.job_management(write=True, job='DB Updater', last_run_completed=helpers.utctimestamp(), status='Waiting')
+            mylar.UPDATER_STATUS = 'Waiting'
+            return
+    except Exception:
+        logger.warn(
+            '[BACKFILL-UPDATE] CV is having problems atm. Deferring backfill'
+            ' job until next db update scheduled run time.'
+        )
+        mylar.DB_BACKFILL = False
+        helpers.job_management(write=True, job='DB Updater', last_run_completed=helpers.utctimestamp(), status='Waiting')
+        mylar.UPDATER_STATUS = 'Waiting'
+        return
+
+
+    #logger.fdebug('update_list: %s' % (update_list,))
+
+    if update_list['count'] == 0:
+        logger.info('[BACKFILL-UPDATE] Nothing new has been posted to any series in your watchlist')
+        helpers.job_management(write=True, job='DB Updater', current_run=helpers.utctimestamp(), status='Waiting')
+        mylar.UPDATER_STATUS = 'Waiting'
+        return
+
+    set_the_bar = False
+
+    # set the staggered amount here, 1500 results = 100 * 15 api requests.
+    if update_list['totalcount'] >= 1500:
+        #counter = update_list['count'] - 1500
+        set_the_bar = True
+        if mylar.DB_BACKFILL is False:
+            logger.info(
+                '[BACKFILL-UPDATE] %s items returned since last CV update run. Will run every'
+                ' %s minutes grabbing the next 1500 results each time'
+                % (update_list['totalcount'], mylar.CONFIG.BACKFILL_TIMESPAN)
+            )
+            mylar.DB_BACKFILL = True
+
+
+    # update_list now contains dictionary containing all required info.
+    # cycle thru it to get any comicids in list, separate then poll those.
+
+    library = {}
+
+    if mylar.CONFIG.ANNUALS_ON is True:
+        list = myDB.select("SELECT a.comicname, a.comicid, b.releasecomicid, a.status, a.LastUpdated, a.Total FROM Comics AS a LEFT JOIN annuals AS b on a.comicid=b.comicid group by a.comicid")
+    else:
+        list = myDB.select("SELECT comicname, comicid, status, LastUpdated, Total FROM Comics group by comicid")
+
+    # if a series failed to update for w/e reason, LastUpdated will be NULL and cause an error otherwise.
+    # the prev_failed_updates dict will store all the 'failed' ID's that will be submitted in addition to any
+    # other ID's that were updated recently by CV during the check.
+    prev_failed_updates = []
+    popthecheck = []
+    for row in list:
+        if row['ComicName'] is None and mylar.CONFIG.ANNUALS_ON:
+            logger.fdebug('Popping the check for: %s' % row['ComicID'])
+            popthecheck.append(row['ComicID'])
+            continue
+        elif not row['LastUpdated'] and all(['ComicID' not in row['ComicName'], row['Status'] != 'Loading', row['ComicName'] is not None]):
+            prev_failed_updates.append(int(row['ComicID']))
+        else:
+            try:
+                tm = datetime.datetime.strptime(row['LastUpdated'], '%Y-%m-%d %H:%M:%S')
+            except Exception:
+                # if the lastupdated date is NULL, but the other values filled in partially - this will make sure to get the ID so it can be refeshed properly
+                prev_failed_updates.append(int(row['ComicID']))
+            else:
+                library[int(row['ComicID'])] = {'comicid':        row['ComicID'],
+                                                'status':         row['Status'],
+                                                'lastupdated':    calendar.timegm(tm.utctimetuple()),
+                                                'total':          row['Total']}
+        try:
+            if row['ReleaseComicID'] is not None and all(['ComicID' not in row['ComicName'], row['Status'] != 'Loading', row['ComicName'] is not None]):
+                library[row['ReleaseComicID']] = {'comicid':     row['ComicID'],
+                                                  'status':      row['Status']}
+        except:
+            pass
+
+    if len(popthecheck) > 0:
+        logger.fdebug('doing the popcheck')
+        # this is for annuals that have been mistakingly added during a previous phase - they have a ComicID on the comics table but nothing linked anywhere to it
+        # this will check to see if the releasecomicid is present on the annuals table (as it just got verified as being on the comics table) and if it is,
+        # will not flag it for a previous failed update action (ie. refresh). The None values in the Comics table will get cleared out on next restart.
+        for pc in popthecheck:
+            list = myDB.select("SELECT comicname, comicid, status FROM Annuals WHERE releasecomicid=? AND comicname is not NULL", [pc]).fetchone()
+            if not list:
+                continue
+            else:
+                prev_failed_updates.append(int(row['ComicID']))
+    # this is based on comicid updates atm.
+    to_check = []
+    loaddate_stamp = None
+    cntr = int(update_list['count'])
+    cntr_chk = 1
+    for x in update_list['results']:
+        if all([set_the_bar is True, loaddate_stamp is None, cntr_chk == cntr]) or loaddate_stamp is not None:
+            # set the last record timestamp as the newest date since it's in asc
+            loaddate = datetime.datetime.strptime(x['last_updated'], '%Y-%m-%d %H:%M:%S')
+            loaddate_stamp = calendar.timegm(loaddate.utctimetuple())
+
+        if x['comicid']['id'] in library:
+            #logger.info('matched to %s' % x['comicid']['id'])
+            tm = datetime.datetime.strptime(x['last_updated'], '%Y-%m-%d %H:%M:%S')
+            if all(
+               [
+                   library[x['comicid']['id']]['lastupdated'] < calendar.timegm(tm.utctimetuple()),
+               ]
+            ):
+                if x['comicid']['id'] not in to_check:
+                    to_check.append(x['comicid']['id'])
+        cntr_chk += 1
+
+    if len(to_check) > 0:
+        logger.info(
+            '[BACKFILL-UPDATE] [%s] series to update: %s' % (len(to_check), to_check)
+        )
+    if len(prev_failed_updates) > 0:
+        logger.info(
+            '[BACKFILL-UPDATE] [%s] series need to be updated due to previous'
+            ' failures: %s' % (len(prev_failed_updates), prev_failed_updates)
+        )
+        to_check.extend(prev_failed_updates)
+    else:
+        logger.info(
+            '[BACKFILL-UPDATE] No updates to watchlisted items checked against %s items'
+            % (cntr)
+        )
+
+    logger.info('[BACKFILL-UPDATE] Setting last update date to: %s' % loaddate_stamp)
+
+    # dbUpdate updates lasupdated so this won't get called again unless updated.
+    dbUpdate(to_check, calledfrom='updatedb')
+
+    # update the last_date so that if it's large set, we'll keep on ramping it up.
+    myDB.upsert("jobhistory", {'last_date': loaddate_stamp }, {'jobName': 'DB Updater'})
+    if loaddate_stamp is not None:
+        logger.info(
+            '[BACKFILL-UPDATE] [%s/%s] Setting last date update point temporarily to %s [%s]'
+            % (update_list['count'], update_list['totalcount'],
+            datetime.datetime.strftime(datetime.datetime.utcfromtimestamp(loaddate_stamp),
+            '%Y-%m-%d %H:%M:%S'), loaddate_stamp)
+        )
+
+    helpers.job_management(write=True, job='DB Updater', last_run_completed=helpers.utctimestamp(), status='Waiting')
+    mylar.UPDATER_STATUS = 'Waiting'
+
+    # once we trigger it the dates above are updated to backfill dates and we can
+    # reset the backfill to None so it doesn't fire off again.
+    if mylar.DB_BACKFILL is True and loaddate_stamp is None:
+        mylar.DB_BACKFILL = False
+    return

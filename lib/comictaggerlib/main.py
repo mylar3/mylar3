@@ -48,6 +48,10 @@ def ctmain():
     if opts.only_set_key:
         print("Key set")
         return
+    if opts.notes_format:
+        if any([opts.notes_format == 'CVDB', opts.notes_format == 'Issue ID']) and opts.notes_format != SETTINGS.notes_format:
+            SETTINGS.notes_format = opts.notes_format
+            SETTINGS.save()
 
     ComicVineTalker.api_key = SETTINGS.cv_api_key
 

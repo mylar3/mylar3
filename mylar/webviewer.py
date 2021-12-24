@@ -3,6 +3,7 @@ import re
 import cherrypy
 import stat
 import zipfile
+import urllib.parse
 from lib.rarfile import rarfile
 
 import mylar
@@ -18,10 +19,10 @@ class WebViewer(object):
         self.page_num = None
         self.kwargs = None
         self.data = None
-        
-        if not os.path.exists(os.path.join(mylar.DATA_DIR, 'sessions')):                            
-            os.makedirs(os.path.abspath(os.path.join(mylar.DATA_DIR, 'sessions')))   
-  
+
+        if not os.path.exists(os.path.join(mylar.DATA_DIR, 'sessions')):
+            os.makedirs(os.path.abspath(os.path.join(mylar.DATA_DIR, 'sessions')))
+
         updatecherrypyconf = {
             'tools.gzip.on': True,
             'tools.gzip.mime_types': ['text/*', 'application/*', 'image/*'],
@@ -30,7 +31,7 @@ class WebViewer(object):
             'tools.sessions.storage_path': os.path.join(mylar.DATA_DIR, "sessions"),
             'request.show_tracebacks': False,
             #'engine.timeout_monitor.on': False,
-        }    
+        }
         if mylar.CONFIG.HTTP_PASSWORD is None:
             updatecherrypyconf.update({
                 'tools.sessions.on': True,
@@ -38,14 +39,14 @@ class WebViewer(object):
 
         cherrypy.config.update(updatecherrypyconf)
         cherrypy.engine.signals.subscribe()
-        
+
     def read_comic(self, ish_id = None, page_num = None, size = None):
         logger.debug("WebReader Requested, looking for ish_id %s and page_num %s" % (ish_id, page_num))
         if size == None:
             user_size_pref = 'wide'
         else:
             user_size_pref = size
-            
+
         try:
             ish_id
         except:
@@ -65,19 +66,20 @@ class WebViewer(object):
 #            cherrypy.session['sizepref'] = user_size_pref
 #        user_size_pref = cherrypy.session['sizepref']
 #        logger.debug("WebReader setting user_size_pref to %s" % user_size_pref)
-        
+
         scanner = ComicScanner()
         image_list = scanner.reading_images(ish_id)
         logger.debug("Image list contains %s pages" % (len(image_list)))
         if len(image_list) == 0:
             logger.debug("Unpacking ish_id %s from comic_path %s" % (ish_id, comic_path))
             scanner.user_unpack_comic(ish_id, comic_path)
+            image_list = scanner.reading_images(ish_id)
         else:
             logger.debug("ish_id %s already unpacked." % ish_id)
 
         num_pages = len(image_list)
         logger.debug("Found %s pages for ish_id %s from comic_path %s" % (num_pages, ish_id, comic_path))
-        
+
         if num_pages == 0:
             image_list = ['images/skipped_icon.png']
 
@@ -129,6 +131,7 @@ class ComicScanner(object):
 
     def user_unpack_comic(self, ish_id, comic_path):
         logger.info("%s unpack requested" % comic_path)
+
         for root, dirs, files in os.walk(os.path.join(mylar.CONFIG.CACHE_DIR, "webviewer", ish_id), topdown=False):
             for f in files:
                 os.chmod(os.path.join(root, f), stat.S_IRWXU | stat.S_IRWXG | stat.S_IRWXO)  # 0777
@@ -145,16 +148,18 @@ class ComicScanner(object):
             opened_zip.extractall(os.path.join(mylar.CONFIG.CACHE_DIR, "webviewer", ish_id))
         return
 
-    # This method will return a list of .jpg files in their numberical order to be fed into the reading view.
+    # This method will return a list of .jpg files in their numerical order to be fed into the reading view.
     def reading_images(self, ish_id):
         logger.debug("Image List Requested")
         image_list = []
         image_src = os.path.join(mylar.CONFIG.CACHE_DIR, "webviewer", ish_id)
-        image_loc = os.path.join(mylar.CONFIG.HTTP_ROOT, 'cache', "webviewer", ish_id)
+        image_loc = mylar.CONFIG.HTTP_ROOT + '/'.join(['cache', "webviewer", ish_id])
         for root, dirs, files in os.walk(image_src):
             for f in files:
                 if f.endswith((".png", ".gif", ".bmp", ".dib", ".jpg", ".jpeg", ".jpe", ".jif", ".jfif", ".jfi", ".tiff", ".tif")):
-                    image_list.append( os.path.join(image_loc, f) )
+                    rel_dir = os.path.relpath(root, image_src)
+                    rel_file = os.path.join(rel_dir, f)
+                    image_list.append(urllib.parse.quote(os.path.join(image_loc, rel_file)))
                     image_list.sort()
         logger.debug("Image List Created")
         return image_list

@@ -6,196 +6,219 @@
 %>
 
 <%def name="body()">
+        <input type="hidden" id="page_name" value="index" />
         <div class="table_wrapper">
-
 	<table class="display" id="series_table">
-		<thead>
-			<tr>
-				<th id="publisher">Publisher</th>
-				<th id="name">Comic</th>
-                                <th id="year">Year</th>
-				<th id="issue">Last Issue</th>
-                                <th id="published">Published</th>
-                                <th class="hidden" id="havepercent">Have %</th>
-				<th id="have">Have</th>
-                                <th class="hidden" id="totalcount">Total</th>
-                                <th id="status">Status</th>
-                                <th id="active">Active</th>
-                                <th class="hidden" id="activestatus">ActiveSt</th>
-			</tr>
-		</thead>
-		<tbody>
-		%for comic in comics:
-			<%
-                                if comic['percent'] == 101:
-                                        css = '<div class=\"progress-container warning\">'
-                                if comic['percent'] == 100:
-                                        css = '<div class=\"progress-container complete\">'
-                                if comic['percent'] < 100:
-                                        css = '<div class=\"progress-container missing\">'
-
-                                if any([comic['haveissues'] == 'None', comic['haveissues'] is None]):
-                                    hissues = 0
-                                else:
-                                    hissues = comic['haveissues'] 
-
-                                if any([comic['totalissues'] == 'None', comic['totalissues'] is None]):
-                                    tissues = 0
-                                else:
-                                    tissues = comic['totalissues']
-
-                                comic_percent = comic['percent']
-
-				if comic['Status'] == 'Paused':
-					grade = 'T'
-				elif comic['Status'] == 'Loading':
-			        	grade = 'L'
-                                elif comic['Status'] == 'Error':
-                                        grade = 'X'
-                                else:
-                                        grade = 'A'
-
-                                comicpub = comic['ComicPublisher']
-                                try:
-                                    if len(comic['ComicPublisher']) > 15:
-                                        comicpub = comic['ComicPublisher'][:15] + '...'
-                                except:
-                                    pass
-
-                                comicname = comic['ComicSortName']
-                                try:
-                                    if len(comic['ComicSortName']) > 55:
-                                        comicname = comic['ComicSortName'][:55] + '...'
-                                except:
-                                    pass
-
-                                comicline = comicname
-
-                                comictype = comic['Type']
-                                try:
-                                    if (any([comictype == 'None', comictype is None, comictype == 'Print']) and comic['Corrected_Type'] != 'TPB') or all([comic['Corrected_Type'] is not None, comic['Corrected_Type'] == 'Print']):
-                                        comictype = None
-                                    else:
-                                        if comic['Corrected_Type'] is not None:
-                                            comictype = comic['Corrected_Type']
-                                        else:
-                                            comictype = comictype
-                                except:
-                                    comictype = None
-
-                                if comictype is not None:
-                                    comicline += '  [%s]' % (comictype)
-
-			%>
-			<tr class="grade${grade}">
-				<td id="publisher"><span title="${comicpub}"></span>${comicpub}</td>
-                                <td id="name"><span title="${comicname}"></span><a title="${comic['ComicName']}" href="comicDetails?ComicID=${comic['ComicID']}">${comicline}</a></td>
-                                <td id="year"><span title="${comic['ComicYear']}"></span>${comic['ComicYear']}</td>
-				<td id="issue"><span title="${comic['LatestIssue']}"></span># ${comic['LatestIssue']}</td>
-                                <td id="published">${comic['LatestDate']}</td>
-                                <td class="hidden" id="havepercent">${comic_percent}</td>
-				<td id="have"><span title="${comic['percent']}"></span>${css}<div style="width:${comic['percent']}%"><span class="progressbar-front-text">${comic['haveissues']}/${comic['totalissues']}</span></div></td>
-                                <td class="hidden" id="totalcount">${comic['totalissues']}</td>
-				<td id="status">${comic['recentstatus']}</td>
-                                <td id="active" align="center">
-                                %if comic['Status'] == "Active":
-                                    <img src="interfaces/default/images/checkmark.png" alt="Y" width="16" height="16" />
-                                %elif comic['Status'] == 'Paused':
-                                    <img src="interfaces/default/images/pause-icon.png" alt="Paused" width="16" height="16" />
-                                %elif comic['Status'] == 'Loading':
-                                    <img src="interfaces/default/images/hourglass.png" alt="Loading" width="16" height="16" />
-                                %else:
-                                    <img src="interfaces/default/images/cross.png" alt="N" width="16" height="16" />
-                                %endif
-                                </td>
-                                <td class="hidden" id="activestatus">${comic['Status']}</td>
-                         </tr>
-		%endfor
-		</tbody>
+	    <thead>
+	        <tr>
+		    <th id="publisher">Publisher</th>
+		    <th id="name">Comic</th>
+                    <th id="year">Year</th>
+		    <th id="issue">Last Issue</th>
+                    <th id="published">Published</th>
+                    <th id="have">Have</th>
+                    <th id="status">Status</th>
+                    <th id="active">Active</th>
+	        </tr>
+	    </thead>
+            <tbody>
+            </tbody>
 	</table>
       </div>
 </%def>
 
 <%def name="headIncludes()">
-        <link rel="stylesheet" href="interfaces/default/css/data_table.css">
-        <link rel="stylesheet" href="css/alphabetSearch.css">
+        <link rel="stylesheet" href="interfaces/${interface}/css/data_table.css">
 </%def>
 
 <%def name="javascriptIncludes()">
         <script src="js/libs/jquery.dataTables.min.js"></script>
         <script src="js/libs/full_numbers_no_ellipses.js"></script>
-        <script src="js/alphabetSearch.js"></script>
 	<script>
+        $.fn.DataTable.ext.pager.numbers_length = 3;
+        function initThisPage() {
+            initActions();
+            $('#series_table').dataTable( {
+                "preDrawCallback": function (settings){
+                    pageScrollPos = $('#series_table div.datatables_scrollBody').scrollTop();
+                },
+                "sDom": '<"clear"f><"clear"lp><"clear">rt<"clear"ip>',
+                "processing": true,
+                "serverSide": true,
+                "ajaxSource": 'loadhome',
+                "destroy": true,
+                "columnDefs": [
+                    {
+                       "sortable": true,
+                       "targets": [ 0 ],
+                       "visible": true,
+                       "render":function (data,type,full) {
+                           if (full[0]){
+                               if (full[0].length > 20){
+                                   cb = '<span title="' + full[0] + '"></span>'+full[0].slice(0,17)+'...';
+                               } else {
+                                   cb = '<span title="' + full[0] + '"></span>'+full[0];
+                               }
+                           } else {
+                               cb = '<span title="Unavailable (due to CV)"></span>'+full[0];
+                           }
+                           return cb;
+                        }
+                    },
+                    {
+                       "sortable": true,
+                       "targets": [ 1 ],
+                       "visible": true,
+                       "data": "Series",
+                       "render":function (data,type,full) {
+                            if (full[12] && full[12] != 'v1'){
+                                vol = ' ' + full[12];
+                            } else {
+                                vol = '';
+                            }
+                            if (full[11]){
+                                bt = ' [' + full[11] + ']';
+                            } else {
+                                bt = '';
+                            }
+                            if (full[1]){
+                               if (full[1].length > 55){
+                                 cn = full[1].slice(0,55)+"...";
+                               } else {
+                                 cn = full[1];
+                               }
+                               return '<span title="' + full[1] + '"></span><a title="'+ full[1] +'"href="comicDetails?ComicID=' + full[10] + '">' + cn + vol + bt + '</a>';
+                            } else {
+                               return '<span title="' + full[1] + '"></span><a title="'+ full[1] +'"href="comicDetails?ComicID=' + full[10] + '">' + full[1] + '</a>';
+                            }
+                       }
+                    },
+                    {
+                       "sortable": true,
+                       "targets": [ 3 ],
+                       "visible": true,
+                       "render":function (data,type,full) {
+                            if (full[3]){
+                               if (full[3].length == 5 || full[3].length == 6){
+                                 cn = full[3];
+                               } else if (full[3].length > 6){
+                                 cn = '<span title="#'+full[3]+'">#</span>';
+                               } else {
+                                 cn = '#' + full[3];
+                               }
+                               return cn;
+                            } else {
+                               return 'N/A';
+                            }
+                       }
+                    },
+                    {
+                       "sortable": true,
+                       "targets": [ 4 ],
+                       "visible": true,
+                       "render":function (data,type,full) {
+                           if (full[4].includes('Unknown')){
+                               return 'N/A';
+                           } else {
+                               return full[4];
+                           }
+                       }
+                    },
+                    {
+                       "sortable": true,
+                       "targets": [ 5 ],
+                       "visible": true,
+                       "render":function (data,type,full) {
+                                cpercent = full[7]
+                                var css;
+                                if (cpercent >= 101){
+                                    css = '<div class="progress-container warning">';
+                                } else if (cpercent == 100) {
+                                    css = '<div class="progress-container complete">';
+                                } else if (cpercent < 100) {
+                                    css = '<div class="progress-container missing">';
+                                }
+                                return '<span title="' + full[7] +'"></span>' + css + '<div style="' + 'width:' + full[7] + '%;"><span class="progressbar-front-text">' + full[8] + '/' + full[9] + '</span></div>';
+                        }
+                    },
+                   {
+                       "sortable": true,
+                       "targets": [ 6 ],
+                       "visible": true,
+                       "render":function (data,type,full) {
+                           return full[5];
+                       }
+                   },
+                   {
+                       "sortable": true,
+                       "targets": [ 7 ],
+                       "visible": true,
+                       "render":function (data,type,full) {
+                                stats = full[6]
+                                if (stats == 'Active'){
+                                    response = '<img src="images/checkmark.png" alt="Active" width="16" height="16" />';
+                                } else if (stats == 'Paused') {
+                                    response = '<img src="images/pause-icon.png" alt="Paused" width="16" height="16" />';
+                                } else if (stats == 'Loading') {
+                                    response = '<img src="images/hourglass.png" alt="Loading" width="16" height="16" />';
+                                } else {
+                                    response = '<img src="images/cross.png" alt="Error" width="16" height="16" />';
+                                }
+                                return response;
+                        }
+                    },
 
-	function initThisPage() {
-                $.fn.DataTable.ext.pager.numbers_length = 3;
-		 var alphaindex = "${alphaindex}"; 
-                 if (alphaindex == "True") {
-                     var table = $('#series_table').dataTable( {
-                        "destroy": true,
-                        "sDom": '<"clear"Af><"clear"lp><"clear">rt<"clear"ip>',
-                        "columnDefs": [
-                             { "orderable": false, "targets": [5, 7, 10] },
-                             { "visible": false, "targets": [5, 7, 10] },
-                             { "type": 'num', "targets": 5 },
-                             { "type": 'num', "targets": 7 },
-                             { "orderData": [ 5, 7 ], "targets": 6 },
-                             { "orderData": 10, "targets": 9 },
-                             { "order": [[7, 'asc'],[1, 'asc']] }
-                        ],
-                        "lengthMenu": [[10, 15, 25, 50, 100, 200, -1], [10, 15, 25, 50, 100, 200, 'All' ]],
-			"language": {
-                                "lengthMenu":"Show _MENU_ results per page",
-                                "emptyTable": "No results",
-                                "info":"Showing _START_ to _END_ of _TOTAL_ results",
-                                "infoEmpty":"Showing 0 to 0 of 0 results",
-                                "infoFiltered":"(filtered from _MAX_ total results)",
-                                "search" : ""
-			},
-                        "stateSave": true,
-			"stateDuration": 0,
-                        "pageLength": 25,
-                        "pagingType": "simple_numbers",
-                        alphabetSearch: { column:1 }
-		     });
-                 } else {
-                     var table = $('#series_table').dataTable( {
-                         "destroy": true,
-                         "sDom": '<"clear"f><"clear"lp><"clear">rt<"clear"ip>',
-                         "columnDefs": [
-                              { "orderable": false, "targets": [5, 7, 10] },
-                              { "visible": false, "targets": [5, 7, 10] },
-                              { "type": 'num', "targets": 5 },
-                              { "type": 'num', "targets": 7 },
-                              { "orderData": [ 5, 7 ], "targets": 6 },
-                              { "orderData": 10, "targets": 9 },
-                              { "order": [[7, 'asc'],[1, 'asc']] }
-                         ],
-                         "lengthMenu": [[10, 15, 25, 50, 100, 200, -1], [10, 15, 25, 50, 100, 200, 'All' ]],
-                         "language": {
-                                 "lengthMenu":"Show _MENU_ results per page",
-				 "emptyTable": "No results",
-                                 "info":"Showing _START_ to _END_ of _TOTAL_ results",
-                                 "infoEmpty":"Showing 0 to 0 of 0 results",
-                                 "infoFiltered":"(filtered from _MAX_ total results)",
-                                 "search" : ""
-                         },
-                         "stateSave": true,
-			 "stateDuration": 0,
-                         "pageLength": 25,
-                         "pagingType": "simple_numbers",
-                         alphabetSearch: { column: 1 }
-                     });
-                 }
-                 resetFilters("comic");
-	}
-	
-	$(document).ready(function(){
-		        initThisPage();
-	});
-	$(window).load(function(){
-		initFancybox();
-	});
+                ],
+                "paginationType": "simple_numbers",
+                "displayLength": 25,
+                "stateSave": true,
+                "lengthMenu": [[10, 15, 25, 50, 100, 200, -1], [10, 15, 25, 50, 100, 200, 'All' ]],
+                "language": {
+                     "search":"Filter:",
+                     "lengthMenu":"Show _MENU_ items per page",
+                     "emptyTable": "No information available",
+                     "info":"Showing _START_ to _END_ of _TOTAL_ items",
+                     "infoEmpty":"Showing 0 to 0 of 0 lines",
+                     "infoFiltered":"(filtered from _MAX_ total items)"
+                },
+                "rowCallback": function (nRow, aData, iDisplayIndex, iDisplayIndexFull) {
+                     if (aData[6] === "Paused") {
+                        $('td', nRow).closest('tr').addClass("gradeT");
+                     } else if (aData[6] === "Loading") {
+                        $('td', nRow).closest('tr').addClass("gradeL");
+                     } else if (aData[6] === "Error" || aData[6] == "Failed") {
+                        $('td', nRow).closest('tr').addClass("gradeX");
+                     } else {
+                        $('td', nRow).closest('tr').addClass("gradeA");
+                     }
+                     nRow.children[0].id = 'publisher';
+                     nRow.children[1].id = 'name';
+                     nRow.children[2].id = 'year';
+                     nRow.children[3].id = 'issue';
+                     nRow.children[4].id = 'published';
+                     nRow.children[5].id = 'have';
+                     nRow.children[6].id = 'status';
+                     nRow.children[7].id = 'active';
+                     return nRow;
+                 },
+                 "drawCallback": function (o) {
+                     // Jump to top of page
+                     $('#series_table div.dataTables_scrollBody').scrollTop(pageScrollPos);
+                 },
+                 "serverData": function ( sSource, aoData, fnCallback ) {
+                            /* Add some extra data to the sender */
+                            $.getJSON(sSource, aoData, function (json) {
+                                    fnCallback(json)
+                            });
+                 },
+                 "fnInitComplete": function(oSettings, json)
+                 {
+                 },
+            });
+        };
+        $(document).ready(function(){
+            initThisPage();
+        });
 	</script>
 	
 </%def>

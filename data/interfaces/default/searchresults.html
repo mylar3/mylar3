@@ -11,14 +11,14 @@
 <%def name="body()">
 	<div id="paddingheader">
                 <%
-                      if type == 'story_arc':
-                          typesel = " Story Arc"
+                      if search_type == 'story_arc':
+                          typesel = " Story Arc search"
                       else:
-                          typesel = ""
-                      searchtext = "Search results for : </br><center>" + name + "</center>"
+                          typesel = " search"
+                      searchtext = typesel + " results for : </br><center>" + name + "</center>"
                  %>
 
-		<h1 class="clearfix"><img src="interfaces/default/images/icon_search.png" alt="Search results"/>${searchtext}</h1>
+		<h1 class="clearfix"><img src="${icons['icon_search']}" alt="Search results"/>${searchtext}</h1>
 <!--
             <div>
               <form action="CreateFolders" method="GET" id="CreatetheFolders">
@@ -31,7 +31,19 @@
               </form>
             </div>
 -->
+
+            <table style="z-index: 10; position: absolute; float: right; bottom:-30px; right: 0px;">
+                <tr>
+                <td style="float:left;margin-right:10px;"><span style="border:1px solid#ccc;float:left;width:30px;height:12px;margin:4px;;background:#ae3431;"></span> series monitored</td></tr>
+                <tr>
+                <td style="float:left;margin-right:10px;"><span style="border:1px solid#ccc;float:left;width:30px;height:12px;margin:4px;;background:#61924f;"></span> Print</td></tr>
+                <tr>
+                <td style="float:left;margin-right:10px;"><span class="gradeZ" style="border:1px solid#ccc;float:left;width:30px;height:12px;margin:4px;"></span> Digital/TPB/GN/HC</td></tr>
+            </table>
         </div>
+
+        </br>
+
         <div class="table_wrapper">
 	<table class="display" id="searchresults_table">
 		<thead>
@@ -54,18 +66,21 @@
                                             haveit = result['haveit']['comicid']
 					grade = 'Z'
                                         rtype = None
-                                        if type != 'story_arc':
+                                        if search_type != 'story_arc':
                                             if result['type'] == 'Digital':
                                                 rtype = '[Digital]'
                                                 grade = 'Z'
                                             elif result['type'] == 'TPB':
                                                 rtype = '[TPB]'
                                                 grade = 'Z'
+                                            elif result['type'] == 'GN':
+                                                rtype = '[GN]'
+                                                grade = 'Z'
                                             elif result['type'] == 'HC':
                                                 rtype = '[HC]'
                                                 grade = 'Z'
                                             else:
-                                                grade = 'A'
+                                                grade = 'B'
 
                                         if haveit != "No":
                                             grade = 'H';
@@ -90,13 +105,17 @@
 					<td class="issues">${result['issues']}</td>
 
 					%if result['haveit'] == "No":
-                                            %if type == 'story_arc':
+                                            %if search_type == 'story_arc':
 						<td class="add" nowrap="nowrap"><a href="addStoryArc?arcid=${result['comicid']}&cvarcid=${result['cvarcid']}&storyarcname=${result['name'] |u}&storyarcyear=${result['comicyear']}&storyarcpublisher=${result['publisher'] |u}&storyarcissues=${result['issues']}&arclist=${result['arclist']}&desc=${result['description']}&image=${result['comicimage']}"><span class="ui-icon ui-icon-plus"></span> Add this Story Arc</a></td>
                                             %else:
-						<td class="add" nowrap="nowrap"><a href="addComic?comicid=${result['comicid']}&comicname=${result['name'] |u}&comicyear=${result['comicyear']}&comicpublisher=${result['publisher'] |u}&comicimage=${result['comicimage']}&comicissues=${result['issues']}&imported=${imported}&ogcname=${ogcname}&serinfo=${serinfo}"><span class="ui-icon ui-icon-plus"></span> Add this Comic</a></td>
+                                                <td class="add" nowrap="nowrap"><a href="#" title="Add this comic" onclick="doAjaxCall('addbyid?comicid=${result['comicid']}&calledby=True&ogcname=${result['name']| u}',$(this),'table');return true;"><span class="ui-icon ui-icon-plus"></span> Add this Comic</a></td>
                                             %endif
 					%else:
+                                            %if search_type == 'story_arc':
+						<td class="add" nowrap="nowrap"><a href="detailStoryArc?StoryArcID=${haveit}&StoryArcName=${result['name']}"><span class="ui-icon ui-icon-arrowreturnthick-1-n"></span> Already in library</a></td>
+                                            %else:
 						<td class="add" nowrap="nowrap"><a href="comicDetails?ComicID=${haveit}"><span class="ui-icon ui-icon-arrowreturnthick-1-n"></span> Already in library</a></td>
+                                            %endif
 					%endif
 				</tr>
 				%endfor
@@ -107,7 +126,7 @@
 </%def>
 
 <%def name="headIncludes()">
-	<link rel="stylesheet" href="interfaces/default/css/data_table.css">
+	<link rel="stylesheet" href="interfaces/${interface}/css/data_table.css">
 </%def>
 
 <%def name="javascriptIncludes()">

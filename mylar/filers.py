@@ -17,17 +17,28 @@
 
 import re
 import os
+import pathlib
+import json
+import shutil
+import calendar
+import datetime
+import time
 import mylar
-from mylar import helpers, db, logger
+from mylar import helpers, db, logger, filechecker
 
 class FileHandlers(object):
 
-    def __init__(self, comic=None, issue=None, ComicID=None, IssueID=None):
+    def __init__(self, comic=None, issue=None, ComicID=None, IssueID=None, arcID=None):
 
         self.myDB = db.DBConnection()
+        self.weekly = None
         if ComicID is not None:
             self.comicid = ComicID
             self.comic = self.myDB.selectone('SELECT * FROM comics WHERE ComicID=?', [ComicID]).fetchone()
+            if not self.comic:
+                self.weekly = self.myDB.selectone('SELECT * FROM weekly WHERE ComicID=? AND IssueID=?', [ComicID, IssueID]).fetchone()
+                if not self.weekly:
+                    self.comic = None
         elif comic is not None:
             self.comic = comic
             self.comicid = None
@@ -37,7 +48,12 @@ class FileHandlers(object):
 
         if IssueID is not None:
             self.issueid = IssueID
-            self.issue = self.myDB.select('SELECT * FROM issues WHERE IssueID=?', [IssueID])
+            self.issue = self.myDB.selectone('SELECT * FROM issues WHERE IssueID=?', [IssueID]).fetchone()
+            if not self.issue:
+                if mylar.CONFIG.ANNUALS_ON:
+                    self.issue = self.myDB.selectone('SELECT * FROM annuals WHERE IssueID=?', [IssueID]).fetchone()
+                if not self.issue:
+                    self.issue = None
         elif issue is not None:
             self.issue = issue
             self.issueid = None
@@ -45,37 +61,77 @@ class FileHandlers(object):
             self.issue = None
             self.issueid = None
 
-    def folder_create(self, booktype=None):
-        # dictionary needs to passed called comic with {'ComicPublisher', 'CorrectedType, 'Type', 'ComicYear', 'ComicName', 'ComicVersion'}
+        if arcID is not None:
+            self.arcid = arcID
+            self.arc = self.myDB.selectone('SELECT * FROM storyarcs WHERE IssueArcID=?', [arcID]).fetchone()
+        else:
+            self.arc = None
+            self.arcid = None
+
+    def folder_create(self, booktype=None, update_loc=None, secondary=None, imprint=None):
+        # dictionary needs to passed called comic with
+        #  {'ComicPublisher', 'CorrectedType, 'Type', 'ComicYear', 'ComicName', 'ComicVersion'}
         # or pass in comicid value from __init__
 
         # setup default location here
+        if update_loc is not None:
+            comic_location = update_loc['temppath']
+            enforce_format = update_loc['tempff']
+            folder_format = update_loc['tempformat']
+            comicid = update_loc['comicid']
+        else:
+            comic_location = mylar.CONFIG.DESTINATION_DIR
+            enforce_format = False
+            folder_format = mylar.CONFIG.FOLDER_FORMAT
+
+        if folder_format is None:
+            folder_format = '$Series ($Year)'
+
+        if mylar.OS_DETECT == 'Windows':
+            if '/' in folder_format:
+                folder_format = re.sub('/', '\\', folder_format).strip()
+        else:
+            if '\\' in folder_format:
+                folder_format = folder_format.replace('\\', '/').strip()
+
         u_comicnm = self.comic['ComicName']
         # let's remove the non-standard characters here that will break filenaming / searching.
         comicname_filesafe = helpers.filesafe(u_comicnm)
         comicdir = comicname_filesafe
 
         series = comicdir
-        if series[-1:] == '.':
-            series[:-1]
+        if any([series.endswith('.'), series.endswith('..'), series.endswith('...'), series.endswith('....')]):
+            if series.endswith('....'):
+                series = series[:-4]
+            elif series.endswith('...'):
+                series = series[:-3]
+            elif series.endswith('..'):
+                series = series[:-2]
+            elif series.endswith('.'):
+                series = series[:-1]
 
         publisher = re.sub('!', '', self.comic['ComicPublisher']) # thanks Boom!
         publisher = helpers.filesafe(publisher)
 
         if booktype is not None:
             if self.comic['Corrected_Type'] is not None:
-                booktype = self.comic['Corrected_Type']
+                if self.comic['Corrected_Type'] != booktype:
+                    booktype = booktype
+                else:
+                    booktype = self.comic['Corrected_Type']
             else:
                 booktype = booktype
         else:
             booktype = self.comic['Type']
 
         if any([booktype is None, booktype == 'None', booktype == 'Print']) or all([booktype != 'Print', mylar.CONFIG.FORMAT_BOOKTYPE is False]):
-            chunk_fb = re.sub('\$Type', '', mylar.CONFIG.FOLDER_FORMAT)
+            chunk_fb = re.sub('\$Type', '', folder_format)
             chunk_b = re.compile(r'\s+')
             chunk_folder_format = chunk_b.sub(' ', chunk_fb)
+            if booktype != 'Print':
+                booktype = 'None'
         else:
-            chunk_folder_format = mylar.CONFIG.FOLDER_FORMAT
+            chunk_folder_format = folder_format
 
         if any([self.comic['ComicVersion'] is None, booktype != 'Print']):
             comicVol = 'None'
@@ -87,55 +143,174 @@ class FileHandlers(object):
             chunk_f_f = re.sub('\$VolumeN', '', chunk_folder_format)
             chunk_f = re.compile(r'\s+')
             chunk_folder_format = chunk_f.sub(' ', chunk_f_f)
-            logger.fdebug('No version # found for series, removing from folder format')
-            logger.fdebug("new folder format: " + str(chunk_folder_format))
+
+        if any([imprint is None, imprint == 'None']):
+            imprint = self.comic['PublisherImprint']
+        if any([imprint is None, imprint == 'None']):
+            chunk_f_f = re.sub('\$Imprint', '', chunk_folder_format)
+            chunk_f = re.compile(r'\s+')
+            chunk_folder_format = chunk_f.sub(' ', chunk_f_f)
+
+        chunk_folder_format = re.sub("[()|[]]", '', chunk_folder_format).strip()
+        ccf = chunk_folder_format.find('/ ')
+        if ccf != -1:
+            chunk_folder_format = chunk_folder_format[:ccf+1] + chunk_folder_format[ccf+2:]
+        ccf = chunk_folder_format.find('\ ')
+        if ccf != -1:
+            chunk_folder_format = chunk_folder_format[:ccf+1] + chunk_folder_format[ccf+2:]
+
+        chunk_folder_format = re.sub(r'\s+', ' ', chunk_folder_format)
 
         #do work to generate folder path
         values = {'$Series':        series,
                   '$Publisher':     publisher,
+                  '$Imprint':       imprint,
                   '$Year':          self.comic['ComicYear'],
                   '$series':        series.lower(),
                   '$publisher':     publisher.lower(),
                   '$VolumeY':       'V' + self.comic['ComicYear'],
                   '$VolumeN':       comicVol.upper(),
-                  '$Annual':        'Annual',
                   '$Type':          booktype
                   }
-        try:
-            if mylar.CONFIG.FOLDER_FORMAT == '':
-                comlocation = os.path.join(mylar.CONFIG.DESTINATION_DIR, comicdir, " (" + comic['SeriesYear'] + ")")
+
+        if update_loc is not None:
+            #set the paths here with the seperator removed allowing for cross-platform altering.
+            ccdir = pathlib.PurePath(comic_location)
+            ddir = pathlib.PurePath(mylar.CONFIG.DESTINATION_DIR)
+            dlc = pathlib.PurePath(self.comic['ComicLocation'])
+            path_convert = True
+            i = 0
+            bb = []
+            while i < len(dlc.parts):
+                try:
+                    if dlc.parts[i] == ddir.parts[i]:
+                        i+=1
+                        continue
+                    else:
+                        bb.append(dlc.parts[i])
+                        i+=1 #print('d.parts: %s' % ccdir.parts[i])
+                except IndexError:
+                    bb.append(dlc.parts[i])
+                    i+=1
+            bb_tuple = pathlib.PurePath(os.path.sep.join(bb))
+            try:
+                com_base = pathlib.PurePath(dlc).relative_to(ddir)
+            except ValueError as e:
+                #if the original path is not located in the same path as the ComicLocation (destination_dir).
+                #this can happen when manually altered to a new path, or thru various changes to the ComicLocation path over time.
+                #ie. ValueError: '/mnt/Comics/Death of Wolverine The Logan Legacy-(2014)' does not start with '/mnt/mediavg/Comics/Comics-2'
+                dir_fix = []
+                dir_parts = pathlib.PurePath(dlc).parts
+                for dp in dir_parts:
+                    try:
+                        if self.comic['ComicYear'] is not None:
+                            if self.comic['ComicYear'] in dp:
+                                break
+                        if self.comic['ComicName'] is not None:
+                            if self.comic['ComicName'] in dp:
+                                break
+                        if self.comic['ComicPublisher'] is not None:
+                            if self.comic['ComicPublisher'] in dp:
+                                break
+                        if self.comic['PublisherImprint'] is not None:
+                            if self.comic['PublisherImprint'] in dp:
+                                break
+                        if self.comic['ComicVersion'] is not None:
+                            if self.comic['ComicVersion'] in dp:
+                                break
+                        dir_fix.append(dp)
+                    except:
+                        pass
+
+                if len(dir_fix) > 0:
+                    spath = ''
+                    t=0
+                    while (t < len(dir_parts)):
+                        newpath = os.path.join(spath, dir_parts[t])
+                        t+=1
+                    com_base = newpath
+                    #path_convert = False
+            #print('com_base: %s' % com_base)
+            #detect comiclocation path based on OS so that the path seperators are correct
+            #have to figure out how to determine OS of original location...
+            if mylar.OS_DETECT == 'Windows':
+                p_path = pathlib.PureWindowsPath(ccdir)
             else:
-                chunk_folder_format = re.sub('[()|[]]', '', chunk_folder_format).strip()
-                comlocation = os.path.join(mylar.CONFIG.DESTINATION_DIR, helpers.replace_all(chunk_folder_format, values))
-
-        except TypeError as e:
-            if mylar.CONFIG.DESTINATION_DIR is None:
-                logger.error('[ERROR] %s' % e)
-                logger.error('No Comic Location specified. This NEEDS to be set before anything can be added successfully.')
-                return
+                p_path = pathlib.PurePosixPath(ccdir)
+            if enforce_format is True:
+                first = helpers.replace_all(chunk_folder_format, values)
+                if mylar.CONFIG.REPLACE_SPACES:
+                    #mylar.CONFIG.REPLACE_CHAR ...determines what to replace spaces with underscore or dot
+                    first = first.replace(' ', mylar.CONFIG.REPLACE_CHAR)
+                comlocation = str(p_path.joinpath(first))
             else:
-                logger.error('[ERROR] %s' % e)
+                comlocation = str(p_path.joinpath(com_base))
+
+            return {'comlocation':  comlocation,
+                    'path_convert': path_convert,
+                    'comicid':      comicid}
+        else:
+            if secondary is not None:
+                ppath = secondary
+            else:
+                ppath = mylar.CONFIG.DESTINATION_DIR
+
+            ddir = pathlib.PurePath(ppath)
+            i = 0
+            bb = []
+            while i < len(ddir.parts):
+                try:
+                    bb.append(ddir.parts[i])
+                    i+=1
+                except IndexError:
+                    break
+
+            bb2 = bb[0]
+            bb.pop(0)
+            bb_tuple = pathlib.PurePath(os.path.sep.join(bb))
+            #logger.fdebug('bb_tuple: %s' % bb_tuple)
+            if mylar.OS_DETECT == 'Windows':
+                p_path = pathlib.PureWindowsPath(pathlib.PurePath(bb2).joinpath(bb_tuple))
+            else:
+                p_path = pathlib.PurePosixPath(pathlib.PurePath(bb2).joinpath(bb_tuple))
+
+            #logger.fdebug('p_path: %s' % p_path)
+
+            first = helpers.replace_all(chunk_folder_format, values)
+            #logger.fdebug('first-1: %s' % first)
+
+            if mylar.CONFIG.REPLACE_SPACES:
+                first = first.replace(' ', mylar.CONFIG.REPLACE_CHAR)
+            #logger.fdebug('first-2: %s' % first)
+            comlocation = str(p_path.joinpath(first))
+            com_parentdir = str(p_path.joinpath(first).parent)
+            #logger.fdebug('comlocation: %s' % comlocation)
+
+            #try:
+            #    if folder_format == '':
+            #        #comlocation = pathlib.PurePath(comiclocation).joinpath(comicdir, '(%s)') % comic['SeriesYear']
+            #        comlocation = os.path.join(comic_location, comicdir, " (" + comic['SeriesYear'] + ")")
+            #    else:
+            #except TypeError as e:
+            #    if comic_location is None:
+            #        logger.error('[ERROR] %s' % e)
+            #        logger.error('No Comic Location specified. This NEEDS to be set before anything can be added successfully.')
+            #        return
+            #    else:
+            #        logger.error('[ERROR] %s' % e)
+            #        return
+            #except Exception as e:
+            #    logger.error('[ERROR] %s' % e)
+            #    logger.error('Cannot determine Comic Location path properly. Check your Comic Location and Folder Format for any errors.')
+            #    return
+
+            if comlocation == "":
+                logger.error('There is no Comic Location Path specified - please specify one in Config/Web Interface.')
                 return
-        except Exception as e:
-            logger.error('[ERROR] %s' % e)
-            logger.error('Cannot determine Comic Location path properly. Check your Comic Location and Folder Format for any errors.')
-            return
 
-        if mylar.CONFIG.DESTINATION_DIR == "":
-            logger.error('There is no Comic Location Path specified - please specify one in Config/Web Interface.')
-            return
-
-        #enforce proper slashes here..
-        cnt1 = comlocation.count('\\')
-        cnt2 = comlocation.count('/')
-        if cnt1 > cnt2 and '/' in chunk_folder_format:
-            comlocation = re.sub('/', '\\', comlocation)
-
-        if mylar.CONFIG.REPLACE_SPACES:
-            #mylar.CONFIG.REPLACE_CHAR ...determines what to replace spaces with underscore or dot
-            comlocation = comlocation.replace(' ', mylar.CONFIG.REPLACE_CHAR)
-
-        return comlocation
+            return {'comlocation': comlocation,
+                    'subpath':     bb_tuple,
+                    'com_parentdir': com_parentdir}
 
     def rename_file(self, ofilename, issue=None, annualize=None, arc=False, file_format=None): #comicname, issue, comicyear=None, issueid=None)
             comicid = self.comicid   # it's coming in unicoded...
@@ -246,18 +421,8 @@ class FileHandlers(object):
             #comicid = issueinfo['ComicID']
             #issueno = str(issuenum).split('.')[0]
             issue_except = 'None'
-            issue_exceptions = ['AU',
-                                'INH',
-                                'NOW',
-                                'AI',
-                                'MU',
-                                'A',
-                                'B',
-                                'C',
-                                'X',
-                                'O']
             valid_spaces = ('.', '-')
-            for issexcept in issue_exceptions:
+            for issexcept in mylar.ISSUE_EXCEPTIONS:
                 if issexcept.lower() in issuenum.lower():
                     logger.fdebug('ALPHANUMERIC EXCEPTION : [' + issexcept + ']')
                     v_chk = [v for v in valid_spaces if v in issuenum]
@@ -314,10 +479,10 @@ class FileHandlers(object):
                 iss = issuenum
                 issueno = iss
             # issue zero-suppression here
-            if mylar.CONFIG.ZERO_LEVEL == "0":
+            if mylar.CONFIG.ZERO_LEVEL is False:
                 zeroadd = ""
             else:
-                if mylar.CONFIG.ZERO_LEVEL_N  == "none": zeroadd = ""
+                if any([mylar.CONFIG.ZERO_LEVEL_N  == "none", mylar.CONFIG.ZERO_LEVEL_N is None]): zeroadd = ""
                 elif mylar.CONFIG.ZERO_LEVEL_N == "0x": zeroadd = "0"
                 elif mylar.CONFIG.ZERO_LEVEL_N == "00x": zeroadd = "00"
 
@@ -345,7 +510,7 @@ class FileHandlers(object):
                     logger.warn('Unable to properly determine issue number [ %s] - you should probably log this on github for help.' % issueno)
                     return
 
-            if prettycomiss is None and len(str(issueno)) > 0:
+            if all([prettycomiss is None, len(str(issueno)) > 0]):
                 #if int(issueno) < 0:
                 #    self._log("issue detected is a negative")
                 #    prettycomiss = '-' + str(zeroadd) + str(abs(issueno))
@@ -364,7 +529,7 @@ class FileHandlers(object):
                     logger.fdebug('Zero level supplement set to ' + str(mylar.CONFIG.ZERO_LEVEL_N) + '. Issue will be set as : ' + str(prettycomiss))
                 elif int(issueno) >= 10 and int(issueno) < 100:
                     logger.fdebug('issue detected greater than 10, but less than 100')
-                    if mylar.CONFIG.ZERO_LEVEL_N == "none":
+                    if any([mylar.CONFIG.ZERO_LEVEL_N == "none", mylar.CONFIG.ZERO_LEVEL_N is None, mylar.CONFIG.ZERO_LEVEL is False]):
                         zeroadd = ""
                     else:
                         zeroadd = "0"
@@ -560,3 +725,155 @@ class FileHandlers(object):
 
             return rename_this
 
+    def secondary_folders(self, comiclocation, secondary=None):
+        if not secondary:
+            secondary = mylar.CONFIG.MULTIPLE_DEST_DIRS
+
+        secondary_main = self.folder_create(secondary=secondary)
+        secondaryfolders = secondary_main['comlocation']
+
+        if not os.path.exists(secondaryfolders):
+            tmpbase = os.path.basename(comiclocation)
+            tmpath = os.path.join(secondary_main['com_parentdir'], tmpbase)
+
+            if os.path.exists(tmpath):
+                secondaryfolders = tmpath
+
+        return secondaryfolders
+
+    def walk_the_walk(self):
+        folder_location = mylar.CONFIG.FOLDER_CACHE_LOCATION
+        if folder_location is None:
+            return {'status': False}
+
+        logger.info('checking locally...')
+        filelist = None
+
+        logger.info('check_folder_cache: %s' % (mylar.CHECK_FOLDER_CACHE))
+        if mylar.CHECK_FOLDER_CACHE is not None:
+            rd = mylar.CHECK_FOLDER_CACHE #datetime.datetime.utcfromtimestamp(mylar.CHECK_FOLDER_CACHE)
+            rd_mins = rd + datetime.timedelta(seconds = 600)  #10 minute cache retention
+            rd_now = datetime.datetime.utcfromtimestamp(time.time())
+            if calendar.timegm(rd_mins.utctimetuple()) > calendar.timegm(rd_now.utctimetuple()):
+                # if < 10 minutes since last check, use cached listing
+                logger.info('using cached folder listing since < 10 minutes since last file check.')
+                filelist = mylar.FOLDER_CACHE
+
+        if filelist is None:
+            logger.info('generating new directory listing for folder_cache')
+            flc = filechecker.FileChecker(folder_location, justparse=True, pp_mode=True)
+            mylar.FOLDER_CACHE = flc.listFiles()
+            mylar.CHECK_FOLDER_CACHE = datetime.datetime.utcfromtimestamp(helpers.utctimestamp())
+
+        local_status = False
+        filepath = None
+        filename = None
+        for fl in mylar.FOLDER_CACHE['comiclist']:
+            logger.info('fl: %s' % (fl,))
+            if self.arc is not None:
+                comicname = self.arc['ComicName']
+                corrected_type = None
+                alternatesearch = None
+                booktype = self.arc['Type']
+                publisher = self.arc['Publisher']
+                issuenumber = self.arc['IssueNumber']
+                issuedate = self.arc['IssueDate']
+                issuename = self.arc['IssueName']
+                issuestatus = self.arc['Status']
+            elif self.comic is not None:
+                comicname = self.comic['ComicName']
+                booktype = self.comic['Type']
+                corrected_type = self.comic['Corrected_Type']
+                alternatesearch = self.comic['AlternateSearch']
+                publisher = self.comic['ComicPublisher']
+                issuenumber = self.issue['Issue_Number']
+                issuedate = self.issue['IssueDate']
+                issuename = self.issue['IssueName']
+                issuestatus = self.issue['Status']
+            else:
+                # weekly - (one/off)
+                comicname = self.weekly['COMIC']
+                booktype = self.weekly['format']
+                corrected_type = None
+                alternatesearch = None
+                publisher = self.weekly['PUBLISHER']
+                issuenumber = self.weekly['ISSUE']
+                issuedate = self.weekly['SHIPDATE']
+                issuename = None
+                issuestatus = self.weekly['STATUS']
+
+            if booktype is not None:
+                if (all([booktype != 'Print', booktype != 'Digital', booktype != 'None', booktype is not None]) and corrected_type != 'Print') or any([corrected_type == 'TPB', corrected_type == 'GN', corrected_type == 'HC']):
+                    if booktype == 'One-Shot' and corrected_type is None:
+                        booktype = 'One-Shot'
+                    else:
+                        if booktype == 'GN' and corrected_type is None:
+                            booktype = 'GN'
+                        elif booktype == 'HC' and corrected_type is None:
+                            booktype = 'HC'
+                        else:
+                            booktype = 'TPB'
+
+            wm = filechecker.FileChecker(watchcomic=comicname, Publisher=publisher, AlternateSearch=alternatesearch)
+            watchmatch = wm.matchIT(fl)
+
+            logger.info('watchmatch: %s' % (watchmatch,))
+
+            # this is all for a really general type of match - if passed, the post-processing checks will do the real brunt work
+            if watchmatch['process_status'] == 'fail':
+                continue
+
+            if watchmatch['justthedigits'] is not None:
+                temploc= watchmatch['justthedigits'].replace('_', ' ')
+                if "Director's Cut" not in temploc:
+                    temploc = re.sub('[\#\']', '', temploc)
+            else:
+                if any([booktype == 'TPB', booktype =='GN', booktype == 'HC', booktype == 'One-Shot']):
+                    temploc = '1'
+                else:
+                    temploc = None
+                    continue
+
+            int_iss = helpers.issuedigits(issuenumber)
+            issyear = issuedate[:4]
+            old_status = issuestatus
+            issname = issuename
+
+
+            if temploc is not None:
+                fcdigit = helpers.issuedigits(temploc)
+            elif any([booktype == 'TPB', booktype == 'GN', booktype == 'GC', booktype == 'One-Shot']) and temploc is None:
+                fcdigit = helpers.issuedigits('1')
+
+            if int(fcdigit) == int_iss:
+                logger.fdebug('[%s] Issue match - #%s' % (self.issueid, self.issue['Issue_Number']))
+                local_status = True
+                if watchmatch['sub'] is None:
+                    filepath = watchmatch['comiclocation']
+                    filename = watchmatch['comicfilename']
+                else:
+                    filepath = os.path.join(watchmatch['comiclocation'], watchmatch['sub'])
+                    filename = watchmatch['comicfilename']
+                break
+
+
+        #if local_status is True:
+            #try:
+            #    copied_folder = os.path.join(mylar.CONFIG.CACHE_DIR, 'tmp_filer')
+            #    if os.path.exists(copied_folder):
+            #        shutil.rmtree(copied_folder)
+            #    os.mkdir(copied_folder)
+            #    logger.info('created temp directory: %s' % copied_folder)
+            #    shutil.copy(os.path.join(filepath, filename), copied_folder)
+
+            #except Exception as e:
+            #    logger.error('[%s] error: %s' % (e, filepath))
+            #    filepath = None
+            #    local_status = False
+            #else:
+            #filepath = os.path.join(copied_folder, filename)
+            #logger.info('Successfully copied file : %s' % filepath)
+
+        return {'status': local_status,
+                'filename': filename,
+                'filepath': filepath}

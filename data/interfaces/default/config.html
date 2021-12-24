@@ -28,15 +28,16 @@
 	</div>
 </%def>
 <%def name="body()">
+        <input type="hidden" id="page_name" value="config" />
 
         <%
              mylar.DONATEBUTTON = False
         %>
 
 	<div id="paddingheader">
-		<h1 class="clearfix"><img src="interfaces/default/images/icon_gear.png" alt="settings"/>Settings</h1>
+		<h1 class="clearfix"><img src="${icons['icon_gear']}" alt="settings"/>Settings</h1>
 	</div>
-	<form action="configUpdate" method="post" id="configUpdate">
+        <form action="configUpdate" method="post" id="configUpdate">
 	<div id="tabs">
 		<ul>
                         <li><a href="#tabs-1">Information</a></li>
@@ -51,27 +52,34 @@
         <table class="configtable" summary="Information">
             <tr>
                 <td>
-                  <fieldset>
-                  <legend>Configuration Options</legend>
-                       <div>
-                            <label><strong>Mylar Version: </strong> ${config['branch']}
+                  <fieldset class="fieldset_header">
+                      <legend>Version</legend>
+                            <center>
                             %if config['br_version_name'] and config['br_release_name']:
-                                [${config['br_version_name']} - ${config['br_release_name']}]
+                                <span style="font-weight:bold;">[${config['br_version_name']}]</span><br/>
+                                <span style="font-style:italic;">${config['br_release_name']}</span>
                             %elif config['br_version_name']:
-                                [${config['br_version_name']}]
+                                <span style="font-weight:bold;">[${config['br_version_name']}]</span>
+                            %else:
+                                <span style="font-weight:bold;">[${config['br_version']}]</span>
                             %endif
-                            </br> -- ${config['br_type']} (build ${config['br_version']})</label></br>
+                            </center>
+                            </br><span style="float:left;vertical-align:top;" title="${config['br_type']} installation detected.">${config['br_type']}</span>
+                            <span style="float:right;vertical-align:top;">${config['branch']}</span>
+                  </fieldset>
+                  <fieldset>
+                       <div>
+                            <br/>
+                            <legend>MYLAR PROGRAM OPTIONS</legend>
                             <label><strong>Python Version :</strong> ${config['py_version']}</label></br>
                             <label><strong>Language :</strong> ${config['lang']}</label></br></br>
-                            <legend>MYLAR PROGRAM OPTIONS</legend>
                             <label><strong>Mylar Data Directory :</strong>  ${config['data_dir']}</label></br>
                             <label><strong>Mylar Program Directory :</strong> ${config['prog_dir']}</label></br>
                             <label><strong>Mylar Cache Directory :</strong> ${config['cache_dir']}</label></br>
                             <a href="config_dump"><label><strong>Mylar Config File :</strong>${config['config_file']}</label></a></br>
-
-                       </div>                       
-                   </fieldset>
-                   <fieldset>
+                       </div>
+                  </fieldset>
+                  <fieldset class="fieldset_header">
                        <legend>DONATIONS</legend>
                          <a name="donate"></a>
                          <div align="center">
@@ -80,13 +88,17 @@
                             by buying me a coffee (or several)</strong></label></br></br>
                          </div>
                          <div style="width: 60%; margin: 0px auto;" align="center">
-                            <a id="navDonate" href="https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&amp;hosted_button_id=EWQADB5AMVRFU" rel="noreferrer" onclick="window.open('http://dereferer.org/?' + this.href); return false;"><img src="https://www.paypalobjects.com/en_US/i/btn/btn_donate_SM.gif" alt="[donate]" /></a>
-                            <a href="#" onclick="javascript:window.prompt('Please copy/paste my Bitcoin address into your Bitcoin client.', '18eCE9wZxnNiZgE4Cc5pwJMnMjEfhdmH4U');"><img src="interfaces/default/images/bitcoin.png" alt="Bitcoin" height="20" align="center"></a></div>
+                            <%
+                                   pline = "https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&amp;hosted_button_id=EWQADB5AMVRFU"
+                                   bline = 'data:text/html;charset=utf-8, <html><meta http-equiv="refresh" content="0;URL=&#39;${pline}&#39;"></html>'
+                            %>
+                            <a id="navDonate" rel="noreferrer" onclick="window.open('${pline}');return false" href='${bline}'><img src="https://www.paypalobjects.com/en_US/i/btn/btn_donate_SM.gif" alt="[donate]" /></a>
+                            <a href="#" onclick="javascript:window.prompt('Please copy/paste my Bitcoin address into your Bitcoin client.', '18eCE9wZxnNiZgE4Cc5pwJMnMjEfhdmH4U');"><img src="images/bitcoin.png" alt="Bitcoin" height="20" align="center"></a></div>
                          </div>
                    </fieldset>
                   </td>
                   <td>
-                   <fieldset>
+                   <fieldset class="fieldset_header">
                       <legend>Bragging Rights</legend>
                         <div>
                            <label><strong># of Series you're watching: </strong> ${comicinfo['COUNT_COMICS']}</br></label>
@@ -96,24 +108,25 @@
                            <label><strong> ... total HD-space being used: </strong> ${comicinfo['COUNT_SIZE']}</br></label>
                         </div>
                    </fieldset>
+                </br>
                 <fieldset>
-                     <legend>Useful Information</legend>
-                        <div class="row">
-                          <label><strong>Forums</strong></label>
-                            <div><a href="https://forum.mylarcomics.com/" target="_blank">https://forum.mylarcomics.com</a></div>
-                        </div>
-                        <div class="row">
-                          <label><strong>Source</strong></label>
-                            <div><a href="https://github.com/mylar3/mylar3" target="_blank">https://github.com/mylar3/mylar3</a></div>
-                        </div>
-                        <div class="row">
-                          <label><strong>Issues</strong></label>
-                            <div><a href="https://github.com/mylar3/mylar3/issues" target="_blank">https://github.com/mylar3/mylar3/issues/</a></div>
-                        </div>
-                        <div class="row">
-                          <label><strong>Internet Relay Chat</strong></label>
-                              <div><a href="irc://irc.freenode.net/#mylar" target="_blank">#mylar on irc.freenode.net</a></div>
-                        </div>
+                     <legend>Need help?</legend>
+                        <figure class="item">
+                          <a href="https://forum.mylarcomics.com/" target="_blank"><img src="${icons['forum-icon']}" height="64" width="64" title="https://forums.mylarcomics.com" /></a>
+                          <figcaption class="caption">Forums</caption>
+                        </figure>
+                        <figure class="item">
+                          <a href="https://github.com/mylar3/mylar3" target="_blank"><img src="${icons['github-icon']}" title="https://github.com/mylar3/mylar3" /></a>
+                          <figcaption class="caption">GitHub</caption>
+                        </figure>
+                        <figure class="item">
+                          <a href="https://discord.gg/6UG94R7E8T" target="_blank"><img src="${icons['discord-icon']}" height="64" width="64" title="https://discord.gg/6UG94R7E8T" /></a>
+                          <figcaption class="caption">Discord</caption>
+                        </figure>
+                        <figure class="item">
+                          <a href="https://web.libera.chat?channels=#mylar" target="_blank"><img src="${icons['irc-icon']}" height="64" width="64" title="#mylar on irc.libera.chat" /></a>
+                          <figcaption class="caption">IRC</caption>
+                        </figure>
                 </fieldset>
                 <fieldset>
                     <legend>Branch history</legend>
@@ -210,6 +223,10 @@
                                  </div>
 
                                  <div class="row checkbox">
+                                    <input type="checkbox" name="backup_on_start" value="1" ${config['backup_on_start']} /> <label>Backup Database on Startup</label>
+                                 </div>
+
+                                 <div class="row checkbox">
                                     <input type="checkbox" name="syno_fix" value="1" ${config['syno_fix']} /> <label>Synology Fix</label>
                                     <br/><small>*Use this if experiencing parsing problems*</small>
                                  </div>
@@ -219,18 +236,33 @@
                                     <br/><small>Install new updates with no intervention</small>
                                  </div>
 -->
-            		 </fieldset>
+                                 <legend>Interface</legend>
+                                 <div class="row">
+                                  <label>Interface</label> 
+                                    <select name="interface">
+                                      %for interface in config['interface_list']:
+                                          <%
+                                              if interface == mylar.CONFIG.INTERFACE:
+                                                  selected = 'selected="selected"'
+                                              elif interface == 'base':
+                                                  continue
+                                              else:
+                                                  selected = ''
+                                          %>
+                                        <option value="${interface}" ${selected}>${interface}</option>
+                                      %endfor
+                                    </select>
+                                 </div>
+                    		 </fieldset>
                          <fieldset>
                              <legend>Annual Handling</legend>
-                                <div>
-                                    <small class="heading"><span style="float: left; margin-right: .3em; margin-top: 4px;" class="ui-icon ui-icon-info"></span>Series need to be Refreshed for annuals to appear</small>
-                                </div>
                              <div class="row checkbox">
-                                 <input type="checkbox" name="annuals_on" value="1" ${config['annuals_on']} /><label>Enable Series-Annual Integration</label>
+                                 <input type="checkbox" name="annuals_on" id="annuals_on" value="1" ${config['annuals_on']} /><label>Enable Series-Annual Integration</label>
                              </div>
-                                 </br><small>Enabled: Annuals are tracked as part of the series it belongs to</small></br>
-                                 <small>Disabled: Annuals are tracked independently and will appear on your watchlist as a series</small>
                          </fieldset>
+                             <div style="text-align:center;">
+                                 <span id="annuals_info" style="display:none;text-align:center;"></span>
+                             </div>
             	</td>
 
                 <td>          
@@ -238,7 +270,7 @@
                                 <legend>API</legend>
                                 <div class="row">
                                    <label>ComicVine API Key</label>
-                                   <input type="text" name="comicvine_api" value="${config['comicvine_api']}" title="get one for free @ http://api.comicvine.com" size="40">
+                                   <input type="text" name="comicvine_api" id="comicvine_api" value="${config['comicvine_api']}" title="get one for free @ http://api.comicvine.com" size="40">
                                    <small>specify your own CV API key here </small>
                                 </div>
 
@@ -273,7 +305,7 @@
                                             <%
                                                  opds_notes = "Require authentication for OPDS.  If checked\nyou will need to provide a username/password.\nThe service user name will work (if set).  Additionally,\nyou can provide a user with only OPDS access below.\nNOTE: If this is not checked, OPDS will be available\nwithout a password."
                                             %>
-                                            <a href="#" title="${opds_notes}"><img src="interfaces/default/images/info32.png" height="16" alt="" /></a>
+                                            <a href="#" title="${opds_notes}"><img src="images/info32.png" height="16" alt="" /></a>
                                             <div id="opdscredentials">
                                                  <div class="row">
                                                      <label>OPDS Username</label>
@@ -315,7 +347,7 @@
                                 </div>
                                 <div class="row">
                                         <label>Comic Location Path</label>
-                                        <input type="text" name="destination_dir" value="${config['destination_dir']}" size="50">
+                                        <input type="text" name="destination_dir" id="destination_dir" value="${config['destination_dir']}" size="50">
                                         <small>Where do you store your comics?<br/> (or where do you want me to store them)</small>
                                         <small>e.g. /Users/name/Comics or /Volumes/share/comics</small>
                                 </div>
@@ -406,40 +438,28 @@
                                                 %endfor
                                                 </select>
                                 </div>
+                                </br>
 
-                                <div class="row checkbox left clearfix">
-                                    <input id="sab_to_mylar" type="checkbox" onclick="initConfigCheckbox($(this));" name="sab_to_mylar" value="1" ${config['sab_to_mylar']} /><label>Are Mylar / SABnzbd on separate machines</label>
-                                    <small class="heading"><span style="float: left; margin-right: .3em; margin-top: 4px;" class="ui-icon ui-icon-info"></span>This is *ONLY* required if Mylar and SABnzbd are on separate machines, otherwise don't touch it</small>
+                               <div class="row checkbox left clearfix">
+                                    <input type="checkbox" id="sab_client_post_processing" name="sab_client_post_processing" value="1" ${config['sab_client_post_processing']} /><label>Enable Completed Download Handling</label>
                                 </div>
-                                <div class="config">
-                                    <div class="row">
-                                        <label>SABnzbd Download Directory</label>
-                                        <input type="text" name="sab_directory" value="${config['sab_directory']}" size="36" />
-                                        <small>Where your SAB downloads go (required for PP)</small>
+
+                                <div class="row">
+                                    <div class="row checkbox left clearfix">
+                                       <input id="sab_to_mylar" type="checkbox" name="sab_to_mylar" onClick="initConfigCheckbox($(this));" value="1" ${config['sab_to_mylar']} /><label>Are Mylar / SABnzbd on separate machines</label>
                                     </div>
-                                </div>
-
-                                <div class="row checkbox left clearfix" id="sab_cdh" style="display:unset;">
-                                    <input type="checkbox" id="sab_client_post_processing" onclick="initConfigCheckbox($this);" name="sab_client_post_processing" value="1" ${config['sab_client_post_processing']} /><label>Enable Completed Download Handling</label>
-                                    <div id="sabcompletedinfo">
+                                    <div class="config">
                                        <div class="row">
-                                           <small class="heading"><span style="float: left; margin-right: .3em; margin-top: 4px;" class="ui-icon ui-icon-info"></span>
-                                           ComicRN script cannot be used with this enabled & required SAB version > 0.8.0</small>
+                                          <label>SABnzbd Download Directory</label>
+                                          <input type="text" name="sab_directory" value="${config['sab_directory']}" size="36">
                                        </div>
                                     </div>
                                 </div>
-                                <div class="row checkbox left clearfix" id="sab_nocdh" style="display:none;">
-                                    <div>
-                                       <div class="row">
-                                           <small class="heading"><span style="float: left; margin-right: .3em; margin-top: 4px;" class="ui-icon ui-icon-info"></span>
-                                           Completed Download Handling is not available as your version of SABnzbd is not above 0.8.0</small>
-                                       </div>
-                                    </div>
-                                </div>
+                                </br>
                                 <div align="center" class="row">
-                                     <img name="sabnzbd_statusicon" id="sabnzbd_statusicon" src="interfaces/default/images/success.png" style="float:right;visibility:hidden;" height="20" width="20" />
+                                     <img name="sabnzbd_statusicon" id="sabnzbd_statusicon" src="images/success.png" style="float:right;visibility:hidden;" height="20" width="20" />
                                      <input type="button" value="Test SABnzbd" id="test_sab" style="float:center" /></br>
-                                     <input type="text" name="sabstatus" style="text-align:center; font-size:11px;" id="sabstatus" size="50" DISABLED />
+                                     <input type="text" name="sabstatus" style="text-align:center;font-size:11px;color:white;" id="sabstatus" size="50" DISABLED />
                                      <div name="sabversion" id="sabversion" style="font-size:11px;" align="center">
                                         <%
                                                if mylar.CONFIG.SAB_VERSION is not None:
@@ -495,19 +515,13 @@
                                               </div>
 
                             <div class="row checkbox left clearfix">
-                                <input type="checkbox" id="nzbget_client_post_processing" onclick="initConfigCheckbox($this);" name="nzbget_client_post_processing" value="1" ${config['nzbget_client_post_processing']} /><label>Enable Completed Download Handling</label>
-                                <div id="nzbgetcompletedinfo">
-                                   <div class="row">
-                                       <small class="heading"><span style="float: left; margin-right: .3em; margin-top: 4px;" class="ui-icon ui-icon-info"></span>
-                                       ComicRN script cannot be used with this enabled</small>
-                                   </div>
-                                </div>
+                                <input type="checkbox" id="nzbget_client_post_processing" onclick="initConfigCheckbox($(this));" name="nzbget_client_post_processing" value="1" ${config['nzbget_client_post_processing']} /><label>Enable Completed Download Handling</label>
                             </div>
 
                             <div align="center" class="row">
-                                 <img name="nzbget_statusicon" id="nzbget_statusicon" src="interfaces/default/images/success.png" style="float:right;visibility:hidden;" height="20" width="20" />
+                                 <img name="nzbget_statusicon" id="nzbget_statusicon" src="images/success.png" style="float:right;visibility:hidden;" height="20" width="20" />
                                  <input type="button" value="Test NZBGet" id="test_nzbget" style="float:center" /></br>
-                                 <input type="text" name="nzbgetstatus" style="text-align:center; font-size:11px;" id="nzbgetstatus" size="50" DISABLED />
+                                 <input type="text" name="nzbgetstatus" style="text-align:center; font-size:11px;color:white;" id="nzbgetstatus" size="50" DISABLED />
                             </div>
                          
                          </fieldset>
@@ -656,7 +670,7 @@
                                         <small>Automatically start torrent on successful loading within rtorrent client</small>
                                 </div>
                                 <div class="row">
-                                        <img name="rtorrent_statusicon" id="rtorrent_statusicon" src="interfaces/default/images/success.png" style="float:right;visibility:hidden;" height="20" width="20" />
+                                        <img name="rtorrent_statusicon" id="rtorrent_statusicon" src="images/success.png" style="float:right;visibility:hidden;" height="20" width="20" />
                                         <input type="button" value="Test Connection" id="rtorrent_test" />
                                 </div>
                         </fieldset>
@@ -715,7 +729,7 @@
 					</div>
 				</div>
 				<div class="row">
-					<img name="deluge_status_icon" id="deluge_status_icon" src="interfaces/default/images/success.png" style="float:right;visibility:hidden;" height="20" width="20" />
+					<img name="deluge_status_icon" id="deluge_status_icon" src="images/success.png" style="float:right;visibility:hidden;" height="20" width="20" />
 					<input type="button" value="Test Connection" id="deluge_test" /><br/>
 				</div>
 			</fieldset>
@@ -757,7 +771,7 @@
                                    </select>
                               </div>
                               <div class="row">
-                                    <img name="qbittorrent_statusicon" id="qbittorrent_statusicon" src="interfaces/default/images/success.png" style="float:right;visibility:hidden;" height="20" width="20" />
+                                    <img name="qbittorrent_statusicon" id="qbittorrent_statusicon" src="images/success.png" style="float:right;visibility:hidden;" height="20" width="20" />
                                     <input type="button" value="Test Connection" id="qbittorrent_test" />
                               </div>
                             </fieldset>
@@ -800,7 +814,7 @@
                                                 <input type="text" name="nzbsu_apikey" id="nzbsu_apikey" value="${config['nzbsu_api']}" size="36">
                   		        </div>
                                         <div>
-                                                <img name="nzbsu_statusicon" id="nzbsu_statusicon" src="interfaces/default/images/success.png" style="float:right;visibility:hidden;" height="20" width="20" />
+                                                <img name="nzbsu_statusicon" id="nzbsu_statusicon" src="images/success.png" style="float:right;visibility:hidden;" height="20" width="20" />
                                                 <input type="button" class="newznabtest" value="Test Connection" id="test_nzbsu" name="test_nzbsu" style="float:right;margin-right:10px;" />
                                         </div>
                 		</div>
@@ -819,7 +833,7 @@
                                                 <input type="text" name="dognzb_apikey" id="dognzb_apikey" value="${config['dognzb_api']}" size="36">
                                         </div>
                                         <div>
-                                                 <img name="dognzb_statusicon" id="dognzb_statusicon" src="interfaces/default/images/success.png" style="float:right;visibility:hidden;" height="20" width="20" />
+                                                 <img name="dognzb_statusicon" id="dognzb_statusicon" src="images/success.png" style="float:right;visibility:hidden;" height="20" width="20" />
                                                  <input type="button" class="newznabtest" value="Test Connection" id="test_dognzb" name="test_dognzb" style="float:right;margin-right:10px;" />
                                         </div>
                                 </div>
@@ -886,7 +900,7 @@
                                                     <small>( monitor the NEW releases feed & your personal notifications )</small>
                                                 </div>
                                                 <div align="center" class="row">
-                                                    <img name="test32p_statusicon" id="test32p_statusicon" src="interfaces/default/images/success.png" style="float:right;visibility:hidden;" height="20" width="20" />
+                                                    <img name="test32p_statusicon" id="test32p_statusicon" src="images/success.png" style="float:right;visibility:hidden;" height="20" width="20" />
                                                     <input type="button" value="Test Connection" id="test32p" style="float:center" /></br>
                                                     <input type="text" name="status32p" style="text-align:center; font-size:11px;" id="status32p" size="50" DISABLED />
                                                 </div>
@@ -923,34 +937,33 @@
                                                         torznab_enabled = ""
                                                %>
 
-                                                <div class="config" id="torznab${torznab_number}">
+                                                <div class="config" id="torznab${torznab[6]}">
                                                     <div class="row">
                                                         <label>Torznab Name</label>
-                                                        <input type="text" name="torznab_name${torznab_number}" id="torznab_name${torznab_number}" value="${torznab[0]}" size="30">
+                                                        <input type="text" name="torznab_name${torznab[6]}" id="torznab_name${torznab[6]}" value="${torznab[0]}" size="30">
                                                     </div>
                                                     <div class="row">
                                                         <label>Torznab Host</label>
-                                                        <input type="text" name="torznab_host${torznab_number}" id="torznab_host${torznab_number}" value="${torznab[1]}" size="30">
+                                                        <input type="text" name="torznab_host${torznab[6]}" id="torznab_host${torznab[6]}" value="${torznab[1]}" size="30">
                                                     </div>
-                                                    <div class="row">
-                                                        <label>Verify SSL</label>
-                                                        <input type="checkbox" name="torznab_verify${torznab_number}" id="torznab_verify${torznab_number}" value="${torznab[2]}">
+                                                    <div class="row checkbox">
+                                                        <input type="checkbox" name="torznab_verify${torznab[6]}" id="torznab_verify${torznab[6]}" value="1" ${torznab_verify} /><label>Verify SSL</label>
                                                     </div>
                                                     <div class="row">
                                                         <label>Torznab API</label>
-                                                        <input type="text" name="torznab_apikey${torznab_number}" id="torznab_apikey${torznab_number}" value="${torznab[3]}" size="36">
+                                                        <input type="text" name="torznab_apikey${torznab[6]}" id="torznab_apikey${torznab[6]}" value="${torznab[3]}" size="36">
                                                     </div>
                                                     <div class="row">
                                                         <label>Torznab Category</label>
-                                                        <input type="text" name="torznab_category${torznab_number}" id="torznab_category${torznab_number}" value="${torznab[4]}" size="12">
+                                                        <input type="text" name="torznab_category${torznab[6]}" id="torznab_category${torznab[6]}" value="${torznab[4]}" size="12">
                                                     </div>
                                                     <div class="row checkbox">
-                                                        <input id="torznab_enabled${torznab_number}" type="checkbox" name="torznab_enabled${torznab_number}" value="1" ${torznab_enabled} /><label>Enabled</label>
-                                                        <img name="torznabstatus${torznab_number}" id="torznabstatus${torznab_number}" src="interfaces/default/images/success.png" style="float:right;visibility:hidden;" height="20" width="20" />
-                                                       <input type="button" class="torznabtest" value="Test ${torznab[0]}" id="torznab_test${torznab_number}" name="torznab_test${torznab_number}" style="float:right;margin-right:10px;" />
+                                                        <input id="torznab_enabled${torznab[6]}" type="checkbox" name="torznab_enabled${torznab[6]}" value="1" ${torznab_enabled} /><label>Enabled</label>
+                                                        <img name="torznabstatus${torznab[6]}" id="torznabstatus${torznab[6]}" src="images/success.png" style="float:right;visibility:hidden;" height="20" width="20" />
+                                                       <input type="button" class="torznabtest" value="Test ${torznab[0]}" id="torznab_test${torznab[6]}" name="torznab_test${torznab[6]}" style="float:right;margin-right:10px;" />
                                                     </div>
                                                     <div class="row">
-                                                        <input type="button" class="remove" id="torznab${torznab_number}" value="Remove ${torznab[0]}">
+                                                        <input type="button" class="remove" id="torznab${torznab[6]}" value="Remove ${torznab[0]}">
                                                     </div>
                                                 </div>
                                                 <%
@@ -986,41 +999,38 @@
                                             else:
                                                 newznab_verify = ""
                                         %>
-                                        <div class="config" id="newznab${newznab_number}">
+                                        <div class="config" id="newznab${newznab[6]}">
                                             <div class="row">
                                                 <label>Newznab Name</label>
-                                                <input type="text" name="newznab_name${newznab_number}" id="newznab_name${newznab_number}" value="${newznab[0]}" size="30">
+                                                <input type="text" name="newznab_name${newznab[6]}" id="newznab_name${newznab[6]}" value="${newznab[0]}" size="30">
                                                 <small>( If you are running nzbhydra, this name MUST contain [nzbhydra] including brackets )</small>
                                                 <small>( If you are running an indexer local to this box, this name could include [localhost] including brackets to reduce delays between searches )</small>
                                             </div>
                                             <div class="row">
                                                 <label>Newznab Host</label>
-                                                <input type="text" name="newznab_host${newznab_number}" id="newznab_host${newznab_number}" value="${newznab[1]}" size="30">
+                                                <input type="text" name="newznab_host${newznab[6]}" id="newznab_host${newznab[6]}" value="${newznab[1]}" size="30">
                                             </div>
                                             <div class="row checkbox">
-                                                <input id="newznab_verify${newznab_number}" type="checkbox" name="newznab_verify${newznab_number}" value="1" ${newznab_verify} /><label>Verify SSL</label>
+                                                <input id="newznab_verify${newznab[6]}" type="checkbox" name="newznab_verify${newznab[6]}" value="1" ${newznab_verify} /><label>Verify SSL</label>
                                             </div>
                                             <div class="row">
                                                 <label>Newznab API</label>
-                                                <input type="text" name="newznab_api${newznab_number}" id="newznab_api${newznab_number}" value="${newznab[3]}" size="36">
+                                                <input type="text" name="newznab_apikey${newznab[6]}" id="newznab_apikey${newznab[6]}" value="${newznab[3]}" size="36">
                                             </div>
                                             <div class="row">
                                                 <label>Newznab UID</label>
-                                                <input type="text" name="newznab_uid${newznab_number}" value="${newznab[4]}" size="15">
+                                                <input type="text" name="newznab_uid${newznab[6]}" value="${newznab[4]}" size="15">
                                                 <small>( only needed for RSS feed )</small>
                                             </div>
                                             <div class="row checkbox">
-                                                <input id="newznab_enabled${newznab_number}" type="checkbox" name="newznab_enabled${newznab_number}" value="1" ${newznab_enabled} /><label>Enabled</label>
-                                                <img name="newznabstatus${newznab_number}" id="newznabstatus${newznab_number}" src="interfaces/default/images/success.png" style="float:right;visibility:hidden;" height="20" width="20" />
-                                                <input type="button" class="newznabtest" value="Test ${newznab[0]}" id="newznab_test${newznab_number}" name="newznab_test${newznab_number}" style="float:right;margin-right:10px;" />
+                                                <input id="newznab_enabled${newznab[6]}" type="checkbox" name="newznab_enabled${newznab[6]}" value="1" ${newznab_enabled} /><label>Enabled</label>
+                                                <img name="newznabstatus${newznab[6]}" id="newznabstatus${newznab[6]}" src="images/success.png" style="float:right;visibility:hidden;" height="20" width="20" />
+                                                <input type="button" class="newznabtest" value="Test ${newznab[0]}" id="newznab_test${newznab[6]}" name="newznab_test${newznab[6]}" style="float:right;margin-right:10px;" />
                                             </div>
                                             <div class="row">
-                                                <input type="button" class="remove" id="newznab${newznab_number}" value="Remove ${newznab[0]}">
+                                                <input type="button" class="remove" id="newznab${newznab[6]}" value="Remove ${newznab[0]}">
                                             </div>
                                         </div>
-                                        <%
-                                            newznab_number += 1
-                                        %>
                                     %endfor
                                     <input type="button" value="Add Newznab" class="add_newznab" id="add_newznab" />
                                 </div>
@@ -1096,7 +1106,7 @@
                         <fieldset>
                             <legend>Duplicate Dump Folder</legend>
                              <div class="row checkbox left clearfix">
-                                 <input type="checkbox" id="ddump" onclick="initConfigCheckbox($this));" name="ddump" value="1" ${config['ddump']} /><label>Enable Duplicate Dump Folder</label>
+                                 <input type="checkbox" id="ddump" onclick="initConfigCheckbox($(this));" name="ddump" value="1" ${config['ddump']} /><label>Enable Duplicate Dump Folder</label>
                              </div>
                                 <div class="config">
                                     <div class="row"">
@@ -1108,7 +1118,7 @@
                         <fieldset>
                              <legend>Failed Download Handling</legend>
                              <div class="row checkbox left clearfix">
-                                 <input type="checkbox" id="enable_failed" onclick="initConfigCheckbox($this));" name="failed_download_handling" value="1" ${config['failed_download_handling']} /><label>Enable Failed Download Handling</label>
+                                 <input type="checkbox" id="enable_failed" onclick="initConfigCheckbox($(this));" name="failed_download_handling" value="1" ${config['failed_download_handling']} /><label>Enable Failed Download Handling</label>
                              </div>
                                 <div class="config">
                                     <div class="row checkbox left clearfix">
@@ -1122,7 +1132,7 @@
                         <fieldset>
                                 <legend>Post-Processing</legend>
                                 <div class="row checkbox left clearfix">
-                                     <input type="checkbox" id="post_processing" onclick="initConfigCheckbox($this));" name="post_processing" value="1" ${config['post_processing']} /><label>Enable Post-Processing<small> (not checked = NO post-processing/post-management)</small></label>
+                                     <input type="checkbox" id="post_processing" onclick="initConfigCheckbox($(this));" name="post_processing" value="1" ${config['post_processing']} /><label>Enable Post-Processing<small> (not checked = NO post-processing/post-management)</small></label>
                                 </div>
                                 <div class="config">
                                     <div class="row left">
@@ -1147,7 +1157,7 @@
                                     </div>
                                     <br/>
                                     <div class="row checkbox left clearfix">
-                                        <input type="checkbox" id="enable_check_folder" onclick="initConfigCheckbox($this));" name="enable_check_folder" value="1" ${config['enable_check_folder']} /><label>Enable Folder Monitoring<small></label>
+                                        <input type="checkbox" id="enable_check_folder" onclick="initConfigCheckbox($(this));" name="enable_check_folder" value="1" ${config['enable_check_folder']} /><label>Enable Folder Monitoring<small></label>
                                     </div>
                                     <div class="config">
                                        <div class="row">
@@ -1164,7 +1174,7 @@
                                     </div>
                                 </div>
                                 <div class="row checkbox left clearfix">
-                                    <input type="checkbox" id="enable_pre_scripts" onclick="initConfigCheckbox($this));" name="enable_pre_scripts" value="1" ${config['enable_pre_scripts']} /><label>Run script BEFORE Post-Processing</label>
+                                    <input type="checkbox" id="enable_pre_scripts" onclick="initConfigCheckbox($(this));" name="enable_pre_scripts" value="1" ${config['enable_pre_scripts']} /><label>Run script BEFORE Post-Processing</label>
                                 </div>
                                 <div class="config">
                                    <div class="row">
@@ -1174,7 +1184,7 @@
                                    </div>
                                 </div>
                                 <div class="row checkbox left clearfix">
-                                    <input type="checkbox" id="enable_snatch_script" onclick="initConfigCheckbox($this));" name="enable_snatch_script" value="1" ${config['enable_snatch_script']} /><label>Run script AFTER an item has been snatched and sent to client</label>
+                                    <input type="checkbox" id="enable_snatch_script" onclick="initConfigCheckbox($(this));" name="enable_snatch_script" value="1" ${config['enable_snatch_script']} /><label>Run script AFTER an item has been snatched and sent to client</label>
                                 </div>
                                 <div class="config">
                                     <div class="row">
@@ -1184,7 +1194,7 @@
                                     </div>
                                 </div>
                                 <div class="row checkbox left clearfix">
-                                    <input type="checkbox" id="enable_extra_scripts" onclick="initConfigCheckbox($this));" name="enable_extra_scripts" value="1" ${config['enable_extra_scripts']} /><label>Run script AFTER Post-Processing</label>
+                                    <input type="checkbox" id="enable_extra_scripts" onclick="initConfigCheckbox($(this));" name="enable_extra_scripts" value="1" ${config['enable_extra_scripts']} /><label>Run script AFTER Post-Processing</label>
                                 </div>
                                 <div class="config">
                                     <div class="row">
@@ -1195,14 +1205,42 @@
                                 </div>                           
                 	</fieldset>
                         <fieldset>
+                                <legend>Conversions</legend>
+<!--
+                                <div class="row checkbox left clearfix">
+                                    <input type="checkbox" id="enable_file_conversions" onclick="initConfigCheckbox($(this));" name="enable_file_conversions" value="1"  /><label>File Conversions</label>
+                                </div>
+                                    <div class="config">
+-->
+                                        <div class="row checkbox left clearfix">
+                                                <% cbr2cbz_config = int(mylar.CONFIG.CBR2CBZ_ONLY) %>
+                                                <input type="hidden" id="cbr2cbz_config" value="${cbr2cbz_config}" />
+                                                <input id="cbr2cbz_only" type="checkbox" name="cbr2cbz_only" value="1" ${config['cbr2cbz_only']} /><label style="float:left;width:75%;">Convert CBR to CBZ</label>
+                                        </div>
+<!--
+                                        <div class="row checkbox left clearfix">
+                                                <input style="float:left;width:40px;" id="cbr2cb7_only" type="checkbox" name="cbr2cb7_only" value="1" /><label style="float:left;width:75%;">Convert (CBR/CBZ) to CB7</label>
+                                        </div>
+                                    </div>
+                                <div class="row checkbox left clearfix">
+                                    <input type="checkbox" id="enable_image_conversions" onclick="initConfigCheckbox($(this));" name="enable_image_conversions" value="1" /><label>Image Conversions</label>
+                                </div>
+                                    <div class="config">
+                                        <div class="row checkbox left clearfix">
+                                                <input style="float:left;width:40px;" id="cbr2cbz" type="checkbox" name="cbr2cbz_only" value="1" ${config['cbr2cbz_only']} /><label style="float:left;width:75%;">Convert (JPG/PNG) to WEBP</label>
+                                        </div>
+                                        <div class="row checkbox left clearfix">
+                                                <input style="float:left;width:40px;" id="cbr2cbz" type="checkbox" name="cbr2cbz_only" value="1" ${config['cbr2cbz_only']} /><label style="float:left;width:75%;">Convert WEBP to JPG</label>
+                                        </div>
+                                    </div>
+-->
+                        </fieldset>
+                        <fieldset>
                                 <legend>Metadata Tagging</legend><small class="heading"><span style="float: left; margin-right: .3em; margin-top: 4px;" class="ui-icon ui-icon-info"></span>ComicTagger is included</small>
                                 <div class="row checkbox left clearfix">
-                                     <input id="enable_meta" type="checkbox" onclick="initConfigCheckbox($this));" name="enable_meta" value="1" ${config['enable_meta']} /><label>Enable Metadata Tagging</label>
+                                     <input id="enable_meta" type="checkbox" onclick="initConfigCheckbox($(this));" name="enable_meta" value="1" ${config['enable_meta']} /><label>Enable Metadata Tagging</label>
                                 </div>
                                 <div class="config">
-                                        <div class="row checkbox left clearfix">
-                                                <input id="cbr2cbz" type="checkbox" name="cbr2cbz_only" value="1" ${config['cbr2cbz_only']} /><label>Convert CBR to CBZ ONLY</label>
-                                        </div>
                                         <div id="metataggingoptions">
                                             <div class="row checkbox left clearfix">
                                                     <input type="checkbox" name="ct_tag_cr" value="1" ${config['ct_tag_cr']} /><label>Write ComicRack (cr) tags (ComicInfo.xml)</label>
@@ -1213,10 +1251,36 @@
                                             <div class="row checkbox left clearfix">
                                                     <input type="checkbox" name="ct_cbz_overwrite" value="1" ${config['ct_cbz_overwrite']} /><label>Overwrite existing cbz tags (if they exist)</label>
                                             </div>
-
+                                            <div style="text-align:right;">
+                                                <a href="#" onclick="show_advanced_meta()"><span id="show_meta_advanced">Show Advanced</span></a>
+                                            </div>
                                             <div>
-                                               <small><center>If ComicVine API Key specified, will use with ComicTagger</center></small>
-                                               <small><center>Writing each type of metadata will increase API count respectively</center></small>
+                                                <div id="advanced_meta" style="display:none">
+                                                    <div class="row checkbox left clearfix">
+                                                        <input type="checkbox" name="cmtag_volume" id="cmtag_volume" value="1" ${config['cmtag_volume']} /><span title="write out the Volume field"><label>Tag Volume</label></span>
+                                                    </div>
+                                                    <div class="row checkbox left clearfix">
+                                                        <input type="checkbox" name="cmtag_start_year_as_volume" id="cmtag_start_year_as_volume" value="1" ${config['cmtag_start_year_as_volume']} /><span title="Use the start year for the Volume in place of the Volume #"><label>Use Start Year as Volume</label></span>
+                                                    </div>
+                                                    <div>
+                                                        <span title="How the IssueID is written - use Comictagger(IssueID) or ComicVine Scraper (CVDB) versioning"><label>Notes format</label>
+                                                        <select name="ct_notes_format">
+                                                         %for notes_f in ['Issue ID', 'CVDB']:
+                                                             <%
+                                                                 if notes_f == mylar.CONFIG.CT_NOTES_FORMAT:
+                                                                     selected = 'selected'
+                                                                 else:
+                                                                     selected = ''
+                                                             %>
+                                                            <option value="${notes_f}" ${selected}>${notes_f}</option>
+                                                         %endfor
+                                                       </select></span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div>
+                                               <p style="padding-top:10%;text-align:center;color:#999;display:block;font-size:11px;line-height:12px;">If ComicVine API Key specified, will use with ComicTagger</br>
+                                               Writing each type of metadata will increase API count respectively</p>
                                             </div>
                                         </div>
                                 </div>
@@ -1243,9 +1307,9 @@
                                      <label>Folder Format</label>
                                      <input type="text" name="folder_format" value="${config['folder_format']}" size="43">
                                      <%
-                                          folder_options = "$Series = SeriesName\n$Year = SeriesYear\n$Annual = Annual (word)\n$VolumeY = V{SeriesYear}\n$VolumeN = V{Volume#}\n$Type = BookType (TPB/GN)"
+                                          folder_options = "$Series = SeriesName\n$Year = SeriesYear\n$VolumeY = V{SeriesYear}\n$VolumeN = V{Volume#}\n$Publisher = Publisher\n$Imprint = Publisher Imprint\n$Type = BookType (TPB/GN/HC/One-Shot/Digital)"
                                      %>
-                                     <a href="#" title="${folder_options}"><img src="interfaces/default/images/info32.png" height="16" alt="" /></a>
+                                     <a href="#" title="${folder_options}"><img src="images/info32.png" height="16" alt="" /></a>
                                      <small>Use: $Publisher, $Series, $Year<br />
                                          %if 'windows' in mylar.OS_DETECT.lower():
                                                E.g.: $Publisher\$Series ($Year) = DC Comics\Action Comics (2011)</small>
@@ -1257,9 +1321,9 @@
                                     <label> File Format</label>
                                     <input type="text" name="file_format" value="${config['file_format']}" size="43">
                                     <%
-                                         file_options = "$Series = SeriesName\n$Year = IssueYear\n$Annual = Annual (word)\n$Issue = IssueNumber\n$VolumeY = V{SeriesYear}\n$VolumeN = V{Volume#}\n$month = publication month number\n$monthname = publication month name\n$Type = BookType (TPB)"
+                                         file_options = "$Series = SeriesName\n$Year = IssueYear\n$Annual = Annual (word)\n$Issue = IssueNumber\n$VolumeY = V{SeriesYear}\n$VolumeN = V{Volume#}\n$month = publication month number\n$monthname = publication month name"
                                     %>
-                                    <a href="#" title="${file_options}"><img src="interfaces/default/images/info32.png" height="16" alt="" /></a>
+                                    <a href="#" title="${file_options}"><img src="images/info32.png" height="16" alt="" /></a>
                                     <small>Use:  $Series, $Year, $Issue<br />
                                                                 E.g.: $Series $Issue ($Year) = Animal Man 0 (2012) </small>
                                     <small>if tag isn't available, won't create it</small>
@@ -1319,7 +1383,9 @@
                                                    <input type="checkbox" style="vertical-align: middle; margin: 3px; margin-top: -1px;" name="autowant_upcoming" value="1" ${config['autowant_upcoming']} /><label>Automatically Mark Upcoming Issues as Wanted</label>
                                                    <input type="checkbox" style="vertical-align: middle; margin: 3px; margin-top: -1px;" name="autowant_all" value="1" ${config['autowant_all']} /><label>Automatically Mark All Issues as Wanted</label>
                                                    <input type="checkbox" style="vertical-align: middle; margin: 3px; margin-top: -1px;" name="comic_cover_local" value="1" ${config['comic_cover_local']} /><label>Place cover.jpg into Comic Directory for each comic</label>
+                                                   <input type="checkbox" style="vertical-align: middle; margin: 3px; margin-top: -1px;" name="cover_folder_local" value="1" ${config['cover_folder_local']} /><label>Place a thumbnail (folder.jpg) into Comic Directory for each comic</label>
                                                    <input type="checkbox" style="vertical-align: middle; margin: 3px; margin-top: -1px;" name="cvinfo" value="1" ${config['cvinfo']} /><label>Write cvinfo into each comic directory</label>
+                                                   <input type="checkbox" style="vertical-align: middle; margin: 3px; margin-top: -1px;" name="series_metadata_local" value="1" ${config['series_metadata_local']} /><label>Generate metadata in series.json file into each comic directory</label>
                                                    <input type="checkbox" style="vertical-align: bottom; margin: 3px; margin-top: -1px;" name="alternate_latest_series_covers" value="1" ${config['alternate_latest_series_covers']} /><label>Alternate Series Covers</label>
                                                    %if mylar.CONFIG.ENABLE_TORRENTS:
                                                        <input type="checkbox" style="vertical-align: middle; margin: 3px; margin-top: -1px;" name="snatchedtorrent_notify" value="1" ${config['snatchedtorrent_notify']} /><label>Manual Post-Processing - Notify on Completed Torrents</label>
@@ -1328,22 +1394,7 @@
                                         </div>
 		        	</fieldset>
 					<fieldset>
-						<legend>Interface</legend>
-						<div class="row">
-							<label>Interface</label> 
-							<select name="interface"><h3>
-							%for interface in config['interface_list']:
-								<%
-									if interface == mylar.CONFIG.INTERFACE:
-										selected = 'selected="selected"'
-									else:
-										selected = ''
-								%>
-								<option value="${interface}" ${selected}>${interface}</option>
-							%endfor
-							</select>
-							
-						</div>
+						<legend>Logs</legend>
 						<div class="row">
 							<label>Log Directory:</label>
 							<input type="text" name="log_dir" value="${config['log_dir']}" size="50">
@@ -1356,7 +1407,7 @@
 					</fieldset>
                                         <h2>Notifications</h2>
                                         <fieldset>
-                                                <h3><img src="interfaces/default/images/prowl_logo.png" style="vertical-align: middle; margin: 3px; margin-top: -1px;" height="30" width="30"/>Prowl</h3>
+                                                <h3><img src="${icons['prowl_logo']}" style="vertical-align: middle; margin: 3px; margin-top: -1px;" height="30" width="30"/>Prowl</h3>
                                                 <div class="row checkbox">
                                                     <input type="checkbox" name="prowl_enabled" id="prowl" value="1" ${config['prowl_enabled']} /><label>Enable Prowl Notifications</label>
                                                  </div>
@@ -1372,13 +1423,13 @@
                                                          <input type="text" name="prowl_priority" value="${config['prowl_priority']}" size="2">
                                                      </div>
                                                      <div class="row">
-                                                         <img name="prowl_statusicon" id="prowl_statusicon" src="interfaces/default/images/success.png" style="float:right;visibility:hidden;" height="20" width="20" />
+                                                         <img name="prowl_statusicon" id="prowl_statusicon" src="images/success.png" style="float:right;visibility:hidden;" height="20" width="20" />
                                                          <input type="button" value="Test PROWL" id="prowl_test" />
                                                      </div>
                                                  </div>
                                         </fieldset>
                      <fieldset>
-                        <h3><img src="interfaces/default/images/pushover_logo.png" style="vertical-align: middle; margin: 3px; margin-top: -1px;" height="30" width="30"/>Pushover</h3>
+                        <h3><img src="images/pushover_logo.png" style="vertical-align: middle; margin: 3px; margin-top: -1px;" height="30" width="30"/>Pushover</h3>
                         <div class="row checkbox">
                              <input type="checkbox" name="pushover_enabled" id="pushover" value="1" ${config['pushover_enabled']} /><label>Enable Pushover Notifications</label>
                         </div>
@@ -1403,7 +1454,7 @@
                                  <input type="text" name="pushover_priority" value="${config['pushover_priority']}" size="2">
                              </div>
                             <div align="center" class="row">
-                                 <img name="pushover_statusicon" id="pushover_statusicon" src="interfaces/default/images/success.png" style="float:right;visibility:hidden;" height="20" width="20" />
+                                 <img name="pushover_statusicon" id="pushover_statusicon" src="images/success.png" style="float:right;visibility:hidden;" height="20" width="20" />
                                  <input type="button" value="Test Pushover" id="pushover_test" style="float:center" /></br>
                                  <input type="text" name="pushoverstatus" style="text-align:center; font-size:11px;" id="pushoverstatus" size="55" DISABLED />
                             </div>
@@ -1411,7 +1462,7 @@
                      </fieldset>            
 
                      <fieldset>
-                        <h3><img src="interfaces/default/images/boxcar_logo.png" style="vertical-align: middle; margin: 3px; margin-top: -1px;" height="30" width="30"/>Boxcar.IO</h3>
+                        <h3><img src="images/boxcar_logo.png" style="vertical-align: middle; margin: 3px; margin-top: -1px;" height="30" width="30"/>Boxcar.IO</h3>
                         <div class="checkbox row">
                            <input type="checkbox" name="boxcar_enabled" id="boxcar" value="1" ${config['boxcar_enabled']} /><label>Enable Boxcar.IO Notifications</label>
                         </div>
@@ -1423,14 +1474,14 @@
                                     <label>Boxcar Token</label>
                                     <input type="text" name="boxcar_token" value="${config['boxcar_token']}" size="30">
                                     <div class="row">
-                                        <img name="boxcar_statusicon" id="boxcar_statusicon" src="interfaces/default/images/success.png" style="float:right;visibility:hidden;" height="20" width="20" />
+                                        <img name="boxcar_statusicon" id="boxcar_statusicon" src="images/success.png" style="float:right;visibility:hidden;" height="20" width="20" />
                                         <input type="button" value="Test Boxcar" id="boxcar_test" />
                                    </div>
                             </div>
                         </div>
                      </fieldset>
                             <fieldset>
-                                <h3><img src="interfaces/default/images/pushbullet_logo.png" style="vertical-align: middle; margin: 3px; margin-top: -1px;" height="30" width="30"/>Pushbullet</h3>
+                                <h3><img src="images/pushbullet_logo.png" style="vertical-align: middle; margin: 3px; margin-top: -1px;" height="30" width="30"/>Pushbullet</h3>
                                 <div class="row checkbox">
                                     <input type="checkbox" name="pushbullet_enabled" id="pushbullet" value="1" ${config['pushbullet_enabled']} /><label>Enable PushBullet Notifications</label>
                                 </div>
@@ -1455,7 +1506,7 @@
                                         <small>Send to all subscribers of the channel with this tag (Optional)</small>
                                     </div>
                                     <div align="center" class="row">
-                                        <img name="pushbullet_statusicon" id="pushbullet_statusicon" src="interfaces/default/images/success.png" style="float:right;visibility:hidden;" height="20" width="20" />
+                                        <img name="pushbullet_statusicon" id="pushbullet_statusicon" src="images/success.png" style="float:right;visibility:hidden;" height="20" width="20" />
                                         <input type="button" value="Test Pushbullet" id="pushbullet_test" style="float:center" /></br>
                                         <input type="text" name="pbstatus" style="text-align:center; font-size:11px;" id="pbstatus" size="55" DISABLED />
                                    </div>
@@ -1463,7 +1514,7 @@
                             </fieldset>
 
                      <fieldset>
-                        <h3><img src="interfaces/default/images/telegram.png" style="vertical-align: middle; margin: 3px; margin-top: -1px;" height="30" width="30"/>Telegram</h3>
+                        <h3><img src="images/telegram.png" style="vertical-align: middle; margin: 3px; margin-top: -1px;" height="30" width="30"/>Telegram</h3>
                         <div class="row checkbox">
                              <input type="checkbox" name="telegram_enabled" id="telegram" value="1" ${config['telegram_enabled']} /><label>Enable Telegram Notifications</label>
                         </div>
@@ -1481,7 +1532,7 @@
                                  <input type="checkbox" name="telegram_image" title="Include cover image when sending post-processing notifs" value="1" ${config['telegram_image']} /><label>Post-processing with cover?</label>
                              </div>
                              <div align="center" class="row">
-                                 <img name="telegram_statusicon" id="telegram_statusicon" src="interfaces/default/images/success.png" style="float:right;visibility:hidden;" height="20" width="20" />
+                                 <img name="telegram_statusicon" id="telegram_statusicon" src="images/success.png" style="float:right;visibility:hidden;" height="20" width="20" />
                                  <input type="button" value="Test Telegram" id="telegram_test" style="float:center" /></br>
                                  <input type="text" name="telegramstatus" style="text-align:center; font-size:11px;" id="telegramstatus" size="55" DISABLED />
                              </div>
@@ -1489,7 +1540,7 @@
                      </fieldset>
 
                     <fieldset>
-                        <h3><img src="interfaces/default/images/slack.png" style="vertical-align: middle; margin: 3px; margin-top: -1px;" height="30" width="30"/>slack</h3>
+                        <h3><img src="images/slack.png" style="vertical-align: middle; margin: 3px; margin-top: -1px;" height="30" width="30"/>slack</h3>
                         <div class="row checkbox">
                             <input type="checkbox" name="slack_enabled" id="slack" value="1" ${config['slack_enabled']} /><label>Enable Slack Notifications</label>
                         </div>
@@ -1501,7 +1552,7 @@
                                 <input type="checkbox" name="slack_onsnatch" value="1" ${config['slack_onsnatch']} /><label>Notify on snatch?</label>
                             </div>
                             <div align="center" class="row">
-                                <img name="slack_statusicon" id="slack_statusicon" src="interfaces/default/images/success.png" style="float:right;visibility:hidden;" height="20" width="20" />
+                                <img name="slack_statusicon" id="slack_statusicon" src="images/success.png" style="float:right;visibility:hidden;" height="20" width="20" />
                                 <input type="button" value="Test Slack" id="slack_test" style="float:center" /></br>
                                 <input type="text" name="slackstatus" style="text-align:center; font-size:11px;" id="slackstatus" size="55" DISABLED />
                             </div>
@@ -1509,7 +1560,27 @@
                     </fieldset>
 
                     <fieldset>
-                        <h3><img src="interfaces/default/images/email.png" style="vertical-align: middle; margin: 3px; margin-top: -1px;" height="30" width="30"/>Email</h3>
+                        <h3><img src="images/discord.png" style="vertical-align: middle; margin: 3px; margin-top: -1px;" height="30" width="30"/>discord</h3>
+                        <div class="row checkbox">
+                            <input type="checkbox" name="discord_enabled" id="discord" value="1" ${config['discord_enabled']} /><label>Enable Discord Notifications</label>
+                        </div>
+                        <div id="discordoptions">
+                            <div class="row">
+                                <label>Webhook URL</label><input type="text" name="discord_webhook_url" id="discord_webhook_url" value="${config['discord_webhook_url']}" size="50">
+                            </div>
+                            <div class="row checkbox">
+                                <input type="checkbox" name="discord_onsnatch" value="1" ${config['discord_onsnatch']} /><label>Notify on snatch?</label>
+                            </div>
+                            <div align="center" class="row">
+                                <img name="discord_statusicon" id="discord_statusicon" src="images/success.png" style="float:right;visibility:hidden;" height="20" width="20" />
+                                <input type="button" value="Test Discord" id="discord_test" style="float:center" /></br>
+                                <input type="text" name="discordstatus" style="text-align:center; font-size:11px;" id="discordstatus" size="55" DISABLED />
+                            </div>
+                        </div>
+                    </fieldset>
+
+                    <fieldset>
+                        <h3><img src="images/email.png" style="vertical-align: middle; margin: 3px; margin-top: -1px;" height="30" width="30"/>Email</h3>
                         <div class="row checkbox">
                             <input type="checkbox" name="email_enabled" id="email" value="1" ${config['email_enabled']} /><label>Enable Email Notifications</label>
                         </div>
@@ -1553,7 +1624,7 @@
                                 <small>Notify when comics are post processed?</small>
                             </div>
                             <div align="center" class="row">
-                                <img name="email_statusicon" id="email_statusicon" src="interfaces/default/images/success.png" style="float:right;visibility:hidden;" height="20" width="20" />
+                                <img name="email_statusicon" id="email_statusicon" src="images/success.png" style="float:right;visibility:hidden;" height="20" width="20" />
                                 <input type="button" value="Test Email" id="email_test" style="float:center" /></br>
                                 <input type="text" name="emailstatus" style="text-align:center; font-size:11px;" id="emailstatus" size="55" DISABLED />
                             </div>
@@ -1611,6 +1682,17 @@
                 x.style.display = "none";
             }
         }
+        function show_advanced_meta()
+        {
+            var x = document.getElementById("advanced_meta");
+            if (x.style.display === "none") {
+                x.style.display = "block";
+                document.getElementById("show_meta_advanced").innerHTML = "Hide Advanced";
+            } else {
+                x.style.display = "none";
+                document.getElementById("show_meta_advanced").innerHTML = "Show Advanced";
+            }
+        }
         </script>
         <script>
         function manageBlockedProviders() {
@@ -1649,6 +1731,7 @@
 
         function unblocktheProvider(i){
                 site = blocklist[i].provider;
+                $('#ajaxMsg').removeClass();
                 $.get("unblock_provider",
                        { site: site },
                        function(data) {
@@ -1666,12 +1749,25 @@
                });
         }
 
+        function annuals_integration(){
+            var aob = document.getElementById("annuals_info");
+            if ($("#annuals_on").is(":checked")){
+                console.log('on');
+                aob.style = "display:block;";
+                aob.innerHTML = '<small>Annuals will be tracked as part of the series it belongs to</small>';
+            } else {
+                console.log('off');
+                aob.style = "display:block;";
+                aob.innerHTML = '<small>Annuals will be tracked independently</br>( will appear on your watchlist as individual series )</small>';
+            }
+        }
+
         </script>
 	<script>
 	function initThisPage() 
 	
 	{
-
+                var prov_start_id = 0;
                 if ($("#api_enabled").is(":checked"))
                         {
                                 $("#apioptions").show();
@@ -1689,44 +1785,6 @@
                         else
                         {
                                 $("#apioptions").slideUp();
-                        }
-                });
-                if ($("#sab_client_post_processing").is(":checked"))
-                        {
-                                $("#sabcompletedinfo").show();
-                        }
-                else
-                        {
-                                $("#sabcompletedinfo").hide();
-                        }
-
-                $("#sab_client_post_processing").click(function(){
-                        if ($("#sab_client_post_processing").is(":checked"))
-                        {
-                                $("#sabcompletedinfo").slideDown();
-                        }
-                        else
-                        {
-                                $("#sabcompletedinfo").slideUp();
-                        }
-                });
-                if ($("#nzbget_client_post_processing").is(":checked"))
-                        {
-                                $("#nzbgetcompletedinfo").show();
-                        }
-                else
-                        {
-                                $("#nzbgetcompletedinfo").hide();
-                        }
-
-                $("#nzbget_client_post_processing").click(function(){
-                        if ($("#nzbget_client_post_processing").is(":checked"))
-                        {
-                                $("#nzbgetcompletedinfo").slideDown();
-                        }
-                        else
-                        {
-                                $("#nzbgetcompletedinfo").slideUp();
                         }
                 });
                 if ($("#opds_enable").is(":checked"))
@@ -1769,26 +1827,62 @@
                         }
                 });
 
-                if ($("#cbr2cbz").is(":checked"))
+                if ($("#enable_meta").is(":checked"))
                         {
-                                $("#metataggingoptions").hide();
+                                if ( document.getElementById("cbr2cbz_only").checked == false ){   // && document.getElementById("cbr2cb7_only").checked == false){
+                                    document.getElementById("cbr2cbz_only").checked = true;
+                                    document.getElementById("cbr2cbz_only").setAttribute("disabled", "disabled");
+                                }
+                                $("#metataggingoptions").slideDown();
                         }
-                else
-                        {
-                                $("#metataggingoptions").show();
+                else    {
+                                document.getElementById("cbr2cbz_only").removeAttribute("disabled");
+                                $("#metataggingoptions").slideUp();
                         }
 
-                $("#cbr2cbz").click(function(){
-                        if ($("#cbr2cbz").is(":checked"))
+                $("#enable_meta").click(function(){
+                        if ($("#enable_meta").is(":checked"))
                         {
-                                $("#metataggingoptions").slideUp();
+                                if ( document.getElementById("cbr2cbz_only").checked == false ){   // && document.getElementById("cbr2cb7_only").checked == false){
+                                    document.getElementById("cbr2cbz_only").checked = true;
+                                }
+                                document.getElementById("cbr2cbz_only").setAttribute("disabled", "disabled");
+                                $("#metataggingoptions").slideDown();
                         }
                         else
                         {
-                                $("#metataggingoptions").slideDown();
+                                if ( document.getElementById("cbr2cbz_config").value == 1 ) {
+                                    document.getElementById("cbr2cbz_only").checked = true;
+                                } else {
+                                    document.getElementById("cbr2cbz_only").checked = false;
+                                }
+                                document.getElementById("cbr2cbz_only").removeAttribute("disabled");
+                                $("#metataggingoptions").slideUp();
                         }
                 });
+                if ($("#cmtag_start_year_as_volume").is(":checked"))
+                        {
+                                document.getElementById("cmtag_volume").checked = true;
+                                document.getElementById("cmtag_volume").setAttribute("disabled", "disabled");
+                        }
+                else
+                       {
+                                document.getElementById("cmtag_volume").removeAttribute("disabled");
+                       }
 
+                $("#cmtag_start_year_as_volume").click(function(){
+                        if ($("#cmtag_start_year_as_volume").is(":checked"))
+                        {
+                                if ( document.getElementById("cmtag_volume").checked == false ){
+                                    document.getElementById("cmtag_volume").checked = true;
+                                    document.getElementById("cmtag_volume").setAttribute("disabled", "disabled");
+                                }
+                        }
+                        else
+                        {
+                                    document.getElementById("cmtag_volume").removeAttribute("disabled");
+                        }
+                });
                 if ($("#prowl").is(":checked"))
                         {
                                 $("#prowloptions").show();
@@ -1866,6 +1960,26 @@
                     else
                     {
                         $("#slackoptions").slideUp();
+                    }
+                });
+
+                if ($("#discord").is(":checked"))
+                {
+                    $("#discordoptions").show();
+                }
+                else
+                {
+                    $("#discordoptions").hide();
+                }
+
+                $("#discord").click(function(){
+                    if ($("#discord").is(":checked"))
+                    {
+                        $("#discordoptions").slideDown();
+                    }
+                    else
+                    {
+                        $("#discordoptions").slideUp();
                     }
                 });
 
@@ -2116,6 +2230,7 @@
                                 return;
                             }
                             var obj = JSON.parse(data);
+                            $('#ajaxMsg').removeClass();
                             $('#ajaxMsg').html("<div class='msg'><span class='ui-icon ui-icon-check'></span>"+obj['status']+"</div>");
                             if ( obj['status'].indexOf("Successfully") > -1){
                                 imagechk.style.visibility = "hidden";
@@ -2141,14 +2256,15 @@
                             inkd = toNumber(numberWithCommas(inkd));
                             $('#status32p').val(obj['status']);
                             $('#inkdrops32p span').text('Inkdrops Available: '+inkd);
+                            $('#ajaxMsg').removeClass();
                             $('#ajaxMsg').html("<div class='msg'><span class='ui-icon ui-icon-check'></span>"+obj['status']+"</div>");
                             if ( data.indexOf("Successfully") > -1){
                                 imagechk.src = "";
-                                imagechk.src = "interfaces/default/images/success.png";
+                                imagechk.src = "images/success.png";
                                 imagechk.style.visibility = "visible";
                             } else {
                                 imagechk.src = "";
-                                imagechk.src = "interfaces/default/images/fail.png";
+                                imagechk.src = "images/x_red.png";
                                 imagechk.style.visibility = "visible";
                             }
                     });
@@ -2171,33 +2287,26 @@
                             var obj = JSON.parse(data);
                             var versionsab = obj['version'];
                             vsab = numberWithDecimals(versionsab);
-                            $('#sabstatus').val(obj['status']);
+                            $('#sabstatus').val(obj['message']);
                             $('#sabversion span').text('SABnzbd version: '+versionsab);
-                            if ( vsab < "0.8.0" ){
-                                scdh = document.getElementById("sab_cdh");
-                                scdh.style.display = "none";
-                                nocdh = document.getElementById("sab_nocdh");
-                                nocdh.style.display = "unset";
-                                scdh_line = document.getElementById("sab_client_post_processing");
-                                scdh_line.value = 0;
-                            } else {
-                                scdh = document.getElementById("sab_cdh");
-                                scdh.style.display = "unset";
-                                nocdh = document.getElementById("sab_nocdh");
-                                nocdh.style.display = "none";
-                            }
-                            $('#ajaxMsg').html("<div class='msg'><span class='ui-icon ui-icon-check'></span>"+obj['status']+"</div>");
-                            if ( data.indexOf("Successfully") > -1){
+                            $('#ajaxMsg').removeClass();
+                            $('#ajaxMsg').html("<div class='msg'><span class='ui-icon ui-icon-check'></span>"+obj['message']+"</div>");
+                            if (obj['status']){
                                 imagechk.src = "";
-                                imagechk.src = "interfaces/default/images/success.png";
+                                imagechk.src = "images/success.png";
                                 imagechk.style.visibility = "visible";
+                                $('#ajaxMsg').addClass('success').fadeIn().delay(3000).fadeOut();
                             } else {
                                 imagechk.src = "";
-                                imagechk.src = "interfaces/default/images/fail.png";
+                                imagechk.src = "images/x_red.png";
                                 imagechk.style.visibility = "visible";
+                                $('#ajaxMsg').addClass('error').fadeIn().delay(3000).fadeOut();
                             }
                     });
-                    $('#ajaxMsg').addClass('success').fadeIn().delay(3000).fadeOut();
+                });
+
+                $('#annuals_on').click(function () {
+                    annuals_integration();
                 });
 
                 $('#test_nzbget').click(function () {
@@ -2214,18 +2323,20 @@
                                 return;
                             }
                             $('#nzbgetstatus').val(data);
+                            $('#ajaxMsg').removeClass();
                             $('#ajaxMsg').html("<div class='msg'><span class='ui-icon ui-icon-check'></span>"+data+"</div>");
                             if ( data.indexOf("Successfully") > -1){
                                 imagechk.src = "";
-                                imagechk.src = "interfaces/default/images/success.png";
+                                imagechk.src = "images/success.png";
                                 imagechk.style.visibility = "visible";
+                                $('#ajaxMsg').addClass('success').fadeIn().delay(3000).fadeOut();
                             } else {
                                 imagechk.src = "";
-                                imagechk.src = "interfaces/default/images/fail.png";
+                                imagechk.src = "images/x_red.png";
                                 imagechk.style.visibility = "visible";
+                                $('#ajaxMsg').addClass('error').fadeIn().delay(3000).fadeOut();
                             }
                     });
-                    $('#ajaxMsg').addClass('success').fadeIn().delay(3000).fadeOut();
                 });
 
                 if ($("#enable_https").is(":checked"))
@@ -2280,9 +2391,9 @@
                 });
 
                 $("#add_newznab").click(function() {
-                    var intId = $("#newznab_providers > div").size() + deletedNewznabs + 1;
-                    var newzformfields = $("<div class=\"config\" id=\"newznab" + intId + "\"><div class=\"row\"><label>Newznab Name</label><input type=\"text\" id=\"newznab_name" + intId + "\" name=\"newznab_name" + intId + "\" size=\"36\"></div><div class=\"row\"><label>Newznab Host</label><input type=\"text\" id=\"newznab_host" + intId + "\" name=\"newznab_host" + intId + "\" + value=\"http://\" + size=\"30\"></div><div class=\"row checkbox\"><input type=\"checkbox\" id=\"newznab_verify" + intId + "\" name=\"newznab_verify" + intId + "\" value=\"0\" checked /><label>Verify SSL</label></div><div class=\"row\"><label>Newznab API</label><input type=\"text\" id=\"newznab_api" + intId + "\" name=\"newznab_api" + intId + "\" size=\"36\"></div><div class=\"row\"><label>Newznab UID</label><input type=\"text\" id=\"newznab_uid" + intId + "\" name=\"newznab_uid" + intId + "\" size=\"15\"></div><div class=\"row checkbox\"><input type=\"checkbox\" name=\"newznab_enabled" + intId + "\" value=\"1\" checked /><label>Enabled</label></div>");
-                    var newztestButton = $("<div class=\"row\"><img name=\"newznabstatus" + intId + "\" id=\"newznabstatus" + intId + "\" src=\"interfaces/default/images/success.png\" style=\"float:right;visibility:hidden;\" height=\"20\" width=\"20\" /><input type=\"button\" class=\"newznabtest\" value=\"Test\" id=\"newznab_test" + intId + "\"  name=\"newznab_test" + intId + "\" style=\"float:right;margin-right:10px;\" /></div>");
+                    var intId = '_'+prov_start_id;
+                    var newzformfields = $("<div class=\"config\" id=\"newznab" + intId + "\"><div class=\"row\"><label>Newznab Name</label><input type=\"text\" id=\"newznab_name" + intId + "\" name=\"newznab_name" + intId + "\" size=\"36\"></div><div class=\"row\"><label>Newznab Host</label><input type=\"text\" id=\"newznab_host" + intId + "\" name=\"newznab_host" + intId + "\" + value=\"http://\" + size=\"30\"></div><div class=\"row checkbox\"><input type=\"checkbox\" id=\"newznab_verify" + intId + "\" name=\"newznab_verify" + intId + "\" value=\"0\" checked /><label>Verify SSL</label></div><div class=\"row\"><label>Newznab API</label><input type=\"text\" id=\"newznab_apikey" + intId + "\" name=\"newznab_apikey" + intId + "\" size=\"36\"></div><div class=\"row\"><label>Newznab UID</label><input type=\"text\" id=\"newznab_uid" + intId + "\" name=\"newznab_uid" + intId + "\" size=\"15\"></div><div class=\"row checkbox\"><input type=\"checkbox\" name=\"newznab_enabled" + intId + "\" value=\"1\" checked /><label>Enabled</label></div>");
+                    var newztestButton = $("<div class=\"row\"><img name=\"newznabstatus" + intId + "\" id=\"newznabstatus" + intId + "\" src=\"images/success.png\" style=\"float:right;visibility:hidden;\" height=\"20\" width=\"20\" /><input type=\"button\" class=\"newznabtest\" value=\"Test\" id=\"newznab_test" + intId + "\"  name=\"newznab_test" + intId + "\" style=\"float:right;margin-right:10px;\" /></div>");
                     var newzremoveButton = $("<div class=\"row\"><input type=\"button\" class=\"remove\" value=\"Remove\" /></div>");
                     newzremoveButton.click(function() {
                         $(this).parent().remove();
@@ -2292,12 +2403,13 @@
                     newzformfields.append(newzremoveButton);
                     newzformfields.append("</div>");
                     $("#add_newznab").before(newzformfields);
+                    prov_start_id++;
                 });
 
                 $("#add_torznab").click(function() {
-                    var intId = $("#torznab_providers > div").size() + deletedTorznabs + 1;
+                    var intId = '_'+prov_start_id;
                     var torformfields = $("<div class=\"config\" id=\"torznab" + intId + "\"><div class=\"row\"><label>Torznab Name</label><input type=\"text\" id=\"torznab_name" + intId + "\" name=\"torznab_name" + intId + "\" size=\"36\"></div><div class=\"row\"><label>Torznab Host</label><input type=\"text\" id=\"torznab_host" + intId + "\" name=\"torznab_host" + intId + "\" + value=\"http://\" + size=\"30\"></div><div class=\"row checkbox\"><input id=\"torznab_verify" + intId + "\" type=\"checkbox\" name=\"torznab_verify" + intId + "\" value=\"1\"/><label>Verify SSL</label></div><div class=\"row\"><label>Torznab API</label><input type=\"text\" id=\"torznab_apikey" + intId + "\" name=\"torznab_apikey" + intId + "\" size=\"36\"></div><div class=\"row\"><label>Torznab Category</label><input type=\"text\" id=\"torznab_category" + intId + "\" name=\"torznab_category" + intId + "\" size=\"36\"></div><div class=\"row checkbox\"><input type=\"checkbox\" name=\"torznab_enabled" + intId + "\" value=\"1\" checked /><label>Enabled</label></div>");
-                    var tortestButton = $("<div class=\"row\"><img name=\"torznabstatus" + intId + "\" id=\"torznabstatus" + intId + "\" src=\"interfaces/default/images/success.png\" style=\"float:right;visibility:hidden;\" height=\"20\" width=\"20\" /><input type=\"button\" class=\"torznabtest\" value=\"Test\" id=\"torznab_test" + intId + "\"  name=\"torznab_test" + intId + "\" style=\"float:right;margin-right:10px;\" /></div>");
+                    var tortestButton = $("<div class=\"row\"><img name=\"torznabstatus" + intId + "\" id=\"torznabstatus" + intId + "\" src=\"images/success.png\" style=\"float:right;visibility:hidden;\" height=\"20\" width=\"20\" /><input type=\"button\" class=\"torznabtest\" value=\"Test\" id=\"torznab_test" + intId + "\"  name=\"torznab_test" + intId + "\" style=\"float:right;margin-right:10px;\" /></div>");
                     var torremoveButton = $("<div class=\"row\"><input type=\"button\" class=\"remove\" value=\"Remove\" /></div>");
                     torremoveButton.click(function() {
                         $(this).parent().remove();
@@ -2307,6 +2419,7 @@
                     torformfields.append(torremoveButton);
                     torformfields.append("</div>");
                     $("#add_torznab").before(torformfields);
+                    prov_start_id++;
                 });
 
                 $('#qbittorrent_test').click(function () {
@@ -2321,14 +2434,15 @@
                                 alert(data.error);
                                 return;
                             }
+                            $('#ajaxMsg').removeClass();
                             $('#ajaxMsg').html("<div class='msg'><span class='ui-icon ui-icon-check'></span>"+data+"</div>");
                             if ( data.indexOf("Successfully") > -1){
                                 imagechk.src = "";
-                                imagechk.src = "interfaces/default/images/success.png";
+                                imagechk.src = "images/success.png";
                                 imagechk.style.visibility = "visible";
                             } else {
                                 imagechk.src = "";
-                                imagechk.src = "interfaces/default/images/fail.png";
+                                imagechk.src = "images/x_red.png";
                                 imagechk.style.visibility = "visible";
                             }
                     });
@@ -2355,14 +2469,15 @@
                                 return;
                             }
                             //$('#rtorrentstatus').val(data);
+                            $('#ajaxMsg').removeClass();
                             $('#ajaxMsg').html("<div class='msg'><span class='ui-icon ui-icon-check'></span>"+data+"</div>");
                             if ( data.indexOf("Successfully") > -1){
                                 imagechk.src = "";
-                                imagechk.src = "interfaces/default/images/success.png";
+                                imagechk.src = "images/success.png";
                                 imagechk.style.visibility = "visible";
                             } else {
                                 imagechk.src = "";
-                                imagechk.src = "interfaces/default/images/fail.png";
+                                imagechk.src = "images/x_red.png";
                                 imagechk.style.visibility = "visible";
                             }
                     });
@@ -2381,14 +2496,15 @@
                                 alert(data.error);
                                 return;
                             }
+                            $('#ajaxMsg').removeClass();
                             $('#ajaxMsg').html("<div class='msg'><span class='ui-icon ui-icon-check'></span>"+data+"</div>");
                             if ( data.indexOf("Successfully") > -1){
                                 imagechk.src = "";
-                                imagechk.src = "interfaces/default/images/success.png";
+                                imagechk.src = "images/success.png";
                                 imagechk.style.visibility = "visible";
                             } else {
                                 imagechk.src = "";
-                                imagechk.src = "interfaces/default/images/fail.png";
+                                imagechk.src = "images/x_red.png";
                                 imagechk.style.visibility = "visible";
                             }
                     });
@@ -2423,18 +2539,20 @@
                                 alert(data.error);
                                 return;
                             }
+                            $('#ajaxMsg').removeClass();
                             $('#ajaxMsg').html("<div class='msg'><span class='ui-icon ui-icon-check'></span>"+data+"</div>");
                             if ( data.indexOf("Successfully") > -1){
                                 imagechk.src = "";
-                                imagechk.src = "interfaces/default/images/success.png";
+                                imagechk.src = "images/success.png";
                                 imagechk.style.visibility = "visible";
+                                $('#ajaxMsg').addClass('success').fadeIn().delay(3000).fadeOut();
                             } else {
                                 imagechk.src = "";
-                                imagechk.src = "interfaces/default/images/fail.png";
+                                imagechk.src = "images/x_red.png";
                                 imagechk.style.visibility = "visible";
+                                $('#ajaxMsg').addClass('error').fadeIn().delay(3000).fadeOut();
                             }
                     });
-                    $('#ajaxMsg').addClass('success').fadeIn().delay(3000).fadeOut();
                 });
 
                 $(".torznabtest").click(function () {
@@ -2451,14 +2569,15 @@
                                 alert(data.error);
                                 return;
                             }
+                            $('#ajaxMsg').removeClass();
                             $('#ajaxMsg').html("<div class='msg'><span class='ui-icon ui-icon-check'></span>"+data+"</div>");
                             if ( data.indexOf("Successfully") > -1){
                                 imagechk.src = "";
-                                imagechk.src = "interfaces/default/images/success.png";
+                                imagechk.src = "images/success.png";
                                 imagechk.style.visibility = "visible";
                             } else {
                                 imagechk.src = "";
-                                imagechk.src = "interfaces/default/images/fail.png";
+                                imagechk.src = "images/x_red.png";
                                 imagechk.style.visibility = "visible";
                             }
                     });
@@ -2475,14 +2594,15 @@
                                 alert(data.error);
                                 return;
                             }
+                            $('#ajaxMsg').removeClass();
                             $('#ajaxMsg').html("<div class='msg'><span class='ui-icon ui-icon-check'></span>"+data+"</div>");
                             if ( data.indexOf("Successfully") > -1){
                                 imagechk.src = "";
-                                imagechk.src = "interfaces/default/images/success.png";
+                                imagechk.src = "images/success.png";
                                 imagechk.style.visibility = "visible";
                             } else {
                                 imagechk.src = "";
-                                imagechk.src = "interfaces/default/images/fail.png";
+                                imagechk.src = "images/x_red.png";
                                 imagechk.style.visibility = "visible";
                             }
                     });
@@ -2502,18 +2622,20 @@
                                 return;
                             }
                             $('#pushoverstatus').val(data);
+                            $('#ajaxMsg').removeClass();
                             $('#ajaxMsg').html("<div class='msg'><span class='ui-icon ui-icon-check'></span>"+data+"</div>");
                             if ( data.indexOf("Successfully") > -1){
-                               imagechk.src = "";
-                                imagechk.src = "interfaces/default/images/success.png";
+                                imagechk.src = "";
+                                imagechk.src = "images/success.png";
                                 imagechk.style.visibility = "visible";
+                                $('#ajaxMsg').addClass('success').fadeIn().delay(3000).fadeOut();
                             } else {
                                 imagechk.src = "";
-                                imagechk.src = "interfaces/default/images/fail.png";
+                                imagechk.src = "images/x_red.png";
                                 imagechk.style.visibility = "visible";
+                                $('#ajaxMsg').addClass('error').fadeIn().delay(3000).fadeOut();
                             }
                     });
-                    $('#ajaxMsg').addClass('success').fadeIn().delay(3000).fadeOut();
                 });
 
                 $('#boxcar_test').click(function () {
@@ -2527,14 +2649,15 @@
                                 return;
                             }
                             $('#pushoverstatus').val(data);
+                            $('#ajaxMsg').removeClass();
                             $('#ajaxMsg').html("<div class='msg'><span class='ui-icon ui-icon-check'></span>"+data+"</div>");
                             if ( data.indexOf("Successfully") > -1){
                                imagechk.src = "";
-                                imagechk.src = "interfaces/default/images/success.png";
+                                imagechk.src = "images/success.png";
                                 imagechk.style.visibility = "visible";
                             } else {
                                 imagechk.src = "";
-                                imagechk.src = "interfaces/default/images/fail.png";
+                                imagechk.src = "images/x_red.png";
                                 imagechk.style.visibility = "visible";
                             }
                     });
@@ -2544,22 +2667,24 @@
                 $('#pushbullet_test').click(function () {
                     var imagechk = document.getElementById("pushbullet_statusicon");
                     var apikey = document.getElementById("pushbullet_apikey").value;
+                    var channel = document.getElementById("pushbullet_channel_tag").value;
                     $.get("testpushbullet",
-                        { apikey: apikey },
+                        { apikey: apikey, channel: channel },
                         function(data){
                             if (data.error != undefined) {
                                 alert(data.error);
                                 return;
                             }
                             $('#pbstatus').val(data);
+                            $('#ajaxMsg').removeClass();
                             $('#ajaxMsg').html("<div class='msg'><span class='ui-icon ui-icon-check'></span>"+data+"</div>");
                             if ( data.indexOf("Successfully") > -1){
                                imagechk.src = "";
-                                imagechk.src = "interfaces/default/images/success.png";
+                                imagechk.src = "images/success.png";
                                 imagechk.style.visibility = "visible";
                             } else {
                                 imagechk.src = "";
-                                imagechk.src = "interfaces/default/images/fail.png";
+                                imagechk.src = "images/x_red.png";
                                 imagechk.style.visibility = "visible";
                             }
                     });
@@ -2578,14 +2703,15 @@
                                 return;
                             }
                             $('#telegramstatus').val(data);
+                            $('#ajaxMsg').removeClass();
                             $('#ajaxMsg').html("<div class='msg'><span class='ui-icon ui-icon-check'></span>"+data+"</div>");
                             if ( data.indexOf("Successfully") > -1){
                                imagechk.src = "";
-                                imagechk.src = "interfaces/default/images/success.png";
+                                imagechk.src = "images/success.png";
                                 imagechk.style.visibility = "visible";
                             } else {
                                 imagechk.src = "";
-                                imagechk.src = "interfaces/default/images/fail.png";
+                                imagechk.src = "images/x_red.png";
                                 imagechk.style.visibility = "visible";
                             }
                     });
@@ -2603,14 +2729,41 @@
                                 return;
                             }
                             $('#slackstatus').val(data);
+                            $('#ajaxMsg').removeClass();
                             $('#ajaxMsg').html("<div class='msg'><span class='ui-icon ui-icon-check'></span>"+data+"</div>");
                             if ( data.indexOf("Successfully") > -1){
                                imagechk.src = "";
-                                imagechk.src = "interfaces/default/images/success.png";
+                                imagechk.src = "images/success.png";
                                 imagechk.style.visibility = "visible";
                             } else {
                                 imagechk.src = "";
-                                imagechk.src = "interfaces/default/images/fail.png";
+                                imagechk.src = "images/x_red.png";
+                                imagechk.style.visibility = "visible";
+                            }
+                    });
+                    $('#ajaxMsg').addClass('success').fadeIn().delay(3000).fadeOut();
+                });
+
+                $('#discord_test').click(function () {
+                    var imagechk = document.getElementById("discord_statusicon");
+                    var webhook_url = document.getElementById("discord_webhook_url").value;
+                    $.get("testdiscord",
+                        { webhook_url: webhook_url },
+                        function(data){
+                            if (data.error != undefined) {
+                                alert(data.error);
+                                return;
+                            }
+                            $('#discordstatus').val(data);
+                            $('#ajaxMsg').removeClass();
+                            $('#ajaxMsg').html("<div class='msg'><span class='ui-icon ui-icon-check'></span>"+data+"</div>");
+                            if ( data.indexOf("Successfully") > -1){
+                               imagechk.src = "";
+                                imagechk.src = "images/success.png";
+                                imagechk.style.visibility = "visible";
+                            } else {
+                                imagechk.src = "";
+                                imagechk.src = "images/x_red.png";
                                 imagechk.style.visibility = "visible";
                             }
                     });
@@ -2634,14 +2787,15 @@
                                 return;
                             }
                             $('#emailstatus').val(data);
+                            $('#ajaxMsg').removeClass();
                             $('#ajaxMsg').html("<div class='msg'><span class='ui-icon ui-icon-check'></span>"+data+"</div>");
                             if ( data.indexOf("Successfully") > -1){
                                imagechk.src = "";
-                                imagechk.src = "interfaces/default/images/success.png";
+                                imagechk.src = "images/success.png";
                                 imagechk.style.visibility = "visible";
                             } else {
                                 imagechk.src = "";
-                                imagechk.src = "interfaces/default/images/fail.png";
+                                imagechk.src = "images/x_red.png";
                                 imagechk.style.visibility = "visible";
                             }
                     });
@@ -2680,9 +2834,12 @@
                 initConfigCheckbox("#enable_pre_scripts");
                 initConfigCheckbox("#enable_snatch_script");
                 initConfigCheckbox("#enable_extra_scripts");
+                //initConfigCheckbox("#enable_file_conversions");
+                //initConfigCheckbox("#enable_image_conversions");
 	}
 	$(document).ready(function() {
 		initThisPage();
+                annuals_integration()
 	});
 	
 	</script>

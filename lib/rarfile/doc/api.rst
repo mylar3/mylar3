@@ -14,70 +14,57 @@ RarFile class
 
 .. autoclass:: RarFile
    :members:
-   :inherited-members:
+   :special-members: __enter__, __exit__, __iter__
 
 RarInfo class
 -------------
 
 .. autoclass:: RarInfo
    :members:
-   :inherited-members:
 
 RarExtFile class
 ----------------
 
 .. autoclass:: RarExtFile
+   :show-inheritance:
    :members:
    :inherited-members:
+   :exclude-members: truncate, flush
+
+nsdatetime class
+----------------
+
+.. autoclass:: nsdatetime
+   :show-inheritance:
+   :members:
 
 Functions
 ---------
 
 .. autofunction:: is_rarfile
-
-Module Configuration
---------------------
-
-.. autodata:: UNRAR_TOOL
-.. autodata:: DEFAULT_CHARSET
-.. autodata:: TRY_ENCODINGS
-.. autodata:: PATH_SEP
-.. autodata:: USE_EXTRACT_HACK
-.. autodata:: HACK_SIZE_LIMIT
+.. autofunction:: is_rarfile_sfx
 
 Constants
 ---------
 
-.. py:data:: RAR_M0
+.. autodata:: RAR_M0
+.. autodata:: RAR_M1
+.. autodata:: RAR_M2
+.. autodata:: RAR_M3
+.. autodata:: RAR_M4
+.. autodata:: RAR_M5
 
-    No compression.
+.. autodata:: RAR_OS_WIN32
+.. autodata:: RAR_OS_UNIX
+.. autodata:: RAR_OS_MACOS
+.. autodata:: RAR_OS_BEOS
+.. autodata:: RAR_OS_OS2
+.. autodata:: RAR_OS_MSDOS
 
-.. py:data:: RAR_M1
+Warnings
+--------
 
-    Compression level `-m1` - Fastest compression.
-
-.. py:data:: RAR_M2
-
-    Compression level `-m2`.
-
-.. py:data:: RAR_M3
-
-    Compression level `-m3`.
-
-.. py:data:: RAR_M4
-
-    Compression level `-m4`.
-
-.. py:data:: RAR_M5
-
-    Compression level `-m5` - Maximum compression.
-
-.. py:data:: RAR_OS_MSDOS
-.. py:data:: RAR_OS_OS2
-.. py:data:: RAR_OS_WIN32
-.. py:data:: RAR_OS_UNIX
-.. py:data:: RAR_OS_MACOS
-.. py:data:: RAR_OS_BEOS
+.. autoclass:: UnsupportedWarning
 
 Exceptions
 ----------

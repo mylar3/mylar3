@@ -57,7 +57,7 @@ def initialize(options):
         'tools.encode.encoding': 'utf-8',
         'tools.encode.text_only': False,
         'tools.decode.on': True,
-        'log.screen': True,
+        'log.screen': options['cherrypy_logging'],
         'engine.autoreload.on': False,
     }
 
@@ -96,7 +96,7 @@ def initialize(options):
         },
         '/favicon.ico': {
             'tools.staticfile.on': True,
-            'tools.staticfile.filename': os.path.join(os.path.abspath(os.curdir), 'images' + os.sep + 'favicon.ico')
+            'tools.staticfile.filename': os.path.join(mylar.PROG_DIR, 'data', 'images','favicon.ico')
         },
         '/cache': {
             'tools.staticdir.on': True,
@@ -116,10 +116,12 @@ def initialize(options):
             #
             # Login sessions timeout after 43800 minutes (1 month) unless
             # changed in the config.
-            cherrypy.tools.sessions.timeout = options['login_timeout']
+            # Note - the following command doesn't actually work, see update statement 2 lines down
+            # cherrypy.tools.sessions.timeout = options['login_timeout']
             conf['/'].update({
                 'tools.sessions.on': True,
                 'tools.auth.on': True,
+                'tools.sessions.timeout': options['login_timeout'],
                 'auth.forms_username': options['http_username'],
                 'auth.forms_password': options['http_password'],
                 # Set all pages to require authentication.

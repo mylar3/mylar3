@@ -143,7 +143,7 @@ def main():
         print('Quiet logging mode enabled...')
         mylar.LOG_LEVEL = 0
     else:
-        mylar.LOG_LEVEL = 1
+        mylar.LOG_LEVEL = None
 
     if args.daemon:
         if sys.platform == 'win32':
@@ -213,7 +213,7 @@ def main():
             raise SystemExit('Cannot write to the data directory: ' + mylar.DATA_DIR + '. Exiting...')
 
     # backup the db and configs before they load.
-    if args.backup:
+    if args.backup or mylar.CONFIG.BACKUP_ON_START:
         print('[AUTO-BACKUP] Backing up .db and config.ini files for safety.')
         backupdir = os.path.join(mylar.DATA_DIR, 'backup')
 
@@ -237,7 +237,7 @@ def main():
                 back_1 = os.path.join(backupdir, 'config.ini.1')
 
             try:
-                print('[AUTO-BACKUP] Now Backing up mylar.db file')
+                print('[AUTO-BACKUP] Now Backing up ' + back + ' file')
                 if os.path.isfile(back_1):
                     print('[AUTO-BACKUP] ' + back_1 + ' exists. Deleting and keeping new.')
                     os.remove(back_1)
@@ -248,7 +248,8 @@ def main():
                 shutil.copy(ogfile, back)
 
             except OSError as exception:
-                if exception.errno != errno.EXIST:
+                if exception.errno != errno.EEXIST:
+                    print('[AUTO-BACKUP] Error encountered: %s' % (exception,))
                     raise
 
             i += 1
@@ -341,6 +342,7 @@ def main():
         'http_password': mylar.CONFIG.HTTP_PASSWORD,
         'authentication': mylar.CONFIG.AUTHENTICATION,
         'login_timeout': mylar.CONFIG.LOGIN_TIMEOUT,
+        'cherrypy_logging': mylar.CONFIG.CHERRYPY_LOGGING,
         'opds_enable': mylar.CONFIG.OPDS_ENABLE,
         'opds_authentication': mylar.CONFIG.OPDS_AUTHENTICATION,
         'opds_username': mylar.CONFIG.OPDS_USERNAME,
@@ -348,12 +350,12 @@ def main():
         'opds_pagesize': mylar.CONFIG.OPDS_PAGESIZE,
     }
 
-    # Try to start the server.
-    webstart.initialize(web_config)
-
     #check for version here after web server initialized so it doesn't try to repeatidly hit github
     #for version info if it's already running
     versioncheck.versionload()
+
+    # Try to start the server.
+    webstart.initialize(web_config)
 
     if mylar.CONFIG.LAUNCH_BROWSER and not args.nolaunch:
         mylar.launch_browser(mylar.CONFIG.HTTP_HOST, http_port, mylar.CONFIG.HTTP_ROOT)
@@ -368,10 +370,14 @@ def main():
             try:
                 time.sleep(1)
             except KeyboardInterrupt:
+                mylar.GLOBAL_MESSAGES = {'status': 'success', 'event': 'shutdown', 'message': 'Now shutting down system.'}
+                time.sleep(1)
                 mylar.SIGNAL = 'shutdown'
         else:
             logger.info('Received signal: ' + mylar.SIGNAL)
             if mylar.SIGNAL == 'shutdown':
+                mylar.GLOBAL_MESSAGES = {'status': 'success', 'event': 'shutdown', 'message': 'Now shutting down system.'}
+                time.sleep(2)
                 mylar.shutdown()
             elif mylar.SIGNAL == 'restart':
                 mylar.shutdown(restart=True)

@@ -13,6 +13,7 @@
 
 
 <%def name="body()">
+        <input type="hidden" id="page_name" value="manage_failed" />
 	<div id="manageheader" class="title">
 		<h1 class="clearfix">Manage Failed Downloads</h1>
 	</div>
@@ -42,8 +43,13 @@
 		</thead>
 		<tbody>
 		%for f in failed:
+                        <%
+                            f_id = f['ID']
+                            if any([f_id is None, f_id == '']):
+                                f_id = '%s##%s##%s##%s' % (f['IssueID'],f['Provider'],f['FileName'],f['DateFailed'])
+                        %>
 			<tr>
-				<td id="select"><input type="checkbox" name="${f['ID']}" class="checkbox" /></td>
+				<td id="select"><input type="checkbox" name="${f_id}" class="checkbox" /></td>
 				<td id="series"><a href="comicDetails?ComicID=${f['ComicID']}">${f['Series']}</td>
 				<td id="issue">${f['Issue_Number']}</td>
 				<td id="site">${f['Provider']}</td>
@@ -58,7 +64,7 @@
 </%def>
 
 <%def name="headIncludes()">
-	<link rel="stylesheet" href="interfaces/default/css/data_table.css">
+	<link rel="stylesheet" href="interfaces/${interface}/css/data_table.css">
 </%def>
 
 <%def name="javascriptIncludes()">

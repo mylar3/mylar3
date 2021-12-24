@@ -59,10 +59,15 @@ class Readinglist(object):
             logger.info(self.module + ' Issue not located on your current watchlist. I should probably check story-arcs but I do not have that capability just yet.')
         else:
             locpath = None
-            if mylar.CONFIG.MULTIPLE_DEST_DIRS is not None and mylar.CONFIG.MULTIPLE_DEST_DIRS != 'None' and os.path.join(mylar.CONFIG.MULTIPLE_DEST_DIRS, os.path.basename(comicinfo['ComicLocation'])) != comicinfo['ComicLocation']:
-                pathdir = os.path.join(mylar.CONFIG.MULTIPLE_DEST_DIRS, os.path.basename(comicinfo['ComicLocation']))
-                if os.path.exists(os.path.join(pathdir, readlist['Location'])):
-                    locpath = os.path.join(pathdir, readlist['Location'])
+            if all([mylar.CONFIG.MULTIPLE_DEST_DIRS is not None, mylar.CONFIG.MULTIPLE_DEST_DIRS != 'None']):
+                if os.path.exists(os.path.join(mylar.CONFIG.MULTIPLE_DEST_DIRS, os.path.basename(comicinfo['ComicLocation']))):
+                    secondary_folders = os.path.join(mylar.CONFIG.MULTIPLE_DEST_DIRS, os.path.basename(comicinfo['ComicLocation']))
+                else:
+                    ff = mylar.filers.FileHandlers(ComicID=readlist['ComicID'])
+                    secondary_folders = ff.secondary_folders(comicinfo['ComicLocation'])
+
+                if os.path.exists(os.path.join(secondary_folders, readlist['Location'])):
+                    locpath = os.path.join(secondary_folders, readlist['Location'])
                 else:
                     if os.path.exists(os.path.join(comicinfo['ComicLocation'], readlist['Location'])):
                         locpath = os.path.join(comicinfo['ComicLocation'], readlist['Location'])
@@ -123,7 +128,9 @@ class Readinglist(object):
             CtrlVal = {"IssueArcID":  IssueArcID}
             myDB.upsert("readinglist", NewVal, CtrlVal)
             logger.info(self.module + ' Marked ' +  issue['ComicName'] + ' #' + str(issue['IssueNumber']) + ' as Read.')
-
+        else:
+            logger.info(self.module + 'Could not mark anything as read, no IssueID or IssueArcID passed')
+            
         return
 
     def syncreading(self):

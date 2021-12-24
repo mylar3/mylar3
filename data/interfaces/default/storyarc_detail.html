@@ -1,6 +1,7 @@
 <%inherit file="base.html"/>
 <%!
         import os
+        import re
         import mylar
 	from mylar.helpers import checked, listLibrary
 %>
@@ -23,7 +24,8 @@
 </%def>
 
 <%def name="body()">
-         <h1 class="clearfix"><a href="storyarc_main"><img src="interfaces/default/images/ReadingList-icon.png" height="26" width="26" align="left" alt="Story Arc Management"/></a></h1>
+        <input type="hidden" id="page_name" value="storyarc_detail" />
+         <h1 class="clearfix"><a href="storyarc_main"><img src="${icons['ReadingList-icon']}" height="26" width="26" align="left" alt="Story Arc Management"/></a></h1>
          %if storyarcbanner is not None:
              <img src="${storyarcbanner}" onload="resizeimage('${bannerheight}')" width="960" height="${bannerheight}" id="banner" style="text-decoration: none; position: relative; top: 40px;"/>
          %else:
@@ -94,7 +96,7 @@
                          <form action="downloadBanner" method="GET">
                          <label style="display:inline;float:right;">Banner Image Retrieval</label></br>
                                <input style="display:inline;float:right;" type="text" title="enter full url where image resides" placeholder="full URL where image resides" onfocus="if(this.value==this.defaultValue) this.value='';" name="url" size="25">
-                               <input style="display:inline;float:right;" type="image" src="interfaces/default/images/download_icon.png" height="20" width="20" alt="submit"></br>
+                               <input style="display:inline;float:right;" type="image" src="images/download_icon.png" height="20" width="20" alt="submit"></br>
                                <input type="hidden" name="storyarcid" value="${storyarcid}">
                                <input type="hidden" name="storyarcname" value="${storyarcname}">
                           %if storyarcbanner is not None:
@@ -167,16 +169,22 @@
                 else:
                         volume = ''
 
+                if 'annual' in item['ComicName'].lower():
+                        cname = re.sub('Annual', '', item['ComicName'], flags=re.I).strip()
+                        displayname = '%s %s %s (%s)' % (cname, volume, 'Annual', item['SeriesYear'])
+                else:
+                        displayname = '%s %s (%s)' % (item['ComicName'], volume, item['SeriesYear'])
+
+
         %>
 
          <tr id="${item['ReadingOrder']}" class="grade${grade}">
-                <td class="edit" title="Change the order (click to edit)" id="${storyarcid}.${item['IssueArcID']}">${item['ReadingOrder']}</td>
+                <td id="readingorder"><span class="edit" title="Change the order (click to edit)" id="${storyarcid}.${item['IssueArcID']}">${item['ReadingOrder']}</span></td>
                 <td id="comicname" title="${item['IssueName']}">
                 %if haveit == "No":
-                     ${item['ComicName']} ${volume} (${item['SeriesYear']})
+                    ${displayname}
                 %else:
-                    <a href="comicDetails?ComicID=${haveit}">${item['ComicName']} ${volume} (${item['SeriesYear']})</a>
-
+                    <a href="comicDetails?ComicID=${haveit}">${displayname}</a>
                 %endif
                 </td>
 
@@ -200,7 +208,7 @@
                 <td id="issuedate">${issuedate}</td>
                 <td id="status">${item['Status']}
                     %if item['Status'] == 'Downloaded' or item['Status'] == 'Archived':
-                        <a href="#" title="${item['Location']}"><img src="interfaces/default/images/info32.png" height="16" alt="" class="highqual" /></a>
+                        <a href="#" title="${item['Location']}"><img src="images/info32.png" height="16" alt="" class="highqual" /></a>
                     %endif
                 </td>
                 <td id="options">
@@ -208,10 +216,10 @@
                      <a href="#" onclick="doAjaxCall('queueit?ComicName=${item['ComicName'] | u}&ComicIssue=${item['IssueNumber']}&ComicYear=${issuedate}&mode=readlist&SARC=${item['StoryArc']}&IssueArcID=${item['IssueArcID']}&SeriesYear=${item['SeriesYear']}',$(this),'table')" data-success="Now searching for ${item['ComicName']} #${item['IssueNumber']}"><span class="ui-icon ui-icon-plus"></span>Grab</a>
                  %elif item['Status'] == 'Snatched':
                      <a href="#" onclick="doAjaxCall('queueit?ComicName=${item['ComicName'] | u}&ComicIssue=${item['IssueNumber']}&ComicYear=${issuedate}&mode=readlist&SARC=${item['StoryArc']}&IssueArcID=${item['IssueArcID']}&SeriesYear=${item['SeriesYear']}',$(this),'table')" data-success="Trying to search again for issue"><span class="ui-icon ui-icon-plus"></span>Retry</a>
-                     <a href="#" onclick="doAjaxCall('clear_arcstatus?issuearcid=${item['IssueArcID']}',$(this),'table')"><data success="Clearing status of ${item['Status']} for ${item['ComicName']} #${item['IssueNumber']}"><span class="ui-icon ui-icon-plus"></span>Clear Status</a>
                  %elif item['Status'] == 'Downloaded' and item['Location'] is not None:
                      <a href="downloadthis?pathfile=${item['Location'] |u}"><span class="ui-icon ui-icon-plus"></span>Download</a>
                  %endif
+                 <a href="#" onclick="doAjaxCall('clear_arcstatus?issuearcid=${item['IssueArcID']}',$(this),'table')"><data success="Clearing status of ${item['Status']} for ${item['ComicName']} #${item['IssueNumber']}"><span class="ui-icon ui-icon-plus"></span>Clear Status</a>
                  <a href="#" title="Remove Issue from Story Arc" onclick="doAjaxCall('removefromreadlist?IssueArcID=${item['IssueArcID']}&manual=${item['Manual']}',$(this),'table')" data-success='Successfully deleted ${item['IssueArcID']}'><span class="ui-icon ui-icon-minus"></span>Remove</a>
                 </td>
          </tr>
@@ -226,14 +234,14 @@
                         <center><label><strong><a href="#" title="Enter the IssueID of the issue you want to add to the arc"/>Issue ID</a></strong></label>
                         <input type="text" name="manual_issueid" size="10">
                         <label><strong><a href="#" title="Enter the Reading Order # for the given issue"/>Reading Order</a></strong></label>
-                        <input type="text" name="manual_readingorder" size="2"><input type="image" src="interfaces/default/images/submit.png" height="25" width="25" class="highqual" /></center>
+                        <input type="text" name="manual_readingorder" size="2"><input type="image" src="images/submit.png" height="25" width="25" class="highqual" /></center>
                     </div>
             </form>
         </div>
 </%def>
 
 <%def name="headIncludes()">
-	<link rel="stylesheet" href="interfaces/default/css/data_table.css">
+	<link rel="stylesheet" href="interfaces/${interface}/css/data_table.css">
 </%def>
 
 <%def name="javascriptIncludes()">
@@ -242,6 +250,7 @@
         <script>
         $(document).ready(function() {
             $('.edit').editable('order_edit', {
+                width: ($("span#edit").width() + 20) + "px",
                 callback : function(value, settings) {
                     console.log(this);
                     console.log(value);

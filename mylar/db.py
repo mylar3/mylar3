@@ -94,7 +94,7 @@ class DBConnection:
                     # get out of the connection attempt loop since we were successful
                     break
                 except sqlite3.OperationalError as e:
-                    if "unable to open database file" in e.args[0] or "database is locked" in e.args[0]:
+                    if any(['unable to open database file' in e.args[0], 'database is locked' in e.args[0]]):
                         logger.warn('Database Error: %s' % e)
                         attempt += 1
                         time.sleep(1)
@@ -109,7 +109,7 @@ class DBConnection:
 
 
 
-    def action(self, query, args=None):
+    def action(self, query, args=None, executemany=False):
 
         with db_lock:
             if query == None:
@@ -121,15 +121,19 @@ class DBConnection:
             while attempt < 5:
                 try:
                     if args == None:
-                        #logger.fdebug("[ACTION] : " + query)
-                        sqlResult = self.connection.execute(query)
+                        if executemany is False:
+                            sqlResult = self.connection.execute(query)
+                        else:
+                            sqlResult = self.connection.executemany(query)
                     else:
-                        #logger.fdebug("[ACTION] : " + query + " with args " + str(args))
-                        sqlResult = self.connection.execute(query, args)
+                        if executemany is False:
+                            sqlResult = self.connection.execute(query, args)
+                        else:
+                            sqlResult = self.connection.executemany(query, args)
                     self.connection.commit()
                     break
                 except sqlite3.OperationalError as e:
-                    if any(['unable to open database file' in e, 'database is locked' in e]):
+                    if any(['unable to open database file' in e.args[0], 'database is locked' in e.args[0]]):
                         logger.warn('Database Error: %s' % e)
                         logger.warn('sqlresult: %s' %  query)
                         attempt += 1

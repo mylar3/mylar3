@@ -46,7 +46,7 @@ if platform.python_version() == '2.7.6':
     http.client.HTTPConnection._http_vsn = 10
     http.client.HTTPConnection._http_vsn_str = 'HTTP/1.0'
 
-def pullsearch(comicapi, comicquery, offset, type):
+def pullsearch(comicapi, comicquery, offset, search_type):
 
     cnt = 1
     for x in comicquery:
@@ -56,7 +56,7 @@ def pullsearch(comicapi, comicquery, offset, type):
            filterline+= ',name:%s' % x
        cnt+=1
 
-    PULLURL = mylar.CVURL + str(type) + 's?api_key=' + str(comicapi) + '&filter=name:' + filterline + '&field_list=id,name,start_year,site_detail_url,count_of_issues,image,publisher,deck,description,first_issue,last_issue&format=xml&sort=date_last_updated:desc&offset=' + str(offset) # 2012/22/02 - CVAPI flipped back to offset instead of page
+    PULLURL = mylar.CVURL + str(search_type) + 's?api_key=' + str(comicapi) + '&filter=name:' + filterline + '&field_list=id,name,start_year,site_detail_url,count_of_issues,image,publisher,deck,description,first_issue,last_issue&format=xml&sort=date_last_updated:desc&offset=' + str(offset) # 2012/22/02 - CVAPI flipped back to offset instead of page
 
     #all these imports are standard on most modern python implementations
     #logger.info('MB.PULLURL:' + PULLURL)
@@ -90,7 +90,7 @@ def pullsearch(comicapi, comicquery, offset, type):
     else:
         return dom
 
-def findComic(name, mode, issue, limityear=None, type=None):
+def findComic(name, mode, issue, limityear=None, search_type=None):
 
     #with mb_lock:
     comicResults = None
@@ -136,11 +136,11 @@ def findComic(name, mode, issue, limityear=None, type=None):
     else:
         comicapi = mylar.CONFIG.COMICVINE_API
 
-    if type is None:
-        type = 'volume'
+    if search_type is None:
+        search_type = 'volume'
 
     #let's find out how many results we get from the query...
-    searched = pullsearch(comicapi, comicquery, 0, type)
+    searched = pullsearch(comicapi, comicquery, 0, search_type)
     if searched is None:
         return False
     totalResults = searched.getElementsByTagName('number_of_total_results')[0].firstChild.wholeText
@@ -156,8 +156,8 @@ def findComic(name, mode, issue, limityear=None, type=None):
         if countResults > 0:
             offsetcount = countResults
 
-            searched = pullsearch(comicapi, comicquery, offsetcount, type)
-        comicResults = searched.getElementsByTagName(type)
+            searched = pullsearch(comicapi, comicquery, offsetcount, search_type)
+        comicResults = searched.getElementsByTagName(search_type)
         body = ''
         n = 0
         if not comicResults:
@@ -166,7 +166,7 @@ def findComic(name, mode, issue, limityear=None, type=None):
                 #retrieve the first xml tag (<tag>data</tag>)
                 #that the parser finds with name tagName:
                 arclist = []
-                if type == 'story_arc':
+                if search_type == 'story_arc':
                     #call cv.py here to find out issue count in story arc
                     try:
                         logger.fdebug('story_arc ascension')
@@ -292,19 +292,26 @@ def findComic(name, mode, issue, limityear=None, type=None):
                         cnl = len (result.getElementsByTagName('name'))
                         cl = 0
                         xmlTag = 'None'
-                        xmlimage = "cache/blankcover.jpg"
                         xml_lastissueid = 'None'
                         while (cl < cnl):
                             if result.getElementsByTagName('name')[cl].parentNode.nodeName == 'volume':
                                 xmlTag = result.getElementsByTagName('name')[cl].firstChild.wholeText
                                 #break
 
-                            if result.getElementsByTagName('name')[cl].parentNode.nodeName == 'image':
-                                xmlimage = result.getElementsByTagName('super_url')[0].firstChild.wholeText
+                            #if result.getElementsByTagName('name')[cl].parentNode.nodeName == 'image':
+                            #    xmlimage = result.getElementsByTagName('super_url')[0].firstChild.wholeText
 
                             if result.getElementsByTagName('name')[cl].parentNode.nodeName == 'last_issue':
                                 xml_lastissueid = result.getElementsByTagName('id')[cl].firstChild.wholeText
                             cl+=1
+
+                        try:
+                            xmlimage = result.getElementsByTagName('super_url')[0].firstChild.wholeText
+                        except Exception:
+                            try:
+                                xmlimage = result.getElementsByTagName('small_url')[0].firstChild.wholeText
+                            except Exception:
+                                xmlimage = "cache/blankcover.jpg"
 
                         if (result.getElementsByTagName('start_year')[0].firstChild) is not None:
                             xmlYr = result.getElementsByTagName('start_year')[0].firstChild.wholeText
@@ -354,8 +361,8 @@ def findComic(name, mode, issue, limityear=None, type=None):
                                 xmlpub = "Unknown"
 
                             #ignore specific publishers on a global scale here.
-                            if mylar.CONFIG.BLACKLISTED_PUBLISHERS is not None and any([x for x in mylar.CONFIG.BLACKLISTED_PUBLISHERS if x.lower() == xmlpub.lower()]):
-                                logger.fdebug('Blacklisted publisher [' + xmlpub + ']. Ignoring this result.')
+                            if mylar.CONFIG.IGNORED_PUBLISHERS is not None and any([x for x in mylar.CONFIG.IGNORED_PUBLISHERS if x.lower() == xmlpub.lower()]):
+                                logger.fdebug('Ignored publisher [%s]. Ignoring this result.' % xmlpub)
                                 continue
 
                             try:
@@ -378,6 +385,8 @@ def findComic(name, mode, issue, limityear=None, type=None):
                                         xmltype = 'Digital'
                                     elif 'paperback' in xmldeck.lower():
                                         xmltype = 'TPB'
+                                    elif 'graphic novel' in xmldeck.lower():
+                                        xmltype = 'GN'
                                     elif 'hardcover' in xmldeck.lower():
                                         xmltype = 'HC'
                                     elif 'oneshot' in re.sub('-', '', xmldeck.lower()).strip():
@@ -390,8 +399,10 @@ def findComic(name, mode, issue, limityear=None, type=None):
                                     xmltype = 'Print'
                                 elif 'digital' in xmldesc[:60].lower() and 'digital edition can be found' not in xmldesc.lower():
                                     xmltype = 'Digital'
-                                elif all(['paperback' in xmldesc[:60].lower(), 'paperback can be found' not in xmldesc.lower()]) or 'collects' in xmldesc[:60].lower():
+                                elif all(['paperback' in xmldesc[:60].lower(), 'paperback can be found' not in xmldesc.lower()]) or all(['hardcover' not in xmldesc[:60].lower(), 'collects' in xmldesc[:60].lower()]):
                                     xmltype = 'TPB'
+                                elif all(['graphic novel' in xmldesc[:60].lower(), 'graphic novel can be found' not in xmldesc.lower()]):
+                                    xmltype = 'GN'
                                 elif 'hardcover' in xmldesc[:60].lower() and 'hardcover can be found' not in xmldesc.lower():
                                     xmltype = 'HC'
                                 elif any(['one-shot' in xmldesc[:60].lower(), 'one shot' in xmldesc[:60].lower()]) and any(['can be found' not in xmldesc.lower(), 'following the' not in xmldesc.lower()]):
@@ -526,7 +537,7 @@ def storyarcinfo(xmlid):
             fi+=1
         logger.fdebug('firstid: ' + str(firstid))
         if firstid is not None:
-            firstdom = cv.pulldetails(comicid=None, type='firstissue', issueid=firstid)
+            firstdom = cv.pulldetails(comicid=None, rtype='firstissue', issueid=firstid)
             logger.fdebug('success')
             arcyear = cv.Getissue(firstid,firstdom,'firstissue')
     except:

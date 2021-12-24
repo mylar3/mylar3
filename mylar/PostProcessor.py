@@ -83,7 +83,7 @@ class PostProcessor(object):
             self.fileop = shutil.move
 
         self.valreturn = []
-        self.extensions = ('.cbr', '.cbz', '.pdf')
+        self.extensions = ('.cbr', '.cbz', '.pdf', '.cb7')
         self.failed_files = 0
         self.log = ''
         if issueid is not None:
@@ -188,7 +188,7 @@ class PostProcessor(object):
         logger.fdebug("Executing command " +str(script_cmd))
         logger.fdebug("Absolute path to script: " +script_cmd[0])
         try:
-            p = subprocess.Popen(script_cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, cwd=mylar.PROG_DIR)
+            p = subprocess.Popen(script_cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, cwd=mylar.PROG_DIR, text=True)
             out, err = p.communicate() #@UnusedVariable
             logger.fdebug("Script result: " + out)
             self._log("Script result: " + out)
@@ -374,8 +374,23 @@ class PostProcessor(object):
                     else:
                         # if the SAB Directory option is enabled, let's use that folder name and append the jobname.
                         if all([mylar.CONFIG.SAB_TO_MYLAR, mylar.CONFIG.SAB_DIRECTORY is not None, mylar.CONFIG.SAB_DIRECTORY != 'None']):
-                            self.nzb_folder = os.path.join(mylar.CONFIG.SAB_DIRECTORY, self.nzb_name) # .encode(mylar.SYS_ENCODING)
-                            logger.fdebug('%s SABnzbd Download folder option enabled. Directory set to : %s' % (module, self.nzb_folder))
+                            if os.path.exists(os.path.join(self.nzb_folder, self.nzb_name)):
+                                logger.fdebug('%s SABnzbd Download folder option enabled. Using directory of : %s' % (module, self.nzb_folder))
+                            else:
+                                tmpchk = os.path.join(mylar.CONFIG.SAB_DIRECTORY, self.nzb_name) # .encode(mylar.SYS_ENCODING)
+                                if os.path.exists(tmpchk):
+                                    self.nzb_folder = tmpchk
+                                    logger.fdebug('%s SABnzbd Download folder option enabled. Directory set to : %s' % (module, self.nzb_folder))
+                                else:
+                                    tmpchk2 = os.path.join(mylar.CONFIG.SAB_DIRECTORY, os.path.basename(self.nzb_folder))
+                                    if os.path.exists(tmpchk2):
+                                        self.nzb_folder = tmpchk2
+                                        logger.fdebug('%s SABnzbd Download folder option enabled. Directory set to : %s' % (module, self.nzb_folder))
+                                    else:
+                                        logger.warn('Unable to locate directory within %s location. I have unsucessfully attempted to locate the following paths: %s & %s' % (mylar.CONFIG.SAB_DIRECTORY, tmpchk, tmpchk2))
+                                        self.valreturn.append({"self.log": self.log,
+                                                               "mode": 'stop'})
+                                        return self.queue.put(self.valreturn)
 
                 if mylar.USE_NZBGET==1:
                     if self.nzb_name != 'Manual Run':
@@ -454,6 +469,11 @@ class PostProcessor(object):
                 oneoff_issuelist = []
                 manual_list = []
                 for fl in filelist['comiclist']:
+                    if all([fl['series_name'] is not None, fl['series_name'] != '']) and mylar.CONFIG.IGNORE_COVERS is True:
+                        cvchk = re.sub('[\s\s+\_\.]', '', fl['series_name']).lower()
+                        if any(['coveronly' in cvchk, 'coversonly' in cvchk]):
+                            logger.febug('Cover only detected. Ignoring result.')
+                            continue
                     self.matched = False
                     as_d = filechecker.FileChecker()
                     as_dinfo = as_d.dynamic_replace(fl['series_name']) #helpers.conversion(fl['series_name']))
@@ -465,6 +485,7 @@ class PostProcessor(object):
                         as_sinfo = as_d.dynamic_replace(fl['alt_series']) #helpers.conversion(fl['alt_series']))
                         mod_altseriesname = as_sinfo['mod_seriesname']
                         if all([mylar.CONFIG.ANNUALS_ON, 'annual' in mod_altseriesname.lower()]) or all([mylar.CONFIG.ANNUALS_ON, 'special' in mod_altseriesname.lower()]):
+                            mod_altseriesname = re.sub('2021annual', '', mod_altseriesname, flags=re.I).strip()
                             mod_altseriesname = re.sub('annual', '', mod_altseriesname, flags=re.I).strip()
                             mod_altseriesname = re.sub('special', '', mod_altseriesname, flags=re.I).strip()
                         if not any(re.sub('[\|\s]', '', mod_altseriesname).lower() == x for x in loopchk):
@@ -480,6 +501,7 @@ class PostProcessor(object):
                                     loopchk.append(re.sub('[\|\s]', '', cname.lower()))
 
                     if all([mylar.CONFIG.ANNUALS_ON, 'annual' in mod_seriesname.lower()]) or all([mylar.CONFIG.ANNUALS_ON, 'special' in mod_seriesname.lower()]):
+                        mod_seriesname = re.sub('2021annual', '', mod_seriesname, flags=re.I).strip()
                         mod_seriesname = re.sub('annual', '', mod_seriesname, flags=re.I).strip()
                         mod_seriesname = re.sub('special', '', mod_seriesname, flags=re.I).strip()
 
@@ -494,7 +516,7 @@ class PostProcessor(object):
                             logger.info('issueid detected in filename: %s' % fl['issueid'])
                             csi = myDB.selectone('SELECT i.ComicID, i.IssueID, i.Issue_Number, c.ComicName FROM comics as c JOIN issues as i ON c.ComicID = i.ComicID WHERE i.IssueID=?', [fl['issueid']]).fetchone()
                             if csi is None:
-                                csi = myDB.selectone('SELECT i.ComicID as comicid, i.IssueID, i.Issue_Number, a.ReleaseComicName, c.ComicName FROM comics as c JOIN annuals as a ON c.ComicID = a.ComicID WHERE a.IssueID=?', [fl['issueid']]).fetchone()
+                                csi = myDB.selectone('SELECT i.ComicID as comicid, i.IssueID, i.Issue_Number, a.ReleaseComicName, c.ComicName FROM comics as c JOIN annuals as a ON c.ComicID = a.ComicID WHERE a.IssueID=? AND NOT a.Deleted', [fl['issueid']]).fetchone()
                                 if csi is not None:
                                     annchk = 'yes'
                                 else:
@@ -529,14 +551,13 @@ class PostProcessor(object):
                                                 "One-Off":         False,
                                                 "ForcedMatch":     True})
                             logger.info('manual_list: %s' % manual_list)
-                            break
-
+                            continue
                         else:
                             tmpsql = "SELECT * FROM comics WHERE DynamicComicName IN ({seq}) COLLATE NOCASE".format(seq=','.join('?' * len(loopchk)))
                             comicseries = myDB.select(tmpsql, tuple(loopchk))
 
                     if not comicseries or orig_seriesname != mod_seriesname:
-                        if all(['special' in orig_seriesname.lower(), mylar.CONFIG.ANNUALS_ON, orig_seriesname != mod_seriesname]):
+                        if any(['special' in orig_seriesname.lower(), 'annual' in orig_seriesname.lower()]) and all([mylar.CONFIG.ANNUALS_ON, orig_seriesname != mod_seriesname]):
                             if not any(re.sub('[\|\s]', '', orig_seriesname).lower() == x for x in loopchk):
                                 loopchk.append(re.sub('[\|\s]', '', orig_seriesname.lower()))
                                 tmpsql = "SELECT * FROM comics WHERE DynamicComicName IN ({seq}) COLLATE NOCASE".format(seq=','.join('?' * len(loopchk)))
@@ -550,69 +571,130 @@ class PostProcessor(object):
                         #do some extra checks in here to ignore these types:
                         #check for Paused status /
                         #check for Ended status and 100% completion of issues.
-                        if wv['Status'] == 'Paused' or (wv['Have'] == wv['Total'] and not any(['Present' in wv['ComicPublished'], helpers.now()[:4] in wv['ComicPublished']])):
-                            logger.warn('%s [%s] is either Paused or in an Ended status with 100%s completion. Ignoring for match.' % (wv['ComicName'], wv['ComicYear'], '%'))
-                            continue
+                        if any([wv['Status'] == 'Paused', bool(wv['ForceContinuing']) is True]) or (wv['Have'] == wv['Total'] and not any(['Present' in wv['ComicPublished'], helpers.now()[:4] in wv['ComicPublished']])):
+                            dbcheck = myDB.selectone('SELECT Status FROM issues WHERE ComicID=? and Int_IssueNumber=?', [wv['ComicID'], helpers.issuedigits(fl['issue_number'])]).fetchone()
+                            if not dbcheck and mylar.CONFIG.ANNUALS_ON:
+                                dbcheck = myDB.selectone('SELECT Status FROM annuals WHERE ComicID=? and Int_IssueNumber=?', [wv['ComicID'], helpers.issuedigits(fl['issue_number'])]).fetchone()
+                            if dbcheck:
+                                if any([dbcheck[0] == 'Wanted', dbcheck[0] == 'Snatched']):
+                                    logger.fdebug('Series is 100%s complete, but specific issue %s matched up to a %s status. Let\'s Go!' % ('%', fl['issue_number'], dbcheck[0]))
+                                else:
+                                    logger.fdebug('Series is 100%s complete, however status is not Wanted (or Snatche), but %s. Set to Wanted for this to post-process on the next run.' % ('%', dbcheck[0]))
+                                    continue
+                            else:
+                                logger.warn('%s [%s] is either Paused or in an Ended status with 100%s completion. Ignoring for match.' % (wv['ComicName'], wv['ComicYear'], '%'))
+                                continue
                         wv_comicname = wv['ComicName']
+                        wv_dynamicname = wv['DynamicComicName']
                         wv_comicpublisher = wv['ComicPublisher']
+                        wv_comicpublished = wv['ComicPublished']
                         wv_alternatesearch = wv['AlternateSearch']
                         wv_comicid = wv['ComicID']
-                        if (all([wv['Type'] != 'Print', wv['Type'] != 'Digital']) and wv['Corrected_Type'] != 'Print') or wv['Corrected_Type'] == 'TPB':
-                            wv_type = 'TPB'
+                        if wv['Corrected_Type'] is None:
+                            wv_type = wv['Type']
                         else:
-                            wv_type = None
+                            wv_type = wv['Corrected_Type']
                         wv_seriesyear = wv['ComicYear']
                         wv_comicversion = wv['ComicVersion']
                         wv_publisher = wv['ComicPublisher']
                         wv_total = int(wv['Total'])
+                        wv_agerating = wv['AgeRating']
+                        wv_latestissue = wv['LatestIssue']
+                        wv_intlatestissue = wv['intLatestIssue']
+                        wv_forcecontinuing = bool(wv['ForceContinuing'])
                         if mylar.CONFIG.FOLDER_SCAN_LOG_VERBOSE:
                             logger.fdebug('Queuing to Check: %s [%s] -- %s' % (wv['ComicName'], wv['ComicYear'], wv['ComicID']))
 
                         #force it to use the Publication Date of the latest issue instead of the Latest Date (which could be anything)
-                        latestdate = myDB.select('SELECT IssueDate from issues WHERE ComicID=? order by ReleaseDate DESC', [wv['ComicID']])
-                        if latestdate:
-                            tmplatestdate = latestdate[0][0]
-                            if tmplatestdate[:4] != wv['LatestDate'][:4]:
-                                if tmplatestdate[:4] > wv['LatestDate'][:4]:
-                                    latestdate = tmplatestdate
+                        ld_check = myDB.selectone('SELECT ReleaseDate, Issue_Number, Int_IssueNumber from issues WHERE ComicID=? order by ReleaseDate DESC', [wv['ComicID']]).fetchone()
+                        if ld_check:
+                            if mylar.CONFIG.ANNUALS_ON:
+                                ld_check_ann = myDB.selectone('SELECT ReleaseDate, Issue_Number, Int_IssueNumber from annuals WHERE ComicID=? order by ReleaseDate DESC', [wv['ComicID']]).fetchone()
+                                if ld_check_ann:
+                                    if all([ld_check_ann[0] != '0000-00-00', ld_check_ann[0] is not None]):
+                                        if int(re.sub('-', '', ld_check_ann[0]).strip()) > int(re.sub('-', '', ld_check[0]).strip()):
+                                            logger.fdebug('Annual date newer than latest issue date - re-assigning latestdate as an annual')
+                                            ld_check = ld_check_ann
+                            #tmplatestdate = latestdate[0]
+                            if ld_check[0][:4] != wv['LatestDate'][:4]:
+                                if ld_check[0][:4] > wv['LatestDate'][:4]:
+                                    latestdate = ld_check[0]
                                 else:
                                     latestdate = wv['LatestDate']
                             else:
-                                latestdate = tmplatestdate
+                                latestdate = ld_check[0]
+                            tmplatestissue = ld_check[1]
+                            tmplatestissueint = ld_check[2]
+                            logger.fdebug('tmplatestissue: %s' %(tmplatestissue))
+                            logger.fdebug('tmplatestissueint: %s' %(tmplatestissueint))
+                            try:
+                                if tmplatestissueint >= wv_intlatestissue:
+                                    latestissue_int = tmplatestissueint
+                                    latestissue = tmplatestissue
+                                else:
+                                    latestissue_int = wv_intlatestissue
+                                    latestissue = wv_latestissue
+                            except Exception as e:
+                                latestissue_int = tmplatestissueint
+                                latestissue = tmplatestissue
                         else:
                             latestdate = wv['LatestDate']
+                            latestissue = wv_latestissue
+                            latestissue_int = wv_intlatestissue
 
                         if latestdate == '0000-00-00' or latestdate == 'None' or latestdate is None:
                             logger.fdebug('Forcing a refresh of series: %s as it appears to have incomplete issue dates.' % wv_comicname)
                             updater.dbUpdate([wv_comicid])
                             logger.fdebug('Refresh complete for %s. Rechecking issue dates for completion.' % wv_comicname)
-                            latestdate = myDB.select('SELECT IssueDate from issues WHERE ComicID=? order by ReleaseDate DESC', [wv['ComicID']])
-                            if latestdate:
-                                tmplatestdate = latestdate[0][0]
-                                if tmplatestdate[:4] != wv['LatestDate'][:4]:
-                                    if tmplatestdate[:4] > wv['LatestDate'][:4]:
-                                        latestdate = tmplatestdate
+                            ld_check = myDB.selectone('SELECT ReleaseDate, Issue_Number, Int_IssueNumber from issues WHERE ComicID=? order by ReleaseDate DESC', [wv['ComicID']]).fetchone()
+                            if ld_check:
+                                #tmplatestdate = latestdate[0]
+                                if ld_check[0][:4] != wv['LatestDate'][:4]:
+                                    if ld_check[0][:4] > wv['LatestDate'][:4]:
+                                        latestdate = ld_check[0]
                                     else:
                                         latestdate = wv['LatestDate']
                                 else:
-                                    latestdate = tmplatestdate
+                                    latestdate = ld_check[0]
+                                tmplatestissue = ld_check[1]
+                                tmplatestissueint = ld_check[2]
+                                logger.fdebug('tmplatestissue: %s' %(tmplatestissue))
+                                logger.fdebug('tmplatestissueint: %s' %(tmplatestissueint))
+                                try:
+                                    if tmplatestissueint >= wv_intlatestissue:
+                                        latestissue_int = tmplatestissueint
+                                        latestissue = tmplatestissue
+                                    else:
+                                        latestissue_int = wv_intlatestissue
+                                        latestissue = wv_latestissue
+                                except Exception as e:
+                                    latestissue_int = tmplatestissueint
+                                    latestissue = tmplatestissue
                             else:
                                 latestdate = wv['LatestDate']
+                                latestissue = wv_latestissue
+                                latestissue_int = wv_intlatestissue
 
                             logger.fdebug('Latest Date (after forced refresh) set to :' + str(latestdate))
 
                             if latestdate == '0000-00-00' or latestdate == 'None' or latestdate is None:
                                 logger.fdebug('Unable to properly attain the Latest Date for series: %s. Cannot check against this series for post-processing.' % wv_comicname)
-                                continue 
+                                continue
 
                         watchvals.append({"ComicName":       wv_comicname,
+                                          "DynamicName":     wv_dynamicname,
                                           "ComicPublisher":  wv_comicpublisher,
+                                          "ComicPublished":  wv_comicpublished,
                                           "AlternateSearch": wv_alternatesearch,
                                           "ComicID":         wv_comicid,
                                           "LastUpdated":     wv['LastUpdated'],
                                           "WatchValues": {"SeriesYear":   wv_seriesyear,
                                                           "LatestDate":   latestdate,
+                                                          "ForceContinuing": wv_forcecontinuing,
+                                                          "LatestIssue":  latestissue,
+                                                          "LatestIssueInt":  latestissue_int,
                                                           "ComicVersion": wv_comicversion,
+                                                          "AgeRating":    wv_agerating,
                                                           "Type":         wv_type,
                                                           "Publisher":    wv_publisher,
                                                           "Total":        wv_total,
@@ -630,11 +712,11 @@ class PostProcessor(object):
                             continue
                         else:
                             try:
-                                if cs['WatchValues']['Type'] == 'TPB' and cs['WatchValues']['Total'] > 1:
+                                if (any([cs['WatchValues']['Type'] == 'TPB', cs['WatchValues']['Type'] == 'HC', cs['WatchValues']['Type'] == 'GN']) and cs['WatchValues']['Total'] > 1) or all([cs['WatchValues']['Type'] == 'One-Shot', cs['WatchValues']['Total'] == 1]):
                                     if watchmatch['series_volume'] is not None:
                                         just_the_digits = re.sub('[^0-9]', '', watchmatch['series_volume']).strip()
                                     else:
-                                        just_the_digits = re.sub('[^0-9]', '', watchmatch['justthedigits']).strip()
+                                        just_the_digits = re.sub('[^0-9.]', '', watchmatch['justthedigits']).strip()
                                 else:
                                     just_the_digits = watchmatch['justthedigits']
                             except Exception as e:
@@ -647,10 +729,13 @@ class PostProcessor(object):
                                 temploc = re.sub('[\#\']', '', temploc)
                                 #logger.fdebug('temploc: %s' % temploc)
                             else:
-                                temploc = None
+                                if any([cs['WatchValues']['Type'] == 'TPB', cs['WatchValues']['Type'] == 'GN', cs['WatchValues']['Type'] == 'HC', cs['WatchValues']['Type'] == 'One-Shot']):
+                                   temploc = '1'
+                                else:
+                                   temploc = None
                             datematch = "False"
 
-                            if temploc is None and all([cs['WatchValues']['Type'] != 'TPB', cs['WatchValues']['Type'] != 'One-Shot']):
+                            if temploc is None and all([cs['WatchValues']['Type'] != 'TPB', cs['WatchValues']['Type'] != 'GN', cs['WatchValues']['Type'] != 'HC', cs['WatchValues']['Type'] != 'One-Shot']):
                                 logger.info('this should have an issue number to match to this particular series: %s' % cs['ComicID'])
                                 continue
 
@@ -661,12 +746,13 @@ class PostProcessor(object):
                                     fcdigit = helpers.issuedigits(re.sub('biannual', '', str(biannchk)).strip())
                                 else:
                                     if 'annual' in temploc.lower():
+                                        fcdigit = helpers.issuedigits(re.sub('2021 annual', '', str(temploc.lower())).strip())
                                         fcdigit = helpers.issuedigits(re.sub('annual', '', str(temploc.lower())).strip())
                                     else:
                                         fcdigit = helpers.issuedigits(re.sub('special', '', str(temploc.lower())).strip())
                                     logger.fdebug('%s Annual/Special detected [%s]. ComicID assigned as %s' % (module, fcdigit, cs['ComicID']))
                                 annchk = "yes"
-                                issuechk = myDB.select("SELECT * from annuals WHERE ComicID=? AND Int_IssueNumber=?", [cs['ComicID'], fcdigit])
+                                issuechk = myDB.select("SELECT * from annuals WHERE ComicID=? AND Int_IssueNumber=? AND NOT Deleted", [cs['ComicID'], fcdigit])
                             else:
                                 annchk = "no"
                                 if temploc is not None:
@@ -693,10 +779,16 @@ class PostProcessor(object):
                                     if hours < 1:
                                         logger.fdebug('%s %s [%s] Was refreshed less than 1 hours ago. Skipping Refresh at this time so we don\'t hammer things unnecessarily.' % (module, cs['ComicName'], cs['ComicID']))
                                         continue
-                                updater.dbUpdate([cs['ComicID']])
-                                logger.fdebug('%s Succssfully refreshed series - now re-querying against new data for issue #%s.' % (module, temploc))
+
+                                try:
+                                    updater.dbUpdate([cs['ComicID']])
+                                    logger.fdebug('%s Succssfully refreshed series - now re-querying against new data for issue #%s.' % (module, temploc))
+                                except:
+                                    logger.error('%s %s failed to update comic.' % (module, cs['ComicName']))
+                                    continue
+
                                 if annchk == 'yes':
-                                    issuechk = myDB.select("SELECT * from annuals WHERE ComicID=? AND Int_IssueNumber=?", [cs['ComicID'], fcdigit])
+                                    issuechk = myDB.select("SELECT * from annuals WHERE ComicID=? AND Int_IssueNumber=? AND NOT Deleted", [cs['ComicID'], fcdigit])
                                 else:
                                     issuechk = myDB.select("SELECT * from issues WHERE ComicID=? AND Int_IssueNumber=?", [cs['ComicID'], fcdigit])
                                 if not issuechk:
@@ -704,6 +796,10 @@ class PostProcessor(object):
                                     continue
 
                             for isc in issuechk:
+                                if any([temploc is not None, temploc != 999999999999999]) and all([annchk =='no', helpers.issuedigits(temploc) != helpers.issuedigits(isc['Issue_Number'])]) or all([annchk == 'yes', helpers.issuedigits(re.sub('annual', '', temploc.lower()).strip()) != helpers.issuedigits(isc['Issue_Number'])]):
+                                    logger.fdebug('issues dont match. Skipping')
+                                    continue
+
                                 datematch = "True"
                                 datechkit = False
                                 if isc['ReleaseDate'] is not None and isc['ReleaseDate'] != '0000-00-00':
@@ -787,7 +883,93 @@ class PostProcessor(object):
                                     # if the above both don't exist, and there's more than one series on the watchlist (or the series is > v1)
                                     # then spit out the error message and don't post-process it.
                                     watch_values = cs['WatchValues']
-                                    #logger.fdebug('WATCH_VALUES:' + str(watch_values))
+                                    second_check = False
+                                    if watch_values['LatestIssueInt'] >= fcdigit:
+                                        logger.fdebug('possible match - issue in dB (%s) is greater than issue in file (%s)' % (watch_values['LatestIssueInt'], fcdigit))
+
+                                        #dynamic-name generation here.
+                                        as_d = filechecker.FileChecker(watchcomic=watchmatch['series_name'])
+                                        as_dinfo = as_d.dynamic_replace(watchmatch['series_name'])
+                                        tmpseriesname = as_dinfo['mod_seriesname']
+                                        if all([mylar.CONFIG.ANNUALS_ON, 'annual' in tmpseriesname.lower(), 'annual' not in cs['DynamicName']]) or all([mylar.CONFIG.ANNUALS_ON, 'special' in tmpseriesname.lower()]):
+                                            tmpseriesname = re.sub('2021annual', '', tmpseriesname, flags=re.I).strip()
+                                            tmpseriesname = re.sub('annual', '', tmpseriesname, flags=re.I).strip()
+                                            tmpseriesname = re.sub('special', '', tmpseriesname, flags=re.I).strip()
+                                        dynamic_seriesname = re.sub('[\|\s]','', tmpseriesname.lower()).strip()
+
+                                        alts = []
+                                        for x in alt_list:
+                                            if x['AS_DyComicName'] == cs['DynamicName']:
+                                                alts = x['AS_Alt']
+                                        alt_listing = [True if x.lower() == dynamic_seriesname else False for x in alts]
+
+                                        if any([cs['DynamicName'] == dynamic_seriesname, alt_listing]) and all([cs['WatchValues']['Type'] != 'TPB', cs['WatchValues']['Type'] != 'GN', cs['WatchValues']['Type'] != 'HC', cs['WatchValues']['Type'] != 'One-Shot']):
+                                            logger.fdebug('name match exact : %s - %s' % (cs['DynamicName'], dynamic_seriesname))
+                                            test = myDB.selectone('SELECT Comic, DynamicName, Issue, weeknumber, year FROM weekly WHERE ComicID = ? ORDER BY year DESC, CAST(weeknumber AS INTEGER) DESC', [cs['ComicID']]).fetchone()
+                                            if test:
+                                                logger.fdebug('test matched to ComicID: %s' % (cs['ComicID']))
+                                                week_comic = test[0]
+                                                week_dynamicname = test[1]
+                                                if all([mylar.CONFIG.ANNUALS_ON, 'annual' in week_dynamicname.lower(), 'annual' not in dynamic_seriesname]) or all([mylar.CONFIG.ANNUALS_ON, 'special' in week_dynamicname.lower()]):
+                                                    week_dynamicname = re.sub('2021annual', '', week_dynamicname, flags=re.I).strip()
+                                                    week_dynamicname = re.sub('annual', '', week_dynamicname, flags=re.I).strip()
+                                                    week_dynamicname = re.sub('special', '', week_dynamicname, flags=re.I).strip()
+                                                week_issue = test[2]
+                                                week_intissue = helpers.issuedigits(week_issue)
+                                                logger.fdebug('week_dynamicname: %s / dynamic_seriesname: %s' % (week_dynamicname,dynamic_seriesname))
+                                                logger.fdebug('week_intissue: %s / fcdigit: %s' % (week_intissue, fcdigit))
+                                                logger.fdebug('last issue for series listed as #%s in week %s, %s' % (week_issue, test[3], test[4]))
+                                                if any([week_dynamicname == dynamic_seriesname, alt_listing]):
+                                                    if any(['Present' in cs['ComicPublished'], watch_values['ForceContinuing'] is True]):
+                                                        if week_intissue == fcdigit:
+                                                            logger.fdebug('Matched exactly on Series Title, IssueNumber, present on the pull.')
+                                                            second_check = True
+                                                        else:
+                                                            logger.fdebug('Matched to Series Title - but Issue Number is not on pull and series is ongoing. Bypassing this check to let the dates verify.')
+                                                            second_check = True
+                                                    else:
+                                                        # only worry about the last 2 weeks of the pull (basically where the data might be available due to CV being late / not updatin$
+                                                        tmp_weeknumber = int(test[3])
+                                                        tmp_weekyear = int(test[4])
+                                                        #logger.info('tmp_weeknumber: %s / tmp_weekyear: %s' % (tmp_weeknumber, tmp_weekyear))
+                                                        #logger.info('mylar.currentyear: %s / mylar.current_weeknumber: %s' % (mylar.CURRENT_YEAR, mylar.CURRENT_WEEKNUMBER))
+                                                        # will have to modify the line below to acocmodate when the current year changes and the weeknumber flips back to 0/1.
+                                                        # migth need to extend +2 to +4 so that it covers the entire month
+                                                        if (tmp_weekyear == int(mylar.CURRENT_YEAR)) and tmp_weeknumber + 2 >= int(mylar.CURRENT_WEEKNUMBER):
+                                                            logger.fdebug('%s %s should have current weekly data if this was an ongoing publication.' % (watchmatch['series_name'], watchmatch['justthedigits']))
+                                                            second_check = False
+                                                        else:
+                                                            second_check = True
+                                                else:
+                                                    logger.fdebug('%s %s in filename don\'t match up to what\'s in the dB %s %s [%s]' % (watchmatch['series_name'], watchmatch['justthedigits'], week_comic, week_issue, cs['ComicID']))
+                                            else:
+                                                if any(['Present' not in cs['ComicPublished'], watch_values['ForceContinuing'] is True, helpers.now()[:4] not in cs['ComicPublished']]):
+                                                    logger.fdebug('%s %s is not part of an ongoing publication. Bypassing this check and letting the dates verify below' % (watchmatch['series_name'],watchmatch['justthedigits']))
+                                                    second_check = True
+                                                else:
+                                                    # if the name matches, but the data isn't present on the pull from a previous week (due to being a new install)
+                                                    # it won't be able to post-process. Get current issue date, resolve to week and see if week is present in pull.
+                                                    ischk = isc['ReleaseDate']
+                                                    if ischk:
+                                                        rls_the_date = datetime.datetime.strptime(isc['ReleaseDate'], '%Y-%m-%d')
+                                                        rls_weeknumber = rls_the_date.isocalendar()[1]
+                                                        rls_weekyear = rls_the_date.isocalendar()[0]
+                                                        popit = myDB.select("SELECT * FROM sqlite_master WHERE name='weekly' and type='table'")
+                                                        if popit:
+                                                            w_results = myDB.select("SELECT * from weekly WHERE weeknumber=? AND year=?", [rls_weeknumber,rls_weekyear])
+                                                            if len(w_results) == 0:
+                                                                # if the week doesn't exist, let it pass... (or we can possibly force recreate?)
+                                                                second_check = True
+                                        else:
+                                            pass
+                                            #logger.info('name in dB (%s) does not match name in file (%s)' % (cs['ComicName'], watchmatch['series_name']))
+                                    else:
+                                        logger.fdebug('not a match')
+
+                                    if all([second_check is False, cs['WatchValues']['Type'] != 'TPB', cs['WatchValues']['Type'] != 'GN', cs['WatchValues']['Type'] != 'HC', cs['WatchValues']['Type'] != 'One-Shot']):
+                                        logger.fdebug('%s %s in filename don\'t match up to what\'s in the dB for %s [%s]. This is a wrong match. Continuing...' % (watchmatch['series_name'], watchmatch['justthedigits'], cs['ComicName'], cs['ComicID']))
+                                        continue
+
                                     if any([watch_values['ComicVersion'] is None, watch_values['ComicVersion'] == 'None']):
                                         tmp_watchlist_vol = '1'
                                     else:
@@ -800,13 +982,16 @@ class PostProcessor(object):
                                             else:
                                                 logger.fdebug('%s[ISSUE-VERIFY][SeriesYear-Volume FAILURE] Series Year of %s DID NOT match to volume/year label of %s' % (module, watch_values['SeriesYear'], tmp_watchmatch_vol))
                                                 datematch = "False"
-                                        elif len(watchvals) > 1 and int(tmp_watchmatch_vol) >= 1:
+                                        elif (len(watchvals) > 1 and int(tmp_watchmatch_vol) >= 1):
                                             if int(tmp_watchmatch_vol) == int(tmp_watchlist_vol):
                                                 logger.fdebug('%s[ISSUE-VERIFY][SeriesYear-Volume MATCH] Volume label of series Year of %s matched to volume label of %s' % (module, watch_values['ComicVersion'], watchmatch['series_volume']))
                                                 lonevol = True
                                             else:
                                                 logger.fdebug('%s[ISSUE-VERIFY][SeriesYear-Volume FAILURE] Volume label of Series Year of %s DID NOT match to volume label of %s' % (module, watch_values['ComicVersion'], watchmatch['series_volume']))
                                                 datematch = "False"
+                                        elif (len(watchvals) == 1 and int(tmp_watchmatch_vol) == int(tmp_watchlist_vol)):
+                                            logger.fdebug('%s[ISSUE-VERIFY][SeriesYear-Volume MATCH] Volume label of series Year of %s matched to volume label of %s' % (module, watch_values['ComicVersion'], watchmatch['series_volume']))
+                                            lonevol = True
                                     else:
                                         if any([tmp_watchlist_vol is None, tmp_watchlist_vol == 'None', tmp_watchlist_vol == '']):
                                             logger.fdebug('%s[ISSUE-VERIFY][NO VOLUME PRESENT] No Volume label present for series. Dropping down to Issue Year matching.' % module)
@@ -871,7 +1056,9 @@ class PostProcessor(object):
                                                             "IssueNumber":     isc['Issue_Number'],
                                                             "AnnualType":      annualtype,
                                                             "ComicName":       cs['ComicName'],
+                                                            "AgeRating":       cs['WatchValues']['AgeRating'],
                                                             "Series":          watchmatch['series_name'],
+                                                            "SeriesYear":      cs['WatchValues']['SeriesYear'],
                                                             "AltSeries":       watchmatch['alt_series'],
                                                             "One-Off":         False,
                                                             "ForcedMatch":     False})
@@ -933,6 +1120,7 @@ class PostProcessor(object):
                         logger.error('%s No Story Arcs in Watchlist that contain that particular series - aborting Manual Post Processing. Maybe you should be running Import?' % module)
                         return
                     else:
+                        tmp_arclist = []
                         arcvals = []
                         for av in arc_series:
                             arcvals.append({"ComicName":       av['ComicName'],
@@ -945,7 +1133,7 @@ class PostProcessor(object):
                                                                 "Publisher":        av['Publisher'],
                                                                 "IssueID":          av['IssueID'],
                                                                 "IssueNumber":      av['IssueNumber'],
-                                                                "IssueYear":        av['IssueYear'],   #for some reason this is empty 
+                                                                "IssueYear":        av['IssueYear'],   #for some reason this is empty
                                                                 "ReadingOrder":     av['ReadingOrder'],
                                                                 "IssueDate":        av['IssueDate'],
                                                                 "Status":           av['Status'],
@@ -974,7 +1162,7 @@ class PostProcessor(object):
                                     res[acv['ComicName']].append({"ArcValues":     acv['ArcValues'],
                                                                   "WatchValues":   acv['WatchValues']})
                     if len(res) > 0:
-                        logger.fdebug('%s Now Checking if %s issue(s) may also reside in one of the storyarc\'s that I am watching.' % (module, len(res)))
+                        logger.fdebug('%s Now Checking if this issue(s) may also reside in one of %s storyarc\'s that I am watching.' % (module, len(res)))
                     for k,v in list(res.items()):
                         i = 0
                         #k is ComicName
@@ -985,16 +1173,16 @@ class PostProcessor(object):
                             else:
                                 arcm = filechecker.FileChecker(watchcomic=k, Publisher=v[i]['ArcValues']['ComicPublisher'], manual=v[i]['WatchValues'])
                                 arcmatch = arcm.matchIT(fl)
-                                #logger.fdebug('arcmatch: ' + str(arcmatch))
+                                #logger.fdebug('arcmatch: %s' % arcmatch)
                                 if arcmatch['process_status'] == 'fail':
                                     nm+=1
                                 else:
                                     try:
-                                        if all([v[i]['WatchValues']['Type'] == 'TPB', v[i]['WatchValues']['Total'] > 1]) or all([v[i]['WatchValues']['Type'] == 'One-Shot', v[i]['WatchValues']['Total'] == 1]):
-                                            if watchmatch['series_volume'] is not None:
+                                        if (any([v[i]['WatchValues']['Type'] == 'TPB', v[i]['WatchValues']['Type'] == 'GN', v[i]['WatchValues']['Type'] == 'HC']) and v[i]['WatchValues']['Total'] > 1) or all([v[i]['WatchValues']['Type'] == 'One-Shot', v[i]['WatchValues']['Total'] == 1]):
+                                            if arcmatch['series_volume'] is not None:
                                                 just_the_digits = re.sub('[^0-9]', '', arcmatch['series_volume']).strip()
                                             else:
-                                                just_the_digits = re.sub('[^0-9]', '', arcmatch['justthedigits']).strip()
+                                                just_the_digits = re.sub('[^0-9.]', '', arcmatch['justthedigits']).strip()
                                         else:
                                             just_the_digits = arcmatch['justthedigits']
                                     except Exception as e:
@@ -1007,12 +1195,12 @@ class PostProcessor(object):
                                         temploc = re.sub('[\#\']', '', temploc)
                                         #logger.fdebug('temploc: %s' % temploc)
                                     else:
-                                        if any([v[i]['WatchValues']['Type'] == 'TPB', v[i]['WatchValues']['Type'] == 'One-Shot']):
+                                        if any([v[i]['WatchValues']['Type'] == 'TPB', v[i]['WatchValues']['Type'] == 'GN', v[i]['WatchValues']['Type'] == 'HC', v[i]['WatchValues']['Type'] == 'One-Shot']):
                                             temploc = '1'
                                         else:
                                             temploc = None
 
-                                    if temploc is not None and helpers.issuedigits(temploc) != helpers.issuedigits(v[i]['ArcValues']['IssueNumber']):
+                                    if any([temploc is not None ,temploc != 999999999999999]) and helpers.issuedigits(temploc) != helpers.issuedigits(v[i]['ArcValues']['IssueNumber']):
                                         #logger.fdebug('issues dont match. Skipping')
                                         i+=1
                                         continue
@@ -1024,6 +1212,7 @@ class PostProcessor(object):
                                                 fcdigit = helpers.issuedigits(re.sub('biannual', '', str(biannchk)).strip())
                                             else:
                                                 if 'annual' in temploc.lower():
+                                                    fcdigit = helpers.issuedigits(re.sub('2021 annual', '', str(temploc.lower())).strip())
                                                     fcdigit = helpers.issuedigits(re.sub('annual', '', str(temploc.lower())).strip())
                                                 else:
                                                     fcdigit = helpers.issuedigits(re.sub('special', '', str(temploc.lower())).strip())
@@ -1132,12 +1321,13 @@ class PostProcessor(object):
                                                 else:
                                                     logger.info('%s Found matching issue # %s for ComicID: %s / IssueID: %s' % (module, fcdigit, v[i]['WatchValues']['ComicID'], isc['IssueID']))
 
-                                            logger.fdebug('datematch: %s' % datematch)
-                                            logger.fdebug('temploc: %s' % helpers.issuedigits(temploc))
-                                            logger.fdebug('arcissue: %s' % helpers.issuedigits(v[i]['ArcValues']['IssueNumber']))
-                                            if datematch == "True" and helpers.issuedigits(temploc) == helpers.issuedigits(v[i]['ArcValues']['IssueNumber']):
+                                            #logger.fdebug('datematch: %s' % datematch)
+                                            #logger.fdebug('temploc: %s' % helpers.issuedigits(temploc))
+                                            #logger.fdebug('arcissue: %s' % helpers.issuedigits(v[i]['ArcValues']['IssueNumber']))
+                                            if datematch == "True": # and helpers.issuedigits(temploc) == helpers.issuedigits(v[i]['ArcValues']['IssueNumber']):
                                                 #reset datematch here so it doesn't carry the value down and avoid year checks
                                                 datematch = "False"
+                                                lonevol = False
                                                 arc_values = v[i]['WatchValues']
                                                 if any([arc_values['ComicVersion'] is None, arc_values['ComicVersion'] == 'None']):
                                                     tmp_arclist_vol = '1'
@@ -1151,18 +1341,23 @@ class PostProcessor(object):
                                                         else:
                                                             logger.fdebug('%s[ARC ISSUE-VERIFY][SeriesYear-Volume FAILURE] Series Year of %s DID NOT match to volume/year label of %s' % (module, arc_values['SeriesYear'], tmp_arcmatch_vol))
                                                             datematch = "False"
-                                                    if len(arcvals) > 1 and int(tmp_arcmatch_vol) >= 1:
+                                                    elif len(arcvals) > 1 and int(tmp_arcmatch_vol) >= 1:
                                                         if int(tmp_arcmatch_vol) == int(tmp_arclist_vol):
                                                             logger.fdebug('%s[ARC ISSUE-VERIFY][SeriesYear-Volume MATCH] Volume label of series Year of %s matched to volume label of %s' % (module, arc_values['ComicVersion'], arcmatch['series_volume']))
+                                                            lonevol = True
                                                         else:
                                                             logger.fdebug('%s[ARC ISSUE-VERIFY][SeriesYear-Volume FAILURE] Volume label of Series Year of %s DID NOT match to volume label of %s' % (module, arc_values['ComicVersion'], arcmatch['series_volume']))
                                                             datematch = "False"
+                                                    elif (len(arcvals) == 1 and int(tmp_arcmatch_vol) == int(tmp_arclist_vol)):
+                                                        logger.fdebug('%s[ARC ISSUE-VERIFY][SeriesYear-Volume MATCH] Volume label of series Year of %s matched to volume label of %s' % (module, arc_values['ComicVersion'], arcmatch['series_volume']))
+                                                        lonevol = True
                                                 else:
                                                     if any([tmp_arclist_vol is None, tmp_arclist_vol == 'None', tmp_arclist_vol == '']):
                                                         logger.fdebug('%s[ARC ISSUE-VERIFY][NO VOLUME PRESENT] No Volume label present for series. Dropping down to Issue Year matching.' % module)
                                                         datematch = "False"
                                                     elif len(arcvals) == 1 and int(tmp_arclist_vol) == 1:
                                                         logger.fdebug('%s[ARC ISSUE-VERIFY][Lone Volume MATCH] Volume label of %s indicates only volume for this series on your watchlist.' % (module, arc_values['ComicVersion']))
+                                                        lonevol = True
                                                     elif int(tmp_arclist_vol) > 1:
                                                         logger.fdebug('%s[ARC ISSUE-VERIFY][Lone Volume FAILURE] Volume label of %s indicates that there is more than one volume for this series, but the one on your watchlist has no volume label set.' % (module, arc_values['ComicVersion']))
                                                         datematch = "False"
@@ -1182,6 +1377,10 @@ class PostProcessor(object):
                                                                 logger.fdebug('%s[ARC ISSUE-VERIFY][Issue Year MATCH] Modified Issue Year of %s is a match to the year found in the filename of : %s' % (module, issyr, arcmatch['issue_year']))
                                                                 datematch = 'True'
 
+                                                elif datematch == 'False' and arcmatch['issue_year'] is None and lonevol is True:
+                                                    logger.fdebug('%s[LONE-VOLUME/NO YEAR][MATCH] Only Volume on arc watchlist matches, no year present in filename. Assuming match based on volume and title.' % module)
+                                                    datematch = 'True'
+
                                                 if datematch == 'True':
                                                     passit = False
                                                     if len(manual_list) > 0:
@@ -1198,8 +1397,20 @@ class PostProcessor(object):
                                                         tmpfilename = arcmatch['comicfilename'] #helpers.conversion(arcmatch['comicfilename'])
                                                         if arcmatch['sub']:
                                                             clocation = os.path.join(arcmatch['comiclocation'], arcmatch['sub'], tmpfilename)
+                                                            if not os.path.exists(clocation):
+                                                                scrubs = re.sub(watchmatch['comiclocation'], '', watchmatch['sub']).strip()
+                                                                if scrubs[:2] == '//' or scrubs[:2] == '\\':
+                                                                    scrubs = scrubs[1:]
+                                                                    if os.path.exists(scrubs):
+                                                                        logger.fdebug('[MODIFIED CLOCATION] %s' % scrubs)
+                                                                        clocation = scrubs
                                                         else:
-                                                            clocation = os.path.join(arcmatch['comiclocation'], tmpfilename)
+                                                            logger.fdebug('%s[CLOCATION] %s' % (module, arcmatch['comiclocation']))
+                                                            if os.path.isfile(arcmatch['comiclocation']):
+                                                                clocation = arcmatch['comiclocation']
+                                                            else:
+                                                                clocation = os.path.join(arcmatch['comiclocation'], tmpfilename)
+
                                                         logger.info('[%s #%s] MATCH: %s / %s / %s' % (k, isc['IssueNumber'], clocation, isc['IssueID'], v[i]['ArcValues']['IssueID']))
                                                         if v[i]['ArcValues']['Publisher'] is None:
                                                             arcpublisher = v[i]['ArcValues']['ComicPublisher']
@@ -1214,9 +1425,14 @@ class PostProcessor(object):
                                                                                "StoryArc":        v[i]['ArcValues']['StoryArc'],
                                                                                "StoryArcID":      v[i]['ArcValues']['StoryArcID'],
                                                                                "IssueArcID":      v[i]['ArcValues']['IssueArcID'],
+                                                                               "SeriesYear":      v[i]['WatchValues']['SeriesYear'],
                                                                                "Publisher":       arcpublisher,
                                                                                "ReadingOrder":    v[i]['ArcValues']['ReadingOrder'],
                                                                                "ComicName":       k})
+                                                        tmp_arclist.append({"ComicName": k,
+                                                                            "ComicID":   v[i]['WatchValues']['ComicID'],
+                                                                            "IssueID":   v[i]['ArcValues']['IssueID']})
+
                                                         logger.info('%s[SUCCESSFUL MATCH: %s-%s] Match verified for %s' % (module, k, v[i]['WatchValues']['ComicID'], arcmatch['comicfilename']))
                                                         self.matched = True
                                                         break
@@ -1224,12 +1440,39 @@ class PostProcessor(object):
                                                     logger.fdebug('%s[NON-MATCH: %s-%s] Incorrect series - not populating..continuing post-processing' % (module, k, v[i]['WatchValues']['ComicID']))
 
                             i+=1
+                        if len(tmp_arclist) > 1:
+                            logger.info('[STORY-ARC VERIFICATION] %s matches to storyarcs - probably due to invalid name matching above. Let\'s try to correct this.' % len(tmp_arclist))
+                            keep_match = []
+                            drop_match = []
+                            for x in tmp_arclist:
+                                xmld = filechecker.FileChecker()
+                                xmld1 = xmld.dynamic_replace(x['ComicName']) #helpers.conversion(cs['ComicName']))
+                                xseries = xmld1['mod_seriesname'].lower()
+                                xmld2 = xmld.dynamic_replace(arcmatch['series_name']) #helpers.conversion(watchmatch['series_name']))
+                                xfile = xmld2['mod_seriesname'].lower()
+                                if re.sub('\|', '', xseries) == re.sub('\|', '', xfile):
+                                    logger.fdebug('%s[DEFINITIVE-NAME MATCH] Definitive name match exactly to : %s [%s]' % (module, arcmatch['series_name'], x['ComicID']))
+                                    keep_match.append(x['IssueID'])
+                                    self.matched = True
+                                else:
+                                    logger.fdebug('INVALID MATCH DETECTED: %s' % x['ComicName'])
+                                    drop_match.append(x['IssueID'])
+
+                            tmp_list = []
+                            for xy in manual_arclist:
+                                if [True for dm in drop_match if xy['IssueID'] == dm]:
+                                    continue
+                                else:
+                                    tmp_list.append(xy)
+                            manual_arclist = tmp_list
+                            #logger.fdebug('new_manualarclist: %s' % (manual_arclist,))
+
                     if self.matched is False:
                         #one-off manual pp'd of torrents
                         if all(['0-Day Week' in self.nzb_name, mylar.CONFIG.PACK_0DAY_WATCHLIST_ONLY is True]):
                             pass
                         else:
-                            oneofflist = myDB.select("select s.Issue_Number, s.ComicName, s.IssueID, s.ComicID, s.Provider, w.format, w.PUBLISHER, w.weeknumber, w.year from snatched as s inner join nzblog as n on s.IssueID = n.IssueID inner join weekly as w on s.IssueID = w.IssueID WHERE n.OneOff = 1;") #(s.Provider ='32P' or s.Provider='WWT' or s.Provider='DEM') AND n.OneOff = 1;")
+                            oneofflist = myDB.select("select s.Issue_Number, s.ComicName, s.IssueID, s.ComicID, s.Provider, w.format, w.PUBLISHER, w.weeknumber, w.year from snatched as s inner join nzblog as n on s.IssueID = n.IssueID inner join weekly as w on s.IssueID = w.IssueID WHERE n.OneOff = 1 AND s.ComicName is not NULL;") #(s.Provider ='32P' or s.Provider='WWT' or s.Provider='DEM') AND n.OneOff = 1;")
                             #oneofflist = myDB.select("select s.Issue_Number, s.ComicName, s.IssueID, s.ComicID, s.Provider, w.PUBLISHER, w.weeknumber, w.year from snatched as s inner join nzblog as n on s.IssueID = n.IssueID and s.Hash is not NULL inner join weekly as w on s.IssueID = w.IssueID WHERE n.OneOff = 1;") #(s.Provider ='32P' or s.Provider='WWT' or s.Provider='DEM') AND n.OneOff = 1;")
                             if not oneofflist:
                                 pass #continue
@@ -1244,7 +1487,7 @@ class PostProcessor(object):
                                                        "AlternateSearch": None,
                                                        "ComicID":         ofl['ComicID'],
                                                        "IssueID":         ofl['IssueID'],
-                                                       "WatchValues": {"SeriesYear":   None,
+                                                       "WatchValues": {"SeriesYear":   ofl['year'],
                                                                        "LatestDate":   None,
                                                                        "ComicVersion": None,
                                                                        "Publisher":    ofl['PUBLISHER'],
@@ -1295,6 +1538,7 @@ class PostProcessor(object):
                                                 logger.fdebug('%s Bi-Annual detected.' % module)
                                                 fcdigit = helpers.issuedigits(re.sub('biannual', '', str(biannchk)).strip())
                                             else:
+                                                fcdigit = helpers.issuedigits(re.sub('2021 annual', '', str(temploc.lower())).strip())
                                                 fcdigit = helpers.issuedigits(re.sub('annual', '', str(temploc.lower())).strip())
                                                 logger.fdebug('%s Annual detected [%s]. ComicID assigned as %s' % (module, fcdigit, ofv['ComicID']))
                                             annchk = "yes"
@@ -1322,6 +1566,7 @@ class PostProcessor(object):
                                                                  "IssueID":         ofv['IssueID'],
                                                                  "IssueNumber":     ofv['Issue_Number'],
                                                                  "ComicName":       ofv['ComicName'],
+                                                                 "SeriesYear":      ofv['WatchValues']['SeriesYear'],
                                                                  "One-Off":         True})
                                         self.oneoffinlist = True
                                     else:
@@ -1352,11 +1597,19 @@ class PostProcessor(object):
 
                             crcvalue = helpers.crc(ofilename)
 
+                            roders = myDB.select('SELECT StoryArc, ReadingOrder from storyarcs WHERE ComicID=? AND IssueID=?', [ml['ComicID'], issueid])
+                            readingorder = None
+                            if roders is not None:
+                                readingorder = []
+                                for rd in roders:
+                                    readingorder.append((rd['StoryArc'], rd['ReadingOrder']))
+                            logger.fdebug('readingorder: %s' % (readingorder))
+
                             if mylar.CONFIG.ENABLE_META:
                                 logger.info('[STORY-ARC POST-PROCESSING] Metatagging enabled - proceeding...')
                                 try:
                                     from . import cmtagmylar
-                                    metaresponse = cmtagmylar.run(self.nzb_folder, issueid=issueid, filename=ofilename)
+                                    metaresponse = cmtagmylar.run(self.nzb_folder, issueid=issueid, filename=ofilename, readingorder=readingorder, agerating=None)
                                 except ImportError:
                                     logger.warn('%s comictaggerlib not found on system. Ensure the ENTIRE lib directory is located within mylar/lib/comictaggerlib/' % module)
                                     metaresponse = "fail"
@@ -1408,12 +1661,11 @@ class PostProcessor(object):
 
                             #if from a StoryArc, check to see if we're appending the ReadingOrder to the filename
                             if mylar.CONFIG.READ2FILENAME:
-
                                 logger.fdebug('%s readingorder#: %s' % (module, ml['ReadingOrder']))
                                 if int(ml['ReadingOrder']) < 10: readord = "00" + str(ml['ReadingOrder'])
                                 elif int(ml['ReadingOrder']) >= 10 and int(ml['ReadingOrder']) <= 99: readord = "0" + str(ml['ReadingOrder'])
                                 else: readord = str(ml['ReadingOrder'])
-                                dfilename = str(readord) + "-" + os.path.split(dfilename)[1]
+                                dfilename = '%s-%s' % (readord, os.path.split(dfilename)[1])
 
                             grab_dst = os.path.join(grdst, dfilename)
 
@@ -1456,6 +1708,7 @@ class PostProcessor(object):
                         ctrlVal = {"IssueArcID":  ml['IssueArcID']}
                         logger.fdebug('writing: %s -- %s' % (newVal, ctrlVal))
                         myDB.upsert("storyarcs", newVal, ctrlVal)
+                        updater.foundsearch(ComicID=ml['ComicID'], mode='story_arc', IssueID=ml['IssueID'], IssueArcID=ml['IssueArcID'], down='PP', module=module)
                         if all([mylar.CONFIG.STORYARCDIR is True, mylar.CONFIG.COPY2ARCDIR is True]):
                             logger.fdebug('%s [%s] Post-Processing completed for: %s' % (module, ml['StoryArc'], grab_dst))
                         else:
@@ -1526,9 +1779,10 @@ class PostProcessor(object):
                     logger.fdebug('%s Issueid: %s' % (module, issueid))
                     sarc = nzbiss['SARC']
                     self.oneoff = nzbiss['OneOff']
-                    tmpiss = myDB.selectone('SELECT * FROM issues WHERE IssueID=?', [issueid]).fetchone()
+                    logger.fdebug('sarc: %s / oneoff: %s' % (sarc, self.oneoff))
+                    tmpiss = myDB.selectone('SELECT a.ComicYear, b.* FROM comics as a LEFT JOIN issues as b ON a.ComicID=b.ComicID WHERE IssueID=?', [issueid]).fetchone()
                     if tmpiss is None:
-                        tmpiss = myDB.selectone('SELECT * FROM annuals WHERE IssueID=?', [issueid]).fetchone()
+                        tmpiss = myDB.selectone('SELECT * FROM annuals WHERE IssueID=? AND NOT Deleted', [issueid]).fetchone()
                     comicid = None
                     comicname = None
                     issuenumber = None
@@ -1536,13 +1790,14 @@ class PostProcessor(object):
                         ppinfo.append({'comicid':       tmpiss['ComicID'],
                                        'issueid':       issueid,
                                        'comicname':     tmpiss['ComicName'],
+                                       'seriesyear':    tmpiss['ComicYear'],
                                        'issuenumber':   tmpiss['Issue_Number'],
                                        'comiclocation': None,
                                        'publisher':     None,
                                        'sarc':          sarc,
                                        'oneoff':        self.oneoff})
 
-                    elif all([self.oneoff is not None, issueid[0] == 'S']):
+                    elif self.oneoff is not None and any([issueid[0] == 'S', '_' in issueid]):
                         issuearcid = re.sub('S', '', issueid).strip()
                         oneinfo = myDB.selectone("SELECT * FROM storyarcs WHERE IssueArcID=?", [issuearcid]).fetchone()
                         if oneinfo is None:
@@ -1558,6 +1813,7 @@ class PostProcessor(object):
                                 self.oneoff = True
                             ppinfo.append({'comicid':       oneinfo['ComicID'],
                                            'comicname':     oneinfo['ComicName'],
+                                           'seriesyear':    oneinfo['SeriesYear'],
                                            'issuenumber':   oneinfo['IssueNumber'],
                                            'publisher':     oneinfo['IssuePublisher'],
                                            'comiclocation': None,
@@ -1580,13 +1836,16 @@ class PostProcessor(object):
                                 OComicname = oneinfo['ComicName']
                                 OIssue = oneinfo['IssueNumber']
                                 OPublisher = None
+                                OSeriesYear = oneinfo['year']
                         else:
                             OComicname = oneinfo['COMIC']
                             OIssue = oneinfo['ISSUE']
                             OPublisher = oneinfo['PUBLISHER']
+                            OSeriesYear = oneoff['SHIPDATE'][:4]
 
                         ppinfo.append({'comicid':       oneinfo['ComicID'],
                                        'comicname':     OComicname,
+                                       'seriesyear':    OSeriesYear,
                                        'issuenumber':   OIssue,
                                        'publisher':     OPublisher,
                                        'comiclocation': None,
@@ -1604,6 +1863,7 @@ class PostProcessor(object):
                             if oneinfo is not None:
                                 ppinfo.append({'comicid':       oneinfo['ComicID'],
                                                'comicname':     oneinfo['COMIC'],
+                                               'seriesyear':    oneinfo['SHIPDATE'][:4],
                                                'issuenumber':   oneinfo['ISSUE'],
                                                'publisher':     oneinfo['PUBLISHER'],
                                                'issueid':       x['IssueID'],
@@ -1644,6 +1904,8 @@ class PostProcessor(object):
                     comicid = ml['ComicID']
                     issueid = ml['IssueID']
                     issuenumOG = ml['IssueNumber']
+                    dspcname = ml['ComicName']
+                    dspcyear = ml['SeriesYear']
                     #check to see if file is still being written to.
                     waiting = True
                     while waiting is True:
@@ -1673,21 +1935,45 @@ class PostProcessor(object):
                         self.Process_next(comicid, issueid, issuenumOG, ml, stat)
                         dupthis = None
 
+                m_event = None
                 if self.failed_files == 0:
                     if all([self.comicid is not None, self.issueid is None]):
                         logger.info('%s post-processing of pack completed for %s issues.' % (module, i))
+                        global_line = 'Successfully post-processed pack for %s issues' % (i)
                     if self.issueid is not None:
                         if ml['AnnualType'] is not None:
                             logger.info('%s direct post-processing of issue completed for %s %s #%s.' % (module, ml['ComicName'], ml['AnnualType'], ml['IssueNumber']))
+                            global_line = 'Successfully post-processed</br> %s %s %s' % (ml['ComicName'], ml['AnnualType'], ml['IssueNumber'])
                         else:
-                            logger.info('%s direct post-processing of issue completed for %s #%s.' % (module, ml['ComicName'], ml['IssueNumber']))
+                            if ml['IssueNumber'] is not None:
+                                logger.info('%s direct post-processing of issue completed for %s #%s.' % (module, ml['ComicName'], ml['IssueNumber']))
+                                global_line = 'Successfully post-processed</br> %s #%s' % (ml['ComicName'], ml['IssueNumber'])
+                            else:
+                                logger.info('%s direct post-processing of issue completed for %s.' % (module, ml['ComicName']))
+                                global_line = 'Successfully post-processed</br> %s' % (ml['ComicName'])
                     else:
                         logger.info('%s Manual post-processing completed for %s issues.' % (module, i))
+                        global_line = 'Manual post-processing completed for %s issues' % (i)
+                        m_event = 'scheduler_message'
+                        dspcname = None
+                        dspcyear = None
                 else:
+                    dspcname = None
+                    dspcyear = None
                     if self.comicid is not None:
                         logger.info('%s post-processing of pack completed for %s issues [FAILED: %s]' % (module, i, self.failed_files))
+                        global_line = 'Successfully post-processing of pack completed for %s issues [FAILED: %s]' % (i, self.failed_files)
                     else:
                         logger.info('%s Manual post-processing completed for %s issues [FAILED: %s]' % (module, i, self.failed_files))
+                        global_line = 'Successfully post-processed %s issues [FAILED: %s]' % (i, self.failed_files)
+
+                d_line = {'status': 'success', 'comicid': self.comicid, 'comicname': dspcname, 'seriesyear': dspcyear, 'tables': 'both', 'message': global_line}
+
+                if m_event is not None:
+                    d_line['event'] = m_event
+
+                mylar.GLOBAL_MESSAGES = d_line
+
                 if mylar.APILOCK is True:
                     mylar.APILOCK = False
                 self.valreturn.append({"self.log": self.log,
@@ -1705,6 +1991,7 @@ class PostProcessor(object):
             issueid = tinfo['issueid']
             comicid = tinfo['comicid']
             comicname = tinfo['comicname']
+            seriesyear = tinfo['seriesyear']
             issuearcid = None
             issuenumber = tinfo['issuenumber']
             publisher = tinfo['publisher']
@@ -1718,7 +2005,7 @@ class PostProcessor(object):
             issuenzb = myDB.selectone("SELECT * from issues WHERE IssueID=? AND ComicName NOT NULL", [issueid]).fetchone()
             if issuenzb is None:
                 logger.info('%s Could not detect as a standard issue - checking against annuals.' % module)
-                issuenzb = myDB.selectone("SELECT * from annuals WHERE IssueID=? AND ComicName NOT NULL", [issueid]).fetchone()
+                issuenzb = myDB.selectone("SELECT * from annuals WHERE IssueID=? AND ComicName NOT NULL AND NOT Deleted", [issueid]).fetchone()
                 if issuenzb is None:
                     logger.info('%s issuenzb not found.' % module)
                     #if it's non-numeric, it contains a 'G' at the beginning indicating it's a multi-volume
@@ -1731,7 +2018,7 @@ class PostProcessor(object):
                                 issuearcid = onechk['IssueArcID']
                                 issuenzb = myDB.selectone('SELECT * FROM issues WHERE IssueID=? AND ComicName NOT NULL', [onechk['IssueID']]).fetchone()
                                 if issuenzb is None:
-                                    issuenzb = myDB.selectone("SELECT * from annuals WHERE IssueID=? AND ComicName NOT NULL", [onechk['IssueID']]).fetchone()
+                                    issuenzb = myDB.selectone("SELECT * from annuals WHERE IssueID=? AND ComicName NOT NULL AND NOT Deleted", [onechk['IssueID']]).fetchone()
                             if issuenzb is not None:
                                 issueid = issuenzb['IssueID']
                                 logger.fdebug('Reverse lookup discovered watchlisted series [issueid: %s] - adjusting so we can PP both properly.' % issueid)
@@ -1779,18 +2066,22 @@ class PostProcessor(object):
                         odir = self.nzb_folder
 
                     ofilename = orig_filename = tinfo['comiclocation']
-
                     if ofilename is not None:
                         path, ext = os.path.splitext(ofilename)
                     else:
-                        #os.walk the location to get the filename...(coming from sab kinda thing) where it just passes the path.
-                        for root, dirnames, filenames in os.walk(odir, followlinks=True):
-                            for filename in filenames:
-                                if filename.lower().endswith(self.extensions):
-                                    ofilename = orig_filename = filename
-                                    logger.fdebug('%s Valid filename located as : %s' % (module, ofilename))
-                                    path, ext = os.path.splitext(ofilename)
-                                    break
+                        if os.path.isfile(odir):
+                            logger.fdebug('%s Assumed directory location (%s) is actually file location. Correcting...' % (module, odir))
+                            ofilename = orig_filename = os.path.basename(odir)
+                            _, ext = os.path.splitext(ofilename)
+                        else:
+                            #os.walk the location to get the filename...(coming from sab kinda thing) where it just passes the path.
+                            for root, dirnames, filenames in os.walk(odir, followlinks=True):
+                                for filename in filenames:
+                                    if filename.lower().endswith(self.extensions):
+                                        ofilename = orig_filename = filename
+                                        logger.fdebug('%s Valid filename located as : %s' % (module, ofilename))
+                                        path, ext = os.path.splitext(ofilename)
+                                        break
 
                     if ofilename is None:
                         logger.error('%s Unable to post-process file as it is not in a valid cbr/cbz format or cannot be located in path. PostProcessing aborted.' % module)
@@ -1799,6 +2090,7 @@ class PostProcessor(object):
                                                "mode": 'stop'})
                         return self.queue.put(self.valreturn)
 
+                    rdorder = None
                     if sandwich is not None and 'S' in sandwich:
                         issuearcid = re.sub('S', '', issueid)
                         logger.fdebug('%s issuearcid:%s' % (module, issuearcid))
@@ -1824,6 +2116,18 @@ class PostProcessor(object):
                         if issuenumber is None:
                             issuenumber = arcdata['IssueNumber']
                         issueid = arcdata['IssueID']
+                        rdorder = arcdata['ReadingOrder']
+
+                    if rdorder is not None:
+                        roders = myDB.select('SELECT StoryArc, ReadingOrder from storyarcs WHERE ComicID=? AND IssueID=?', [comicid, issueid])
+                        readingorder = None
+                        if roders is not None:
+                            readingorder = []
+                            for rd in roders:
+                                readingorder.append((rd['StoryArc'], rd['ReadingOrder']))
+                    else:
+                        readingorder = rdorder
+                    logger.fdebug('readingorder: %s' % (readingorder))
 
                     #tag the meta.
                     metaresponse = None
@@ -1835,7 +2139,11 @@ class PostProcessor(object):
                         self._log("Metatagging enabled - proceeding...")
                         try:
                             from . import cmtagmylar
-                            metaresponse = cmtagmylar.run(location, issueid=issueid, filename=os.path.join(self.nzb_folder, ofilename))
+                            if os.path.isfile(odir):
+                                tmp_ppdir = odir
+                            else:
+                                tmp_ppdir = os.path.join(odir, ofilename)
+                            metaresponse = cmtagmylar.run(location, issueid=issueid, filename=tmp_ppdir, readingorder=readingorder, agerating=None)
                         except ImportError:
                             logger.warn('%s comictaggerlib not found on system. Ensure the ENTIRE lib directory is located within mylar/lib/comictaggerlib/' % module)
                             metaresponse = "fail"
@@ -1926,12 +2234,13 @@ class PostProcessor(object):
                     #delete entry from nzblog table
                     myDB.action('DELETE from nzblog WHERE issueid=?', [issueid])
 
-                    if sandwich is not None and 'S' in sandwich:
+                    if (sandwich is not None and 'S' in sandwich) or '_' in issueid:
                         logger.info('%s IssueArcID is : %s' % (module, issuearcid))
                         ctrlVal = {"IssueArcID":  issuearcid}
                         newVal = {"Status":       "Downloaded",
                                   "Location":     grab_dst}
                         myDB.upsert("storyarcs", newVal, ctrlVal)
+                        updater.foundsearch(ComicID=comicid, mode='story_arc', IssueID=issueid, IssueArcID=issuearcid, down='PP', module=module)
                         logger.info('%s Updated status to Downloaded' % module)
 
                         logger.info('%s Post-Processing completed for: [%s] %s' % (module, sarc, grab_dst))
@@ -2111,7 +2420,7 @@ class PostProcessor(object):
                 else:
                     logger.fdebug('%s Was downloaded from %s. Enabling torrent manual post-processing completion notification.' % (module, snatchnzb['Provider']))
             if issuenzb is None:
-                issuenzb = myDB.selectone("SELECT * from annuals WHERE issueid=? and comicid=?", [issueid, comicid]).fetchone()
+                issuenzb = myDB.selectone("SELECT * from annuals WHERE issueid=? and comicid=? AND NOT Deleted", [issueid, comicid]).fetchone()
                 annchk = "yes"
             if annchk == "no":
                 logger.info('%s %s Starting Post-Processing for %s issue: %s' % (module, stat, issuenzb['ComicName'], issuenzb['Issue_Number']))
@@ -2137,6 +2446,9 @@ class PostProcessor(object):
                 if '!' in issuenum: issuenum = re.sub('\!', '', issuenum)
                 issuenum = re.sub("[^0-9]", "", issuenum)
                 issue_except = '.NOW'
+            elif 'bey' in issuenum.lower() and issuenum[:1].isdigit():
+                issuenum = re.sub("[^0-9]", "", issuenum)
+                issue_except = '.BEY'
             elif 'mu' in issuenum.lower() and issuenum[:1].isdigit():
                 issuenum = re.sub("[^0-9]", "", issuenum)
                 issue_except = '.MU'
@@ -2153,13 +2465,7 @@ class PostProcessor(object):
                 #issnum = utf-8 will encode the infinity symbol without any help
                 issuenum = 'infinity'
             else:
-                issue_exceptions = ['A',
-                                    'B',
-                                    'C',
-                                    'X',
-                                    'O']
-
-                exceptionmatch = [x for x in issue_exceptions if x.lower() in issuenum.lower()]
+                exceptionmatch = [x for x in mylar.ISSUE_EXCEPTIONS if x.lower() in issuenum.lower()]
                 if exceptionmatch:
                     logger.fdebug('[FILECHECKER] We matched on : ' + str(exceptionmatch))
                     for x in exceptionmatch:
@@ -2194,10 +2500,10 @@ class PostProcessor(object):
                 issueno = iss
 
             # issue zero-suppression here
-            if mylar.CONFIG.ZERO_LEVEL == "0":
+            if mylar.CONFIG.ZERO_LEVEL is False:
                 zeroadd = ""
             else:
-                if mylar.CONFIG.ZERO_LEVEL_N  == "none": zeroadd = ""
+                if any([mylar.CONFIG.ZERO_LEVEL_N  == "none", mylar.CONFIG.ZERO_LEVEL is None]): zeroadd = ""
                 elif mylar.CONFIG.ZERO_LEVEL_N == "0x": zeroadd = "0"
                 elif mylar.CONFIG.ZERO_LEVEL_N == "00x": zeroadd = "00"
 
@@ -2223,7 +2529,7 @@ class PostProcessor(object):
                     logger.warn('Unable to properly determine issue number [%s] - you should probably log this on github for help.' % issueno)
                     return
 
-            if prettycomiss is None and len(str(issueno)) > 0:
+            if all([prettycomiss is None, len(str(issueno)) > 0]):
                 #if int(issueno) < 0:
                 #    self._log("issue detected is a negative")
                 #    prettycomiss = '-' + str(zeroadd) + str(abs(issueno))
@@ -2242,7 +2548,7 @@ class PostProcessor(object):
                     logger.fdebug('%s Zero level supplement set to %s. Issue will be set as : %s' % (module, mylar.CONFIG.ZERO_LEVEL_N, prettycomiss))
                 elif int(issueno) >= 10 and int(issueno) < 100:
                     logger.fdebug('issue detected greater than 10, but less than 100')
-                    if mylar.CONFIG.ZERO_LEVEL_N == "none":
+                    if any([mylar.CONFIG.ZERO_LEVEL_N == "none", mylar.CONFIG.ZERO_LEVEL_N is None, mylar.CONFIG.ZERO_LEVEL is False]):
                         zeroadd = ""
                     else:
                         zeroadd = "0"
@@ -2284,6 +2590,7 @@ class PostProcessor(object):
             publisher = comicnzb['ComicPublisher']
             self._log("Publisher: %s" % publisher)
             logger.fdebug('%s Publisher: %s' % (module, publisher))
+            agerating = comicnzb['AgeRating']
             #we need to un-unicode this to make sure we can write the filenames properly for spec.chars
             series = comicnzb['ComicName'] #.encode('ascii', 'ignore').strip()
             self._log("Series: %s" % series)
@@ -2395,11 +2702,20 @@ class PostProcessor(object):
                     vol_label = comversion
 
                 try:
+                    #check for reading order here.
+                    order_the_read = myDB.select('SELECT StoryArc, ReadingOrder FROM storyarcs WHERE IssueID=? AND ComicID=?', [issueid, comicid])
+                    readingorder = None
+                    if order_the_read is not None:
+                        readingorder = []
+                        for rd in order_the_read:
+                            readingorder.append((rd['StoryArc'], rd['ReadingOrder']))
+                    logger.fdebug('readingorder: %s' % (readingorder))
+
                     from . import cmtagmylar
                     if ml is None:
-                        pcheck = cmtagmylar.run(self.nzb_folder, issueid=issueid, comversion=vol_label, filename=os.path.join(odir, ofilename))
+                        pcheck = cmtagmylar.run(self.nzb_folder, issueid=issueid, comversion=vol_label, filename=os.path.join(odir, ofilename), readingorder=readingorder, agerating=agerating)
                     else:
-                        pcheck = cmtagmylar.run(self.nzb_folder, issueid=issueid, comversion=vol_label, manual="yes", filename=ml['ComicLocation'])
+                        pcheck = cmtagmylar.run(self.nzb_folder, issueid=issueid, comversion=vol_label, manual="yes", filename=ml['ComicLocation'], readingorder=readingorder, agerating=agerating)
 
                 except ImportError:
                     logger.fdebug('%s comictaggerlib not found on system. Ensure the ENTIRE lib directory is located within mylar/lib/comictaggerlib/' % module)
@@ -2536,7 +2852,11 @@ class PostProcessor(object):
                     if yyb != -1:
                         rem_issueid = nfilename[xyb+3:yyb]
                         logger.fdebug('issueid: %s' % rem_issueid)
-                        nfilename = '%s %s'.strip() % (nfilename[:xyb], nfilename[yyb+3:])
+                        two_add = re.sub(r'\s+', '', nfilename[yyb+3:]).strip()
+                        if any([two_add == '', two_add == ' ']):
+                            nfilename = '%s' % nfilename[:xyb].strip()
+                        else:
+                            nfilename = '%s %s' % (nfilename[:xyb].strip(), two_add)
                         logger.fdebug('issueid information [%s] removed successfully: %s' % (rem_issueid, nfilename))
 
             self._log("New Filename: %s" % nfilename)
@@ -2682,12 +3002,23 @@ class PostProcessor(object):
 
             try:
                 if ml['IssueArcID']:
+                    pass
+            except Exception as e:
+                pass
+            else:
+                try:
                     logger.info('Watchlist Story Arc match detected.')
                     logger.info(ml)
-                    arcinfo = myDB.selectone('SELECT * FROM storyarcs where IssueArcID=?', [ml['IssueArcID']]).fetchone()
-                    if arcinfo is None:
-                        logger.warn('Unable to locate IssueID within givin Story Arc. Ensure everything is up-to-date (refreshed) for the Arc.')
-                    else:
+                    arcsforever = myDB.select('SELECT * FROM storyarcs where ComicID=? AND IssueID=?', [ml['ComicID'], ml['IssueID']])
+                    if not arcsforever:
+                        # reverse lookup the issuearcid to get the issueid and check the table for multiple occurances across multiple arcs
+                        id_arcsforever = myDB.selectone('SELECT IssueID FROM storyarcs WHERE IssueArcID=? AND ComicID=?', [ml['IssueArcID'], ml['ComicID']]).fetchone()
+                        if not id_arcsforever:
+                            logger.warn('Unable to locate IssueID within givin Story Arc. Ensure everything is up-to-date (refreshed) for the Arc.')
+                        else:
+                            arcsforever = myDB.select('SELECT * FROM storyarcs WHERE IssueID=?', [id_arcsforever[0]])
+
+                    for arcinfo in arcsforever:
                         if mylar.CONFIG.COPY2ARCDIR is True:
                             if arcinfo['Publisher'] is None:
                                 arcpub = arcinfo['IssuePublisher']
@@ -2734,19 +3065,19 @@ class PostProcessor(object):
                             grab_dst = dst
 
                         #delete entry from nzblog table in case it was forced via the Story Arc Page
-                        IssArcID = 'S' + str(ml['IssueArcID'])
+                        IssArcID = 'S' + str(arcinfo['IssueArcID'])
                         myDB.action('DELETE from nzblog WHERE IssueID=? AND SARC=?', [IssArcID,arcinfo['StoryArc']])
 
                         logger.fdebug('%s IssueArcID: %s' % (module, ml['IssueArcID']))
-                        ctrlVal = {"IssueArcID":  ml['IssueArcID']}
+                        ctrlVal = {"IssueArcID":  arcinfo['IssueArcID']}
                         newVal = {"Status":       "Downloaded",
                                   "Location":     grab_dst}
                         logger.fdebug('writing: %s -- %s' % (newVal, ctrlVal))
                         myDB.upsert("storyarcs", newVal, ctrlVal)
                         logger.fdebug('%s [%s] Post-Processing completed for: %s' % (module, arcinfo['StoryArc'], grab_dst))
 
-            except:
-                pass
+                except Exception as e:
+                    logger.error('error encountered: %s' % e)
 
             if mylar.CONFIG.WEEKFOLDER or mylar.CONFIG.SEND2READ:
                 #mylar.CONFIG.WEEKFOLDER = will *copy* the post-processed file to the weeklypull list folder for the given week.
@@ -2819,35 +3150,42 @@ class PostProcessor(object):
 
         prline2 = 'Mylar has downloaded and post-processed: ' + prline
 
-        if mylar.CONFIG.PROWL_ENABLED:
-            pushmessage = prline
-            prowl = notifiers.PROWL()
-            prowl.notify(pushmessage, "Download and Postprocessing completed", module=module)
+        try:
+            if mylar.CONFIG.PROWL_ENABLED:
+                pushmessage = prline
+                prowl = notifiers.PROWL()
+                prowl.notify(pushmessage, "Download and Postprocessing completed", module=module)
 
-        if mylar.CONFIG.PUSHOVER_ENABLED:
-            pushover = notifiers.PUSHOVER()
-            pushover.notify(prline, prline2, module=module, imageFile=imageFile)
+            if mylar.CONFIG.PUSHOVER_ENABLED:
+                pushover = notifiers.PUSHOVER()
+                pushover.notify(prline, prline2, module=module, imageFile=imageFile)
 
-        if mylar.CONFIG.BOXCAR_ENABLED:
-            boxcar = notifiers.BOXCAR()
-            boxcar.notify(prline=prline, prline2=prline2, module=module)
+            if mylar.CONFIG.BOXCAR_ENABLED:
+                boxcar = notifiers.BOXCAR()
+                boxcar.notify(prline=prline, prline2=prline2, module=module)
 
-        if mylar.CONFIG.PUSHBULLET_ENABLED:
-            pushbullet = notifiers.PUSHBULLET()
-            pushbullet.notify(prline=prline, prline2=prline2, module=module)
+            if mylar.CONFIG.PUSHBULLET_ENABLED:
+                pushbullet = notifiers.PUSHBULLET()
+                pushbullet.notify(prline=prline, prline2=prline2, module=module)
 
-        if mylar.CONFIG.TELEGRAM_ENABLED:
-            telegram = notifiers.TELEGRAM()
-            telegram.notify(prline2, imageFile)
+            if mylar.CONFIG.TELEGRAM_ENABLED:
+                telegram = notifiers.TELEGRAM()
+                telegram.notify(prline2, imageFile)
 
-        if mylar.CONFIG.SLACK_ENABLED:
-            slack = notifiers.SLACK()
-            slack.notify("Download and Postprocessing completed", prline2, module=module)
+            if mylar.CONFIG.SLACK_ENABLED:
+                slack = notifiers.SLACK()
+                slack.notify("Download and Postprocessing completed", prline2, module=module)
 
-        if mylar.CONFIG.EMAIL_ENABLED and mylar.CONFIG.EMAIL_ONPOST:
-            logger.info("Sending email notification")
-            email = notifiers.EMAIL()
-            email.notify(prline2, "Mylar notification - Processed", module=module)
+            if mylar.CONFIG.DISCORD_ENABLED:
+                discord = notifiers.DISCORD()
+                discord.notify("Download and Postprocessing completed", prline2, module=module)
+
+            if mylar.CONFIG.EMAIL_ENABLED and mylar.CONFIG.EMAIL_ONPOST:
+                logger.info("Sending email notification")
+                email = notifiers.EMAIL()
+                email.notify(prline2, "Mylar notification - Processed", module=module)
+        except Exception as e:
+            logger.warn('[NOTIFICATION] Unable to send notification: %s' % e)
 
         return
 

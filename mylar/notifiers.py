@@ -264,7 +264,7 @@ class BOXCAR:
 
 class PUSHBULLET:
 
-    def __init__(self, test_apikey=None):
+    def __init__(self, test_apikey=None, channel=None):
         self.PUSH_URL = "https://api.pushbullet.com/v2/pushes"
         if test_apikey is None:
             self.apikey = mylar.CONFIG.PUSHBULLET_APIKEY
@@ -272,32 +272,23 @@ class PUSHBULLET:
             self.apikey = test_apikey
         self.deviceid = mylar.CONFIG.PUSHBULLET_DEVICEID
         self.channel_tag = mylar.CONFIG.PUSHBULLET_CHANNEL_TAG
-        self._json_header = {'Content-Type': 'application/json',
-                             'Authorization': 'Basic %s' % base64.b64encode(self.apikey + ":")}
+        self._json_header = {"Content-Type": "application/json",
+                             "Accept": "application/json"}
         self._session = requests.Session()
-        self._session.headers.update(self._json_header)
+        self._session.auth = (self.apikey, "")
+        self._session.headers = self._json_header
 
-    def get_devices(self, api):
+    def get_devices(self):
         return self.notify(method="GET")
 
     def notify(self, snline=None, prline=None, prline2=None, snatched=None, sent_to=None, prov=None, module=None, method=None):
         if module is None:
             module = ''
         module += '[NOTIFIER]'
-        
-#        http_handler = HTTPSConnection("api.pushbullet.com")
-
-#        if method == 'GET':
-#            uri = '/v2/devices'
-#        else:
-#            method = 'POST'
-#            uri = '/v2/pushes'
-
-#        authString = base64.b64encode(self.apikey + ":")
 
         if method == 'GET':
-            pass
-#           http_handler.request(method, uri, None, headers={'Authorization': 'Basic %s:' % authString})
+            data = None
+            self.PUSH_URL = 'https://api.pushbullet.com/v2/devices'
         else:
             if snatched:
                 if snatched[-1] == '.': snatched = snatched[:-1]
@@ -306,10 +297,9 @@ class PUSHBULLET:
             else:
                 event = prline + ' complete!'
                 message = prline2
-
-            data = {'type': "note", #'device_iden': self.deviceid,
-                    'title': event.encode('utf-8'), #"mylar",
-                    'body': message.encode('utf-8')}
+            data = {'type': 'note',
+                    'title': event,
+                    'body': message}
 
             if self.channel_tag:
                 data['channel_tag'] = self.channel_tag
@@ -480,6 +470,46 @@ class SLACK:
             sent_successfuly = False
 
         logger.info(module + "Slack notifications sent.")
+        return sent_successfuly
+
+    def test_notify(self):
+        return self.notify('Test Message', 'Release the Ninjas!')
+
+class DISCORD:
+    def __init__ (self, test_webhook_url=None):
+        self.webhook_url = mylar.CONFIG.DISCORD_WEBHOOK_URL if test_webhook_url is None else test_webhook_url
+
+    def notify(self, text, attachment_text, snatched_nzb=None, prov=None, sent_to=None, module=None):
+        if module is None:
+            module = ''
+        module += '[NOTIFIER]'
+
+        if 'snatched' in attachment_text.lower():
+            snatched_text = '%s: %s' % (attachment_text, snatched_nzb)
+            if all([sent_to is not None, prov is not None]):
+                snatched_text += ' from %s and %s' % (prov, sent_to)
+            elif sent_to is None:
+                snatched_text += ' from %s' % prov
+            attachment_text = snatched_text
+        else:
+            pass
+
+        payload = {}
+
+        payload["content"] = attachment_text
+
+        try:
+            response = requests.post(self.webhook_url, data=json.dumps(payload), headers={"Content-Type": "application/json"}, verify=True)
+        except Exception as e:
+            logger.info(module + 'Discord notify failed: ' + str(e))
+
+        # Error logging
+        sent_successfuly = True
+        if not response.status_code == 204 or response.status_code == 200:
+            logger.info(module + 'Could not send notification to Discord (webhook_url=%s). Response: [%s]' % (self.webhook_url, response.text))
+            sent_successfuly = False
+
+        logger.info(module + "Discord notifications sent.")
         return sent_successfuly
 
     def test_notify(self):

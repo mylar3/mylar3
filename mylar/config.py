@@ -5,6 +5,7 @@ from operator import itemgetter
 import os
 import errno
 import glob
+import json
 import codecs
 import shutil
 import threading
@@ -12,7 +13,6 @@ import re
 import configparser
 import mylar
 from mylar import logger, helpers, encrypted
-import errno
 
 config = configparser.ConfigParser()
 
@@ -69,6 +69,9 @@ _CONFIG_DEFINITIONS = OrderedDict({
     'AUTOWANT_UPCOMING': (bool, 'General', True),
     'AUTOWANT_ALL': (bool, 'General', False),
     'COMIC_COVER_LOCAL': (bool, 'General', False),
+    'SERIES_METADATA_LOCAL': (bool, 'General', False),
+    'SERIESJSON_FILE_PRIORITY': (bool, 'General', False),
+    'COVER_FOLDER_LOCAL': (bool, 'General', False),
     'ADD_TO_CSV': (bool, 'General', True),
     'SKIPPED2WANTED': (bool, 'General', False),
     'READ2FILENAME': (bool, 'General', False),
@@ -82,6 +85,14 @@ _CONFIG_DEFINITIONS = OrderedDict({
     'CLEANUP_CACHE': (bool, 'General', False),
     'SECURE_DIR': (str, 'General', None),
     'ENCRYPT_PASSWORDS': (bool, 'General', False),
+    'BACKUP_ON_START': (bool, 'General', False),
+    'BACKFILL_LENGTH': (int, 'General', 8),  # weeks
+    'BACKFILL_TIMESPAN': (int, 'General', 10),   # minutes
+    'PROBLEM_DATES': (str, 'General', []),
+    'PROBLEM_DATES_SECONDS': (int, 'General', 60),
+    'DEFAULT_DATES': (str, 'General', 'store_date'),
+    'FOLDER_CACHE_LOCATION': (str, 'General', None),
+    'SCAN_ON_SERIES_CHANGES': (bool, 'General', True),
 
     'RSS_CHECKINTERVAL': (int, 'Scheduler', 20),
     'SEARCH_INTERVAL': (int, 'Scheduler', 360),
@@ -98,6 +109,8 @@ _CONFIG_DEFINITIONS = OrderedDict({
     'BIGGIE_PUB': (int, 'Weekly', 55),
     'PACK_0DAY_WATCHLIST_ONLY': (bool, 'Weekly', True),
     'RESET_PULLIST_PAGINATION': (bool, 'Weekly', True),
+    'MASS_PUBLISHERS': (str, 'Weekly', []),
+    'AUTO_MASS_ADD': (bool, 'Weekly', False),
 
     'HTTP_PORT' : (int, 'Interface', 8090),
     'HTTP_HOST' : (str, 'Interface', '0.0.0.0'),
@@ -113,13 +126,14 @@ _CONFIG_DEFINITIONS = OrderedDict({
     'AUTHENTICATION' : (int, 'Interface', 0),
     'LOGIN_TIMEOUT': (int, 'Interface', 43800),
     'ALPHAINDEX': (bool, 'Interface', True),
+    'CHERRYPY_LOGGING': (bool, 'Interface', False),
 
     'API_ENABLED' : (bool, 'API', False),
     'API_KEY' : (str, 'API', None),
 
     'CVAPI_RATE' : (int, 'CV', 2),
     'COMICVINE_API': (str, 'CV', None),
-    'BLACKLISTED_PUBLISHERS' : (str, 'CV', None),
+    'IGNORED_PUBLISHERS' : (str, 'CV', ""),
     'CV_VERIFY': (bool, 'CV', True),
     'CV_ONLY': (bool, 'CV', True),
     'CV_ONETIMER': (bool, 'CV', True),
@@ -132,6 +146,7 @@ _CONFIG_DEFINITIONS = OrderedDict({
 
     'GIT_PATH' : (str, 'Git', None),
     'GIT_USER' : (str, 'Git', 'mylar3'),
+    'GIT_TOKEN' : (str, 'Git', None),
     'GIT_BRANCH' : (str, 'Git', None),
     'CHECK_GITHUB' : (bool, 'Git', False),
     'CHECK_GITHUB_ON_STARTUP' : (bool, 'Git', False),
@@ -188,6 +203,10 @@ _CONFIG_DEFINITIONS = OrderedDict({
     'SLACK_WEBHOOK_URL': (str, 'SLACK', None),
     'SLACK_ONSNATCH': (bool, 'SLACK', False),
 
+    'DISCORD_ENABLED': (bool, 'DISCORD', False),
+    'DISCORD_WEBHOOK_URL': (str, 'DISCORD', None),
+    'DISCORD_ONSNATCH': (bool, 'DISCORD', False),
+
     'EMAIL_ENABLED': (bool, 'Email', False),
     'EMAIL_FROM': (str, 'Email', ''),
     'EMAIL_TO': (str, 'Email', ''),
@@ -216,6 +235,8 @@ _CONFIG_DEFINITIONS = OrderedDict({
     'PRE_SCRIPTS': (str, 'PostProcess', None),
     'ENABLE_CHECK_FOLDER':  (bool, 'PostProcess', False),
     'CHECK_FOLDER': (str, 'PostProcess', None),
+    'MANUAL_PP_FOLDER': (str, 'PostProcess', None),
+    'FOLDER_CACHE_LOCATION': (str, 'PostProcess', None),
 
     'PROVIDER_ORDER': (str, 'Providers', None),
     'USENET_RETENTION': (int, 'Providers', 1500),
@@ -276,8 +297,9 @@ _CONFIG_DEFINITIONS = OrderedDict({
 
     'STORYARCDIR': (bool, 'StoryArc', False),
     'COPY2ARCDIR': (bool, 'StoryArc', False),
-    'ARC_FOLDERFORMAT': (str, 'StoryArc', None),
+    'ARC_FOLDERFORMAT': (str, 'StoryArc', '$arc ($spanyears)'),
     'ARC_FILEOPS': (str, 'StoryArc', 'copy'),
+    'ARC_FILEOPS_SOFTLINK_RELATIVE': (bool, 'StoryArc', False),
     'UPCOMING_STORYARCS': (bool, 'StoryArc', False),
     'SEARCH_STORYARCS': (bool, 'StoryArc', False),
 
@@ -292,6 +314,7 @@ _CONFIG_DEFINITIONS = OrderedDict({
     'CT_TAG_CBL': (bool, 'Metatagging', True),
     'CT_CBZ_OVERWRITE': (bool, 'Metatagging', False),
     'UNRAR_CMD': (str, 'Metatagging', None),
+    'CT_NOTES_FORMAT': (str, 'Metatagging', 'Issue ID'),
     'CT_SETTINGSPATH': (str, 'Metatagging', None),
     'CMTAG_VOLUME': (bool, 'Metatagging', True),
     'CMTAG_START_YEAR_AS_VOLUME': (bool, 'Metatagging', False),
@@ -391,6 +414,7 @@ _BAD_DEFINITIONS = OrderedDict({
     'SAB_CLIENT_POST_PROCESSING': ('SABnbzd', None),
     'ENABLE_PUBLIC': ('Torrents', 'ENABLE_TPSE'),
     'PUBLIC_VERIFY': ('Torrents', 'TPSE_VERIFY'),
+    'IGNORED_PUBLISHERS': ('CV', 'BLACKLISTED_PUBLISHERS'),
 })
 
 class Config(object):
@@ -408,7 +432,7 @@ class Config(object):
                 count = sum(1 for line in open(self._config_file))
             else:
                 count = 0
-            self.newconfig = 10
+            self.newconfig = 11
             if count == 0:
                 CONFIG_VERSION = 0
                 MINIMALINI = False
@@ -438,20 +462,22 @@ class Config(object):
 
             for b, bv in _BAD_DEFINITIONS.items():
                 try:
-                    if config.has_section(bv[0]) and any([b == k, bv[1] is None]):
+                    if all([config.has_section(bv[0]), any([b == k, bv[1] is None])]) and not config.has_option(xv[2],xv[0]):
                         cvs = xv
                         if bv[1] is None:
                             ckey = k
                         else:
                             ckey = bv[1]
                         corevalues = [ckey if x == 0 else x for x in cvs]
-                        corevalues = [bv[0] if x == corevalues.index(bv[0]) else x for x in cvs]
+                        corevalues = [bv[1] if x == b else x for x in cvs]
                         value = self.check_setting(corevalues)
-                        if bv[1] is None:
-                            config.remove_option(bv[0], ckey.lower())
-                            config.remove_section(bv[0])
-                        else:
-                            config.remove_option(bv[0], bv[1].lower())
+                        if config.has_section(bv[0]):
+                            if bv[1] is None:
+                                config.remove_option(bv[0], ckey.lower())
+                                config.remove_section(bv[0])
+                            else:
+                                config.remove_option(bv[0], bv[1].lower())
+                            self.WRITE_THE_CONFIG = True
                         break
                 except:
                     pass
@@ -522,24 +548,6 @@ class Config(object):
 
     def read(self, startup=False):
         self.config_vals()
-        setattr(self, 'EXTRA_NEWZNABS', self.get_extra_newznabs())
-        setattr(self, 'EXTRA_TORZNABS', self.get_extra_torznabs())
-        if any([self.CONFIG_VERSION == 0, self.CONFIG_VERSION < self.newconfig]):
-            try:
-                shutil.move(self._config_file, os.path.join(mylar.DATA_DIR, 'config.ini.backup'))
-            except:
-                print(('Unable to make proper backup of config file in %s' % os.path.join(mylar.DATA_DIR, 'config.ini.backup')))
-            if self.CONFIG_VERSION < 10:
-                print('Attempting to update configuration..')
-                #8-torznab multiple entries merged into extra_torznabs value
-                #9-remote rtorrent ssl option
-                #10-encryption of all keys/passwords.
-                self.config_update()
-            setattr(self, 'CONFIG_VERSION', str(self.newconfig))
-            config.set('General', 'CONFIG_VERSION', str(self.newconfig))
-            self.writeconfig()
-        else:
-            self.provider_sequence()
 
         if startup is True:
             if self.LOG_DIR is None:
@@ -554,36 +562,66 @@ class Config(object):
                         print('Unable to create the log directory. Logging to screen only.')
 
             # Start the logger, silence console logging if we need to
-            if logger.LOG_LANG.startswith('en'):
-                logger.initLogger(console=not mylar.QUIET, log_dir=self.LOG_DIR, max_logsize=self.MAX_LOGSIZE, max_logfiles=self.MAX_LOGFILES, loglevel=mylar.LOG_LEVEL)
-            else:
-                if self.LOG_LEVEL != mylar.LOG_LEVEL:
-                    print(('Logging level over-ridden by startup value. Changing from %s to %s' % (self.LOG_LEVEL, mylar.LOG_LEVEL)))
-                logger.mylar_log.initLogger(loglevel=mylar.LOG_LEVEL, log_dir=self.LOG_DIR, max_logsize=self.MAX_LOGSIZE, max_logfiles=self.MAX_LOGFILES)
+            # quick check to make sure log_level isn't just blank in the config
+            if self.LOG_LEVEL is None:
+                self.LOG_LEVEL = 1  #default it to INFO level (1) if not set.
 
+            log_level = self.LOG_LEVEL
+            if mylar.LOG_LEVEL is not None:
+                log_level = mylar.LOG_LEVEL
+                print('Logging level in config over-ridden by startup value. Logging level set to : %s' % (log_level))
+
+            mylar.LOG_LEVEL = log_level # set this to the calculated log_leve value so that logs display fine in the GUI
+            if logger.LOG_LANG.startswith('en'):
+                logger.initLogger(console=not mylar.QUIET, log_dir=self.LOG_DIR, max_logsize=self.MAX_LOGSIZE, max_logfiles=self.MAX_LOGFILES, loglevel=log_level)
+            else:
+                logger.mylar_log.initLogger(loglevel=log_level, log_dir=self.LOG_DIR, max_logsize=self.MAX_LOGSIZE, max_logfiles=self.MAX_LOGFILES)
+
+        extra_newznabs, extra_torznabs = self.get_extras()
+        setattr(self, 'EXTRA_NEWZNABS', extra_newznabs)
+        setattr(self, 'EXTRA_TORZNABS', extra_torznabs)
+        setattr(self, 'IGNORED_PUBLISHERS', self.get_ignored_pubs())
+
+        if any([self.CONFIG_VERSION == 0, self.CONFIG_VERSION < self.newconfig]):
+            try:
+                shutil.move(self._config_file, os.path.join(mylar.DATA_DIR, 'config.ini.backup'))
+            except:
+                logger.warn('Unable to make proper backup of config file in %s' % os.path.join(mylar.DATA_DIR, 'config.ini.backup'))
+            if self.CONFIG_VERSION < 11:
+                logger.info('Attempting to update configuration..')
+                #8-torznab multiple entries merged into extra_torznabs value
+                #9-remote rtorrent ssl option
+                #10-encryption of all keys/passwords.
+                #11-provider_ids
+                self.config_update()
+            setattr(self, 'CONFIG_VERSION', str(self.newconfig))
+            config.set('General', 'CONFIG_VERSION', str(self.newconfig))
+            self.writeconfig()
+
+        self.provider_sequence()
         self.configure(startup=startup)
         if self.WRITE_THE_CONFIG is True:
             self.writeconfig()
         return self
 
     def config_update(self):
-        print(('Updating Configuration from %s to %s' % (self.CONFIG_VERSION, self.newconfig)))
+        logger.info('Updating Configuration from %s to %s' % (self.CONFIG_VERSION, self.newconfig))
         if self.CONFIG_VERSION < 8:
-            print('Checking for existing torznab configuration...')
+            logger.info('Checking for existing torznab configuration...')
             if not any([self.TORZNAB_NAME is None, self.TORZNAB_HOST is None, self.TORZNAB_APIKEY is None, self.TORZNAB_CATEGORY is None]):
                 torznabs =[(self.TORZNAB_NAME, self.TORZNAB_HOST, self.TORZNAB_VERIFY, self.TORZNAB_APIKEY, self.TORZNAB_CATEGORY, str(int(self.ENABLE_TORZNAB)))]
                 setattr(self, 'EXTRA_TORZNABS', torznabs)
                 config.set('Torznab', 'EXTRA_TORZNABS', str(torznabs))
-                print('Successfully converted existing torznab for multiple configuration allowance. Removing old references.')
+                logger.info('Successfully converted existing torznab for multiple configuration allowance. Removing old references.')
             else:
-                print('No existing torznab configuration found. Just removing config references at this point..')
+                logger.info('No existing torznab configuration found. Just removing old config references at this point..')
             config.remove_option('Torznab', 'torznab_name')
             config.remove_option('Torznab', 'torznab_host')
             config.remove_option('Torznab', 'torznab_verify')
             config.remove_option('Torznab', 'torznab_apikey')
             config.remove_option('Torznab', 'torznab_category')
             config.remove_option('Torznab', 'torznab_verify')
-            print('Successfully removed outdated config entries.')
+            logger.info('Successfully removed outdated config entries.')
         if self.newconfig < 9:
             #rejig rtorrent settings due to change.
             try:
@@ -593,7 +631,7 @@ class Config(object):
             except:
                 pass
             config.remove_option('Rtorrent', 'rtorrent_ssl')
-            print('Successfully removed oudated config entries.')
+            logger.info('Successfully removed oudated config entries.')
         if self.newconfig < 10:
             #encrypt all passwords / apikeys / usernames in ini file.
             #leave non-ini items (ie. memory) as un-encrypted items.
@@ -601,9 +639,32 @@ class Config(object):
                 if self.ENCRYPT_PASSWORDS is True:
                     self.encrypt_items(mode='encrypt', updateconfig=True)
             except Exception as e:
-                print(('Error: %s' % e))
-            print('Successfully updated config to version 10 ( password / apikey - .ini encryption )')
-        print(('Configuration upgraded to version %s' % self.newconfig))
+                logger.error('Error: %s' % e)
+            logger.info('Successfully updated config to version 10 ( password / apikey - .ini encryption )')
+        #if self.CONFIG_VERSION < 11:
+            #add ID to all providers as a way to better identify them
+            #tmp_newznabs = self.EXTRA_NEWZNABS
+            #n_cnt = 0
+            #a_list = []
+            #if len(tmp_newznabs) > 0:
+            #    for i in tmp_newznabs:
+            #        tmp_i = list(i)
+            #        tmp_i.append(n_cnt)
+            #        a_list.append(tuple(tmp_i))
+            #        n_cnt +=1
+            #setattr(self, 'EXTRA_NEWZNABS', a_list)
+            #tmp_torznabs = self.EXTRA_TORZNABS
+            #b_cnt = 0
+            #b_list = []
+            #if len(tmp_torznabs) > 0:
+            #    for i in tmp_torznabs:
+            #        tmp_i = list(i)
+            #        tmp_i.append(b_cnt)
+            #        b_list.append(tuple(tmp_i))
+            #        b_cnt +=1
+            #setattr(self, 'EXTRA_TORZNABS', b_list)
+
+        logger.info('Configuration upgraded to version %s' % self.newconfig)
 
     def check_section(self, section, key):
         """ Check if INI section exists, if not create it """
@@ -757,19 +818,29 @@ class Config(object):
 
     def writeconfig(self, values=None):
         logger.fdebug("Writing configuration to file")
-        self.provider_sequence()
         config.set('Newznab', 'extra_newznabs', ', '.join(self.write_extras(self.EXTRA_NEWZNABS)))
-        config.set('Torznab', 'extra_torznabs', ', '.join(self.write_extras(self.EXTRA_TORZNABS)))
+        tmp_torz = self.write_extras(self.EXTRA_TORZNABS)
+        config.set('Torznab', 'extra_torznabs', ', '.join(tmp_torz))
+
+        # this needs to revert from , to # so that it is stored properly (multiple categories)
+        extra_newznabs, extra_torznabs = self.get_extras()
+        setattr(self, 'EXTRA_NEWZNABS', extra_newznabs)
+        setattr(self, 'EXTRA_TORZNABS', extra_torznabs)
+
+        self.provider_sequence()
 
         ###this should be moved elsewhere...
-        if type(self.BLACKLISTED_PUBLISHERS) != list:
-            if self.BLACKLISTED_PUBLISHERS is None:
+        if type(self.IGNORED_PUBLISHERS) != list:
+            if self.IGNORED_PUBLISHERS is None:
                 bp = 'None'
             else:
-                bp = ', '.join(self.write_extras(self.BLACKLISTED_PUBLISHERS))
-            config.set('CV', 'blacklisted_publishers', bp)
+                if ',,' in self.IGNORED_PUBLISHERS:
+                    bp = 'None'
+                else:
+                    bp = ', '.join(self.IGNORED_PUBLISHERS)
+            config.set('CV', 'ignored_publishers', bp)
         else:
-            config.set('CV', 'blacklisted_publishers', ', '.join(self.BLACKLISTED_PUBLISHERS))
+            config.set('CV', 'ignored_publishers', ', '.join(self.IGNORED_PUBLISHERS))
         ###
         config.set('General', 'dynamic_update', str(self.DYNAMIC_UPDATE))
 
@@ -782,6 +853,7 @@ class Config(object):
             logger.fdebug('Configuration written to disk.')
         except IOError as e:
             logger.warn("Error writing configuration file: %s", e)
+
 
     def encrypt_items(self, mode='encrypt', updateconfig=False):
         encryption_list = OrderedDict({
@@ -865,6 +937,10 @@ class Config(object):
 
         #force off public torrents usage as currently broken.
         self.ENABLE_PUBLIC = False
+
+        if self.GIT_TOKEN:
+            self.GIT_TOKEN = (self.GIT_TOKEN, 'x-oauth-basic')
+            logger.info('git_token set to %s' % (self.GIT_TOKEN,))
 
         try:
             if not any([self.SAB_HOST is None, self.SAB_HOST == '', 'http://' in self.SAB_HOST[:7], 'https://' in self.SAB_HOST[:8]]):
@@ -952,6 +1028,9 @@ class Config(object):
             self.GRABBAG_DIR = os.path.join(self.DESTINATION_DIR, 'Grabbag')
             logger.fdebug('[Grabbag Directory] Setting One-Off directory to default location: %s' % self.GRABBAG_DIR)
 
+        if self.ARC_FOLDERFORMAT is None:
+            self.ARC_FOLDERFORMAT = '$arc ($spanyears)'
+
         ## Sanity checking
         if any([self.COMICVINE_API is None, self.COMICVINE_API == 'None', self.COMICVINE_API == '']):
             logger.error('No User Comicvine API key specified. I will not work very well due to api limits - http://api.comicvine.com/ and get your own free key.')
@@ -974,6 +1053,11 @@ class Config(object):
         elif self.ENABLE_RSS is False and mylar.RSS_STATUS == 'Waiting':
             mylar.RSS_STATUS = 'Paused'
 
+        if self.DUPECONSTRAINT is None:
+            #default dupecontraint to filesize
+            setattr(self, 'DUPECONSTRAINT', 'filesize')
+            config.set('Duplicates', 'dupeconstraint', 'filesize')
+
         if not helpers.is_number(self.CHMOD_DIR):
             logger.fdebug("CHMOD Directory value is not a valid numeric - please correct. Defaulting to 0777")
             self.CHMOD_DIR = '0777'
@@ -989,8 +1073,10 @@ class Config(object):
             #we can't have metatagging enabled with hard/soft linking. Forcibly disable it here just in case it's set on load.
             self.ENABLE_META = False
 
-        if self.BLACKLISTED_PUBLISHERS is not None and type(self.BLACKLISTED_PUBLISHERS) == str:
-            setattr(self, 'BLACKLISTED_PUBLISHERS', self.BLACKLISTED_PUBLISHERS.split(', '))
+        if all([self.IGNORED_PUBLISHERS is not None, self.IGNORED_PUBLISHERS != '']):
+            logger.info('Ignored Publishers: %s' % self.IGNORED_PUBLISHERS)
+            if type(self.IGNORED_PUBLISHERS) == str:
+                setattr(self, 'ignored_PUBLISHERS', self.IGNORED_PUBLISHERS.split(', '))
 
         if all([self.AUTHENTICATION == 0, self.HTTP_USERNAME is not None, self.HTTP_PASSWORD is not None]):
             #set it to the default login prompt if nothing selected.
@@ -1000,17 +1086,40 @@ class Config(object):
 
         if self.ENCRYPT_PASSWORDS is True:
             self.encrypt_items(mode='decrypt')
-
         if all([self.IGNORE_TOTAL is True, self.IGNORE_HAVETOTAL is True]):
             self.IGNORE_TOTAL = False
             self.IGNORE_HAVETOTAL = False
             logger.warn('You cannot have both ignore_total and ignore_havetotal enabled in the config.ini at the same time. Set only ONE to true - disabling both until this is resolved.')
 
+        if len(self.MASS_PUBLISHERS) > 0:
+            if type(self.MASS_PUBLISHERS) != list:
+                try:
+                    self.MASS_PUBLISHERS = json.loads(self.MASS_PUBLISHERS)
+                except Exception as e:
+                    logger.warn('[MASS_PUBLISHERS] Unable to convert publishers [%s]. Error returned: %s' % (self.MASS_PUBLISHERS, e))
+        logger.info('[MASS_PUBLISHERS] Auto-add for weekly publishers set to: %s' % (self.MASS_PUBLISHERS,))
+
+        if len(self.PROBLEM_DATES) > 0 and self.PROBLEM_DATES != '[]':
+            if type(self.PROBLEM_DATES) != list:
+                try:
+                    self.PROBLEM_DATES = json.loads(self.PROBLEM_DATES)
+                except Exception as e:
+                    logger.warn('unable to load problem dates')
+        else:
+            setattr(self, 'PROBLEM_DATES', ['2021-07-14 04:00:34'])
+            config.set('General', 'problem_dates', json.dumps(self.PROBLEM_DATES))
+
+        logger.info('[PROBLEM_DATES] Problem dates loaded: %s' % (self.PROBLEM_DATES,))
+
         #comictagger - force to use included version if option is enabled.
         import comictaggerlib.ctversion as ctversion
-        logger.info('[COMICTAGGER] Version detected: %s' % ctversion.version) 
+        logger.info('[COMICTAGGER] Version detected: %s' % ctversion.version)
         if self.ENABLE_META:
             mylar.CMTAGGER_PATH = mylar.PROG_DIR
+
+            if not ([self.CT_NOTES_FORMAT == 'CVDB', self.CT_NOTES_FORMAT == 'Issue ID']):
+                setattr(self, 'CT_NOTES_FORMAT', 'Issue ID')
+                config.set('Metatagging', 'ct_notes_format', self.CT_NOTES_FORMAT)
 
             #we need to make sure the default folder setting for the comictagger settings exists so things don't error out
             if self.CT_SETTINGSPATH is None:
@@ -1020,6 +1129,7 @@ class Config(object):
                 #windows won't be able to create in ~, so force it to DATA_DIR
                 if mylar.OS_DETECT == 'Windows':
                     ct_path = mylar.DATA_DIR
+                    chkpass = True
                 else:
                     ct_path = str(pathlib.Path(os.path.expanduser("~")))
                     try:
@@ -1064,6 +1174,16 @@ class Config(object):
                 mylar.queue_schedule('ddl_queue', 'start')
             elif self.ENABLE_DDL is False:
                 mylar.queue_schedule('ddl_queue', 'stop')
+
+        if self.FOLDER_FORMAT is None:
+            setattr(self, 'FOLDER_FORMAT', '$Series ($Year)')
+
+        if '$Annual' in self.FOLDER_FORMAT:
+            logger.fdebug('$Annual has been depreciated as a folder format option. Auto-removing from your folder format scheme.')
+            ann_removed = re.sub(r'\$annual', '', self.FOLDER_FORMAT, flags=re.I).strip()
+            ann_remove = re.sub(r'\s+', ' ', ann_removed).strip()
+            setattr(self, 'FOLDER_FORMAT', ann_remove)
+            config.set('General', 'folder_format', ann_remove)
 
         if not self.DDL_LOCATION:
             self.DDL_LOCATION = self.CACHE_DIR
@@ -1158,13 +1278,130 @@ class Config(object):
 
         return KEYS_32P
 
-    def get_extra_newznabs(self):
-        extra_newznabs = list(zip(*[iter(self.EXTRA_NEWZNABS.split(', '))]*6))
-        return extra_newznabs
+    def get_extras(self):
+        cnt=0
+        while (cnt < 2):
+            if cnt == 0:
+                ex = self.EXTRA_NEWZNABS
+            else:
+                ex = self.EXTRA_TORZNABS
+
+            if type(ex) != list:
+                if self.CONFIG_VERSION < 11:
+                    if cnt == 0:
+                        extra_newznabs = list(zip(*[iter(ex.split(', '))]*6))
+                    else:
+                        extra_torznabs = list(zip(*[iter(ex.split(', '))]*6))
+                else:
+                    if cnt == 0:
+                        extra_newznabs = list(zip(*[iter(ex.split(', '))]*7))
+                    else:
+                        extra_torznabs = list(zip(*[iter(ex.split(', '))]*7))
+            else:
+               if cnt == 0:
+                   extra_newznabs = ex
+               else:
+                   extra_torznabs = ex
+            cnt+=1
+
+        x_newzcat = []
+        x_torzcat = []
+        cnt = 0
+        while (cnt < 2):
+            if cnt == 0:
+                ex = extra_newznabs
+            else:
+                ex = extra_torznabs
+
+            for x in ex:
+                x_cat = x[4]
+                if '#' in x_cat:
+                    x_t = x[4].split('#')
+                    x_cat = ','.join(x_t)
+                    if x_cat[0] == ',':
+                        x_cat = re.sub(',', '#', x_cat, 1)
+                try:
+                    if cnt == 0:
+                        x_newzcat.append((x[0],x[1],x[2],x[3],x_cat,x[5],int(x[6])))
+                    else:
+                        x_torzcat.append((x[0],x[1],x[2],x[3],x_cat,x[5],int(x[6])))
+                    if int(x[6]) > mylar.PROVIDER_START_ID:
+                        mylar.PROVIDER_START_ID = int(x[6])
+                except Exception as e:
+                    if cnt == 0:
+                        x_newzcat.append((x[0],x[1],x[2],x[3],x_cat,x[5]))
+                    else:
+                        x_torzcat.append((x[0],x[1],x[2],x[3],x_cat,x[5]))
+            cnt +=1
+
+        # had to loop thru entire set above in order to get the highest id to start at
+        xx_newzcat = []
+        xx_torzcat = []
+        cnt = 0
+        while (cnt < 2):
+            if cnt == 0:
+                ex = x_newzcat
+            else:
+                ex = x_torzcat
+
+            for xn in ex:
+                try:
+                    if cnt == 0:
+                        xx_newzcat.append((xn[0],xn[1],xn[2],xn[3],xn[4],xn[5],xn[6]))
+                    else:
+                        xx_torzcat.append((xn[0],xn[1],xn[2],xn[3],xn[4],xn[5],xn[6]))
+                except Exception as e:
+                    mylar.PROVIDER_START_ID += 1
+                    if cnt == 0:
+                        xx_newzcat.append((xn[0],xn[1],xn[2],xn[3],xn[4],xn[5],mylar.PROVIDER_START_ID))
+                    else:
+                        xx_torzcat.append((xn[0],xn[1],xn[2],xn[3],xn[4],xn[5],mylar.PROVIDER_START_ID))
+            cnt +=1
+        #logger.fdebug('xx_newzcat: %s' % (xx_newzcat,))
+        #logger.fdebug('xx_torzcat: %s' % (xx_torzcat,))
+        return xx_newzcat, xx_torzcat
 
     def get_extra_torznabs(self):
-        extra_torznabs = list(zip(*[iter(self.EXTRA_TORZNABS.split(', '))]*6))
+        extra_torznabs = self.EXTRA_TORZNABS
+        if type(extra_torznabs) != list:
+            if self.CONFIG_VERSION < 11:
+                extra_torznabs = list(zip(*[iter(extra_torznabs.split(', '))]*6))
+            else:
+                extra_torznabs = list(zip(*[iter(extra_torznabs.split(', '))]*7))
+        x_torcat = []
+        for x in extra_torznabs:
+            x_cat = x[4]
+            if '#' in x_cat:
+                x_t = x[4].split('#')
+                x_cat = ','.join(x_t)
+            try:
+                x_torcat.append((x[0],x[1],x[2],x[3],x_cat,x[5],int(x[6])))
+                if int(x[6]) > mylar.PROVIDER_START_ID:
+                    mylar.PROVIDER_START_ID = int(x[6])
+            except Exception as e:
+                x_torcat.append((x[0],x[1],x[2],x[3],x_cat,x[5]))
+
+        # had to loop thru entire set above in order to get the highest id to start at
+        xx_torcat = []
+        for xn in x_torcat:
+            try:
+                xx_torcat.append((xn[0],xn[1],xn[2],xn[3],xn[4],xn[5],xn[6]))
+            except Exception as e:
+                mylar.PROVIDER_START_ID += 1
+                xx_torcat.append((xn[0],xn[1],xn[2],xn[3],xn[4],xn[5],mylar.PROVIDER_START_ID))
+
+        extra_torznabs = xx_torcat
         return extra_torznabs
+
+    def get_ignored_pubs(self):
+        if all([self.IGNORED_PUBLISHERS is not None, self.IGNORED_PUBLISHERS != '', len(self.IGNORED_PUBLISHERS) != 0]):
+            if not ',,' in self.IGNORED_PUBLISHERS:
+                ignored_pubs = [x.strip() for x in self.IGNORED_PUBLISHERS.split(',')]
+            else:
+                ignored_pubs = []
+        else:
+            ignored_pubs = []
+        return ignored_pubs
 
     def provider_sequence(self):
         PR = []
@@ -1173,9 +1410,9 @@ class Config(object):
             if self.ENABLE_32P:
                 PR.append('32p')
                 PR_NUM +=1
-            if self.ENABLE_PUBLIC:
-                PR.append('public torrents')
-                PR_NUM +=1
+            #if self.ENABLE_PUBLIC:
+            #    PR.append('public torrents')
+            #    PR_NUM +=1
         if self.NZBSU:
             PR.append('nzb.su')
             PR_NUM +=1
@@ -1190,7 +1427,7 @@ class Config(object):
             PR.append('DDL')
             PR_NUM +=1
 
-        PPR = ['32p', 'public torrents', 'nzb.su', 'dognzb', 'Experimental', 'DDL']
+        PPR = ['32p', 'nzb.su', 'dognzb', 'Experimental', 'DDL']
         if self.NEWZNAB:
             for ens in self.EXTRA_NEWZNABS:
                 if str(ens[5]) == '1': # if newznabs are enabled
@@ -1204,7 +1441,7 @@ class Config(object):
                     PPR.append(en_name)
                     PR_NUM +=1
 
-        if self.ENABLE_TORZNAB:
+        if self.ENABLE_TORZNAB and self.ENABLE_TORRENT_SEARCH:
             for ets in self.EXTRA_TORZNABS:
                 if str(ets[5]) == '1': # if torznabs are enabled
                     if ets[0] == "":
@@ -1254,9 +1491,9 @@ class Config(object):
                     logger.fdebug('%s entries are enabled.' % PR_NUM)
 
             NEW_PROV_ORDER = []
-            i = 0
+            i = len(PR)-1
             #this should loop over ALL possible entries
-            while i < len(PR):
+            while i >= 0:
                 found = False
                 for d in PPR:
                     #logger.fdebug('checking entry %s against %s' % (PR[i], d) #d['provider'])
@@ -1265,25 +1502,25 @@ class Config(object):
                         if x:
                             ord = x[0]
                         else:
-                            ord = i
+                            #if x isn't found, the provider was not in the OG list. So we add it to the end.
+                            ord = len(PR)
                         found = {'provider': PR[i],
-                                 'order':    ord} 
+                                 'order':    ord}
                         break
                     else:
                         found = False
 
                 if found is not False:
                     new_order_seqnum = len(NEW_PROV_ORDER)
-                    if new_order_seqnum <= int(found['order']):
+                    if new_order_seqnum != int(found['order']):
                         seqnum = int(found['order'])
                     else:
                         seqnum = new_order_seqnum
-                    NEW_PROV_ORDER.append({"order_seq":  len(NEW_PROV_ORDER),
+                    NEW_PROV_ORDER.append({"order_seq":  int(seqnum),
                                            "provider":   found['provider'],
                                            "orig_seq":   int(seqnum)})
-                i+=1
+                i-=1
  
-
             #now we reorder based on priority of orig_seq, but use a new_order seq
             xa = 0
             NPROV = []
@@ -1320,7 +1557,11 @@ class Config(object):
         for item in value:
             for i in item:
                 try:
-                    if "\"" in i and " \"" in i:
+                    if value.index(i) == 4:
+                        ib = i
+                        if ',' in ib:
+                            ib = re.sub(',', '#', ib).strip()
+                    elif "\"" in i and " \"" in i:
                         ib = str(i).replace("\"", "").strip()
                     else:
                         ib = i

@@ -34,6 +34,7 @@ import hashlib
 import gzip
 import os, errno
 import urllib
+from urllib.parse import urljoin
 from io import StringIO
 from apscheduler.triggers.interval import IntervalTrigger
 
@@ -135,9 +136,11 @@ def today():
     yyyymmdd = datetime.date.isoformat(today)
     return yyyymmdd
 
-def now():
+def now(format_string=None):
     now = datetime.datetime.now()
-    return now.strftime("%Y-%m-%d %H:%M:%S")
+    if format_string is None:
+        format_string = "%Y-%m-%d %H:%M:%S"
+    return now.strftime(format_string)
 
 def utctimestamp():
     return time.time()
@@ -197,13 +200,14 @@ def human2bytes(s):
 
 def replace_all(text, dic):
     for i, j in dic.items():
-        text = text.replace(i, j)
+        if all([j != 'None', j is not None]):
+            text = text.replace(i, j)
     return text.rstrip()
 
 def cleanName(string):
 
     pass1 = latinToAscii(string).lower()
-    out_string = re.sub('[\/\@\#\$\%\^\*\+\"\[\]\{\}\<\>\=\_]', ' ', pass1).encode('utf-8')
+    out_string = re.sub('[\/\@\#\$\%\^\*\+\"\[\]\{\}\<\>\=\_]', ' ', pass1) #.encode('utf-8')
 
     return out_string
 
@@ -294,7 +298,7 @@ def rename_param(comicid, comicname, issue, ofilename, comicyear=None, issueid=N
 #            issue = iss
 
 #            print ("converted issue#: " + str(issue))
-            logger.fdebug('issueid:' + str(issueid))
+#            logger.fdebug('issueid:' + str(issueid))
 
             if issueid is None:
                 logger.fdebug('annualize is ' + str(annualize))
@@ -304,7 +308,7 @@ def rename_param(comicid, comicname, issue, ofilename, comicyear=None, issueid=N
                 else:
                     chkissue = myDB.selectone("SELECT * from issues WHERE ComicID=? AND Issue_Number=?", [comicid, issue]).fetchone()
                     if all([chkissue is None, annualize is None, not mylar.CONFIG.ANNUALS_ON]):
-                        chkissue = myDB.selectone("SELECT * from annuals WHERE ComicID=? AND Issue_Number=?", [comicid, issue]).fetchone()
+                        chkissue = myDB.selectone("SELECT * from annuals WHERE ComicID=? AND Issue_Number=? AND NOT Deleted", [comicid, issue]).fetchone()
 
                 if chkissue is None:
                     #rechk chkissue against int value of issue #
@@ -313,7 +317,7 @@ def rename_param(comicid, comicname, issue, ofilename, comicyear=None, issueid=N
                     else:
                         chkissue = myDB.selectone("SELECT * from issues WHERE ComicID=? AND Int_IssueNumber=?", [comicid, issuedigits(issue)]).fetchone()
                         if all([chkissue is None, annualize == 'yes', mylar.CONFIG.ANNUALS_ON]):
-                            chkissue = myDB.selectone("SELECT * from annuals WHERE ComicID=? AND Int_IssueNumber=?", [comicid, issuedigits(issue)]).fetchone()
+                            chkissue = myDB.selectone("SELECT * from annuals WHERE ComicID=? AND Int_IssueNumber=? AND NOT Deleted", [comicid, issuedigits(issue)]).fetchone()
 
                     if chkissue is None:
                         logger.error('Invalid Issue_Number - please validate.')
@@ -332,7 +336,7 @@ def rename_param(comicid, comicname, issue, ofilename, comicyear=None, issueid=N
                 issuenzb = myDB.selectone("SELECT * from issues WHERE ComicID=? AND IssueID=?", [comicid, issueid]).fetchone()
                 if issuenzb is None:
                     logger.fdebug('not an issue, checking against annuals')
-                    issuenzb = myDB.selectone("SELECT * from annuals WHERE ComicID=? AND IssueID=?", [comicid, issueid]).fetchone()
+                    issuenzb = myDB.selectone("SELECT * from annuals WHERE ComicID=? AND IssueID=? AND NOT Deleted", [comicid, issueid]).fetchone()
                     if issuenzb is None:
                         logger.fdebug('Unable to rename - cannot locate issue id within db')
                         return
@@ -393,19 +397,8 @@ def rename_param(comicid, comicname, issue, ofilename, comicyear=None, issueid=N
             #comicid = issuenzb['ComicID']
             #issueno = str(issuenum).split('.')[0]
             issue_except = 'None'
-            issue_exceptions = ['AU',
-                                'INH',
-                                'NOW',
-                                'AI',
-                                'MU',
-                                'HU',
-                                'A',
-                                'B',
-                                'C',
-                                'X',
-                                'O']
             valid_spaces = ('.', '-')
-            for issexcept in issue_exceptions:
+            for issexcept in mylar.ISSUE_EXCEPTIONS:
                 if issexcept.lower() in issuenum.lower():
                     logger.fdebug('ALPHANUMERIC EXCEPTION : [' + issexcept + ']')
                     v_chk = [v for v in valid_spaces if v in issuenum]
@@ -462,10 +455,10 @@ def rename_param(comicid, comicname, issue, ofilename, comicyear=None, issueid=N
                 iss = issuenum
                 issueno = iss
             # issue zero-suppression here
-            if mylar.CONFIG.ZERO_LEVEL == "0":
+            if mylar.CONFIG.ZERO_LEVEL is False:
                 zeroadd = ""
             else:
-                if mylar.CONFIG.ZERO_LEVEL_N  == "none": zeroadd = ""
+                if any([mylar.CONFIG.ZERO_LEVEL_N  == "none", mylar.CONFIG.ZERO_LEVEL_N is None]): zeroadd = ""
                 elif mylar.CONFIG.ZERO_LEVEL_N == "0x": zeroadd = "0"
                 elif mylar.CONFIG.ZERO_LEVEL_N == "00x": zeroadd = "00"
 
@@ -493,7 +486,7 @@ def rename_param(comicid, comicname, issue, ofilename, comicyear=None, issueid=N
                     logger.warn('Unable to properly determine issue number [ %s] - you should probably log this on github for help.' % issueno)
                     return
 
-            if prettycomiss is None and len(str(issueno)) > 0:
+            if all([prettycomiss is None, len(str(issueno)) > 0]):
                 #if int(issueno) < 0:
                 #    self._log("issue detected is a negative")
                 #    prettycomiss = '-' + str(zeroadd) + str(abs(issueno))
@@ -512,7 +505,7 @@ def rename_param(comicid, comicname, issue, ofilename, comicyear=None, issueid=N
                     logger.fdebug('Zero level supplement set to ' + str(mylar.CONFIG.ZERO_LEVEL_N) + '. Issue will be set as : ' + str(prettycomiss))
                 elif int(issueno) >= 10 and int(issueno) < 100:
                     logger.fdebug('issue detected greater than 10, but less than 100')
-                    if mylar.CONFIG.ZERO_LEVEL_N == "none":
+                    if any([mylar.CONFIG.ZERO_LEVEL_N == "none", mylar.CONFIG.ZERO_LEVEL_N is None, mylar.CONFIG.ZERO_LEVEL is False]):
                         zeroadd = ""
                     else:
                         zeroadd = "0"
@@ -693,7 +686,7 @@ def rename_param(comicid, comicname, issue, ofilename, comicyear=None, issueid=N
 
 
 def apiremove(apistring, apitype):
-    if type == 'nzb':
+    if apitype == 'nzb':
         value_regex = re.compile("(?<=apikey=)(?P<value>.*?)(?=$)")
         #match = value_regex.search(apistring)
         apiremoved = value_regex.sub("xUDONTNEEDTOKNOWTHISx", apistring)
@@ -844,22 +837,31 @@ def updateComicLocation():
                     comversion = 'None'
                 #if comversion is None, remove it so it doesn't populate with 'None'
                 if comversion == 'None':
-                    chunk_f_f = re.sub('\$VolumeN', '', mylar.CONFIG.FOLDER_FORMAT)
+                    chunk_f_f = re.sub('\$VolumeN', '', chunk_folder_format)
+                    chunk_f = re.compile(r'\s+')
+                    chunk_folder = chunk_f.sub(' ', chunk_f_f)
+                else:
+                    chunk_folder = chunk_folder_format
+
+                imprint = dl['PublisherImprint']
+                if any([imprint is None, imprint == 'None']):
+                    chunk_f_f = re.sub('\$Imprint', '', chunk_folder)
                     chunk_f = re.compile(r'\s+')
                     folderformat = chunk_f.sub(' ', chunk_f_f)
                 else:
-                    folderformat = mylar.CONFIG.FOLDER_FORMAT
+                    folderformat = chunk_folder
+
 
                 #do work to generate folder path
 
                 values = {'$Series':        comicname_folder,
                           '$Publisher':     publisher,
+                          '$Imprint':       imprint,
                           '$Year':          year,
                           '$series':        comicname_folder.lower(),
                           '$publisher':     publisher.lower(),
                           '$VolumeY':       'V' + str(year),
                           '$VolumeN':       comversion,
-                          '$Annual':        'Annual',
                           '$Type':          booktype
                           }
 
@@ -886,7 +888,11 @@ def updateComicLocation():
                     comlocation = re.sub(ddir, ccdir, dlc).strip()
 
                 #regenerate the new path location so that it's os.dependent now.
-                com_done = re.sub('%&', os.sep.encode('unicode-escape'), comlocation).strip()
+                try:
+                    com_done = re.sub('%&', os.sep.encode().decode('unicode-escape'), comlocation).strip()
+                except Exception as e:
+                    logger.warn('[%s] error during conversion: %s' % (comlocation, e))
+                    com_done = comlocation.replace('%&', os.sep).strip()
 
                 comloc.append({"comlocation":  com_done,
                                "origlocation": dl['ComicLocation'],
@@ -969,7 +975,7 @@ def issuedigits(issnum):
                 int_issnum = (int(issnum[:-2]) * 1000) + ord('a') + ord('u')
             elif 'ai' in issnum.lower() and issnum[:1].isdigit():
                 int_issnum = (int(issnum[:-2]) * 1000) + ord('a') + ord('i')
-            elif 'inh' in issnum.lower() or 'now' in issnum.lower():
+            elif 'inh' in issnum.lower():
                 remdec = issnum.find('.')  #find the decimal position.
                 if remdec == -1:
                 #if no decimal, it's all one string
@@ -986,12 +992,26 @@ def issuedigits(issnum):
                     int_issnum = (int(issnum[:-3]) * 1000) + ord('n') + ord('o') + ord('w')
                 else:
                     int_issnum = (int(issnum[:-4]) * 1000) + ord('n') + ord('o') + ord('w')
+            elif 'bey' in issnum.lower():
+                remdec = issnum.find('.')  #find the decimal position.
+                if remdec == -1:
+                #if no decimal, it's all one string
+                #remove the last 3 characters from the issue # (BEY)
+                    int_issnum = (int(issnum[:-3]) * 1000) + ord('b') + ord('e') + ord('y')
+                else:
+                    int_issnum = (int(issnum[:-4]) * 1000) + ord('b') + ord('e') + ord('y')
             elif 'mu' in issnum.lower():
                 remdec = issnum.find('.')
                 if remdec == -1:
                     int_issnum = (int(issnum[:-2]) * 1000) + ord('m') + ord('u')
                 else:
                     int_issnum = (int(issnum[:-3]) * 1000) + ord('m') + ord('u')
+            elif 'lr' in issnum.lower():
+                remdec = issnum.find('.')
+                if remdec == -1:
+                    int_issnum = (int(issnum[:-2]) * 1000) + ord('l') + ord('r')
+                else:
+                    int_issnum = (int(issnum[:-3]) * 1000) + ord('l') + ord('r')
             elif 'hu' in issnum.lower():
                 remdec = issnum.find('.')  #find the decimal position.
                 if remdec == -1:
@@ -1107,7 +1127,7 @@ def issuedigits(issnum):
                                 a+=1
                             int_issnum = (int(issno) * 1000) + ordtot
                     elif invchk == "true":
-                        if any([issnum.lower() == 'fall', issnum.lower() == 'spring', issnum.lower() == 'summer', issnum.lower() == 'winter']):
+                        if any([issnum.lower() == 'alpha', issnum.lower() == 'omega', issnum.lower() == 'fall', issnum.lower() == 'spring', issnum.lower() == 'summer', issnum.lower() == 'winter']):
                             inu = 0
                             ordtot = 0
                             while (inu < len(issnum)):
@@ -1118,14 +1138,29 @@ def issuedigits(issnum):
                             logger.fdebug('this does not have an issue # that I can parse properly.')
                             return 999999999999999
                     else:
-                        if issnum == '9-5':
+                        match = re.match(r"(?P<first>\d+)\s?[-&/\\]\s?(?P<last>\d+)", issnum)
+                        if match:
+                            first_num, last_num = map(int, match.groups())
+                            if last_num > first_num:
+                                int_issnum = (first_num * 1000) + int(((last_num - first_num) * .5) * 1000)
+                            else:
+                                int_issnum = (first_num * 1000) + (.5 * 1000)
+                        elif issnum == '9-5':
                             issnum = '9\xbd'
                             logger.fdebug('issue: 9-5 is an invalid entry. Correcting to : ' + issnum)
                             int_issnum = (9 * 1000) + (.5 * 1000)
+                        elif issnum == '2 & 3':
+                            logger.fdebug('issue: 2 & 3 is an invalid entry. Ensuring things match up')
+                            int_issnum = (2 * 1000) + (.5 * 1000)
+                        elif issnum == '4 & 5':
+                            logger.fdebug('issue: 4 & 5 is an invalid entry. Ensuring things match up')
+                            int_issnum = (4 * 1000) + (.5 * 1000)
                         elif issnum == '112/113':
                             int_issnum = (112 * 1000) + (.5 * 1000)
                         elif issnum == '14-16':
                             int_issnum = (15 * 1000) + (.5 * 1000)
+                        elif issnum == '380/381':
+                            int_issnum = (380 * 1000) + (.5 * 1000)
                         elif issnum.lower() == 'preview':
                             inu = 0
                             ordtot = 0
@@ -1160,7 +1195,7 @@ def checkthepub(ComicID):
 def annual_update():
     #import db
     myDB = db.DBConnection()
-    annuallist = myDB.select('SELECT * FROM annuals')
+    annuallist = myDB.select('SELECT * FROM annuals WHERE NOT Deleted')
     if annuallist is None:
         logger.info('no annuals to update.')
         return
@@ -1389,13 +1424,18 @@ def havetotals(refreshit=None):
                 continue
 
             if not haveissues:
-                havetracks = 0
+                haveissues = 0
 
             if refreshit is not None:
                 if haveissues > totalissues:
                     return True   # if it's 5/4, send back to updater and don't restore previous status'
                 else:
                     return False  # if it's 5/5 or 4/5, send back to updater and restore previous status'
+
+            if any([haveissues == 'None', haveissues is None]):
+                haveissues = 0
+            if any([totalissues == 'None', totalissues is None]):
+                totalissues = 0
 
             try:
                 percent = (haveissues *100.0) /totalissues
@@ -1413,26 +1453,29 @@ def havetotals(refreshit=None):
             elif comic['ForceContinuing'] == 1:
                 recentstatus = 'Continuing'
             elif 'present' in comic['ComicPublished'].lower() or (today()[:4] in comic['LatestDate']):
-                latestdate = comic['LatestDate']
-                #pull-list f'd up the date by putting '15' instead of '2015' causing 500 server errors
-                if '-' in latestdate[:3]:
-                    st_date = latestdate.find('-')
-                    st_remainder = latestdate[st_date+1:]
-                    st_year = latestdate[:st_date]
-                    year = '20' + st_year
-                    latestdate = str(year) + '-' + str(st_remainder)
-                    #logger.fdebug('year set to: ' + latestdate)
-                c_date = datetime.date(int(latestdate[:4]), int(latestdate[5:7]), 1)
-                n_date = datetime.date.today()
-                recentchk = (n_date - c_date).days
-                if comic['NewPublish'] is True:
-                    recentstatus = 'Continuing'
+                if 'Err' in comic['LatestDate']:
+                    recentstatus = 'Loading'
                 else:
-                    #do this just incase and as an extra measure of accuracy hopefully.
-                    if recentchk < 55:
+                    latestdate = comic['LatestDate']
+                    #pull-list f'd up the date by putting '15' instead of '2015' causing 500 server errors
+                    if '-' in latestdate[:3]:
+                        st_date = latestdate.find('-')
+                        st_remainder = latestdate[st_date+1:]
+                        st_year = latestdate[:st_date]
+                        year = '20' + st_year
+                        latestdate = str(year) + '-' + str(st_remainder)
+                        #logger.fdebug('year set to: ' + latestdate)
+                    c_date = datetime.date(int(latestdate[:4]), int(latestdate[5:7]), 1)
+                    n_date = datetime.date.today()
+                    recentchk = (n_date - c_date).days
+                    if comic['NewPublish'] is True:
                         recentstatus = 'Continuing'
                     else:
-                        recentstatus = 'Ended'
+                        #do this just incase and as an extra measure of accuracy hopefully.
+                        if recentchk < 55:
+                            recentstatus = 'Continuing'
+                        else:
+                            recentstatus = 'Ended'
             else:
                 recentstatus = 'Ended'
 
@@ -1445,15 +1488,40 @@ def havetotals(refreshit=None):
                     logger.warn('[Error: %s] No Publisher found for %s - you probably want to Refresh the series when you get a chance.' % (e, comic['ComicName']))
                     cpub = None
 
+            comictype = comic['Type']
+            try:
+                if (any([comictype == 'None', comictype is None, comictype == 'Print']) and all([comic['Corrected_Type'] != 'TPB', comic['Corrected_Type'] != 'GN', comic['Corrected_Type'] != 'HC'])) or all([comic['Corrected_Type'] is not None, comic['Corrected_Type'] == 'Print']):
+                    comictype = None
+                else:
+                    if comic['Corrected_Type'] is not None:
+                        comictype = comic['Corrected_Type']
+                    else:
+                        comictype = comictype
+            except:
+                comictype = None
+
+            if any([comic['ComicVersion'] == None, comic['ComicVersion'] == 'None', comic['ComicVersion'] == '']):
+                cversion = None
+            else:
+                cversion = comic['ComicVersion']
+
+            if comic['ComicImage'] is None:
+                comicImage = 'cache/%s.jpg' % comic['ComicID']
+            else:
+                comicImage = comic['ComicImage']
+
+
             comics.append({"ComicID":         comic['ComicID'],
                            "ComicName":       comic['ComicName'],
                            "ComicSortName":   comic['ComicSortName'],
                            "ComicPublisher":  comic['ComicPublisher'],
                            "ComicYear":       comic['ComicYear'],
-                           "ComicImage":      comic['ComicImage'],
+                           "ComicImage":      comicImage,
                            "LatestIssue":     comic['LatestIssue'],
                            "LatestDate":      comic['LatestDate'],
+                           "ComicVolume":     cversion,
                            "ComicPublished":  cpub,
+                           "PublisherImprint": comic['PublisherImprint'],
                            "Status":          comic['Status'],
                            "recentstatus":    recentstatus,
                            "percent":         percent,
@@ -1461,8 +1529,8 @@ def havetotals(refreshit=None):
                            "haveissues":      haveissues,
                            "DateAdded":       comic['LastUpdated'],
                            "Type":            comic['Type'],
-                           "Corrected_Type":   comic['Corrected_Type']})
-
+                           "Corrected_Type":  comic['Corrected_Type'],
+                           "displaytype":     comictype})
         return comics
 
 def filesafe(comic):
@@ -1485,24 +1553,27 @@ def filesafe(comic):
 
     return comicname_filesafe
 
-def IssueDetails(filelocation, IssueID=None, justinfo=False):
+def IssueDetails(filelocation, IssueID=None, justinfo=False, comicname=None):
     import zipfile
     from xml.dom.minidom import parseString
 
     issuedetails = []
     issuetag = None
-    if filelocation == 'None':
+    if any([filelocation == 'None', filelocation is None]):
         issue_data = mylar.cv.getComic(None, 'single_issue', IssueID)
         IssueImage = getimage.retrieve_image(issue_data['image'])
-        return {'metadata': issue_data, 'datamode': 'single_issue', 'IssueImage': IssueImage }
-    else:
-        filelocation = urllib.parse.unquote_plus(filelocation)
+        metadata_info = {'metadata_source': 'ComicVine',
+                         'metadata_type': None}
+        return {'metadata': issue_data, 'datamode': 'single_issue', 'IssueImage': IssueImage, 'metadata_source': metadata_info }
+    #else:
+    #    filelocation = urllib.parse.unquote_plus(filelocation)
     if justinfo is False:
-        file_info = getimage.extract_image(filelocation, single=True, imquality='issue')
+        file_info = getimage.extract_image(filelocation, single=True, imquality='issue', comicname=comicname)
         IssueImage = file_info['ComicImage']
         data = file_info['metadata']
         if data:
             issuetag = 'xml'
+            metadata_type = 'comicinfo.xml'
     else:
         IssueImage = "None"
         try:
@@ -1512,10 +1583,13 @@ def IssueDetails(filelocation, IssueID=None, justinfo=False):
                         logger.fdebug('Found ComicInfo.xml - now retrieving information.')
                         data = inzipfile.read(infile)
                         issuetag = 'xml'
+                        metadata_type = 'comicinfo.xml'
                         break
         except:
+            metadata_info = {'metadata_source': None,
+                             'metadata_type': None}
             logger.info('ERROR. Unable to properly retrieve the cover for displaying. It\'s probably best to re-tag this file.')
-            return
+            return {'IssueImage': IssueImage, 'datamode': 'file', 'metadata': None, 'metadata_source': metadata_info}
 
 
     if issuetag is None:
@@ -1524,14 +1598,21 @@ def IssueDetails(filelocation, IssueID=None, justinfo=False):
             dz = zipfile.ZipFile(filelocation, 'r')
             data = dz.comment
         except:
+            metadata_info = {'metadata_source': 'ComicVine',
+                             'metadata_type': None}
             logger.warn('Unable to extract any metadata from within file.')
-            return {'IssueImage': IssueImage, 'datamode': 'file', 'metadata': None}
+            return {'IssueImage': IssueImage, 'datamode': 'file', 'metadata': None, 'metadata_source': metadata_info}
         else:
             if data:
                 issuetag = 'comment'
+                metadata_info = {'metadata_source': 'ComicVine',
+                                 'metadata_type': 'comicbooklover'}
+
             else:
+                metadata_info = {'metadata_source': None,
+                                  'metadata_type': None}
                 logger.warn('No metadata available in zipfile comment field.')
-                return {'IssueImage': IssueImage, 'datamode': 'file', 'metadata': None}
+                return {'IssueImage': IssueImage, 'datamode': 'file', 'metadata': None, 'metadata_source': metadata_info}
 
     logger.info('Tag returned as being: ' + str(issuetag))
 
@@ -1540,6 +1621,9 @@ def IssueDetails(filelocation, IssueID=None, justinfo=False):
         dom = parseString(data)
 
         results = dom.getElementsByTagName('ComicInfo')
+        metadata_info = {'metadata_source': None,
+                         'metadata_type': 'comicinfo.xml'}
+
         for result in results:
             try:
                 issue_title = result.getElementsByTagName('Title')[0].firstChild.wholeText
@@ -1571,6 +1655,15 @@ def IssueDetails(filelocation, IssueID=None, justinfo=False):
                 notes = result.getElementsByTagName('Notes')[0].firstChild.wholeText  #IssueID is in here
             except:
                 notes = "None"
+            else:
+                if 'CMXID' in notes:
+                    mtype = 'Comixology'
+                elif any(['cvdb' in notes.lower(), 'issue id' in notes.lower(), 'comic vine' in notes.lower()]):
+                    mtype = 'ComicVine'
+                else:
+                    mtype = None
+                metadata_info = {'metadata_source': mtype,
+                                 'metadata_type': 'comicinfo.xml'}
             try:
                 year = result.getElementsByTagName('Year')[0].firstChild.wholeText
             except:
@@ -1586,31 +1679,31 @@ def IssueDetails(filelocation, IssueID=None, justinfo=False):
             try:
                 writer = result.getElementsByTagName('Writer')[0].firstChild.wholeText
             except:
-                writer = "None"
+                writer = None
             try:
                 penciller = result.getElementsByTagName('Penciller')[0].firstChild.wholeText
             except:
-                penciller = "None"
+                penciller = None
             try:
                 inker = result.getElementsByTagName('Inker')[0].firstChild.wholeText
             except:
-                inker = "None"
+                inker = None
             try:
                 colorist = result.getElementsByTagName('Colorist')[0].firstChild.wholeText
             except:
-                colorist = "None"
+                colorist = None
             try:
                 letterer = result.getElementsByTagName('Letterer')[0].firstChild.wholeText
             except:
-                letterer = "None"
+                letterer = None
             try:
                 cover_artist = result.getElementsByTagName('CoverArtist')[0].firstChild.wholeText
             except:
-                cover_artist = "None"
+                cover_artist = None
             try:
                 editor = result.getElementsByTagName('Editor')[0].firstChild.wholeText
             except:
-                editor = "None"
+                editor = None
             try:
                 publisher = result.getElementsByTagName('Publisher')[0].firstChild.wholeText
             except:
@@ -1689,14 +1782,14 @@ def IssueDetails(filelocation, IssueID=None, justinfo=False):
         except:
             summary = "None"
 
-        editor = "None"
-        colorist = "None"
-        artist = "None"
+        editor = None
+        colorist = None
+        artist = None
         writer = None
-        letterer = "None"
-        cover_artist = "None"
-        penciller = "None"
-        inker = "None"
+        letterer = None
+        cover_artist = None
+        penciller = None
+        inker = None
 
         try:
             series_volume = dt['volume']
@@ -1706,15 +1799,7 @@ def IssueDetails(filelocation, IssueID=None, justinfo=False):
         try:
             t = dt['credits']
         except:
-            editor = None
-            colorist = None
-            artist = None
-            writer = None
-            letterer = None
-            cover_artist = None
-            penciller = None
-            inker = None
-
+            pass
         else:
             for cl in dt['credits']:
                 if cl['role'] == 'Editor':
@@ -1779,7 +1864,8 @@ def IssueDetails(filelocation, IssueID=None, justinfo=False):
              "webpage":      webpage,
              "pagecount":    pagecount},
              "IssueImage":   IssueImage,
-             "datamode":     'file'}
+             "datamode":     'file',
+             "metadata_source": metadata_info}
 
 def get_issue_title(IssueID=None, ComicID=None, IssueNumber=None, IssueArcID=None):
     #import db
@@ -1899,7 +1985,7 @@ def manualArc(issueid, reading_order, storyarcid):
                            "ReadingOrder":   issarc['ReadingOrder']})
 
 
-    arc_results = mylar.cv.getComic(comicid=None, type='issue', issueid=None, arcid=storyarcid, arclist='M' + str(issueid))
+    arc_results = mylar.cv.getComic(comicid=None, rtype='issue', issueid=None, arcid=storyarcid, arclist='M' + str(issueid))
     arcval = arc_results['issuechoice'][0]
     comicname = arcval['ComicName']
     st_d = mylar.filechecker.FileChecker(watchcomic=comicname)
@@ -1938,7 +2024,7 @@ def manualArc(issueid, reading_order, storyarcid):
     storedate = str(arcval['Store_Date'])
     int_issnum = issuedigits(issnum)
 
-    comicid_results = mylar.cv.getComic(comicid=None, type='comicyears', comicidlist=cidlist)
+    comicid_results = mylar.cv.getComic(comicid=None, rtype='comicyears', comicidlist=cidlist)
     seriesYear = 'None'
     issuePublisher = 'None'
     seriesVolume = 'None'
@@ -2087,15 +2173,15 @@ def duplicate_filecheck(filename, ComicID=None, IssueID=None, StoryArcID=None, r
     except OSError as e:
         logger.warn('[DUPECHECK] File cannot be located in location specified. Something has moved or altered the name.')
         logger.warn('[DUPECHECK] Make sure if you are using ComicRN, you do not have Completed Download Handling enabled (or vice-versa). Aborting')
-        return
+        return {'action': None}
 
     if IssueID:
         dupchk = myDB.selectone("SELECT * FROM issues WHERE IssueID=?", [IssueID]).fetchone()
     if dupchk is None:
-        dupchk = myDB.selectone("SELECT * FROM annuals WHERE IssueID=?", [IssueID]).fetchone()
+        dupchk = myDB.selectone("SELECT * FROM annuals WHERE IssueID=? AND NOT Deleted", [IssueID]).fetchone()
         if dupchk is None:
             logger.info('[DUPECHECK] Unable to find corresponding Issue within the DB. Do you still have the series on your watchlist?')
-            return
+            return {'action': None}
 
     series = myDB.selectone("SELECT * FROM comics WHERE ComicID=?", [dupchk['ComicID']]).fetchone()
 
@@ -2365,7 +2451,7 @@ def issue_status(IssueID):
 
     isschk = myDB.selectone("SELECT * FROM issues WHERE IssueID=?", [IssueID]).fetchone()
     if isschk is None:
-        isschk = myDB.selectone("SELECT * FROM annuals WHERE IssueID=?", [IssueID]).fetchone()
+        isschk = myDB.selectone("SELECT * FROM annuals WHERE IssueID=? AND NOT Deleted", [IssueID]).fetchone()
         if isschk is None:
             isschk = myDB.selectone("SELECT * FROM storyarcs WHERE IssueArcID=?", [IssueID]).fetchone()
             if isschk is None:
@@ -2386,7 +2472,12 @@ def crc(filename):
 
     #speed in lieu of memory (file into memory entirely)
     #return "%X" % (zlib.crc32(open(filename, "rb").read()) & 0xFFFFFFFF)
-    filename = filename.encode(mylar.SYS_ENCODING)
+    try:
+       filename = filename.encode(mylar.SYS_ENCODING)
+    except UnicodeEncodeError:
+       filename = "invalid"
+       filename = filename.encode(mylar.SYS_ENCODING)
+    
     return hashlib.md5(filename).hexdigest()
 
 def issue_find_ids(ComicName, ComicID, pack, IssueNumber):
@@ -2565,10 +2656,16 @@ def updatearc_locs(storyarcid, issues):
                 pathsrc = os.path.join(chk['ComicLocation'], chk['Location'])
                 if not os.path.exists(pathsrc):
                     try:
-                        if all([mylar.CONFIG.MULTIPLE_DEST_DIRS is not None, mylar.CONFIG.MULTIPLE_DEST_DIRS != 'None', os.path.join(mylar.CONFIG.MULTIPLE_DEST_DIRS, os.path.basename(chk['ComicLocation'])) != chk['ComicLocation'], os.path.exists(os.path.join(mylar.CONFIG.MULTIPLE_DEST_DIRS, os.path.basename(chk['ComicLocation'])))]):
-                            pathsrc = os.path.join(mylar.CONFIG.MULTIPLE_DEST_DIRS, os.path.basename(chk['ComicLocation']), chk['Location'])
+                        if all([mylar.CONFIG.MULTIPLE_DEST_DIRS is not None, mylar.CONFIG.MULTIPLE_DEST_DIRS != 'None']):
+                            if os.path.exists(os.path.join(mylar.CONFIG.MULTIPLE_DEST_DIRS, os.path.basename(chk['ComicLocation']))):
+                                secondary_folders = os.path.join(mylar.CONFIG.MULTIPLE_DEST_DIRS, os.path.basename(chk['ComicLocation']))
+                            else:
+                                ff = mylar.filers.FileHandlers(ComicID=chk['ComicID'])
+                                secondary_folders = ff.secondary_folders(chk['ComicLocation'])
+
+                            pathsrc = os.path.join(secondary_folders, chk['Location'])
                         else:
-                            logger.fdebug(module + ' file does not exist in location: ' + pathdir + '. Cannot valid location - some options will not be available for this item.')
+                            logger.fdebug(module + ' file does not exist in location: ' + pathsrc + '. Cannot validate location - some options will not be available for this item.')
                             continue
                     except:
                         continue
@@ -2673,14 +2770,15 @@ def arcformat(arc, spanyears, publisher):
 
     tmp_folderformat = mylar.CONFIG.ARC_FOLDERFORMAT
 
-    if publisher == 'None':
-        chunk_f_f = re.sub('\$publisher', '', tmp_folderformat)
-        chunk_f = re.compile(r'\s+')
-        tmp_folderformat = chunk_f.sub(' ', chunk_f_f)
+    if tmp_folderformat is not None:
+        if publisher == 'None':
+            chunk_f_f = re.sub('\$publisher', '', tmp_folderformat)
+            chunk_f = re.compile(r'\s+')
+            tmp_folderformat = chunk_f.sub(' ', chunk_f_f)
 
 
     if any([tmp_folderformat == '', tmp_folderformat is None]):
-        arcpath = arcdir
+        arcpath = replace_all('$arc ($spanyears)', values)
     else:
         arcpath = replace_all(tmp_folderformat, values)
 
@@ -2712,11 +2810,11 @@ def torrentinfo(issueid=None, torrent_hash=None, download=False, monitor=False):
         cinfo = myDB.selectone('SELECT a.Issue_Number, a.ComicName, a.Status, b.Hash from issues as a inner join snatched as b ON a.IssueID=b.IssueID WHERE a.IssueID=?', [issueid]).fetchone()
         if cinfo is None:
             logger.warn('Unable to locate IssueID of : ' + issueid)
-            snatch_status = 'ERROR'
+            snatch_status = 'MONITOR ERROR'
 
         if cinfo['Status'] != 'Snatched' or cinfo['Hash'] is None:
             logger.warn(cinfo['ComicName'] + ' #' + cinfo['Issue_Number'] + ' is currently in a ' + cinfo['Status'] + ' Status.')
-            snatch_status = 'ERROR'
+            snatch_status = 'MONITOR ERROR'
 
         torrent_hash = cinfo['Hash']
 
@@ -2726,7 +2824,7 @@ def torrentinfo(issueid=None, torrent_hash=None, download=False, monitor=False):
 
     if not len(torrent_hash) == 40:
        logger.error("Torrent hash is missing, or an invalid hash value has been passed")
-       snatch_status = 'ERROR'
+       snatch_status = 'MONITOR ERROR'
     else:
         if mylar.USE_RTORRENT:
             from . import test
@@ -2741,14 +2839,14 @@ def torrentinfo(issueid=None, torrent_hash=None, download=False, monitor=False):
 
             torrent_info = dp.get_torrent(torrent_hash)
         else:
-            snatch_status = 'ERROR'
+            snatch_status = 'MONITOR ERROR'
             return
 
     logger.info('torrent_info: %s' % torrent_info)
 
     if torrent_info is False or len(torrent_info) == 0:
         logger.warn('torrent returned no information. Check logs - aborting auto-snatch at this time.')
-        snatch_status = 'ERROR'
+        snatch_status = 'MONITOR ERROR'
     else:
         if mylar.USE_DELUGE:
             torrent_status = torrent_info['is_finished']
@@ -2766,7 +2864,7 @@ def torrentinfo(issueid=None, torrent_hash=None, download=False, monitor=False):
 
         if all([torrent_status is True, download is True]):
             if not issueid: 
-                torrent_info['snatch_status'] = 'STARTING...'
+                torrent_info['snatch_status'] = 'MONITOR STARTING'
                 #yield torrent_info
 
             import shlex, subprocess
@@ -2783,15 +2881,15 @@ def torrentinfo(issueid=None, torrent_hash=None, download=False, monitor=False):
 
             curScriptName = shell_cmd + ' ' + str(mylar.CONFIG.AUTO_SNATCH_SCRIPT) #.decode("string_escape")
             if torrent_files > 1:
-                downlocation = torrent_folder.encode('utf-8')
+                downlocation = torrent_folder
             else:
                 if mylar.USE_DELUGE:
-                    downlocation = os.path.join(torrent_folder.encode('utf-8'), torrent_info['files'][0]['path'])
+                    downlocation = os.path.join(torrent_folder, torrent_info['files'][0]['path'])
                 else:
-                    downlocation = torrent_info['files'][0].encode('utf-8')
+                    downlocation = torrent_info['files'][0]
 
             autosnatch_env = os.environ.copy()
-            autosnatch_env['downlocation'] = re.sub("'", "\\'",downlocation)
+            autosnatch_env['downlocation'] = downlocation.replace("'", "\\'")
 
             #these are pulled from the config and are the ssh values to use to retrieve the data
             autosnatch_env['host'] = mylar.CONFIG.PP_SSHHOST
@@ -2813,24 +2911,25 @@ def torrentinfo(issueid=None, torrent_hash=None, download=False, monitor=False):
             #downlocation = re.sub("&", "\&", downlocation)
 
             script_cmd = shlex.split(curScriptName, posix=False) # + [downlocation]
-            logger.fdebug("Executing command " +str(script_cmd))
+            logger.fdebug('Executing command %s' % script_cmd)
             try:
                 p = subprocess.Popen(script_cmd, env=dict(autosnatch_env), stdout=subprocess.PIPE, stderr=subprocess.STDOUT, cwd=mylar.PROG_DIR)
                 out, err = p.communicate()
-                logger.fdebug("Script result: " + out)
+                logger.fdebug('Script result: %s' % out)
             except OSError as e:
-                logger.warn("Unable to run extra_script: " + e)
-                snatch_status = 'ERROR'
+                logger.warn('Unable to run extra_script: %s' % e)
+                snatch_status = 'MONITOR ERROR'
             else:
-                if 'Access failed: No such file' in out:
+                if 'Access failed: No such file' in str(out):
                     logger.fdebug('Not located in location it is supposed to be in - probably has been moved by some script and I got the wrong location due to timing. Trying again...')
                     snatch_status = 'IN PROGRESS'
                 else:
-                    snatch_status = 'COMPLETED'
+                    snatch_status = 'MONITOR COMPLETE' #COMPLETED
                 torrent_info['completed'] = torrent_status
                 torrent_info['files'] = torrent_files
                 torrent_info['folder'] = torrent_folder
-
+                torrent_info['copied_filepath'] = os.path.join(mylar.CONFIG.PP_SSHLOCALCD, torrent_info['name'])
+                torrent_info['snatch_status'] = snatch_status
         else:
             if download is True:
                 snatch_status = 'IN PROGRESS'
@@ -2858,7 +2957,7 @@ def torrentinfo(issueid=None, torrent_hash=None, download=False, monitor=False):
             else:
                 snatch_status = 'NOT SNATCHED'
 
-    torrent_info['snatch_status'] = snatch_status
+    #torrent_info['snatch_status'] = snatch_status
     return torrent_info
 
 def weekly_info(week=None, year=None, current=None):
@@ -2875,7 +2974,6 @@ def weekly_info(week=None, year=None, current=None):
     if week:
         weeknumber = int(week)
         year = int(year)
-
         #monkey patch for 2018/2019 - week 52/week 0
         if all([weeknumber == 52, c_weeknumber == 51, c_weekyear == 2018]):
             weeknumber = 0
@@ -2891,6 +2989,14 @@ def weekly_info(week=None, year=None, current=None):
         elif all([weeknumber == 52, c_weeknumber == 0, c_weekyear == 2020]):
             weeknumber = 51
             year = 2019
+
+        #monkey patch for 2020/2021 - week 52/week 0
+        if all([int(weeknumber) == 0, c_weeknumber == 52, c_weekyear == 2020]):
+            weeknumber = 1
+            year = 2021
+        elif all([int(weeknumber) == 0, c_weeknumber == 1, c_weekyear == 2021]):
+            weeknumber = 52
+            year = 2020
 
         #view specific week (prev_week, next_week)
         startofyear = date(year,1,1)
@@ -2920,30 +3026,44 @@ def weekly_info(week=None, year=None, current=None):
             weeknumber = 51
             year = 2019
 
+        #monkey patch for 2020/2021 - week 52/week 0
+        if all([int(weeknumber) == 0, int(year) == 2021]) or all([int(weeknumber) == 52, int(year) == 2020]):
+            weeknumber = 52
+            year = 2020
+
         stweek = datetime.datetime.strptime(todaydate.strftime('%Y-%m-%d'), '%Y-%m-%d')
         startweek = stweek - timedelta(days = (stweek.weekday() + 1) % 7)
         midweek = startweek + timedelta(days = 3)
         endweek = startweek + timedelta(days = 6)
 
-    prev_week = int(weeknumber) - 1
-    prev_year = year
-    if prev_week < 0:
+    if all([weeknumber == 1, year == 2021]):
+        # make sure the arrow going back will hit the correct week in the previous year.
         prev_week = 52
-        prev_year = int(year) - 1
+        prev_year = 2020
+    else:
+        prev_week = int(weeknumber) - 1
+        prev_year = year
+        if prev_week < 0:
+            prev_week = 52
+            prev_year = int(year) - 1
 
     next_week = int(weeknumber) + 1
     next_year = year
     if next_week > 52:
         next_year = int(year) + 1
-        next_week = datetime.date(int(next_year),1,1).strftime("%U")
+        if all([weeknumber == 52, year == 2020]):
+            # make sure the next arrow will hit the correct week in the following year.
+            next_week = '1'
+        else:
+            next_week = datetime.date(int(next_year),1,1).strftime("%U")
 
     date_fmt = "%B %d, %Y"
     try:
-        con_startweek = "" + startweek.strftime(date_fmt) #.decode('utf-8')
-        con_endweek = "" + endweek.strftime(date_fmt) #.decode('utf-8')
+        con_startweek = "" + startweek.strftime(date_fmt)
+        con_endweek = "" + endweek.strftime(date_fmt)
     except:
-        con_startweek = "" + startweek.strftime(date_fmt) #.decode('cp1252')
-        con_endweek = "" + endweek.strftime(date_fmt) #.decode('cp1252')
+        con_startweek = "" + startweek.strftime(date_fmt)
+        con_endweek = "" + endweek.strftime(date_fmt)
 
     if mylar.CONFIG.WEEKFOLDER_LOC is not None:
         weekdst = mylar.CONFIG.WEEKFOLDER_LOC
@@ -3005,6 +3125,27 @@ def latestdate_update():
         logger.info('updating latest date for : ' + a['ComicID'] + ' to ' + a['LatestDate'] + ' #' + a['LatestIssue'])
         myDB.upsert("comics", newVal, ctrlVal)
 
+def latestissue_update():
+    myDB = db.DBConnection()
+    cck = myDB.select('SELECT ComicID, LatestIssue FROM comics WHERE intLatestIssue is NULL')
+
+    if cck:
+        c_list = []
+        for ck in cck:
+            c_list.append({'ComicID': ck['ComicID'],
+                           'intLatestIssue': issuedigits(ck['LatestIssue'])})
+
+        logger.info('[LATEST_ISSUE_TO_INT] Updating the latestIssue field for %s series' % (len(c_list)))
+
+        for ct in c_list:
+            try:
+                newVal = {'intLatestIssue': ct['intLatestIssue']}
+                ctrlVal = {'ComicID': ct['ComicID']}
+                myDB.upsert("comics", newVal, ctrlVal)
+            except Exception as e:
+                logger.fdebug('exception encountered: %s' % e)
+                continue
+
 def ddl_downloader(queue):
     myDB = db.DBConnection()
     while True:
@@ -3036,25 +3177,27 @@ def ddl_downloader(queue):
             if all([ddzstat['success'] is True, mylar.CONFIG.POST_PROCESSING is True]):
                 try:
                     if ddzstat['filename'] is None:
-                        logger.info('%s successfully downloaded - now initiating post-processing.' % (os.path.basename(ddzstat['path'])))
+                        logger.info('%s successfully downloaded - now initiating post-processing for %s.' % (os.path.basename(ddzstat['path']), ddzstat['path']))
                         mylar.PP_QUEUE.put({'nzb_name':     os.path.basename(ddzstat['path']),
                                             'nzb_folder':   ddzstat['path'],
                                             'failed':       False,
                                             'issueid':      None,
                                             'comicid':      item['comicid'],
                                             'apicall':      True,
-                                            'ddl':          True})
+                                            'ddl':          True,
+                                            'download_info': {'provider': 'DDL', 'id': item['id']}})
                     else:
-                        logger.info('%s successfully downloaded - now initiating post-processing.' % (ddzstat['filename']))
+                        logger.info('%s successfully downloaded - now initiating post-processing for %s' % (ddzstat['filename'], ddzstat['path']))
                         mylar.PP_QUEUE.put({'nzb_name':     ddzstat['filename'],
                                             'nzb_folder':   ddzstat['path'],
                                             'failed':       False,
                                             'issueid':      item['issueid'],
                                             'comicid':      item['comicid'],
                                             'apicall':      True,
-                                            'ddl':          True})
+                                            'ddl':          True,
+                                            'download_info': {'provider': 'DDL', 'id': item['id']}})
                 except Exception as e:
-                    logger.info('process error: %s [%s]' %(e, ddzstat))
+                    logger.error('process error: %s [%s]' %(e, ddzstat))
             elif all([ddzstat['success'] is True, mylar.CONFIG.POST_PROCESSING is False]):
                 logger.info('File successfully downloaded. Post Processing is not enabled - item retained here: %s' % os.path.join(ddzstat['path'],ddzstat['filename']))
             else:
@@ -3080,7 +3223,7 @@ def postprocess_main(queue):
 
             if mylar.APILOCK is False:
                 try:
-                    pprocess = process.Process(item['nzb_name'], item['nzb_folder'], item['failed'], item['issueid'], item['comicid'], item['apicall'], item['ddl'])
+                    pprocess = process.Process(item['nzb_name'], item['nzb_folder'], item['failed'], item['issueid'], item['comicid'], item['apicall'], item['ddl'], item['download_info'])
                 except:
                     pprocess = process.Process(item['nzb_name'], item['nzb_folder'], item['failed'], item['issueid'], item['comicid'], item['apicall'])
                 pp = pprocess.post_process()
@@ -3111,7 +3254,27 @@ def search_queue(queue):
 
             logger.info('[SEARCH-QUEUE] Now loading item from search queue: %s' % item)
             if mylar.SEARCHLOCK is False:
-                ss_queue = mylar.search.searchforissue(item['issueid'])
+                arcid = None
+                comicid = item['comicid']
+                issueid = item['issueid']
+                if issueid is not None:
+                    if '_' in issueid:
+                        arcid = issueid
+                        comicid = None # required for storyarcs to work
+                        issueid = None # required for storyarcs to work
+                mofo = mylar.filers.FileHandlers(ComicID=comicid, IssueID=issueid, arcID=arcid)
+                local_check = mofo.walk_the_walk()
+                if local_check['status'] is True:
+                    mylar.PP_QUEUE.put({'nzb_name':     local_check['filename'],
+                                        'nzb_folder':   local_check['filepath'],
+                                        'failed':       False,
+                                        'issueid':      item['issueid'],
+                                        'comicid':      item['comicid'],
+                                        'apicall':      True,
+                                        'ddl':          False,
+                                        'download_info': None})
+                else:
+                    ss_queue = mylar.search.searchforissue(item['issueid'])
                 time.sleep(5) #arbitrary sleep to let the process attempt to finish pp'ing
 
             if mylar.SEARCHLOCK is True:
@@ -3125,29 +3288,71 @@ def worker_main(queue):
     while True:
         if queue.qsize() >= 1:
             item = queue.get(True)
-            logger.info('Now loading from queue: ' + item)
+            logger.info('Now loading from queue: %s' % item)
             if item == 'exit':
                 logger.info('Cleaning up workers for shutdown')
                 break
-            snstat = torrentinfo(torrent_hash=item, download=True)
+            snstat = torrentinfo(torrent_hash=item['hash'], download=True)
             if snstat['snatch_status'] == 'IN PROGRESS':
                 logger.info('Still downloading in client....let us try again momentarily.')
                 time.sleep(30)
                 mylar.SNATCHED_QUEUE.put(item)
             elif any([snstat['snatch_status'] == 'MONITOR FAIL', snstat['snatch_status'] == 'MONITOR COMPLETE']):
                 logger.info('File copied for post-processing - submitting as a direct pp.')
-                threading.Thread(target=self.checkFolder, args=[os.path.abspath(os.path.join(snstat['copied_filepath'], os.pardir))]).start()
+                mylar.PP_QUEUE.put({'nzb_name':     os.path.basename(snstat['copied_filepath']),
+                                    'nzb_folder':   snstat['copied_filepath'], #os.path.abspath(os.path.join(snstat['copied_filepath'], os.pardir)),
+                                    'failed':       False,
+                                    'issueid':      item['issueid'],
+                                    'comicid':      item['comicid'],
+                                    'apicall':      True,
+                                    'ddl':          False,
+                                    'download_info': None})
+                #threading.Thread(target=self.checkFolder, args=[os.path.abspath(os.path.join(snstat['copied_filepath'], os.pardir))]).start()
         else:
             time.sleep(15)
 
 def nzb_monitor(queue):
     while True:
+        if mylar.RETURN_THE_NZBQUEUE.qsize() >= 1:
+            if mylar.USE_SABNZBD is True:
+                # this checks the sabnzbd queue to see if it's paused / unpaused.
+                sab_params = {
+                    'apikey': mylar.CONFIG.SAB_APIKEY,
+                    'mode': 'queue',
+                    'start': 0,
+                    'limit': 5,
+                    'search': None,
+                    'output': 'json',
+                }
+                s = sabnzbd.SABnzbd(params=sab_params)
+                sabresponse = s.sender(chkstatus=True)
+                # response will be: Paused = True, UnPaused = False
+                if sabresponse['status'] is False:
+                    while True:
+                        if mylar.RETURN_THE_NZBQUEUE.qsize() >= 1:
+                            qu_retrieve = mylar.RETURN_THE_NZBQUEUE.get(True)
+                            try:
+                                nzstat = s.historycheck(qu_retrieve)
+                                cdh_monitor(queue, qu_retrieve, nzstat, readd=True)
+                            except Exception as e:
+                                logger.error('Exception occured trying to re-add %s to queue: %s' % (qu_retrieve, e))
+                            time.sleep(5)
+                        else:
+                            break
+
         if queue.qsize() >= 1:
             item = queue.get(True)
             if item == 'exit':
                 logger.info('Cleaning up workers for shutdown')
                 break
-            logger.info('Now loading from queue: %s' % item)
+            try:
+                tmp_apikey = item['queue'].pop('apikey')
+                logger.info('Now loading from queue: %s' % item)
+            except Exception:
+                #nzbget doesn't pass the queue field. So just let it fly.
+                logger.info('Now loading from queue: %s' % item)
+            else:
+                item['queue']['apikey'] = tmp_apikey
             if all([mylar.USE_SABNZBD is True, mylar.CONFIG.SAB_CLIENT_POST_PROCESSING is True]):
                 nz = sabnzbd.SABnzbd(item)
                 nzstat = nz.processor()
@@ -3157,32 +3362,53 @@ def nzb_monitor(queue):
             else:
                 logger.warn('There are no NZB Completed Download handlers enabled. Not sending item to completed download handling...')
                 break
-
-            if any([nzstat['status'] == 'file not found', nzstat['status'] == 'double-pp']):
-                logger.warn('Unable to complete post-processing call due to not finding file in the location provided. [%s]' % item)
-            elif nzstat['status'] is False:
-                logger.info('Could not find NZBID %s in the downloader\'s queue. I will requeue this item for post-processing...' % item['NZBID'])
-                time.sleep(5)
-                mylar.NZB_QUEUE.put(item)
-            elif nzstat['status'] is True:
-                if nzstat['failed'] is False:
-                    logger.info('File successfully downloaded - now initiating completed downloading handling.')
-                else:
-                    logger.info('File failed either due to being corrupt or incomplete - now initiating completed failed downloading handling.')
-                try:
-                    mylar.PP_QUEUE.put({'nzb_name':     nzstat['name'],
-                                        'nzb_folder':   nzstat['location'],
-                                        'failed':       nzstat['failed'],
-                                        'issueid':      nzstat['issueid'],
-                                        'comicid':      nzstat['comicid'],
-                                        'apicall':      nzstat['apicall'],
-                                        'ddl':          False})
-                    #cc = process.Process(nzstat['name'], nzstat['location'], failed=nzstat['failed'])
-                    #nzpp = cc.post_process()
-                except Exception as e:
-                    logger.info('process error: %s' % e)
+            cdh_monitor(queue, item, nzstat)
         else:
             time.sleep(5)
+
+
+def cdh_monitor(queue, item, nzstat, readd=False):
+    known_nzb_id = item['nzo_id'] if (mylar.USE_SABNZBD is True) else item['NZBID']
+    if any([nzstat['status'] == 'file not found', nzstat['status'] == 'double-pp']):
+        logger.warn('Unable to complete post-processing call due to not finding file in the location provided. [%s]' % item)
+    elif nzstat['status'] == 'nzb removed' or 'unhandled status' in str(nzstat['status']).lower():
+        if readd is True:
+            # if the queue isn't empty, retry it like 5 times or until queue is empty
+            # if queue is empty, this could be a timing issue, so we'd have to recheck it one more time at least
+            # need to implement some kind of counter here for all of this ^^^
+            logger.warn('NZB seems to have been in a staging process within SABnzbd during attempt. Will requeue: %s.' % known_nzb_id)
+            mylar.RETURN_THE_NZBQUEUE.put(item)
+        else:
+            logger.warn('NZB seems to have been removed from queue: %s' % known_nzb_id)
+    elif nzstat['status'] == 'failed_in_sab':
+        logger.warn('Failure returned from SAB for %s for some reason. You should probably check your SABnzbd logs' % known_nzb_id)
+    elif nzstat['status'] == 'queue_paused':
+        # queue pause check for sabnzbd only atm.
+        if mylar.USE_SABNZBD is True:
+            logger.info('[PAUSED_SAB_QUEUE] adding %s to a temporary queue that will fire off when SABnzbd is unpaused' % item)
+            mylar.RETURN_THE_NZBQUEUE.put(item)
+    elif nzstat['status'] is False:
+        logger.info('Download %s failed. Requeue NZB to check later...' % known_nzb_id)
+        time.sleep(5)
+        if item not in queue.queue:
+            mylar.NZB_QUEUE.put(item)
+    elif nzstat['status'] is True:
+        if nzstat['failed'] is False:
+            logger.info('File successfully downloaded - now initiating completed downloading handling.')
+        else:
+            logger.info('File failed either due to being corrupt or incomplete - now initiating completed failed downloading handling.')
+        try:
+            mylar.PP_QUEUE.put({'nzb_name':     nzstat['name'],
+                                'nzb_folder':   nzstat['location'],
+                                'failed':       nzstat['failed'],
+                                'issueid':      nzstat['issueid'],
+                                'comicid':      nzstat['comicid'],
+                                'apicall':      nzstat['apicall'],
+                                'ddl':          False,
+                                'download_info': nzstat['download_info']})
+        except Exception as e:
+            logger.error('process error: %s' % e)
+    return
 
 def script_env(mode, vars):
     #mode = on-snatch, pre-postprocess, post-postprocess
@@ -3378,7 +3604,10 @@ def job_management(write=False, job=None, last_run_completed=None, current_run=N
             weekly_nextrun = None
             search_newstatus = 'Waiting'
             search_nextrun = None
-            version_newstatus = 'Waiting'
+            if mylar.CONFIG.CHECK_GITHUB is True:
+               version_newstatus = 'Waiting'
+            else:
+               version_newstatus = 'Paused'
             version_nextrun = None
             if mylar.CONFIG.ENABLE_CHECK_FOLDER is True:
                 monitor_newstatus = 'Waiting'
@@ -3393,37 +3622,37 @@ def job_management(write=False, job=None, last_run_completed=None, current_run=N
                     if mylar.SCHED_DBUPDATE_LAST is None:
                         mylar.SCHED_DBUPDATE_LAST = ji['prev_run_timestamp']
                     dbupdate_newstatus = ji['status']
-                    mylar.UPDATER_STATUS = dbupdate_newstatus
+                    #mylar.UPDATER_STATUS = dbupdate_newstatus
                     dbupdate_nextrun = ji['next_run_timestamp']
                 elif 'search' in ji['JobName'].lower():
                     if mylar.SCHED_SEARCH_LAST is None:
                         mylar.SCHED_SEARCH_LAST = ji['prev_run_timestamp']
                     search_newstatus = ji['status']
-                    mylar.SEARCH_STATUS = search_newstatus
+                    #mylar.SEARCH_STATUS = search_newstatus
                     search_nextrun = ji['next_run_timestamp']
                 elif 'rss' in ji['JobName'].lower():
                     if mylar.SCHED_RSS_LAST is None:
                         mylar.SCHED_RSS_LAST = ji['prev_run_timestamp']
                     rss_newstatus = ji['status']
-                    mylar.RSS_STATUS = rss_newstatus
+                    #mylar.RSS_STATUS = rss_newstatus
                     rss_nextrun = ji['next_run_timestamp']
                 elif 'weekly' in ji['JobName'].lower():
                     if mylar.SCHED_WEEKLY_LAST is None:
                         mylar.SCHED_WEEKLY_LAST = ji['prev_run_timestamp']
                     weekly_newstatus = ji['status']
-                    mylar.WEEKLY_STATUS = weekly_newstatus
+                    #mylar.WEEKLY_STATUS = weekly_newstatus
                     weekly_nextrun = ji['next_run_timestamp']
                 elif 'version' in ji['JobName'].lower():
                     if mylar.SCHED_VERSION_LAST is None:
                         mylar.SCHED_VERSION_LAST = ji['prev_run_timestamp']
                     version_newstatus = ji['status']
-                    mylar.VERSION_STATUS = version_newstatus
+                    #mylar.VERSION_STATUS = version_newstatus
                     version_nextrun = ji['next_run_timestamp']
                 elif 'monitor' in ji['JobName'].lower():
                     if mylar.SCHED_MONITOR_LAST is None:
                         mylar.SCHED_MONITOR_LAST = ji['prev_run_timestamp']
                     monitor_newstatus = ji['status']
-                    mylar.MONITOR_STATUS = monitor_newstatus
+                    #mylar.MONITOR_STATUS = monitor_newstatus
                     monitor_nextrun = ji['next_run_timestamp']
 
             monitors = {'weekly': mylar.SCHED_WEEKLY_LAST,
@@ -3441,28 +3670,34 @@ def job_management(write=False, job=None, last_run_completed=None, current_run=N
                     continue
                 elif 'update' in jobinfo.lower():
                     prev_run_timestamp = mylar.SCHED_DBUPDATE_LAST
-                    newstatus = dbupdate_newstatus
-                    mylar.UPDATER_STATUS = newstatus
+                    newstatus = mylar.UPDATER_STATUS
+                    #newstatus = dbupdate_newstatus
+                    #mylar.UPDATER_STATUS = newstatus
                 elif 'search' in jobinfo.lower():
                     prev_run_timestamp = mylar.SCHED_SEARCH_LAST
-                    newstatus = search_newstatus
-                    mylar.SEARCH_STATUS = newstatus
+                    newstatus = mylar.SEARCH_STATUS
+                    #newstatus = search_newstatus
+                    #mylar.SEARCH_STATUS = newstatus
                 elif 'rss' in jobinfo.lower():
                     prev_run_timestamp = mylar.SCHED_RSS_LAST
-                    newstatus = rss_newstatus
-                    mylar.RSS_STATUS = newstatus
+                    newstatus = mylar.RSS_STATUS
+                    #newstatus = rss_newstatus
+                    #mylar.RSS_STATUS = newstatus
                 elif 'weekly' in jobinfo.lower():
                     prev_run_timestamp = mylar.SCHED_WEEKLY_LAST
-                    newstatus = weekly_newstatus
-                    mylar.WEEKLY_STATUS = newstatus
+                    newstatus = mylar.WEEKLY_STATUS
+                    #newstatus = weekly_newstatus
+                    #mylar.WEEKLY_STATUS = newstatus
                 elif 'version' in jobinfo.lower():
                     prev_run_timestamp = mylar.SCHED_VERSION_LAST
-                    newstatus = version_newstatus
-                    mylar.VERSION_STATUS = newstatus
+                    newstatus = mylar.VERSION_STATUS
+                    #newstatus = version_newstatus
+                    #mylar.VERSION_STATUS = newstatus
                 elif 'monitor' in jobinfo.lower():
                     prev_run_timestamp = mylar.SCHED_MONITOR_LAST
-                    newstatus = monitor_newstatus
-                    mylar.MONITOR_STATUS = newstatus
+                    newstatus = mylar.MONITOR_STATUS
+                    #newstatus = monitor_newstatus
+                    #mylar.MONITOR_STATUS = newstatus
 
                 jobname = jobinfo[:jobinfo.find('(')-1].strip()
                 #logger.fdebug('jobinfo: %s' % jobinfo)
@@ -3524,7 +3759,16 @@ def job_management(write=False, job=None, last_run_completed=None, current_run=N
                             if 'Status Updater' in jb.lower():
                                continue
                             elif job == 'DB Updater' and 'update' in jb.lower():
-                                nextrun_stamp = utctimestamp() + (int(mylar.DBUPDATE_INTERVAL) * 60)
+                                if mylar.DB_BACKFILL is True:
+                                    #if backfilling, set it for every 15 mins
+                                    nextrun_stamp = utctimestamp() + (mylar.CONFIG.BACKFILL_TIMESPAN * 60)
+                                    logger.fdebug(
+                                        '[BACKFILL-UPDATER] Will fire off every %s'
+                                        ' minutes until backlog is decimated.'
+                                        % (mylar.CONFIG.BACKFILL_TIMESPAN)
+                                    )
+                                else:
+                                    nextrun_stamp = utctimestamp() + (int(mylar.DBUPDATE_INTERVAL) * 60)
                                 jobstore = jbst
                                 break
                             elif job == 'Auto-Search' and 'search' in jb.lower():
@@ -3593,10 +3837,11 @@ def newznab_test(name, host, ssl, apikey):
               'apikey':  apikey,
               'o':       'xml'}
 
-    if host[:-1] == '/':
-        host = host + 'api'
-    else:
-        host = host + '/api'
+    if not host.endswith('api'):
+        if not host.endswith('/'):
+            host += '/'
+        host = urljoin(host, 'api')
+        logger.fdebug('[TEST-NEWZNAB] Appending `api` to end of host: %s' % host)
     headers = {'User-Agent': str(mylar.USER_AGENT)}
     logger.info('host: %s' % host)
     try:
@@ -3684,22 +3929,25 @@ def sizeof_fmt(num, suffix='B'):
         num /= 1024.0
     return "%.1f%s%s" % (num, 'Yi', suffix)
 
-def getImage(comicid, url, issueid=None):
+def getImage(comicid, url, issueid=None, thumbnail_path=None):
 
-    if os.path.exists(mylar.CONFIG.CACHE_DIR):
-        pass
+    if thumbnail_path is None:
+        if os.path.exists(mylar.CONFIG.CACHE_DIR):
+            pass
+        else:
+            #let's make the dir.
+            try:
+                os.makedirs(str(mylar.CONFIG.CACHE_DIR))
+                logger.info('Cache Directory successfully created at: %s' % mylar.CONFIG.CACHE_DIR)
+
+            except OSError:
+                logger.error('Could not create cache dir. Check permissions of cache dir: %s' % mylar.CONFIG.CACHE_DIR)
+
+        coverfile = os.path.join(mylar.CONFIG.CACHE_DIR,  str(comicid) + '.jpg')
     else:
-        #let's make the dir.
-        try:
-            os.makedirs(str(mylar.CONFIG.CACHE_DIR))
-            logger.info('Cache Directory successfully created at: %s' % mylar.CONFIG.CACHE_DIR)
+        coverfile = thumbnail_path
 
-        except OSError:
-            logger.error('Could not create cache dir. Check permissions of cache dir: %s' % mylar.CONFIG.CACHE_DIR)
-
-    coverfile = os.path.join(mylar.CONFIG.CACHE_DIR,  str(comicid) + '.jpg')
-
-    #if cover has '+' in url it's malformed, we need to replace '+' with '%20' to retreive properly.
+    #if cover has '+' in url it's malformed, we need to replace '+' with '%20' to retrieve properly.
 
     #new CV API restriction - one api request / second.(probably unecessary here, but it doesn't hurt)
     if mylar.CONFIG.CVAPI_RATE is None or mylar.CONFIG.CVAPI_RATE < 2:
@@ -3726,17 +3974,29 @@ def getImage(comicid, url, issueid=None):
             #    buf = StringIO(r.content)
             #    f = gzip.GzipFile(fileobj=buf)
 
+            #remote_filesize = int(r.headers['Content-length'])
+            #logger.info('remote_filesize: %s' % remote_filesize)
+            #if os.path.isfile(coverfile):
+            #    #get the filesize of the existing cover
+            #    statinfo = os.stat(coverfile)
+            #    coversize = statinfo.st_size
+            #else:
+            #    coversize = 0
+
+            #if coversize != remote_filesize or coversize == 0:
             with open(coverfile, 'wb') as f:
                 for chunk in r.iter_content(chunk_size=1024):
                     if chunk: # filter out keep-alive new chunks
                         f.write(chunk)
                         f.flush()
 
-
             statinfo = os.stat(coverfile)
             coversize = statinfo.st_size
 
-    if any([int(coversize) < 10000, statuscode != '200']):
+        return {'coversize': coversize,
+                'status':    'success'}
+
+    if any([int(coversize) < 10000, statuscode != '200']) and thumbnail_path is None:
         try:
             if statuscode != '200':
                 logger.info('Trying to grab an alternate cover due to problems trying to retrieve the main cover image.')
@@ -3750,184 +4010,239 @@ def getImage(comicid, url, issueid=None):
         if os.path.exists(coverfile):
             os.remove(coverfile)
 
-        return 'retry'
+        return {'coversize': coversize,
+                'status':    'retry'}
+    else:
+        return {'coversize': coversize,
+                'status':    'failed'}
 
 def publisherImages(publisher):
+    comicpublisher = None
+    if mylar.CONFIG.INTERFACE == 'default':
+        #these are specific images taht are better displayed in the default theme.
+        if any([publisher == 'Image', publisher == 'Image Comics']):
+            comicpublisher = {'publisher_image':       'images/publisherlogos/logo-imagecomics.png',
+                              'publisher_image_alt':   'Image',
+                              'publisher_imageH':      '125',
+                              'publisher_imageW':      '75'}
+        elif publisher == 'IDW Publishing':
+            comicpublisher = {'publisher_image':       'images/publisherlogos/logo-idwpublish.png',
+                              'publisher_image_alt':   'IDW',
+                              'publisher_imageH':      '50',
+                              'publisher_imageW':      '100'}
+        elif publisher == 'Boom! Studios':
+            comicpublisher = {'publisher_image':       'images/publisherlogos/logo-boom.jpg',
+                              'publisher_image_alt':   'Boom!',
+                              'publisher_imageH':      '50',
+                              'publisher_imageW':      '100'}
+
+    else:
+        # --- for carbon theme (any non-white theme)
+        if any([publisher == 'Image', publisher == 'Image Comics']):
+            comicpublisher = {'publisher_image':       'images/publisherlogos/logo-imagecomics_carbon.png',
+                              'publisher_image_alt':   'Image',
+                              'publisher_imageH':      '125',
+                              'publisher_imageW':      '75'}
+        elif publisher == 'IDW Publishing':
+            comicpublisher = {'publisher_image':       'images/publisherlogos/logo-idwpublish_carbon.png',
+                              'publisher_image_alt':   'IDW',
+                              'publisher_imageH':      '50',
+                              'publisher_imageW':      '100'}
+        elif publisher == 'Boom! Studios':
+            comicpublisher = {'publisher_image':       'images/publisherlogos/logo-boom_carbon.png',
+                              'publisher_image_alt':   'Boom!',
+                              'publisher_imageH':      '50',
+                              'publisher_imageW':      '100'}
+
+    if comicpublisher is not None:
+        return comicpublisher
+
+    #--- all other logos are safe for current interface changes.
     if publisher == 'DC Comics':
-        comicpublisher = {'publisher_image':       'interfaces/default/images/publisherlogos/logo-dccomics.png',
+        comicpublisher = {'publisher_image':       'images/publisherlogos/logo-dccomics.png',
                           'publisher_image_alt':   'DC',
-                          'publisher_imageH':      '50',
-                          'publisher_imageW':      '50'}
+                          'publisher_imageH':      '75',
+                          'publisher_imageW':      '75'}
     elif publisher == 'Marvel':
-        comicpublisher = {'publisher_image':       'interfaces/default/images/publisherlogos/logo-marvel.jpg',
+        comicpublisher = {'publisher_image':       'images/publisherlogos/logo-marvel.png',
                           'publisher_image_alt':   'Marvel',
                           'publisher_imageH':      '50',
                           'publisher_imageW':      '100'}
-    elif publisher == 'Image':
-        comicpublisher = {'publisher_image':       'interfaces/default/images/publisherlogos/logo-imagecomics.png',
-                          'publisher_image_alt':   'Image',
-                          'publisher_imageH':      '100',
-                          'publisher_imageW':      '50'}
     elif publisher == 'Dark Horse Comics' or publisher == 'Dark Horse':
-        comicpublisher = {'publisher_image':       'interfaces/default/images/publisherlogos/logo-darkhorse.png',
+        comicpublisher = {'publisher_image':       'images/publisherlogos/logo-darkhorse.png',
                           'publisher_image_alt':   'DarkHorse',
                           'publisher_imageH':      '100',
                           'publisher_imageW':      '75'}
-    elif publisher == 'IDW Publishing':
-        comicpublisher = {'publisher_image':       'interfaces/default/images/publisherlogos/logo-idwpublish.png',
-                          'publisher_image_alt':   'IDW',
-                          'publisher_imageH':      '50',
-                          'publisher_imageW':      '100'}
-    elif publisher == 'Icon':
-        comicpublisher = {'publisher_image':       'interfaces/default/images/publisherlogos/logo-iconcomics.png',
+    elif publisher == 'Icon Comics':
+        comicpublisher = {'publisher_image':       'images/publisherlogos/logo-iconcomics.png',
                           'publisher_image_alt':   'Icon',
-                          'publisher_imageH':      '50',
+                          'publisher_imageH':      '100',
+                          'publisher_imageW':      '100'}
+    elif publisher == 'Magnetic Press':
+        comicpublisher = {'publisher_image':       'images/publisherlogos/logo-magneticpress.png',
+                          'publisher_image_alt':   'Magnetic Press',
+                          'publisher_imageH':      '100',
+                          'publisher_imageW':      '100'}
+    elif publisher == 'Max':
+        comicpublisher = {'publisher_image':       'images/publisherlogos/logo-max.png',
+                          'publisher_image_alt':   'Max Comics',
+                          'publisher_imageH':      '120',
+                          'publisher_imageW':      '80'}
+    elif publisher == 'Rebellion':
+        comicpublisher = {'publisher_image':       'images/publisherlogos/logo-rebellion.png',
+                          'publisher_image_alt':   'Rebellion',
+                          'publisher_imageH':      '75',
                           'publisher_imageW':      '100'}
     elif publisher == 'Red5':
-        comicpublisher = {'publisher_image':       'interfaces/default/images/publisherlogos/logo-red5comics.png',
+        comicpublisher = {'publisher_image':       'images/publisherlogos/logo-red5comics.png',
                           'publisher_image_alt':   'Red5',
                           'publisher_imageH':      '50',
                           'publisher_imageW':      '100'}
     elif publisher == 'Vertigo':
-        comicpublisher = {'publisher_image':       'interfaces/default/images/publisherlogos/logo-vertigo.png',
+        comicpublisher = {'publisher_image':       'images/publisherlogos/logo-vertigo.png',
                           'publisher_image_alt':   'Vertigo',
                           'publisher_imageH':      '50',
                           'publisher_imageW':      '100'}
     elif publisher == 'Shadowline':
-        comicpublisher = {'publisher_image':       'interfaces/default/images/publisherlogos/logo-shadowline.png',
+        comicpublisher = {'publisher_image':       'images/publisherlogos/logo-shadowline.png',
                           'publisher_image_alt':   'Shadowline',
                           'publisher_imageH':      '50',
                           'publisher_imageW':      '150'}
     elif publisher == 'Archie Comics':
-        comicpublisher = {'publisher_image':       'interfaces/default/images/publisherlogos/logo-archiecomics.jpg',
+        comicpublisher = {'publisher_image':       'images/publisherlogos/logo-archiecomics.png',
                           'publisher_image_alt':   'Archie',
                           'publisher_imageH':      '75',
                           'publisher_imageW':      '75'}
     elif publisher == 'Oni Press':
-        comicpublisher = {'publisher_image':       'interfaces/default/images/publisherlogos/logo-onipress.jpg',
+        comicpublisher = {'publisher_image':       'images/publisherlogos/logo-onipress.jpg',
                           'publisher_image_alt':   'Oni Press',
                           'publisher_imageH':      '50',
                           'publisher_imageW':      '100'}
     elif publisher == 'Tokyopop':
-        comicpublisher = {'publisher_image':       'interfaces/default/images/publisherlogos/logo-tokyopop.jpg',
+        comicpublisher = {'publisher_image':       'images/publisherlogos/logo-tokyopop.jpg',
                           'publisher_image_alt':   'Tokyopop',
                           'publisher_imageH':      '100',
                           'publisher_imageW':      '50'}
     elif publisher == 'Midtown Comics':
-        comicpublisher = {'publisher_image':       'interfaces/default/images/publisherlogos/logo-midtowncomics.jpg',
+        comicpublisher = {'publisher_image':       'images/publisherlogos/logo-midtowncomics.jpg',
                           'publisher_image_alt':   'Midtown',
                           'publisher_imageH':      '50',
                           'publisher_imageW':      '100'}
-    elif publisher == 'Boom! Studios':
-        comicpublisher = {'publisher_image':       'interfaces/default/images/publisherlogos/logo-boom.jpg',
-                          'publisher_image_alt':   'Boom!',
-                          'publisher_imageH':      '50',
-                          'publisher_imageW':      '100'}
     elif publisher == 'Skybound':
-        comicpublisher = {'publisher_image':       'interfaces/default/images/publisherlogos/logo-skybound.jpg',
+        comicpublisher = {'publisher_image':       'images/publisherlogos/logo-skybound.jpg',
                           'publisher_image_alt':   'Skybound',
                           'publisher_imageH':      '50',
                           'publisher_imageW':      '100'}
     elif publisher == 'Dynamite Entertainment':
-        comicpublisher = {'publisher_image':       'interfaces/default/images/publisherlogos/logo-dynamite.png',
+        comicpublisher = {'publisher_image':       'images/publisherlogos/logo-dynamite.png',
                           'publisher_image_alt':   'Dynamite',
                           'publisher_imageH':      '50',
                           'publisher_imageW':      '125'}
     elif publisher == 'Top Cow':
-        comicpublisher = {'publisher_image':       'interfaces/default/images/publisherlogos/logo-topcow.gif',
+        comicpublisher = {'publisher_image':       'images/publisherlogos/logo-topcow.png',
                           'publisher_image_alt':   'Top Cow',
-                          'publisher_imageH':      '75',
+                          'publisher_imageH':      '100',
                           'publisher_imageW':      '100'}
     elif publisher == 'Cartoon Books':
-        comicpublisher = {'publisher_image':       'interfaces/default/images/publisherlogos/logo-cartoonbooks.jpg',
+        comicpublisher = {'publisher_image':       'images/publisherlogos/logo-cartoonbooks.jpg',
                           'publisher_image_alt':   'Cartoon Books',
                           'publisher_imageH':      '75',
                           'publisher_imageW':      '90'}
     elif publisher == 'Valiant':
-        comicpublisher = {'publisher_image':       'interfaces/default/images/publisherlogos/logo-valiant.png',
+        comicpublisher = {'publisher_image':       'images/publisherlogos/logo-valiant.png',
                           'publisher_image_alt':   'Valiant',
                           'publisher_imageH':      '100',
                           'publisher_imageW':      '100'}
     elif publisher == 'Action Lab':
-        comicpublisher = {'publisher_image':       'interfaces/default/images/publisherlogos/logo-actionlabs.png',
+        comicpublisher = {'publisher_image':       'images/publisherlogos/logo-actionlabs.png',
                           'publisher_image_alt':   'Action Lab',
                           'publisher_imageH':      '100',
                           'publisher_imageW':      '100'}
+    elif publisher == 'Aspen MLT':
+        comicpublisher = {'publisher_image':       'images/publisherlogos/logo-aspen.png',
+                          'publisher_image_alt':   'Aspen MLT',
+                          'publisher_imageH':      '65',
+                          'publisher_imageW':      '65'}
     elif publisher == 'Zenescope Entertainment':
-        comicpublisher = {'publisher_image':       'interfaces/default/images/publisherlogos/logo-zenescope.png',
+        comicpublisher = {'publisher_image':       'images/publisherlogos/logo-zenescope.png',
                           'publisher_image_alt':   'Zenescope',
                           'publisher_imageH':      '125',
                           'publisher_imageW':      '125'}
     elif publisher == '2000 ad':
-        comicpublisher = {'publisher_image':       'interfaces/default/images/publisherlogos/logo-2000ad.jpg',
+        comicpublisher = {'publisher_image':       'images/publisherlogos/logo-2000ad.jpg',
                           'publisher_image_alt':   '2000 AD',
                           'publisher_imageH':      '75',
                           'publisher_imageW':      '50'}
     elif publisher == 'Aardvark':
-        comicpublisher = {'publisher_image':       'interfaces/default/images/publisherlogos/logo-aardvark.png',
+        comicpublisher = {'publisher_image':       'images/publisherlogos/logo-aardvark.png',
                           'publisher_image_alt':   'Aardvark',
                           'publisher_imageH':      '100',
                           'publisher_imageW':      '100'}
     elif publisher == 'Abstract Studio':
-        comicpublisher = {'publisher_image':       'interfaces/default/images/publisherlogos/logo-abstract.jpg',
+        comicpublisher = {'publisher_image':       'images/publisherlogos/logo-abstract.png',
                           'publisher_image_alt':   'Abstract Studio',
-                          'publisher_imageH':      '75',
-                          'publisher_imageW':      '50'}
+                          'publisher_imageH':      '100',
+                          'publisher_imageW':      '100'}
     elif publisher == 'Aftershock Comics':
-        comicpublisher = {'publisher_image':       'interfaces/default/images/publisherlogos/logo-aftershock.jpg',
+        comicpublisher = {'publisher_image':       'images/publisherlogos/logo-aftershock.png',
                           'publisher_image_alt':   'Aftershock',
                           'publisher_imageH':      '100',
                           'publisher_imageW':      '75'}
     elif publisher == 'Avatar Press':
-        comicpublisher = {'publisher_image':       'interfaces/default/images/publisherlogos/logo-avatarpress.jpg',
+        comicpublisher = {'publisher_image':       'images/publisherlogos/logo-avatarpress.jpg',
                           'publisher_image_alt':   'Avatar Press',
                           'publisher_imageH':      '100',
                           'publisher_imageW':      '75'}
     elif publisher == 'Benitez Productions':
-        comicpublisher = {'publisher_image':       'interfaces/default/images/publisherlogos/logo-benitez.png',
+        comicpublisher = {'publisher_image':       'images/publisherlogos/logo-benitez.png',
                           'publisher_image_alt':   'Benitez',
                           'publisher_imageH':      '75',
                           'publisher_imageW':      '125'}
     elif publisher == 'Boundless Comics':
-        comicpublisher = {'publisher_image':       'interfaces/default/images/publisherlogos/logo-boundless.png',
+        comicpublisher = {'publisher_image':       'images/publisherlogos/logo-boundless.png',
                           'publisher_image_alt':   'Boundless',
                           'publisher_imageH':      '75',
                           'publisher_imageW':      '75'}
     elif publisher == 'Darby Pop':
-        comicpublisher = {'publisher_image':       'interfaces/default/images/publisherlogos/logo-darbypop.png',
+        comicpublisher = {'publisher_image':       'images/publisherlogos/logo-darbypop.png',
                           'publisher_image_alt':   'Darby Pop',
                           'publisher_imageH':      '75',
                           'publisher_imageW':      '125'}
     elif publisher == 'Devil\'s Due':
-        comicpublisher = {'publisher_image':       'interfaces/default/images/publisherlogos/logo-devilsdue.png',
+        comicpublisher = {'publisher_image':       'images/publisherlogos/logo-devilsdue.png',
                           'publisher_image_alt':   'Devil\'s Due',
                           'publisher_imageH':      '75',
                           'publisher_imageW':      '75'}
     elif publisher == 'Joe Books':
-        comicpublisher = {'publisher_image':       'interfaces/default/images/publisherlogos/logo-joebooks.png',
+        comicpublisher = {'publisher_image':       'images/publisherlogos/logo-joebooks.png',
                           'publisher_image_alt':   'Joe Books',
                           'publisher_imageH':      '100',
                           'publisher_imageW':      '100'}
     elif publisher == 'Titan Comics':
-        comicpublisher = {'publisher_image':       'interfaces/default/images/publisherlogos/logo-titan.png',
+        comicpublisher = {'publisher_image':       'images/publisherlogos/logo-titan.png',
                           'publisher_image_alt':   'Titan',
                           'publisher_imageH':      '75',
                           'publisher_imageW':      '75'}
     elif publisher == 'Viz':
-        comicpublisher = {'publisher_image':       'interfaces/default/images/publisherlogos/logo-viz.png',
+        comicpublisher = {'publisher_image':       'images/publisherlogos/logo-viz.png',
                           'publisher_image_alt':   'Viz',
                           'publisher_imageH':      '50',
                           'publisher_imageW':      '50'}
     elif publisher == 'Warp Graphics':
-        comicpublisher = {'publisher_image':       'interfaces/default/images/publisherlogos/logo-warpgraphics.png',
+        comicpublisher = {'publisher_image':       'images/publisherlogos/logo-warpgraphics.png',
                           'publisher_image_alt':   'Warp Graphics',
                           'publisher_imageH':      '125',
                           'publisher_imageW':      '75'}
-    elif publisher == 'Wildstorm':
-        comicpublisher = {'publisher_image':       'interfaces/default/images/publisherlogos/logo-wildstorm.png',
+    elif any([publisher == 'WildStorm', publisher == 'Wildstorm']):
+        comicpublisher = {'publisher_image':       'images/publisherlogos/logo-wildstorm.png',
                           'publisher_image_alt':   'Wildstorm',
-                          'publisher_imageH':      '50',
-                          'publisher_imageW':      '100'}
+                          'publisher_imageH':      '75',
+                          'publisher_imageW':      '75'}
+    elif publisher == 'AWA Studios':
+        comicpublisher = {'publisher_image':       'images/publisherlogos/logo-awa.png',
+                          'publisher_image_alt':   'AWA Studios',
+                          'publisher_imageH':      '75',
+                          'publisher_imageW':      '125'}
     else:
         comicpublisher = {'publisher_image':       None,
                           'publisher_image_alt':   'Nope',
@@ -3984,9 +4299,49 @@ def DateAddedFix():
     issues = myDB.select("SELECT IssueID FROM issues WHERE Status='Wanted' and DateAdded is NULL")
     for da in issues:
         myDB.upsert("issues", {'DateAdded': DateAdded}, {'IssueID': da[0]})
-    annuals = myDB.select("SELECT IssueID FROM annuals WHERE Status='Wanted' and DateAdded is NULL")
+    annuals = myDB.select("SELECT IssueID FROM annuals WHERE Status='Wanted' and DateAdded is NULL and not Deleted")
     for an in annuals:
         myDB.upsert("annuals", {'DateAdded': DateAdded}, {'IssueID': an[0]})
+
+
+def statusChange(status_from, status_to, comicid=None, bulk=False, api=True):
+    myDB = db.DBConnection()
+    the_list = []
+    if bulk is False: #type(comicid) != list:
+        sc = myDB.select("SELECT IssueID FROM issues WHERE ComicID=? AND Status=?", [comicid, status_from])
+        for s in sc:
+            the_list.append(s[0])
+    else:
+        if comicid == 'All':
+            sc = myDB.select("SELECT IssueID FROM issues WHERE Status=?", [comicid, status_from])
+            for s in sc:
+                the_list.append(s[0])
+        else:
+            for x in comicid:
+                sc = myDB.select("SELECT IssueID FROM issues WHERE ComicID=? AND Status=?", [x, status_from])
+                for s in sc:
+                    the_list.append(s[0])
+
+    logger.info('the_list: %s' % the_list)
+    #for genlist in chunker(the_list, 200):
+    #    tmpsql = "SELECT IssueID FROM issues WHERE Status=? AND ComicID in ({seq})".format(status_from, seq=','.join(['?'] *(len(genlist) -1)))
+    #    chkthis = myDB.upsert("issues", {'Status': status_to}, dict(myDB.select(tmpsql, genlist))) #select(tmpsql, genlist)
+    #    logger.info('succeeded')
+
+    #this probably won't scale well, but atm it's the best that can be done
+    cnt=0
+    dlist = []
+    for x in the_list:
+        try:
+            myDB.upsert("issues", {'Status': status_to}, {'IssueID': x, 'Status': status_from})
+        except Exception as e:
+            pass
+        else:
+            cnt+=1
+
+    logger.info('Updated %s Issues from a status of %s to %s' % (cnt, status_from, status_to))
+    #upto.execute("UPDATE issues SET Status = ? WHERE (?)", [status_to, tmpsql])
+
 
 def file_ops(path,dst,arc=False,one_off=False):
 #    # path = source path + filename
@@ -3998,8 +4353,12 @@ def file_ops(path,dst,arc=False,one_off=False):
 #    crc_check = mylar.filechecker.crc(path)
 #    #will be either copy / move
 
+    softlink_type = 'absolute'
+
     if any([one_off, arc]):
         action_op = mylar.CONFIG.ARC_FILEOPS
+        if mylar.CONFIG.ARC_FILEOPS_SOFTLINK_RELATIVE is True:
+            softlink_type = 'relative'
     else:
         action_op = mylar.CONFIG.FILE_OPTS
 
@@ -4057,18 +4416,27 @@ def file_ops(path,dst,arc=False,one_off=False):
 
                 return True
 
-            elif action_op ==  'softlink':
+            elif action_op == 'softlink':
                 try:
                     #first we need to copy the file to the new location, then create the symlink pointing from new -> original
                     if not arc:
-                        shutil.move( path, dst )            
+                        shutil.move( path, dst )
                         if os.path.lexists( path ):
                             os.remove( path )
-                        os.symlink( dst, path )
-                        logger.fdebug('Successfully created softlink [' + dst + ' --> ' + path + ']')
+                        if softlink_type == 'absolute':
+                            os.symlink( dst, path )
+                            logger.fdebug('Successfully created softlink [' + dst + ' --> ' + path + ']')
+                        else:
+                            os.symlink(os.path.relpath(dst, os.path.dirname(path)), path)
+                            logger.fdebug('Successfully created (relative) softlink [' + os.path.relpath(dst, os.path.dirname(path)) + ' --> ' + path + ']')
+
                     else:
-                        os.symlink ( path, dst )
-                        logger.fdebug('Successfully created softlink [' + path + ' --> ' + dst + ']')
+                        if softlink_type == 'absolute':
+                            os.symlink( path, dst )
+                            logger.fdebug('Successfully created softlink [' + path + ' --> ' + dst + ']')
+                        else:
+                            os.symlink(os.path.relpath(path, os.path.dirname(dst)), dst)
+                            logger.fdebug('Successfully created (relative) softlink [' + os.path.relpath(path, os.path.dirname(dst)) + ' --> ' + dst + ']')
                 except OSError as e:
                     #if e.errno == errno.EEXIST:
                     #    os.remove(dst)
@@ -4130,6 +4498,74 @@ def file_ops(path,dst,arc=False,one_off=False):
 
     else:
         return False
+
+def log_that_exception(except_info):
+
+    #snip the log here and get the last 100 lines as quick leadup glance.
+    leadup = tail_that_log()
+
+    #logger.info('[LEADUP_LOG] %s' % leadup)
+    gather_info = {'comicname':   except_info.get('comicname', None),
+                   'issuenumber': except_info.get('issuenumber', None),
+                   'seriesyear':  except_info.get('seriesyear', None),
+                   'issueid':     except_info.get('issueid', None),
+                   'comicid':     except_info.get('comicid', None),
+                   'searchmode':  except_info.get('mode', None),
+                   'booktype':    except_info.get('booktype', None),
+                   'filename':    except_info.get('filename', None),
+                   'line_num':    except_info.get('line_num', None),
+                   'func_name':   except_info.get('func_name', None),
+                   'error_text':  except_info.get('err_text', None),
+                   'error':       except_info.get('err', None),
+                   'traceback':   except_info.get('traceback', None)}
+
+    #write it to the exceptions table.
+    logdate = now()
+    myDB = db.DBConnection()
+    myDB.upsert("exceptions_log", gather_info, {'date': logdate})
+
+    #write the leadup log lines that were tailed above to the external file here...
+    fileline = myDB.selectone("SELECT rowid from exceptions_log where date = ?", [logdate]).fetchone()
+    with open(os.path.join(mylar.CONFIG.LOG_DIR, 'specific_' + str(fileline['rowid']) + '.log'), 'w') as f:
+        f.writelines(leadup)
+        f.write(except_info.get('traceback', None))
+
+def tail_that_log():
+    """Tail a file and get X lines from the end"""
+    # place holder for the lines found
+    lines_found = []
+
+    f = open(os.path.join(mylar.CONFIG.LOG_DIR,'mylar.log'), 'r')
+    lines = 100
+    buffer = 4098
+
+    # block counter will be multiplied by buffer
+    # to get the block size from the end
+    block_counter = -1
+
+    # loop until we find X lines
+    while len(lines_found) <= lines:
+        try:
+            f.seek(block_counter * buffer, os.SEEK_END)
+        except IOError:  # either file is too small, or too many lines requested
+            f.seek(0)
+            lines_found = f.readlines()
+            break
+
+        lines_found = f.readlines()
+
+        # we found enough lines, get out
+        # Removed this line because it was redundant the while will catch
+        # it, I left it for history
+        # if len(lines_found) > lines:
+        #    break
+
+        # decrement the block counter to get the
+        # next X bytes
+        block_counter -= 1
+
+    return lines_found[-lines:]
+
 
 from threading import Thread
 

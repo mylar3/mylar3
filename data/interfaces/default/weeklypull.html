@@ -11,10 +11,37 @@
                         <a href="#" id="menu_link_refresh" onclick="doAjaxCall('pullist?week=${weekinfo['weeknumber']}&year=${weekinfo['year']}',$(this),'table')" data-success="Refresh submitted.">Refresh Pull-list</a>
                         <a href="#" id="menu_link_retry" onclick="doAjaxCall('pullrecreate?weeknumber=${weekinfo['weeknumber']}&year=${weekinfo['year']}',$(this),'table')" data-success="Recreating Pullist for week ${weekinfo['weeknumber']}, ${weekinfo['year']}">Recreate Pull-list</a>
 <!--
-                    <a href="#" id="menu_link_retry" onclick="doAjaxCall('create_readlist?weeknumber=${weekinfo['weeknumber']}&year=${weekinfo['year']}',$(this),'table')" data-success="Submitted request for reading-list generation for this week">Generate Reading-List</a>
+                        <a href="#" id="menu_link_retry" onclick="doAjaxCall('create_readlist?weeknumber=${weekinfo['weeknumber']}&year=${weekinfo['year']}',$(this),'table')" data-success="Submitted request for reading-list generation for this week">Generate Reading-List</a>
 -->
-                        <a id="menu_link_scan" class="button">Download</a>
-                        <a href="#" id="menu_link_refresh" onclick="doAjaxCall('pullSearch?week=${weekinfo['weeknumber']}&year=${weekinfo['year']}',$(this),'table')" data-success="Submitted background search request for new pull issues">Manually check for issues</a>
+                        <a href="#" id="menu_link_delete" title="Add all series to your watchlist for week ${weekinfo['weeknumber']}">Mass.Add.it.All.NOW</a>
+                           <div id="publisher_dialog" title="Mass publisher selection" style="display:none">
+                            <div name="publishers_choice" id="publishers_choice" style="vertical-align: middle; text-align: center">
+                              <div>
+                                   <label><big>Choose.Your.Publishers</big></label></br>
+                                   <small><center>to select every publisher, do not select anything</small></br></br>
+                                   <select id="publishers" name="publishers[]" multiple style="width:50%;" placeholder="Select a publisher...">
+                                   </select>
+                                   </center>
+                                   </br>
+                                   <div class="row checkbox left clearfix">
+                                      <input type="checkbox" style="vertical-align: middle; margin: 3px; margin-top: -1px;" name="auto_mass_add" id="auto_mass_add" value="1" ${auto_mass_add} /><label>Run automatically when the pull updates?</label>
+                                   </div>
+                              </div>
+                              </br>
+                              <div id="btn_container_center">
+                                  <div id="btn_menu" style="padding-bottom:5px;">
+                                      <a id="pub_button" onclick="runthem();return false;" href="#">Submit</a>
+                                  </div>
+                              </div>
+                              <input id="year" type="hidden" name="year" value="${weekinfo['year']}" />
+                              <input id="weeknumber" type="hidden" name="weeknumber" value="${weekinfo['weeknumber']}" />
+                            </div>
+                           </div>
+
+                        %if mylar.CONFIG.WEEKFOLDER:
+                            <a id="menu_link_scan" title="copy weekly snatched items into weekly folder of ${weekfold}" class="button">Download</a>
+                        %endif
+                        <a href="#" id="menu_link_refresh" title="Search for all issues marked as Wanted for week ${weekinfo['weeknumber']}" onclick="doAjaxCall('pullSearch?week=${weekinfo['weeknumber']}&year=${weekinfo['year']}',$(this),'table')" data-success="Submitted background search request for new pull issues">Manually check for issues</a>
                         %if all([mylar.CONFIG.ENABLE_TORRENT_SEARCH is True, mylar.CONFIG.ENABLE_32P is True, mylar.CONFIG.MODE_32P is True]):
                             <a href="#" id="menu_link_refresh" onclick="doAjaxCall('download_0day?week=${weekinfo['midweek']}',$(this),'table')" data-success="Submitted background search request for 0-day pack for this week">Download 0-Day Pack</a>
                         %endif
@@ -24,13 +51,14 @@
 </%def>
 
 <%def name="body()">
+        <input type="hidden" id="page_name" value="weekly" />
         <div>
            </br></br>
            <table width="100%" align="center">
-              <tr>
+             <tr>
               <td style="vertical-align: middle; text-align: right">
-                  <a href="pullist?week=${weekinfo['prev_weeknumber']}&year=${weekinfo['prev_year']}&current=${weekinfo['weeknumber']}-${weekinfo['year']}" title="Previous Week (${weekinfo['prev_weeknumber']})" onclick="$('#pull_table').page('first').draw('page');">
-                      <img src="interfaces/default/images/prev.gif" width="16" height="18" Alt="Previous"/>
+                  <a href="pullist?week=${weekinfo['prev_weeknumber']}&year=${weekinfo['prev_year']}&current=${weekinfo['weeknumber']}-${weekinfo['year']}" title="Previous Week (${weekinfo['prev_weeknumber']})" onclick="arrows_page();">
+                      <img src="${icons['prev']}" width="16" height="18" Alt="Previous"/>
                   </a>
               </td>
               <td style="vertical-align: middle; text-align: center">
@@ -41,12 +69,12 @@
               %endif
               </td>
               <td style="vertical-align: middle; text-align: left">
-                    <a href="pullist?week=${weekinfo['next_weeknumber']}&year=${weekinfo['next_year']}&current=${weekinfo['weeknumber']}-${weekinfo['year']}" title="Next Week (${weekinfo['next_weeknumber']})" onclick="$('#pull_table').page('first').draw('page');">
-                      <img src="interfaces/default/images/next.gif" width="16" height="18" Alt="Next"/>
+                    <a href="pullist?week=${weekinfo['next_weeknumber']}&year=${weekinfo['next_year']}&current=${weekinfo['weeknumber']}-${weekinfo['year']}" title="Next Week (${weekinfo['next_weeknumber']})" onclick="arrows_page();">
+                      <img src="${icons['next']}" width="16" height="18" Alt="Next"/>
                   </a>
               </td>
-              </tr>
-            </table>
+             </tr>
+           </table>
         </div>
 
         <div>
@@ -54,12 +82,11 @@
              <fieldset>
                   <div class="row checkbox left clearfix">
                        </br>
-                       <input type="checkbox" name="weekfolder" id="weekfolder" value="1" ${checked(mylar.CONFIG.WEEKFOLDER)} /><label>Store in Weekly Directory (${weekfold})</label> 
+                       <input type="checkbox" name="weekfolder" id="weekfolder" value="1" ${checked(mylar.CONFIG.WEEKFOLDER)} /><label>Store in Weekly Directory (${weekfold})</label>
                  </div>
-
-               <input type="hidden" name="year" value="${weekinfo['year']}">
-               <input type="hidden" name="weeknumber" value="${weekinfo['weeknumber']}">
-               <input type="hidden" name="midweek" value="${weekinfo['midweek']}">
+               <input id="massyear" type="hidden" name="year" value="${weekinfo['year']}" />
+               <input id="massnumber" type="hidden" name="weeknumber" value="${weekinfo['weeknumber']}" />
+               <input type="hidden" name="midweek" value="${weekinfo['midweek']}" />
                <input type="submit" style="display:none" />
              </fieldset>
           </form>
@@ -90,14 +117,16 @@
                                         grade = 'D'
                                 elif weekly['STATUS'] == 'Paused':
                                         grade = 'T'
+                                elif weekly['STATUS'] == 'Mismatched':
+                                        grade = 'U'
                                 if weekly['AUTOWANT'] == True:
                                         grade = 'H'
 
                                 if weekly['HAVEIT'] == 'OneOff':
-                                        grade = 'H'
+                                        grade = 'T'
 
                                 #if the comicid is present, but issue isn't marked as wanted.
-                                if weekly['HAVEIT'] == 'Yes' and weekly['STATUS'] == 'Skipped':
+                                if any([weekly['HAVEIT'] == 'Yes', weekly['HAVEIT'] == weekly['COMICID']]) and weekly['STATUS'] == 'Skipped':
                                         grade = 'E'
                                                                
 			%>
@@ -109,12 +138,16 @@
                                              %if all([weekly['COMICID'] != '', weekly['COMICID'] is not None]):
                                                  <a href="${weekly['LINK']}" target="_blank">${weekly['COMIC']}</a>
                                              %else:
-                                                 ${weekly['COMIC']}
+                                                 %if all([weekly['STATUS'] == 'Mismatched', weekly['LINK'] is not None]):
+                                                     <a href="${weekly['LINK']}" target="_blank">${weekly['COMIC']}</a>
+                                                 %else:
+                                                   ${weekly['COMIC']}
+                                                 %endif
                                              %endif
                                         %else:
                                              %if weekly['HAVEIT'] == 'OneOff':
                                                  %if all([weekly['COMICID'] != '', weekly['COMICID'] is not None]):
-                                                     <a href="${weekly['LINK']}" target="_blank">${weekly['COMIC']}</a>
+                                                     <a href="${weekly['LINK']}" target="_blank" id="${weekly['ISSUEID']}">${weekly['COMIC']}</a>
                                                  %else:
                                                      ${weekly['COMIC']}
                                                  %endif
@@ -145,7 +178,7 @@
                                             %if weekly['STATUS'] == 'Snatched' or weekly['STATUS'] == 'Downloaded':
                                                 <a href="#" onclick="doAjaxCall('queueit?ComicName=${weekly['COMIC'] | u}&ComicID=${weekly['COMICID']}&IssueID=${weekly['ISSUEID']}&ComicIssue=${weekly['ISSUE']}&mode=pullwant&Publisher=${weekly['PUBLISHER']}&pullinfo=${weekinfo['midweek']}&pullweek=${weekinfo['weeknumber']}&pullyear=${weekinfo['year']}&BookType=${weekly['FORMAT']}',$(this),'table')" data-success="Successfully submitted search request for ${weekly['COMIC']} #${weekly['ISSUE']}" title="Snatch issue again as a One-Off">
                                                 %if mylar.CONFIG.SHOW_ICONS:
-                                                    <img style="margin: 0px 5px" src="interfaces/default/images/retry.png" height="25" width="25" class="highqual" />
+                                                    <img style="margin: 0px 5px" src="images/retry.png" height="25" width="25" class="highqual" />
                                                 %else:
                                                     <span class="ui-icon ui-icon-plus"></span>Retry
                                                 %endif
@@ -154,7 +187,7 @@
                                             %if weekly['HASH'] is not None and mylar.CONFIG.AUTO_SNATCH is True:
                                                 <a href="#" onclick="doAjaxCall('torrentit?torrent_hash=${weekly['HASH']}&download=True',$(this),'table')" title="Auto-Snatch torrent file">
                                                 %if mylar.CONFIG.SHOW_ICONS:
-                                                     <img style="margin: 0px 5px" src="interfaces/default/images/snatch.png" height="25" width="25" class="highqual" />
+                                                     <img style="margin: 0px 5px" src="images/snatch.png" height="25" width="25" class="highqual" />
                                                 %else:
                                                       <span class="ui-icon ui-icon-plus"></span>Auto-Snatch
                                                 %endif
@@ -162,19 +195,36 @@
                                             %endif
                                         %elif any([weekly['STATUS'] == 'Skipped', weekly['STATUS'] == 'Wanted']):
                                             %if weekly['STATUS'] == 'Skipped':
-                                                %if weekly['COMICID'] != '' and weekly['COMICID'] is not None:
-                                                    <a href="#" title="auto-add to Watchlist directly by ID available for this series" onclick="doAjaxCall('addbyid?comicid=${weekly['COMICID']}&calledby=True',$(this),'table')" data-success="${weekly['COMIC']} is now being added to your wachlist.">
+                                                %if all([weekly['COMICID'] != '', weekly['COMICID'] is not None]) and all([weekly['HAVEIT'] != 'Yes', weekly['HAVEIT'] != weekly['COMICID']]):
+                                                    <a href="#" title="auto-add to Watchlist directly by ID available for this series" onclick="doAjaxCall('addbyid?comicid=${weekly['COMICID']}&calledby=True&ogcname=${weekly['COMIC']| u}',$(this),'table');return true;">
                                                     %if mylar.CONFIG.SHOW_ICONS:
-                                                        <img style="margin: 0px 5px" src="interfaces/default/images/add.png" height="25" width="25" class="highqual" />
+                                                        <img style="margin: 0px 5px" src="images/add.png" height="25" width="25" class="highqual" />
                                                     %else:
                                                         <span class="ui-icon ui-icon-plus"></span>Add
+                                                    %endif
+                                                    </a>
+                                                    %if all([weekly['HAVEIT'] == 'No', weekly['STATUS'] == 'Skipped']):
+                                                        <a href="#" onclick="doAjaxCall('queueit?ComicName=${weekly['COMIC'] | u}&ComicID=${weekly['COMICID']}&IssueID=${weekly['ISSUEID']}&ComicIssue=${weekly['ISSUE']}&mode=pullwant&Publisher=${weekly['PUBLISHER']}&pullinfo=${weekinfo['midweek']}&pullweek=${weekinfo['weeknumber']}&pullyear=${weekinfo['year']}&BookType=${weekly['FORMAT']}',$(this),'table')" data-success="Successfully submitted search request for ${weekly['COMIC']} #${weekly['ISSUE']}" title="One off download">
+                                                        %if mylar.CONFIG.SHOW_ICONS:
+                                                           <img style="margin: 0px 5px" src="images/search.png" height="25" width="25" class="highqual" />
+                                                        %else:
+                                                            <span class="ui-icon ui-icon-plus"></span>One-Off
+                                                        %endif
+                                                        </a>
+                                                     %endif
+                                                %elif weekly['COMICID'] == weekly['HAVEIT'] or weekly['HAVEIT'] == 'Yes':
+                                                    <a href="#" title="mark this issue as Wanted" onclick="doAjaxCall('queueIssue?IssueID=${weekly['ISSUEID']}&ComicID=${weekly['COMICID']}&ComicIssue=${weekly['ISSUE']}&mode=want',$(this),'table')" data-success="${weekly['COMIC']} #${weekly['ISSUE']} has now been marked as Wanted.">
+                                                    %if mylar.CONFIG.SHOW_ICONS:
+                                                        <img style="margin: 0px 5px" src="images/add.png" height="25" width="25" class="highqual" />
+                                                    %else:
+                                                        <span class="ui-icon ui-icon-plus"></span>Mark
                                                     %endif
                                                     </a>
                                                 %else:
                                                     %if weekly['ISSUE'] == '1' or weekly['ISSUE'] == '0':
                                                         <a href="#" title="Watch for this series and auto-add to Watchlist when available" onclick="doAjaxCall('add2futurewatchlist?ComicName=${weekly['COMIC'] |u}&Issue=${weekly['ISSUE']}&Publisher=${weekly['PUBLISHER']}&ShipDate=${weekinfo['midweek']}&weeknumber=${weekinfo['weeknumber']}&year=${weekinfo['year']}',$(this),'table')" data-success="${weekly['COMIC']} is now on auto-watch/add.">
                                                         %if mylar.CONFIG.SHOW_ICONS:
-                                                            <img style="margin: 0px 5px" src="interfaces/default/images/watch.png" height="25" width="25" class="highqual" />
+                                                            <img style="margin: 0px 5px" src="images/watch.png" height="25" width="25" class="highqual" />
                                                         %else:
                                                             <span class="ui-icon ui-icon-plus"></span>Watch
                                                         %endif
@@ -182,7 +232,7 @@
                                                      %endif
                                                      <a href="searchit?name=${weekly['COMIC'] | u}&issue=${weekly['ISSUE']}&mode=pullseries" title="Search for this series to add to your watchlist">
                                                      %if mylar.CONFIG.SHOW_ICONS:
-                                                         <img style="margin: 0px 5px" src="interfaces/default/images/search_add.png" height="25" width="25" class="highqual" />
+                                                         <img style="margin: 0px 5px" src="images/search_add.png" height="25" width="25" class="highqual" />
                                                      %else:
                                                          <span class="ui-icon ui-icon-plus"></span>Search
                                                      %endif
@@ -192,19 +242,10 @@
                                             %else:
                                                 <% dl = False %>
                                             %endif
-                                            %if weekly['HAVEIT'] == 'No' and weekly['STATUS'] == 'Skipped':
-                                                <a href="#" onclick="doAjaxCall('queueit?ComicName=${weekly['COMIC'] | u}&ComicID=${weekly['COMICID']}&IssueID=${weekly['ISSUEID']}&ComicIssue=${weekly['ISSUE']}&mode=pullwant&Publisher=${weekly['PUBLISHER']}&pullinfo=${weekinfo['midweek']}&pullweek=${weekinfo['weeknumber']}&pullyear=${weekinfo['year']}&BookType=${weekly['FORMAT']}',$(this),'table')" data-success="Successfully submitted search request for ${weekly['COMIC']} #${weekly['ISSUE']}" title="One off download">
-                                                %if mylar.CONFIG.SHOW_ICONS:
-                                                    <img style="margin: 0px 5px" src="interfaces/default/images/search.png" height="25" width="25" class="highqual" />
-                                                %else:
-                                                    <span class="ui-icon ui-icon-plus"></span>One-Off
-                                                %endif
-                                                </a>
-                                            %endif
 <!--
                                             <a class="menu_link_edit" id="choose_specific_download" title="Choose Specific Download" href="javascript:void(0)" onclick="getAvailableDownloads('${weekly['ISSUEID']}', '${weekly['COMIC']}', '${weekly['COMICID']}', '${weekly['ISSUE']}', '${weekly['VOLUME']}', 'pullwant', '${weekly['PUBLISHER']}', '${weekinfo['midweek']}', '${weekinfo['weeknumber']}', '${weekinfo['year']}', '${dl}')">
                                             %if mylar.CONFIG.SHOW_ICONS:
-                                                <img style="margin: 0px 5px" src="interfaces/default/images/magnifier.png" height="25" width="25" class="highqual" />
+                                                <img style="margin: 0px 5px" src="images/magnifier.png" height="25" width="25" class="highqual" />
                                             %else:
                                                 <span class="ui-icon ui-icon-plus"></span>Choose
                                             %endif
@@ -227,7 +268,7 @@
                                         %elif weekly['HASH'] is not None and mylar.CONFIG.AUTO_SNATCH is True:
                                             <a href="#" onclick="doAjaxCall('torrentit?torrent_hash=${weekly['HASH']}&download=True',$(this),'table')" title="Auto-Snatch torrent file">
                                             %if mylar.CONFIG.SHOW_ICONS:
-                                                <img style="margin: 0px 5px" src="interfaces/default/images/snatch.png" height="25" width="25" class="highqual" />
+                                                <img style="margin: 0px 5px" src="images/snatch.png" height="25" width="25" class="highqual" />
                                             %else:
                                                 <span class="ui-icon ui-icon-plus"></span>Auto-Snatch
                                             %endif
@@ -235,7 +276,7 @@
                                         %elif weekly['STATUS'] == 'Snatched':
                                             <a href="#" onclick="doAjaxCall('queueit?ComicName=${weekly['COMIC'] | u}&ComicID=${weekly['COMICID']}&IssueID=${weekly['ISSUEID']}&ComicIssue=${weekly['ISSUE']}&mode=pullwant&Publisher=${weekly['PUBLISHER']}&pullinfo=${weekinfo['midweek']}&pullweek=${weekinfo['weeknumber']}&pullyear=${weekinfo['year']}&BookType=${weekly['FORMAT']}',$(this),'table')" data-success="Successfully submitted search request for ${weekly['COMIC']} #${weekly['ISSUE']}" title="Snatch issue again">
                                             %if mylar.CONFIG.SHOW_ICONS:
-                                                  <img style="margin: 0px 5px" src="interfaces/default/images/retry.png" height="25" width="25" class="highqual" />
+                                                  <img style="margin: 0px 5px" src="images/retry.png" height="25" width="25" class="highqual" />
                                             %else:
                                                   <span class="ui-icon ui-icon-plus"></span>Retry
                                             %endif
@@ -247,17 +288,36 @@
 		%endfor
 		</tbody>
 	</table>
-             </br><small><center>last updated: ${weekinfo['last_update']}</center></small>
       </div>
+        <div style="z-index:10;position:absolute;text-align:center;margin-top:10px;">
+            <div style="display:inline-block;">
+                 </br>
+                 <small>last updated: ${weekinfo['last_update']}</small>
+            </div>
+        </div>
+        <div style="z-index:10;position:relative;float:right;margin-top:10px;">
+            <table style="border-spacing:3px;border-collapse:separate;">
+              <tr>
+                <td style="float:left;margin-left:2px;vertical-align:middle;"><span style="border:1px solid#ccc;float:left;width:30px;height:12px;margin:4px;background:#641716;" title="Series is monitored & issue is Wanted"></span> monitored series</td>
+                <td style="float:left;margin-left:2px;vertical-align:middle;"><span style="border:1px solid#ccc;float:left;width:30px;height:12px;margin:4px;background:#444b54;" title="Series is Monitored & issue is Skipped"></span> monitored series</td>
+                <td style="margin-left:5px;"><span style="border:1px solid#ccc;float:left;width:30px;height:12px;margin:4px;background:#ae3431;" title="Will auo-add series to watchlist when available"></span> auto-want</td>
+                <td style="float:left;margin-left:2px;vertical-align:middle;"><span style="border:1px solid#ccc;float:left;width:30px;height:12px;margin:4px;background:#382f64;" title="Incorrectly matched series"></span> mismatched</td>
+                <td style="margin-left:5px;"><span style="border:1px solid#ccc;float:left;width:30px;height:12px;margin:4px;background:#bd915a;" title="Downloaded issue is not on your watchlist"></span> one-off</td>
+              </tr>
+            </table>
+       </div>
 </%def>
 
 <%def name="headIncludes()">
         <meta name="referrer" content="no-referrer" />
-	<link rel="stylesheet" href="interfaces/default/css/data_table.css">
+	<link rel="stylesheet" href="interfaces/${interface}/css/data_table.css">
+        <link rel="stylesheet" type="text/css" href="css/selectize.default.css">
 </%def>
 
 <%def name="javascriptIncludes()">
 	<script src="js/libs/jquery.dataTables.min.js"></script>
+        <script src="js/libs/selectize.js"></script>
+        <script src="js/libs/circular-json.js"></script>
         <script type="text/javascript">
         function addAction() {
                 $('#weekfolder').append('<input type="hidden" name="filename" value=True />');
@@ -340,6 +400,52 @@
         var loadingtext_active = false;
         var refreshInterval;
 
+        function openMassAdd() {
+            $("#publisher_dialog").dialog({
+                        width: "50%",
+                        height: "300",
+                        open: function(event, ui){
+                            $(this).css("height", "300");
+                        }
+            });
+        };
+
+        function arrows_page() {
+            var tables = $('table.display').DataTable();
+            tables.page('first').draw('page');
+        }
+
+        function run_them() {
+            var pubs = document.getElementsByName("publishers[]");
+            // because there are circular references, we need to clean it first...
+            var publishers = CircularJSON.stringify(pubs);
+            if ($("#auto_mass_add").is(":checked")){
+                mass_auto = true;
+            } else {
+                mass_auto = false;
+            }
+            var weeknumber = document.getElementById("weeknumber").value;
+            var year = document.getElementById("year").value;
+            $.ajax({
+                type: "POST",
+                url: "dump_that_shizzle",
+                data: { publishers: publishers, weeknumber: weeknumber, year: year , mass_auto: mass_auto },
+                dataType: "json",
+                aysnc: false,
+                success: function ( response ) {
+                   setTimeout('$("#publisher_dialog").dialog("close")', 3000);
+                   var obj = response;
+                   var p_msg = "Successfully submitted Mass Add for "+obj['series_count']+" series across "+obj['publisher_count']+" publishers";
+                   $('#ajaxMsg').removeClass();
+                   $('#ajaxMsg').html("<div class='msg'><span class='ui-icon ui-icon-check'></span>"+p_msg+"</div>");
+                   $('#ajaxMsg').addClass('success').fadeIn().delay(3000).fadeOut();
+                },
+                error: function (data) {
+                   alert('error:'+data.responseText);
+                },
+            });
+        };
+
         function initThisPage() {
                 $("#weekfolder").click(function(){
                         if ($("#weekfolder").is(":checked"))
@@ -353,7 +459,79 @@
                             return true;
                         }
                 });
+                $("#menu_link_delete").click(openMassAdd);
+                $("#pub_button").click(run_them);
                 initActions();
+
+                $(function selector() {
+                        weeknumber = document.getElementById("massnumber").value;
+                        weekyear = document.getElementById("massyear").value;
+                        $.when($.ajax({
+                                type: "GET",
+                                url: "get_the_pubs",
+                                dataType: 'json',
+                                success: function ( response ) {
+                                    results = response;
+                                },
+                                error: function (data) {
+                                    var options = [];
+                                },
+                        })).done(function(data) {
+                            var options = [];
+                            $.each(results, function() {
+                                options.push({
+                                    name : this.name
+                                });
+                            })
+                            //options = [{"name":"publisher name here"}];
+                            try {
+                                items = options.map(x => x.name);
+                            } catch(e) {
+                                const options = [];
+                                items = [];
+                            }
+                            $( "#publishers" ).selectize({
+                                 valueField: 'name',
+                                 labelField: 'name',
+                                 searchField: ['name'],
+                                 createOnBlur: true,
+                                 options: options,
+                                 items: items,
+                                 create: function (input, callback) {
+                                     $.ajax({
+                                         type: "GET",
+                                         url: "weekly_publisherlisting",
+                                         data: { weeknumber: weeknumber, year: weekyear },
+                                         dataType: 'json',
+                                         success: function ( response ){
+                                              return callback(response);
+                                         }
+                                     });
+                                 },
+                                 render: {
+                                     option: function (item, escape) {
+                                        return '<div>' + escape(item.name) + '</div>';
+                                     }
+                                 },
+                                 load: function (query, callback) {
+                                     $.ajax({
+                                         type: "GET",
+                                         url: "weekly_publisherlisting",
+                                         contentType: "application/json; charset=utf-8",
+                                         data: { weeknumber: weeknumber, year: weekyear },
+                                         dataType: 'json',
+                                         error: function () {
+                                             callback();
+                                         },
+                                         success: function (res) {
+                                             var rspns = eval(res)
+                                             callback(rspns);
+                                        }
+                                     });
+                                 },
+                            });
+                        });
+                })
                 $('#pull_table').dataTable (
                         {
                                 "bDestroy": true,

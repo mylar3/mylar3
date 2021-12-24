@@ -17,6 +17,7 @@
 
 import mylar
 from mylar import db, mb, importer, search, PostProcessor, versioncheck, logger, readinglist, helpers
+from mylar.getimage import open_archive, comic_pages, scale_image, page_count
 import simplejson as simplejson
 import cherrypy
 from xml.sax.saxutils import escape
@@ -27,12 +28,16 @@ from urllib.parse import urlencode, quote_plus
 from . import cache
 import imghdr
 from operator import itemgetter
-from cherrypy.lib.static import serve_file, serve_download
+from cherrypy.lib.static import serve_file, serve_download, serve_fileobj
 import datetime
 from mylar.webserve import serve_template
 import re
+from PIL import Image
+from io import BytesIO
 
-cmd_list = ['root', 'Publishers', 'AllTitles', 'StoryArcs', 'ReadList', 'OneOffs', 'Comic', 'Publisher', 'Issue', 'StoryArc', 'Recent', 'deliverFile']
+
+cmd_list = ['root', 'Publishers', 'AllTitles', 'StoryArcs', 'ReadList', 'OneOffs', 'Comic', 'Publisher', 'Issue', 'Stream', 'StoryArc', 'Recent', 'deliverFile']
+
 
 class OPDS(object):
 
@@ -76,20 +81,24 @@ class OPDS(object):
         self.data = 'OK'
 
     def fetchData(self):
-
         if self.data == 'OK':
             logger.fdebug('Recieved OPDS command: ' + self.cmd)
             methodToCall = getattr(self, "_" + self.cmd)
             result = methodToCall(**self.kwargs)
             if self.img:
-                return serve_file(path=self.img, content_type='image/jpeg')
+                if type(self.img) == tuple:
+                    iformat, idata = self.img
+                    return serve_fileobj(BytesIO(idata), content_type='image/' + iformat)
+                else:
+                    return serve_file(path=self.img, content_type='image/jpeg')
             if self.file and self.filename:
                 if self.issue_id:
                     try:
-                        readinglist.Readinglist(IssueID=self.issue_id).markasRead()
+                        logger.fdebug('OPDS is attempting to markasRead filename %s aka issue_id %s' % (self.filename, self.issue_id))
+                        readinglist.Readinglist().markasRead(IssueID=self.issue_id)
                     except:
                         logger.fdebug('No reading list found to update.')
-                return serve_download(path=self.file.encode('utf-8'), name=self.filename.encode('utf-8'))
+                return serve_download(path=self.file, name=self.filename)
             if isinstance(self.data, str):
                 return self.data
             else:
@@ -392,16 +401,26 @@ class OPDS(object):
                     continue
                 metainfo = None
                 if mylar.CONFIG.OPDS_METAINFO:
-                    metainfo = mylar.helpers.IssueDetails(fileloc)
+                    issuedetails = mylar.helpers.IssueDetails(fileloc).get('metadata', None)
+                    if issuedetails is not None:
+                       metainfo = issuedetails.get('metadata', None)
                 if not metainfo:
                     metainfo = [{'writer': None,'summary': ''}]
+                cb, _ = open_archive(fileloc)
+                if cb is None:
+                    self.data = self._error_with_message('Can\'t open archive')
+                    pse_count = 0 # Or just skip the issue?
+                else:
+                    pse_count = page_count(cb)
                 entries.append(
                     {
                         'title': escape(title),
                         'id': escape('comic:%s (%s) [%s] - %s' % (issue['ComicName'], comic['ComicYear'], comic['ComicID'], issue['Issue_Number'])),
                         'updated': updated,
                         'content': escape('%s' % (metainfo[0]['summary'])),
-                        'href': '%s?cmd=Issue&amp;issueid=%s&amp;file=%s' % (self.opdsroot, quote_plus(issue['IssueID']),quote_plus(issue['Location'].encode('utf-8'))),
+                        'href': '%s?cmd=Issue&amp;issueid=%s&amp;file=%s' % (self.opdsroot, quote_plus(issue['IssueID']),quote_plus(issue['Location'])),
+                        'stream': '%s?cmd=Stream&amp;issueid=%s&amp;file=%s' % (self.opdsroot, quote_plus(issue['IssueID']),quote_plus(issue['Location'])),
+                        'pse_count': pse_count,
                         'kind': 'acquisition',
                         'rel': 'file',
                         'author': metainfo[0]['writer'],
@@ -465,13 +484,22 @@ class OPDS(object):
                     number +=1
                     if not issuebook['Location']:
                         continue
-                    location = issuebook['Location'].encode('utf-8')
+                    location = issuebook['Location']
                     fileloc = os.path.join(comic['ComicLocation'],issuebook['Location'])
                     metainfo = None
                     if mylar.CONFIG.OPDS_METAINFO:
-                        metainfo = mylar.helpers.IssueDetails(fileloc)
+                        issuedetails = mylar.helpers.IssueDetails(fileloc).get('metadata', None)
+                        if issuedetails is not None:
+                            metainfo = issuedetails.get('metadata', None)
                     if not metainfo:
-                        metainfo = [{'writer': None,'summary': ''}]
+                        metainfo = {}
+                        metainfo[0] = {'writer': None,'summary': ''}
+                    cb, _ = open_archive(fileloc)
+                    if cb is None:
+                        self.data = self._error_with_message('Can\'t open archive')
+                        pse_count = 0 # Or just skip the issue?
+                    else:
+                        pse_count = page_count(cb)
                     entries.append(
                         {
                             'title': title,
@@ -479,6 +507,8 @@ class OPDS(object):
                             'updated': updated,
                             'content': escape('%s' % (metainfo[0]['summary'])),
                             'href': '%s?cmd=Issue&amp;issueid=%s&amp;file=%s' % (self.opdsroot, quote_plus(issuebook['IssueID']),quote_plus(location)),
+                            'stream': '%s?cmd=Stream&amp;issueid=%s&amp;file=%s' % (self.opdsroot, quote_plus(issuebook['IssueID']),quote_plus(location)),
+                            'pse_count': pse_count,
                             'kind': 'acquisition',
                             'rel': 'file',
                             'author': metainfo[0]['writer'],
@@ -515,6 +545,58 @@ class OPDS(object):
             self.filename = os.path.split(str(kwargs['file']))[1]
             self.file = str(kwargs['file'])
         return 
+
+
+    def _Stream(self, **kwargs):
+        # Implements the OPDS Page Streaming Extension 1.0 ref. https://vaemendis.net/opds-pse/
+        self._Issue(**kwargs)
+
+        if 'page' not in kwargs:
+            self.data = self._error_with_message('No page number specified')
+            self.file = None
+            self.filename = None
+            return
+        try:
+            page = int(kwargs['page'])
+        except ValueError:
+            self.data = self._error_with_message('Invalid page format')
+            self.file = None
+            self.filename = None
+            return            
+
+        cb, _ = open_archive(self.file)
+        if cb is None:
+            self.data = self._error_with_message('Can\'t open archive')
+            self.file = None
+            self.filename = None
+            return
+
+        page_names = comic_pages(cb)
+        if page < 0 or page >= len(page_names):
+            self.data = self._error_with_message('Page out of range')
+            self.file = None
+            self.filename = None
+            return
+
+        page_name = page_names[page]
+        with cb.open(page_name) as ifile:
+            if 'width' in kwargs:
+                # Support for this is actually optional. I'm not sure if many clients use it at all?
+                width = int(kwargs['width'])
+
+                img = Image.open(ifile)
+                max_width = int(kwargs['width'])
+                width, height = img.size
+                if max_width < width or True:
+                    iformat = 'jpeg'
+                    self.img = (iformat, scale_image(img, iformat, max_width))
+                else:
+                    ifile.seek(0)
+                    self.img = (img.format.lower(), ifile.read())
+
+            else:
+                self.img = (os.path.splitext(page_name)[1][1:], ifile.read())
+
 
     def _Issue(self, **kwargs):
         if 'issueid' not in kwargs:
@@ -606,13 +688,13 @@ class OPDS(object):
         entries = []
         flist = []
         book = ''
-        gbd = str(mylar.CONFIG.GRABBAG_DIR + '/*').encode('utf-8')
+        gbd = str(mylar.CONFIG.GRABBAG_DIR + '/*')
         flist = glob.glob(gbd)
         readlist = []
         for book in flist:
             issue = {}
             fileexists = True
-            book = book.encode('utf-8')
+            book = book
             issue['Title'] = book
             issue['IssueID'] = book
             issue['fileloc'] = book
@@ -683,7 +765,7 @@ class OPDS(object):
                 if bookentry['Location']:
                     fileexists = True
                     issue['fileloc'] = os.path.join(comic['ComicLocation'], bookentry['Location'])
-                    issue['filename'] = bookentry['Location'].encode('utf-8')
+                    issue['filename'] = bookentry['Location']
                     issue['image'] =  bookentry['ImageURL_ALT']
                     issue['thumbnail'] =  bookentry['ImageURL']
                 if  bookentry['DateAdded']:
@@ -696,7 +778,7 @@ class OPDS(object):
                     if annualentry['Location']:
                         fileexists = True
                         issue['fileloc'] = os.path.join(comic['ComicLocation'],  annualentry['Location'])
-                        issue['filename'] = annualentry['Location'].encode('utf-8')
+                        issue['filename'] = annualentry['Location']
                         issue['image'] = None
                         issue['thumbnail'] = None
                         issue['updated'] =  annualentry['IssueDate']
@@ -710,9 +792,21 @@ class OPDS(object):
                 for issue in subset:
                     metainfo = None
                     if mylar.CONFIG.OPDS_METAINFO:
-                        metainfo = mylar.helpers.IssueDetails(issue['fileloc'])
+                        issuedetails = mylar.helpers.IssueDetails(issue['fileloc']).get('metadata', None)
+                        if issuedetails is not None:
+                            metainfo = issuedetails.get('metadata', None)
                     if not metainfo:
                         metainfo = [{'writer': None,'summary': ''}]
+                    fileloc = issue['fileloc']
+                    if not os.path.isfile(fileloc):
+                        logger.debug("Missing File: %s" % (fileloc))
+                        continue
+                    cb, _ = open_archive(fileloc)
+                    if cb is None:
+                        self.data = self._error_with_message('Can\'t open archive')
+                        pse_count = 0 # Or just skip the issue?
+                    else:
+                        pse_count = page_count(cb)
                     entries.append(
                         {
                             'title': escape(issue['Title']),
@@ -720,6 +814,8 @@ class OPDS(object):
                             'updated': issue['updated'],
                             'content': escape('%s' % (metainfo[0]['summary'])),
                             'href': '%s?cmd=Issue&amp;issueid=%s&amp;file=%s' % (self.opdsroot, quote_plus(issue['IssueID']),quote_plus(issue['filename'])),
+                            'stream': '%s?cmd=Stream&amp;issueid=%s&amp;file=%s' % (self.opdsroot, quote_plus(issue['IssueID']),quote_plus(issue['filename'])),
+                            'pse_count': pse_count,
                             'kind': 'acquisition',
                             'rel': 'file',
                             'author': metainfo[0]['writer'],
@@ -771,7 +867,7 @@ class OPDS(object):
             if book['Location']:
                 issue['fileloc'] = book['Location']
                 fileexists = True
-                issue['filename'] = os.path.split(book['Location'])[1].encode('utf-8')
+                issue['filename'] = os.path.split(book['Location'])[1]
                 issue['image'] = None
                 issue['thumbnail'] = None
                 issue['updated'] = book['IssueDate']
@@ -782,7 +878,7 @@ class OPDS(object):
                         comic = myDB.selectone("SELECT * from comics WHERE ComicID=?", ( bookentry['ComicID'],)).fetchone()
                         fileexists = True
                         issue['fileloc'] = os.path.join(comic['ComicLocation'], bookentry['Location'])
-                        issue['filename'] = bookentry['Location'].encode('utf-8')
+                        issue['filename'] = bookentry['Location']
                         issue['image'] =  bookentry['ImageURL_ALT']
                         issue['thumbnail'] =  bookentry['ImageURL']
                     if  bookentry['DateAdded']:
@@ -796,7 +892,7 @@ class OPDS(object):
                             comic = myDB.selectone("SELECT * from comics WHERE ComicID=?", ( annualentry['ComicID'],))
                             fileexists = True
                             issue['fileloc'] = os.path.join(comic['ComicLocation'],  annualentry['Location'])
-                            issue['filename'] = annualentry['Location'].encode('utf-8')
+                            issue['filename'] = annualentry['Location']
                             issue['image'] = None
                             issue['thumbnail'] = None
                             issue['updated'] =  annualentry['IssueDate']
@@ -804,7 +900,7 @@ class OPDS(object):
                             if book['Location']:
                                 fileexists = True
                                 issue['fileloc'] = book['Location']
-                                issue['filename'] = os.path.split(book['Location'])[1].encode('utf-8')
+                                issue['filename'] = os.path.split(book['Location'])[1]
                                 issue['image'] = None
                                 issue['thumbnail'] = None
                                 issue['updated'] = book['IssueDate']
@@ -818,9 +914,18 @@ class OPDS(object):
                 for issue in subset:
                     metainfo = None
                     if mylar.CONFIG.OPDS_METAINFO:
-                        metainfo = mylar.helpers.IssueDetails(issue['fileloc'])
+                        issuedetails = mylar.helpers.IssueDetails(issue['fileloc']).get('metadata', None)
+                        if issuedetails is not None:
+                            metainfo = issuedetails.get('metadata', None)
                     if not metainfo:
                         metainfo = [{'writer': None,'summary': ''}]
+                    fileloc = os.path.join(comic['ComicLocation'],issue['Location'])
+                    cb, _ = open_archive(fileloc)
+                    if cb is None:
+                        self.data = self._error_with_message('Can\'t open archive')
+                        pse_count = 0 # Or just skip the issue?
+                    else:
+                        pse_count = page_count(cb)
                     entries.append(
                         {
                             'title': escape('%s - %s' % (issue['ReadingOrder'], issue['Title'])),
@@ -828,6 +933,8 @@ class OPDS(object):
                             'updated': issue['updated'],
                             'content': escape('%s' % (metainfo[0]['summary'])),
                             'href': '%s?cmd=Issue&amp;issueid=%s&amp;file=%s' % (self.opdsroot, quote_plus(issue['IssueID']),quote_plus(issue['filename'])),
+                            'stream': '%s?cmd=Stream&amp;issueid=%s&amp;file=%s' % (self.opdsroot, quote_plus(issue['IssueID']),quote_plus(issue['filename'])),
+                            'pse_count': pse_count,
                             'kind': 'acquisition',
                             'rel': 'file',
                             'author': metainfo[0]['writer'],

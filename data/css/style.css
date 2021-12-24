@@ -124,12 +124,6 @@ ul#nav li { margin: 40px 0px auto 10px;  display: inline; }
 ul#nav li a { padding: 5px; font-size: 16px; font-weight: bold; color: #330000; text-decoration: none; }
 ul#nav li a:hover { background-color: #a3e532; }
 
-div#subhead_container { height: 30px; width:100%; min-width: 1000px; background-color:#330000; float: left; list-style-type: none; z-index: 998; overflow: hidden; }
-ul#subhead_menu { margin-top: 5px; }
-ul#subhead_menu li { width: 100%; height: 100%; display: inline; }
-ul#subhead_menu li a { padding: 5px 15px 10px 15px; vertical-align: middle; color: white; font-size: 16px; text-decoration: none; }
-ul#subhead_menu li a:hover { width: 100%; height: 100%; background-color: #grey; }
-
 div#searchbar { margin: 24px 30px auto auto; float: right; }
 
 div#main { margin: 0; padding: 80px 0 0 0; }
@@ -148,66 +142,9 @@ div#main { margin: 0; padding: 80px 0 0 0; }
 .comictable td#maindetails { width: 200px; padding: 10px; }
 .comictable td#middle { vertical-align: middle; }
 
-table#series_table { background-color: black; width: 100%; padding: 10px; }
-
-table#series_table th#publisher { text-align: left; min-width: 50px; }
-table#series_table th#name { text-align: left; min-width: 250px; }
-table#series_table th#year { text-align: left; max-width: 25px; }
-table#series_table th#issue { text-align: left; min-width: 100px; }
-table#series_table th#published { vertical-align: middle; text-align: left; min-width:40px; }
-table#series_table th#have_percent { text-align: left; max-width: 25px; }
-table#series_table th#have { text-align: center; }
-table#series_table th#status { vertical-align: middle; text-align: left; min-width: 25px; }
-table#series_table th#active { vertical-align: middle; text-align: left; max-width: 20px; }
-
-table#series_table td#publisher { text-align: left; max-width: 100px; }
-table#series_table td#name { text-align: left; max-width: 250px; }
-table#series_table td#year { vertical-align: middle; text-align: left; max-width: 30px; }
-table#series_table td#issue { vertical-align: middle; text-align: left; max-width: 100px; }
-table#series_table td#published { vertical-align: middle; text-align: left; max-width: 40px; }
-table#series_table td#have_percent { vertical-align: middle; text-align: left; max-width: 30px; }
-table#series_table td#have { text-align: center; }
-table#series_table td#status { vertical-align: middle; text-align: left; max-width: 25px; }
-table#series_table td#active { vertical-align: middle; text-align: left; max-width: 20px; }
-
 div#paddingheader { padding-top: 48px; font-size: 24px; font-weight: bold; text-align: center; }
 div#paddingheadertitle { padding-top: 24px; font-size: 24px; font-weight: bold; text-align: center; }
 div#nopaddingheader { font-size: 24px; font-weight: bold; text-align: center; }
-table#issue_table { background-color: white; width: 100%; padding: 10px; }
-
-table#issue_table th#select { vertical-align: middle; text-align: left; max-width: 10px; }
-table#issue_table th#int_issuenumber { text-align: left; max-width: 50px }
-table#issue_table th#issuenumber { text-align: left; max-width: 50px; }
-table#issue_table th#issuename { text-align: center; min-width: 200px; }
-table#issue_table th#reldate { text-align: center; max-width: 75px; }
-table#issue_table th#status { text-align: center; max-width: 75px; }
-table#issue_table th#options { text-align: center; min-width: 50px; }
-
-table#issue_table td#select { vertical-align: middle; text-align: left; max-width: 10px; }
-table#issue_table td#int_issuenumber { vertical-align: middle; text-align: left; max-width: 50px; }
-table#issue_table td#issuenumber { vertical-align: middle; text-align: left; max-width: 50px; }
-table#issue_table td#issuename { vertical-align: middle; text-align: center; min-width: 200px; font-size: 9px; }
-table#issue_table td#reldate { vertical-align: middle; text-align: center; max-width: 75px; }
-table#issue_table td#status { vertical-align: middle; text-align: center; max-width: 75px; font-size: 13px; }
-table#issue_table td#options { vertical-align: middle; text-align: center; min-width: 50px; }
-
-table#annual_table { background-color: white; width: 100%; padding: 10px; }
-
-table#annual_table th#select { vertical-align: middle; text-align: left; max-width: 10px; }
-table#annual_table th#aint_issuenumber { text-align: left; max-width: 1px }
-table#annual_table th#aissuenumber { text-align: left; max-width: 50px; }
-table#annual_table th#aissuename { text-align: center; min-width: 200px; }
-table#annual_table th#areldate { text-align: center; max-width: 75px; }
-table#annual_table th#astatus { text-align: center; max-width: 75px; }
-table#annual_table th#aoptions { text-align: center; min-width: 50px; }
-
-table#annual_table td#select { vertical-align: middle; text-align: left; max-width: 10px; }
-table#annual_table td#aint_issuenumber { vertical-align: middle; text-align: left; max-width: 1 px; }
-table#annual_table td#aissuenumber { vertical-align: middle; text-align: left; max-width: 50px; }
-table#annual_table td#aissuename { vertical-align: middle; text-align: center; font-size: 9px; min-width: 200px; }
-table#annual_table td#areldate { vertical-align: middle; text-align: center; max-width: 75px; }
-table#annual_table td#astatus { vertical-align: middle; text-align: center; max-width: 75px; font-size: 13px; }
-table#annual_table td#aoptions { vertical-align: middle; text-align: center; min-width: 50px; }
 
 table#history_table { background-color: white; width: 100%; font-size: 13px; }
 

@@ -21,33 +21,46 @@ import os
 import sys
 import re
 import time
-from . import logger
+from pkg_resources import parse_version
 import mylar
+from mylar import logger
 
 class SABnzbd(object):
     def __init__(self, params):
-        #self.sab_url = sab_host + '/api'
-        #self.sab_apikey = 'e90f54f4f757447a20a4fa89089a83ed'
         self.sab_url = mylar.CONFIG.SAB_HOST + '/api'
         self.params = params
 
-    def sender(self):
+    def sender(self, chkstatus=False):
         try:
             from requests.packages.urllib3 import disable_warnings
             disable_warnings()
         except:
-            logger.info('Unable to disable https warnings. Expect some spam if using https nzb providers.')
+            logger.warn('Unable to disable https warnings. Expect some spam if using https nzb providers.')
 
         try:
-            logger.info('parameters set to %s' % self.params)
-            logger.info('sending now to %s' % self.sab_url)
-            sendit = requests.post(self.sab_url, data=self.params, verify=False)
-        except:
-            logger.info('Failed to send to client.')
+            if chkstatus is True:
+                sendit = requests.get(self.sab_url, params=self.params, verify=False)
+            else:
+                tmp_apikey = self.params.pop('apikey')
+                logger.fdebug('parameters set to %s' % self.params)
+                self.params['apikey'] = tmp_apikey
+                logger.fdebug('sending now to %s' % self.sab_url)
+                sendit = requests.post(self.sab_url, data=self.params, verify=False)
+        except Exception as e:
+            logger.warn('Failed to send to client. Error returned: %s' % e)
             return {'status': False}
         else:
             sendresponse = sendit.json()
-            logger.info(sendresponse)
+            if chkstatus is True:
+                queueinfo = sendresponse['queue']
+                if str(queueinfo['status']).lower() == 'paused':
+                    #logger.info('queue IS paused')
+                    return {'status': True}
+                else:
+                    #logger.info('queue NOT paused')
+                    return {'status': False}
+
+            #logger.fdebug(sendresponse)
             if sendresponse['status'] is True:
                 queue_params = {'status': True,
                                 'nzo_id': ''.join(sendresponse['nzo_ids']),
@@ -64,31 +77,44 @@ class SABnzbd(object):
     def processor(self):
         sendresponse = self.params['nzo_id']
         try:
-            logger.info('sending now to %s' % self.sab_url)
-            logger.info('parameters set to %s' % self.params)
+            logger.fdebug('sending now to %s' % self.sab_url)
+            tmp_apikey = self.params['queue'].pop('apikey')
+            logger.fdebug('parameters set to %s' % self.params)
+            self.params['queue']['apikey'] = tmp_apikey
             time.sleep(5)   #pause 5 seconds before monitoring just so it hits the queue
             h = requests.get(self.sab_url, params=self.params['queue'], verify=False)
         except Exception as e:
-            logger.info('uh-oh: %s' % e)
+            logger.fdebug('uh-oh: %s' % e)
             return self.historycheck(self.params)
         else:
             queueresponse = h.json()
-            logger.info('successfully queried the queue for status')
+            logger.fdebug('successfully queried the queue for status')
             try:
                 queueinfo = queueresponse['queue']
                 #logger.fdebug('queue: %s' % queueinfo)
                 logger.fdebug('Queue status : %s' % queueinfo['status'])
                 logger.fdebug('Queue mbleft : %s' % queueinfo['mbleft'])
+
+                if str(queueinfo['status']) == 'Paused':
+                    logger.warn('[WARNING] SABnzbd has the active queue Paused. CDH will not work in this state.')
+                    return {'status': 'queue_paused', 'failed': False}
                 while any([str(queueinfo['status']) == 'Downloading', str(queueinfo['status']) == 'Idle']) and float(queueinfo['mbleft']) > 0:
                     #if 'comicrn' in queueinfo['script'].lower():
                     #    logger.warn('ComicRN has been detected as being active for this category & download. Completed Download Handling will NOT be performed due to this.')
                     #    logger.warn('Either disable Completed Download Handling for SABnzbd within Mylar, or remove ComicRN from your category script in SABnzbd.')
                     #    return {'status': 'double-pp', 'failed': False}
 
-                    #logger.fdebug('queue_params: %s' % self.params['queue'])
-                    queue_resp = requests.get(self.sab_url, params=self.params['queue'], verify=False)
-                    queueresp = queue_resp.json()
-                    queueinfo = queueresp['queue']
+                    logger.fdebug('queue_params: %s' % self.params['queue'])
+                    tmp_queue = self.params['queue']
+                    try:
+                        tmp_queue.pop('search')
+                    except Exception as e:
+                        logger.fdebug('unable to pop search term - possibly already done/finished/does not exist')
+                    tmp_queue['nzo_ids'] = self.params['nzo_id']
+                    #logger.fdebug('tmp_queue: %s' % (tmp_queue,))
+                    queue_resp = requests.get(self.sab_url, params=tmp_queue, verify=False)
+                    queueresponse = queue_resp.json()
+                    queueinfo = queueresponse['queue']
                     logger.fdebug('status: %s' % queueinfo['status'])
                     logger.fdebug('mbleft: %s' % queueinfo['mbleft'])
                     logger.fdebug('timeleft: %s' % queueinfo['timeleft'])
@@ -100,67 +126,159 @@ class SABnzbd(object):
             logger.info('File has now downloaded!')
             return self.historycheck(self.params)
 
-    def historycheck(self, nzbinfo):
+    def historycheck(self, nzbinfo, roundtwo=False):
         sendresponse = nzbinfo['nzo_id']
         hist_params = {'mode':      'history',
                        'category':  mylar.CONFIG.SAB_CATEGORY,
                        'failed':    0,
                        'output':    'json',
                        'apikey':    mylar.CONFIG.SAB_APIKEY}
+
+        sab_check = None
+        if mylar.CONFIG.SAB_VERSION is None:
+            try:
+                sc = mylar.webserve.WebInterface()
+                sab_check = sc.SABtest(sabhost=mylar.CONFIG.SAB_HOST, sabusername=mylar.CONFIG.SAB_USERNAME, sabpassword=mylar.CONFIG.SAB_PASSWORD, sabapikey=mylar.CONFIG.SAB_APIKEY)
+            except Exception as e:
+                logger.warn('[SABNZBD-VERSION-TEST] Exception encountered trying to retrieve SABnzbd version: %s. Setting history length to last 200 items.' % e)
+                hist_params['limit'] = 200
+                sab_check = 'some value'
+            else:
+                sab_check = None
+
+        if sab_check is None:
+            #set min_sab to 3.2.0 since 3.2.0 beta 1 has the api call for history search by nzo_id
+            try:
+                min_sab = '3.2.0'
+                sab_vers = mylar.CONFIG.SAB_VERSION
+                if 'beta' in sab_vers:
+                    sab_vers = re.sub('[^0-9]', '', sab_vers)
+                    if len(sab_vers) > 3:
+                        sab_vers = sab_vers[:-1] # remove beta value entirely...
+                if parse_version(sab_vers) >= parse_version(min_sab):
+                    logger.fdebug('SABnzbd version is higher than 3.2.0. Querying history based on nzo_id directly.')
+                    hist_params['nzo_ids'] = sendresponse
+                else:
+                    logger.fdebug('SABnzbd version is less than 3.2.0. Querying history based on history size of 200.')
+                    hist_params['limit'] = 200
+            except Exception as e:
+                logger.warn('[SABNZBD-VERSION-CHECK] Exception encountered trying to compare installed version [%s] to [%s]. Setting history length to last 200 items. (error: %s)' % (mylar.CONFIG.SAB_VERSION, min_sab ,e))
+                hist_params['limit'] = 200
+
         hist = requests.get(self.sab_url, params=hist_params, verify=False)
         historyresponse = hist.json()
         #logger.info(historyresponse)
         histqueue = historyresponse['history']
         found = {'status': False}
-        while found['status'] is False:
-            try:
-                for hq in histqueue['slots']:
-                    #logger.info('nzo_id: %s --- %s [%s]' % (hq['nzo_id'], sendresponse, hq['status']))
-                    if hq['nzo_id'] == sendresponse and any([hq['status'] == 'Completed', hq['status'] == 'Running', 'comicrn' in hq['script'].lower()]):
-                        logger.info('found matching completed item in history. Job has a status of %s' % hq['status'])
-                        if 'comicrn' in hq['script'].lower():
-                            logger.warn('ComicRN has been detected as being active for this category & download. Completed Download Handling will NOT be performed due to this.')
-                            logger.warn('Either disable Completed Download Handling for SABnzbd within Mylar, or remove ComicRN from your category script in SABnzbd.')
-                            return {'status': 'double-pp', 'failed': False}
+        nzo_exists = False
 
-                        if os.path.isfile(hq['storage']):
-                            logger.info('location found @ %s' % hq['storage'])
-                            found = {'status':   True,
-                                     'name':     ntpath.basename(hq['storage']), #os.pathre.sub('.nzb', '', hq['nzb_name']).strip(),
-                                     'location': os.path.abspath(os.path.join(hq['storage'], os.pardir)),
-                                     'failed':   False,
-                                     'issueid':  nzbinfo['issueid'],
-                                     'comicid':  nzbinfo['comicid'],
-                                     'apicall':  True,
-                                     'ddl':      False}
-                            break
-                        else:
-                            logger.info('no file found where it should be @ %s - is there another script that moves things after completion ?' % hq['storage'])
-                            return {'status': 'file not found', 'failed': False}
+        try:
+            for hq in histqueue['slots']:
+                logger.fdebug('nzo_id: %s --- %s [%s]' % (hq['nzo_id'], sendresponse, hq['status']))
+                if hq['nzo_id'] == sendresponse and any([hq['status'] == 'Completed', hq['status'] == 'Running', 'comicrn' in hq['script'].lower()]):
+                    nzo_exists = True
+                    logger.info('found matching completed item in history. Job has a status of %s' % hq['status'])
+                    if 'comicrn' in hq['script'].lower():
+                        logger.warn('ComicRN has been detected as being active for this category & download. Completed Download Handling will NOT be performed due to this.')
+                        logger.warn('Either disable Completed Download Handling for SABnzbd within Mylar, or remove ComicRN from your category script in SABnzbd.')
+                        return {'status': 'double-pp', 'failed': False}
 
-                    elif hq['nzo_id'] == sendresponse and hq['status'] == 'Failed':
-                        #get the stage / error message and see what we can do
-                        stage = hq['stage_log']
-                        for x in stage[0]:
-                            if 'Failed' in x['actions'] and any([x['name'] == 'Unpack', x['name'] == 'Repair']):
-                                if 'moving' in x['actions']:
-                                    logger.warn('There was a failure in SABnzbd during the unpack/repair phase that caused a failure: %s' % x['actions'])
-                                else:
-                                    logger.warn('Failure occured during the Unpack/Repair phase of SABnzbd. This is probably a bad file: %s' % x['actions'])
-                                    if mylar.FAILED_DOWNLOAD_HANDLING is True:
-                                        found = {'status':   True,
-                                                 'name':     re.sub('.nzb', '', hq['nzb_name']).strip(),
-                                                 'location': os.path.abspath(os.path.join(hq['storage'], os.pardir)),
-                                                 'failed':   True,
-                                                 'issueid':  sendresponse['issueid'],
-                                                 'comicid':  sendresponse['comicid'],
-                                                 'apicall':  True,
-                                                 'ddl':      False}
-                                break
+                    if os.path.isfile(hq['storage']):
+                        logger.fdebug('location found @ %s' % hq['storage'])
+                        found = {'status':   True,
+                                 'name':     ntpath.basename(hq['storage']), #os.pathre.sub('.nzb', '', hq['nzb_name']).strip(),
+                                 'location': os.path.abspath(os.path.join(hq['storage'], os.pardir)),
+                                 'failed':   False,
+                                 'issueid':  nzbinfo['issueid'],
+                                 'comicid':  nzbinfo['comicid'],
+                                 'apicall':  True,
+                                 'ddl':      False,
+                                 'download_info': nzbinfo['download_info']}
                         break
 
-            except Exception as e:
-                logger.warn('error %s' % e)
-                return {'status': False, 'failed': False}
+                    elif all([mylar.CONFIG.SAB_TO_MYLAR, mylar.CONFIG.SAB_DIRECTORY is not None, mylar.CONFIG.SAB_DIRECTORY != 'None']):
+                        tmpfile = ntpath.basename(hq['storage'])
+                        tmp_path = os.path.abspath(os.path.join(hq['storage'], os.pardir))
+                        tmp_path_b = tmp_path.split(os.path.sep)[:-1]
+                        sub_dir = tmp_path.split(os.path.sep)[-1]
+                        if tmp_path == mylar.CONFIG.SAB_DIRECTORY:
+                            rep_tmp_path_b = mylar.CONFIG.SAB_DIRECTORY
+                        else:
+                            rep_tmp_path_b = re.sub(os.path.sep.join(tmp_path_b), mylar.CONFIG.SAB_DIRECTORY, tmp_path).strip()
+
+                        try:
+                            if os.path.exists(os.path.join( rep_tmp_path_b, os.path.sep.join(sub_dir), tmpfile )):
+                                new_path = os.path.join( rep_tmp_path_b, os.path.sep.join(sub_dir), tmpfile )
+                            elif os.path.exists(os.path.join( rep_tmp_path_b, tmpfile )):
+                                new_path = os.path.join( rep_tmp_path_b, tmpfile )
+                            else:
+                                logger.error('[SAB-DIRECTORY ENABLED] No file found where it should be @ %s - sabnzbd passed this: %s' % (rep_tmp_path_b, hq['storage']))
+                                return {'status': 'file not found', 'failed': False}
+
+                        except Exception as e:
+                            logger.warn('[ERROR] %s' % e)
+                            return {'status': 'file not found', 'failed': False}
+
+                        logger.fdebug('location found @ %s' % new_path)
+                        found = {'status':   True,
+                                 'name':     ntpath.basename(new_path),
+                                 'location': os.path.abspath(os.path.join(new_path, os.pardir)),
+                                 'failed':   False,
+                                 'issueid':  nzbinfo['issueid'],
+                                 'comicid':  nzbinfo['comicid'],
+                                 'apicall':  True,
+                                 'ddl':      False,
+                                 'download_info': nzbinfo['download_info']}
+                        break
+
+                    else:
+                        logger.error('no file found where it should be @ %s - is there another script that moves things after completion ?' % hq['storage'])
+                        return {'status': 'file not found', 'failed': False}
+
+                elif hq['nzo_id'] == sendresponse and hq['status'] == 'Failed':
+                    nzo_exists = True
+                    #get the stage / error message and see what we can do
+                    stage = hq['stage_log']
+                    logger.fdebug('stage: %s' % (stage,))
+                    for x in stage:
+                        if 'Failed' in x['actions'] and any([x['name'] == 'Unpack', x['name'] == 'Repair']):
+                            if 'moving' in x['actions']:
+                                logger.warn('There was a failure in SABnzbd during the unpack/repair phase that caused a failure: %s' % x['actions'])
+                            else:
+                                logger.warn('Failure occured during the Unpack/Repair phase of SABnzbd. This is probably a bad file: %s' % x['actions'])
+                                if mylar.FAILED_DOWNLOAD_HANDLING is True:
+                                    found = {'status':   True,
+                                             'name':     re.sub('.nzb', '', hq['nzb_name']).strip(),
+                                             'location': os.path.abspath(os.path.join(hq['storage'], os.pardir)),
+                                             'failed':   True,
+                                             'issueid':  nzbinfo['issueid'],
+                                             'comicid':  nzbinfo['comicid'],
+                                             'apicall':  True,
+                                             'ddl':      False,
+                                             'download_info': nzbinfo['download_info']}
+                            break
+                    if found['status'] is False:
+                        return {'status': 'failed_in_sab', 'failed': False}
+                    else:
+                        break
+                elif hq['nzo_id'] == sendresponse:
+                    nzo_exists = True
+                    logger.fdebug('nzo_id: %s found while processing queue in an unhandled status: %s' % (hq['nzo_id'], hq['status']))
+                    if hq['status'] == 'Queued' and roundtwo is False:
+                        time.sleep(4)
+                        return self.historycheck(nzbinfo, roundtwo=True)
+                    else:
+                        return {'failed': False, 'status': 'unhandled status of: %s' %( hq['status'])}
+
+            if not nzo_exists:
+                logger.error('Cannot find nzb %s in the queue.  Was it removed?' % sendresponse)
+                time.sleep(5)
+                if roundtwo is False:
+                    return self.historycheck(nzbinfo, roundtwo=True)
+                else:
+                    return {'status': 'nzb removed', 'failed': False}
+        except Exception as e:
+            logger.warn('error %s' % e)
+            return {'status': False, 'failed': False}
 
         return found

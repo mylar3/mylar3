@@ -20,8 +20,9 @@
 </%def>
 
 <%def name="body()">
+        <input type="hidden" id="page_name" value="reading_list" />
 	<div id="paddingheader">
-		<h1 class="clearfix"><img src="interfaces/default/images/ReadingList-icon.png" height="26" width="26" alt="Reading List"/>Reading List Management</h1>
+		<h1 class="clearfix"><img src="images/ReadingList-icon.png" height="26" width="26" alt="Reading List"/>Reading List Management</h1>
 	</div>
         <div id="tabs">
                 <ul>
@@ -74,7 +75,7 @@
                    </fieldset>
                </td>
                <td width="100%">
-                 <img src="interfaces/default/images/android.png" style="float:right" height="50" width="50" />
+                 <img src="images/android.png" style="float:right" height="50" width="50" />
                    <fieldset>
                            <div>
                               <legend>Tablet Device</legend>
@@ -165,11 +166,11 @@
                                 <td id="status">${issue['Status']}</td>
                                 <td id="statuschange">${issue['StatusChange']}</td>
                                 <td id="options">
-                                    <a onclick="doAjaxCall('removefromreadlist?IssueID=${issue['IssueID']}',$(this),'table')" data-success="Sucessfully removed ${issue['ComicName']} #${issue['Issue_Number']} from Reading List"><img src="interfaces/default/images/skipped_icon.png" height="25" width="25" title="Remove from Reading List" /></a>
-                                    <a onclick="doAjaxCall('markasRead?IssueID=${issue['IssueID']}', $(this),'table')" data-success="Marked ${issue['ComicName']} ${issue['Issue_Number']} as Read."><img src="interfaces/default/images/wanted_icon.png" height="25" width="25" title="Mark as Read" /></a>
+                                    <a onclick="doAjaxCall('removefromreadlist?IssueID=${issue['IssueID']}',$(this),'table')" data-success="Sucessfully removed ${issue['ComicName']} #${issue['Issue_Number']} from Reading List"><img src="images/skipped_icon.png" height="25" width="25" title="Remove from Reading List" /></a>
+                                    <a onclick="doAjaxCall('markasRead?IssueID=${issue['IssueID']}', $(this),'table')" data-success="Marked ${issue['ComicName']} ${issue['Issue_Number']} as Read."><img src="images/wanted_icon.png" height="25" width="25" title="Mark as Read" /></a>
                                     
                                     %if issue['Location'] is not None:
-                                    <a href="downloadthis?pathfile=${issue['Location'] |u}"><img src="interfaces/default/images/download_icon.png" height="25" width="25" title="Download the Issue" class="highqual" /></a>
+                                    <a href="downloadthis?pathfile=${issue['Location'] |u}"><img src="images/download_icon.png" height="25" width="25" title="Download the Issue" class="highqual" /></a>
                                     %endif
                                 </td>
                               </tr>
@@ -180,7 +181,7 @@
 </%def>
 
 <%def name="headIncludes()">
-	<link rel="stylesheet" href="interfaces/default/css/data_table.css">
+	<link rel="stylesheet" href="interfaces/${interface}/css/data_table.css">
 </%def>
 
 <%def name="javascriptIncludes()">

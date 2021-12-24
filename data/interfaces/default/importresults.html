@@ -15,6 +15,7 @@
 
 <%def name="body()">
 
+        <input type="hidden" id="page_name" value="import_results" />
 	<div id="paddingheader">
 		<h1 class="clearfix">Ultron Import Results</h1>
 	</div>
@@ -27,7 +28,7 @@
                    <table>
                     <tr>
                        <span style="position:right">
-                           <img src="interfaces/default/images/ultron.png" style="float:right" height="125" width="125" />                     
+                           <img src="images/ultron.png" style="float:right" height="125" width="125" />                     
                            <fieldset>
                               <div class="row checkbox">
                                    <input type="checkbox" disabled name="autoadd" style="vertical-align: middle; margin: 3px; margin-top: -1px;" id="autoadd" value="1" ${checked(mylar.CONFIG.ADD_COMICS)}><label>Auto-add new series</label>
@@ -75,8 +76,6 @@
         </div>
 
         <table class="display" id="impresults_table">
-                <tr/><tr/>
-                <tr><center><h3>To be Imported</h3></center></tr>
                 <thead>
                         <tr>
                                 <th id="select" align="left"><input type="checkbox" onClick="toggle(this)" name="results" class="checkbox" /></th>
@@ -114,9 +113,9 @@
                                             <td id="select"><input type="checkbox" style="vertical-align: middle; margin: 3px; margin-top: -1px;" name="${result['ComicName']}[${result['Volume']}]|${result['ComicID']}" value="${result['DynamicName']}" class="checkbox" />
                                             <td id="comicname">${displayline}
                                                 %if result['Status'] != 'Imported':
-                                                   <a href="#issue-box" onclick="return runMetaIssue('${result['ComicName'] |u}','${result['DynamicName']}','${result['Volume']}');" class="issue-window"><img src="interfaces/default/images/files.png" height="15 width="15" title="View files in this group" class="highqual" /></a>
+                                                   <a href="#issue-box" onclick="return runMetaIssue('${result['ComicName'] |u}','${result['DynamicName']}','${result['Volume']}');" class="issue-window"><img src="images/files.png" height="15 width="15" title="View files in this group" class="highqual" /></a>
                                                     <div id="issue-box" class="issue-popup">
-                                                     <a href="#" class="close"><img src="interfaces/default/images/close_pop.png" class="btn_close" title="Close Window" alt="Close" class="highqual" /></a>
+                                                     <a href="#" class="close"><img src="images/close_pop.png" class="btn_close" title="Close Window" alt="Close" class="highqual" /></a>
                                                         <div id="responsethis">
                                                           <label><strong>[ NODATA ]</strong></label></br>
                                                         </div>
@@ -135,7 +134,7 @@
                                                 ${result['Status']}
                                             %endif
                                             %if result['WatchMatch'] is not None:
-                                                <img src="interfaces/default/images/green-circle.png" height="10" width="10"/>
+                                                <img src="images/green-circle.png" height="10" width="10"/>
                                             %endif
                                             </td>
                                             <td id="importdate">${result['ImportDate']}</td>
@@ -163,7 +162,7 @@
       </div>
 </%def>
 <%def name="headIncludes()">
-        <link rel="stylesheet" href="interfaces/default/css/data_table.css">
+        <link rel="stylesheet" href="interfaces/${interface}/css/data_table.css">
 </%def>
 
 <%def name="javascriptIncludes()">
@@ -246,27 +245,27 @@
                 initActions();
                 $('#impresults_table').dataTable(
                         {
-                                "Destroy": true,
-                                "sDom": '<"clear"Af><"clear"lp><"clear">rt<"clear"ip>',
+                                destroy: true,
+                                sDom: '<"clear"Af><"clear"lp><"clear">rt<"clear"ip>',
                                 //"aoColumnDefs": [
                                 //  { 'bSortable': false, 'aTargets': [ 0 , 2 ] },
                                 //  { 'bVisible': false, 'aTargets': [2] },
                                 //  { 'sType': 'numeric', 'aTargets': [2] },
                                 //  { 'iDataSort': [2], 'aTargets': [3] }
                                 //],
-                                "LengthMenu": [[10, 25, 50, -1], [10, 25, 50, 'All' ]],
-                                "Language": {
-                                        "LengthMenu":"Show _MENU_ results per page",
-                                        "EmptyTable": "No results",
-                                        "Info":"Showing _START_ to _END_ of _TOTAL_ results",
-                                        "InfoEmpty":"Showing 0 to 0 of 0 results",
-                                        "InfoFiltered":"(filtered from _MAX_ total results)",
-                                        "Search" : ""},
-                                "StateSave": true,
-                                "stateDuration": 0,
-                                "pageLength": 25,
-                                "pagingType": "simple_numbers",
-                                "aaSorting": [2, 'desc']
+                                LengthMenu: [[10, 25, 50, -1], [10, 25, 50, 'All' ]],
+                                Language: {
+                                        LengthMenu:"Show _MENU_ results per page",
+                                        EmptyTable: "No results",
+                                        Info:"Showing _START_ to _END_ of _TOTAL_ results",
+                                        InfoEmpty:"Showing 0 to 0 of 0 results",
+                                        InfoFiltered:"(filtered from _MAX_ total results)",
+                                        Search : ""},
+                                StateSave: true,
+                                stateDuration: 0,
+                                pageLength: 25,
+                                pagingType: "simple_numbers",
+                                aaSorting: [2, 'desc']
                         });
                         resetFilters("result");
         }

@@ -97,6 +97,7 @@ class ComicTaggerSettings:
         self.clear_form_before_populating_from_cv = False
         self.remove_html_tables = False
         self.cv_api_key = ""
+        self.notes_format = 'Issue ID'
 
         # CBL Tranform settings
 
@@ -161,11 +162,14 @@ class ComicTaggerSettings:
                 # see if it's in the path of unix user
                 if utils.which("rar") is not None:
                     self.rar_exe_path = utils.which("rar")
+                #unrar is used by Mylar for unraring. We don't rar anything up, so this should cover the bases.
+                elif utils.which("unrar") is not None:
+                    self.rar_exe_path = utils.which("unrar")
             if self.rar_exe_path != "":
                 self.save()
         if self.rar_exe_path != "":
-             # make sure rar program is now in the path for the rar class    
-            utils.addtopath(os.path.dirname(self.rar_exe_path))          
+             # make sure rar program is now in the path for the rar class
+            utils.addtopath(os.path.dirname(self.rar_exe_path))
 
     def reset(self):
         os.unlink(self.settings_file)
@@ -264,6 +268,8 @@ class ComicTaggerSettings:
                 'comicvine', 'remove_html_tables')
         if self.config.has_option('comicvine', 'cv_api_key'):
             self.cv_api_key = self.config.get('comicvine', 'cv_api_key')
+        if self.config.has_option('comicvine', 'notes_format'):
+            self.notes_format = self.config.get('comicvine', 'notes_format')
 
         if self.config.has_option(
                 'cbl_transform', 'assume_lone_credit_is_primary'):
@@ -417,6 +423,7 @@ class ComicTaggerSettings:
         self.config.set(
             'comicvine', 'remove_html_tables', self.remove_html_tables)
         self.config.set('comicvine', 'cv_api_key', self.cv_api_key)
+        self.config.set('comicvine', 'notes_format', self.notes_format)
 
         if not self.config.has_section('cbl_transform'):
             self.config.add_section('cbl_transform')

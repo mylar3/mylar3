@@ -1,16 +1,16 @@
 import sys
 import os.path
-import ConfigParser
-import urllib2
-import urllib
+import configparser
+import urllib.request, urllib.error, urllib.parse
+import urllib.request, urllib.parse, urllib.error
 import platform
 
 try:
     import requests
     use_requests = True
 except ImportError:
-    print '''Requests module not found on system. I'll revert so this will work, but you probably should install 
-        requests to bypass this in the future (i.e. pip install requests)'''
+    print('''Requests module not found on system. I'll revert so this will work, but you probably should install 
+        requests to bypass this in the future (i.e. pip install requests)''')
     use_requests = False
 
 use_win32api = False
@@ -19,34 +19,34 @@ if platform.system() == 'Windows':
         import win32api
         use_win32api = True
     except ImportError:
-        print '''The win32api module was not found on this system. While it's fine to run without it, you're 
+        print('''The win32api module was not found on this system. While it's fine to run without it, you're 
             running a Windows-based OS, so it would benefit you to install it. It enables ComicRN to better 
-            work with file paths beyond the 260 character limit. Run "pip install pypiwin32".'''
+            work with file paths beyond the 260 character limit. Run "pip install pypiwin32".''')
 
 apc_version = "2.04"
 
 def processEpisode(dirName, nzbName=None):
-    print "Your ComicRN.py script is outdated. I'll force this through, but Failed Download Handling and possible enhancements/fixes will not work and could cause errors."
+    print("Your ComicRN.py script is outdated. I'll force this through, but Failed Download Handling and possible enhancements/fixes will not work and could cause errors.")
     return processIssue(dirName, nzbName)
 
 def processIssue(dirName, nzbName=None, failed=False, comicrn_version=None):
     if use_win32api is True:
         dirName = win32api.GetShortPathName(dirName)
 
-    config = ConfigParser.ConfigParser()
+    config = configparser.ConfigParser()
     configFilename = os.path.join(os.path.dirname(sys.argv[0]), "autoProcessComics.cfg")
-    print "Loading config from", configFilename
+    print("Loading config from", configFilename)
 
     if not os.path.isfile(configFilename):
-        print "ERROR: You need an autoProcessComics.cfg file - did you rename and edit the .sample?"
+        print("ERROR: You need an autoProcessComics.cfg file - did you rename and edit the .sample?")
         sys.exit(-1)
 
     try:
         fp = open(configFilename, "r")
         config.readfp(fp)
         fp.close()
-    except IOError, e:
-        print "Could not read configuration file: ", str(e)
+    except IOError as e:
+        print("Could not read configuration file: ", str(e))
         sys.exit(1)
 
     host = config.get("Mylar", "host")
@@ -57,12 +57,12 @@ def processIssue(dirName, nzbName=None, failed=False, comicrn_version=None):
         sys.exit(1)
     try:
         ssl = int(config.get("Mylar", "ssl"))
-    except (ConfigParser.NoOptionError, ValueError):
+    except (configparser.NoOptionError, ValueError):
         ssl = 0
 
     try:
         web_root = config.get("Mylar", "web_root")
-    except ConfigParser.NoOptionError:
+    except configparser.NoOptionError:
         web_root = ""
 
     if ssl:
@@ -85,30 +85,35 @@ def processIssue(dirName, nzbName=None, failed=False, comicrn_version=None):
 
     if use_requests is True:
         try:
-            print("Opening URL for post-process of %s @ %s/forceProcess:" % (dirName,url))
+            print(("Opening URL for post-process of %s @ %s/forceProcess:" % (dirName,url)))
             pp = requests.post(url, params=params, verify=False)
         except Exception as e:
-            print("Unable to open URL: %s" %e)
+            print(("Unable to open URL: %s" %e))
             sys.exit(1)
         else:
-            print 'statuscode: %s' % pp.status_code
+            print('statuscode: %s' % pp.status_code)
             result = pp.content
-            print result
+            print(result)
     else:
-        url += "?" + urllib.urlencode(params)
-        print "Opening URL:", url
+        url += "?" + urllib.parse.urlencode(params)
+        print("Opening URL:", url)
         try:
-            urlObj = urllib2.urlopen(url)
-        except IOError, e:
-            print "Unable to open URL: ", str(e)
+            urlObj = urllib.request.urlopen(url)
+        except IOError as e:
+            print("Unable to open URL: ", str(e))
             sys.exit(1)
         else:
             result = urlObj.readlines()
             for line in result:
-                print line
+                print(line)
 
     if type(result) == list:
         if any("Post Processing SUCCESSFUL" in s for s in result):
+            return 0
+        else:
+            return 1
+    elif type(result) == bytes:
+        if b'Post Processing SUCCESSFUL' in result:
             return 0
         else:
             return 1

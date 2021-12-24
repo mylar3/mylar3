@@ -13,6 +13,7 @@
 
 
 <%def name="body()">
+        <input type="hidden" id="page_name" value="manage_comics" />
 	<div id="manageheader" class="title">
 		<h1 class="clearfix">Manage comics</h1>
 	</div>
@@ -75,13 +76,13 @@
 				<td id="status">${comic['recentstatus']}</td>
                                 <td id="stat_icon">
                                 %if comic['Status'] == 'Paused':
-                                    <img src="interfaces/default/images/pause-icon.png" title="Paused" alt="Paused" width="16" height="16" />
+                                    <img src="images/pause-icon.png" title="Paused" alt="Paused" width="16" height="16" />
                                 %elif comic['Status'] == 'Loading':
-                                    <img src="interfaces/default/images/hourglass.png" title="Loading" alt="Loading" width="16" height="16" />
+                                    <img src="images/hourglass.png" title="Loading" alt="Loading" width="16" height="16" />
                                 %elif comic['Status'] == 'Error':
-                                    <img src="interfaces/default/images/cross.png" title="Error" alt="Error" width="16" height="16" />
+                                    <img src="images/cross.png" title="Error" alt="Error" width="16" height="16" />
                                 %else:
-                                    <img src="interfaces/default/images/checkmark.png" title="Active" alt="Active" width="16" height="16" />
+                                    <img src="images/checkmark.png" title="Active" alt="Active" width="16" height="16" />
                                 %endif
                                 </td>
                                 <td class="hidden" id="stat_title">${comic['Status']}</td>
@@ -98,7 +99,7 @@
 </%def>
 
 <%def name="headIncludes()">
-	<link rel="stylesheet" href="interfaces/default/css/data_table.css">
+	<link rel="stylesheet" href="interfaces/${interface}/css/data_table.css">
 </%def>
 
 <%def name="javascriptIncludes()">

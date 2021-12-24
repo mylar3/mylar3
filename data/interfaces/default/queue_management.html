@@ -7,6 +7,7 @@
         <div id="subhead_container">
                 <div id="subhead_menu">
                       <a id="menu_link_refresh" href="#" title="Restart stalled queue" onclick="doAjaxCall('ddl_requeue?mode=restart_queue',$(this),'table')" data-success="Restarted Queue">Restart Queue</a>
+                      <a id="menu_link_refresh" href="#" title="Clear the queue of all Qeueued entries" onclick="ajaxcallit('clear_queue')" data-success="Qeueue successfully cleared">Clear Queue</a>
                 </div>
         </div>
 </%def>
@@ -20,7 +21,7 @@
              <h2><center><bold>ACTIVE</bold></center></h2>
               <div id="active_message" align="center" style="display:none;">
                   <div id="amessage" align="center"></div>
-                  <div id="queuebuttons"><div id="queue_menu" style="display:none;"></br>
+                  <div id="btn_container"><div id="btn_menu" style="display:none;"></br>
                          <a id="arestartddl" name="restartddl" href="#" title="Restart stalled download" data-success="Restarted Download">Restart Download</a>
                          <a id="aresumeddl" name="resumeddl" href="#" title="Resume download" data-success="Resumed Download">Resume Download</a>
                          <a id="aabortddl" name="abortddl" href="#" title="Abort download" data-success="Aborted Download">Abort Download</a>
@@ -30,7 +31,7 @@
                <table width="100%" cellpadding="5" cellspacing="5">
                <tbody>
                   <div style="display: flex; justify-content: flex-end">
-                  <div id="queuebuttons"><div id="queue_menu">
+                  <div id="btn_container"><div id="btn_menu">
                          <a id="qrestartddl" name="restartddl" href="#" title="Restart stalled download" data-success="Restarted Download">Restart Download</a></br>
                          <a id="qresumeddl" name="resumeddl" href="#" title="Resume download" data-success="Resumed Download">Resume Download</a></br>
                          <a id="qabortddl" name="abortddl" href="#" title="Abort download" data-success="Aborted Download">Abort Download</a>
@@ -73,7 +74,7 @@
 </%def>
 
 <%def name="headIncludes()">
-        <link rel="stylesheet" href="interfaces/default/css/data_table.css">
+        <link rel="stylesheet" href="interfaces/${interface}/css/data_table.css">
 
 </%def>
 
@@ -104,7 +105,7 @@
                             document.getElementById("filename").innerHTML = obj['a_filename'];
                             document.getElementById("size").innerHTML = obj['a_size'];
                             document.getElementById("status").innerHTML = status;
-                            qmm = document.getElementById("queue_menu");
+                            qmm = document.getElementById("btn_menu");
                             qmm.style.display = "inline-block";
                             $("#qrestartddl").attr('onClick', "ajaxcallit('restart', '"+aid+"')");
                             $("#qresumeddl").attr('onClick', "ajaxcallit('resume', '"+aid+"')");
@@ -115,7 +116,7 @@
                             acq = document.getElementById("active_queue");
                             acq.style.display = "none";
                             document.getElementById("amessage").innerHTML = status;
-                            qmm = document.getElementById("queue_menu");
+                            qmm = document.getElementById("btn_menu");
                             qmm.style.display = "inline-block";
                             $("#arestartddl").attr('onClick', "ajaxcallit('restart', '"+aid+"')");
                             $("#aresumeddl").attr('onClick', "ajaxcallit('resume', '"+aid+"')");
@@ -125,7 +126,7 @@
                             acm.style.display = "inline-block";
                             acq = document.getElementById("active_queue");
                             acq.style.display = "none";
-                            qmm = document.getElementById("queue_menu");
+                            qmm = document.getElementById("btn_menu");
                             qmm.style.display = "none";
                             document.getElementById("amessage").innerHTML = status;
                         }
@@ -155,16 +156,19 @@
                        $('#ajaxMsg').html("<div class='msg'><span class='ui-icon ui-icon-check'></span>"+objd['message']+"</div>");
                    } else if (qmode == 'restart-queue') {
                        $('#ajaxMsg').html("<div class='msg'><span class='ui-icon ui-icon-check'></span>"+objd['message']+"</div>");
+                   } else if (qmode == 'clear_queue') {
+                       $('#ajaxMsg').html("<div class='msg'><span class='ui-icon ui-icon-check'></span>"+objd['message']+"</div>");
                    }
+
             });
             $('#ajaxMsg').addClass('success').fadeIn().delay(3000).fadeOut();
             $('#queue_table').DataTable().ajax.reload(null, false);
         };
         function initThisPage() {
             initActions();
-            $("#queuebuttons #queue_menu #arestartddl, #qrestartddl").button({ icons: { primary: "ui-icon-refresh" }  });
-            $("#queuebuttons #queue_menu #aresumeddl, #qresumeddl").button({ icons: { primary: "ui-icon-pencil" }  });
-            $("#queuebuttons #queue_menu #aabortddl, #qabortddl").button({ icons: { primary: "ui-icon-pencil" }  });
+            $("#btn_container #btn_menu #arestartddl, #qrestartddl").button({ icons: { primary: "ui-icon-refresh" }  });
+            $("#btn_container #btn_menu #aresumeddl, #qresumeddl").button({ icons: { primary: "ui-icon-pencil" }  });
+            $("#btn_container #btn_menu #aabortddl, #qabortddl").button({ icons: { primary: "ui-icon-pencil" }  });
             if ( $.fn.dataTable.isDataTable( '#queue_table' ) ) {
                 $('#queue_table').DataTable().ajax.reload(null, false);
             } else {
@@ -222,7 +226,7 @@
                          if (aData[4] === "Completed") {
                             $('td', nRow).closest('tr').addClass("gradeA");
                          } else if (aData[4] === "Queued") {
-                            $('td', nRow).closest('tr').addClass("gradeL");
+                            $('td', nRow).closest('tr').addClass("gradeC");
                          } else if (aData[4] === "Incomplete" || aData[4] == "Failed") {
                             $('td', nRow).closest('tr').addClass("gradeX");
                          }

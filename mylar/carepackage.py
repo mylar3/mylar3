@@ -1,5 +1,6 @@
 import sys
 import os
+import re
 import platform
 import subprocess
 import mylar
@@ -64,7 +65,8 @@ class carePackage(object):
                             ('AutoSnatch', 'pp_sshpasswd'),
                             ('AutoSnatch', 'pp_sshport'),
                             ('Email', 'email_password'),
-                            ('Email', 'email_user')
+                            ('Email', 'email_user'),
+                            ('DISCORD', 'discord_webhook_url')
                             }
         self.hostname_list = {
                             ('SABnzbd', 'sab_host'),
@@ -89,7 +91,8 @@ class carePackage(object):
         f = open(self.filename, "w+")
 
         f.write("Mylar host information:\n")
-        if platform.system() == 'Windows':
+        match = re.search('Windows', platform.system(), re.IGNORECASE)
+        if match:
             objline = ['systeminfo']
         else:
             objline = ['uname', '-a']
@@ -160,20 +163,23 @@ class carePackage(object):
                     if tmpkey not in self.keylist:
                         self.keylist.append(tmpkey)
                     tmpconfig.set(v[0], v[1], 'xXX[REMOVED]XXx')
-            except configparser.NoSectionError as e:
+            except (configparser.NoSectionError, configparser.NoOptionError) as e:
                 pass
 
         for h in self.hostname_list:
-            hkey = tmpconfig.get(h[0], h[1])
-            if all([hkey is not None, hkey != 'None']):
-                if hkey[:5] == '^~$z$':
-                    hk = encrypted.Encryptor(hkey)
-                    hk_stat = tk.decrypt_it()
-                    if tk_stat['status'] is True and 'username' not in h[1]:
-                        hkey = hk_stat['password']
-                if hkey not in self.keylist:
-                    self.keylist.append(hkey)
-                tmpconfig.set(h[0], h[1], 'xXX[REMOVED]XXx')
+            try:
+                hkey = tmpconfig.get(h[0], h[1])
+                if all([hkey is not None, hkey != 'None']):
+                    if hkey[:5] == '^~$z$':
+                        hk = encrypted.Encryptor(hkey)
+                        hk_stat = tk.decrypt_it()
+                        if tk_stat['status'] is True and 'username' not in h[1]:
+                            hkey = hk_stat['password']
+                    if hkey not in self.keylist:
+                        self.keylist.append(hkey)
+                    tmpconfig.set(h[0], h[1], 'xXX[REMOVED]XXx')
+            except (configparser.NoSectionError, configparser.NoOptionError) as e:
+                pass
 
         extra_newznabs = list(zip(*[iter(tmpconfig.get('Newznab', 'extra_newznabs').split(', '))]*6))
         extra_torznabs = list(zip(*[iter(tmpconfig.get('Torznab', 'extra_torznabs').split(', '))]*5))
@@ -277,8 +283,13 @@ class carePackage(object):
                     with open(fname, 'r') as f:
                         line = f.readline()
                         while line:
+                            if mylar.KEYS_32P is not None:
+                                if mylar.KEYS_32P['auth'] in line:
+                                    line = line.replace(mylar.KEYS_32P['auth'], '-REDACTED-')
+                                if mylar.KEYS_32P['authkey'] in line:
+                                    line = line.replace(mylar.KEYS_32P['authkey'], '-REDACTED-')
                             for keyed in self.keylist:
-                                if keyed in line and len(keyed) > 0:
+                                if keyed in line and len(keyed) > 0 and (len(keyed) > 4 and not keyed.isdigit()):
                                     cnt+=1
                                     line = line.replace(keyed, '-REDACTED-')
                             output.write(line)
@@ -293,12 +304,13 @@ class carePackage(object):
                     except Exception as e:
                         logger.warn(e)
                     else:
+                        output.close()
                         os.unlink(filename)
 
         try:
-            os.rmdir(os.path.join(mylar.CONFIG.LOG_DIR, 'carepackage'))
-        except:
-            pass
+            shutil.rmtree(caredir)
+        except Exception as e:
+            logger.warn('Error logged trying to remove temporary carepackage directory: %s' % e)
 
         os.unlink(self.filename)
         os.unlink(self.cleanpath)

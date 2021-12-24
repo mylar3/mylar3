@@ -1,5 +1,4 @@
-# -*- coding: utf-8 -*-
-
+#-# -*- coding: utf-8 -*-
 #  This file is part of Mylar.
 #
 #  Mylar is free software: you can redistribute it and/or modify
@@ -16,11 +15,13 @@
 #  along with Mylar.  If not, see <http://www.gnu.org/licenses/>.
 
 import mylar
-from mylar import db, mb, importer, search, process, versioncheck, logger, webserve, helpers, encrypted
+from mylar import db, mb, importer, search, process, versioncheck, logger, webserve, helpers, encrypted, series_metadata
 import json
 import cherrypy
 import random
 import os
+import re
+import shutil
 import urllib.request, urllib.error, urllib.parse
 from . import cache
 import imghdr
@@ -30,10 +31,12 @@ import datetime
 
 cmd_list = ['getIndex', 'getComic', 'getUpcoming', 'getWanted', 'getHistory',
             'getLogs', 'getAPI', 'clearLogs','findComic', 'addComic', 'delComic',
-            'pauseComic', 'resumeComic', 'refreshComic', 'addIssue',
-            'queueIssue', 'unqueueIssue', 'forceSearch', 'forceProcess',
-            'getVersion', 'checkGithub','shutdown', 'restart', 'update',
+            'pauseComic', 'resumeComic', 'refreshComic', 'addIssue', 'recheckFiles',
+            'queueIssue', 'unqueueIssue', 'forceSearch', 'forceProcess', 'changeStatus',
+            'getVersion', 'checkGithub','shutdown', 'restart', 'update', 'changeBookType',
             'getComicInfo', 'getIssueInfo', 'getArt', 'downloadIssue',
+            'refreshSeriesjson', 'seriesjsonListing', 'checkGlobalMessages',
+            'listProviders', 'changeProvider', 'addProvider', 'delProvider',
             'downloadNZB', 'getReadList', 'getStoryArc', 'addStoryArc']
 
 class Api(object):
@@ -52,6 +55,7 @@ class Api(object):
         self.callback = None
         self.apitype = None
         self.comicrn = False
+        self.headers = "application/json"
 
     def _failureResponse(self, errorMessage, code = API_ERROR_CODE_DEFAULT):
         response = {
@@ -61,15 +65,53 @@ class Api(object):
                 'message': errorMessage
             }
         }
-        cherrypy.response.headers['Content-Type'] = "application/json"
+        cherrypy.response.headers['Content-Type'] = self.headers
         return json.dumps(response)
+
+    def _eventStreamResponse(self, results):
+        #data = 'retry: 200\ndata: ' + str( self.prog_output) + '\n\n'
+        #response = {
+        #    'success': True,
+        #    'data': results
+        #}
+        #{'status': mylar.GLOBAL_MESSAGES['status'], 'comicid': mylar.GLOBAL_MESSAGES['comicid'], 'tables': mylar.GLOBAL_MESSAGES['tables'], 'message': mylar.GLOBAL_MESSAGES['message']}
+        if results['status'] is not None:
+            if results['event'] == 'addbyid':
+                try:
+                    data = '\nevent: addbyid\ndata: {\ndata: "status": "' + results['status'] + '",\ndata: "comicid": "' + results['comicid']+ '",\ndata: "message": "' + results['message'] + '",\ndata: "tables": "' + results['tables'] + '",\ndata: "comicname": "' + results['comicname'] + + '",\ndata: "seriesyear": "' + results['seriesyear'] + '"\ndata: }\n\n'
+                except Exception:
+                    data = '\nevent: addbyid\ndata: {\ndata: "status": "' + results['status'] + '",\ndata: "comicid": "' + results['comicid']+ '",\ndata: "message": "' + results['message'] + '",\ndata: "tables": "' + results['tables'] + '"\ndata: }\n\n'
+            elif results['event'] == 'scheduler_message':
+                try:
+                    data = '\nevent: scheduler_message\ndata: {\ndata: "status": "' + results['status'] + '",\ndata: "message": "' + results['message'] + '"\ndata: }\n\n'
+                except Exception:
+                    data = '\nevent: scheduler_message\ndata: {\ndata: "status": "' + results['status'] + '",\ndata: "message": "' + results['message'] + '"\ndata: }\n\n'
+            elif results['event'] == 'shutdown':
+                try:
+                    data = '\nevent: shutdown\ndata: {\ndata: "status": "' + results['status'] + '",\ndata: "message": "' + results['message'] + '"\ndata: }\n\n'
+                except Exception:
+                    data = '\nevent: shutdown\ndata: {\ndata: "status": "' + results['status'] + '",\ndata: "message": "' + results['message'] + '"\ndata: }\n\n'
+            else:
+                try:
+                    data = '\ndata: {\ndata: "status": "' + results['status'] + '",\ndata: "comicid": "' + results['comicid']+ '",\ndata: "message": "' + results['message'] + '",\ndata: "tables": "' + results['tables'] + '",\ndata: "comicname": "' + results['comicname'] + '",\ndata: "seriesyear": "' + results['seriesyear'] + '"\ndata: }\n\n'
+                except Exception as e:
+                    logger.warn('data_error: %s' % e)
+                    data = '\ndata: {\ndata: "status": "' + results['status'] + '",\ndata: "comicid": "' + results['comicid']+ '",\ndata: "message": "' + results['message'] + '",\ndata: "tables": "' + results['tables'] + '"\ndata: }\n\n'
+
+            #data = 'retry: 5000\ndata: '+str(results['message'])+'\n\n' # + str(results['message']) + '\n\n'
+        else:
+            data = '\ndata: \n\n' #'data: END-OF-STREAM\n\n'
+        cherrypy.response.headers['Content-Type'] = 'text/event-stream'
+        cherrypy.response.headers['Cache-Control'] = 'no-cache'
+        cherrypy.response.headers['Connection'] = 'keep-alive'
+        return data
 
     def _successResponse(self, results):
         response = {
             'success': True,
             'data': results
         }
-        cherrypy.response.headers['Content-Type'] = "application/json"
+        cherrypy.response.headers['Content-Type'] = self.headers
         return json.dumps(response)
 
     def _resultsFromQuery(self, query):
@@ -96,11 +138,11 @@ class Api(object):
             self.apitype = 'normal'
         else:
             if not mylar.CONFIG.API_ENABLED:
-                if kwargs['apikey'] != mylar.DOWNLOAD_APIKEY:
+                if kwargs['apikey'] != mylar.DOWNLOAD_APIKEY and kwargs['apikey'] != mylar.SSE_KEY:
                     self.data = self._failureResponse('API not enabled')
                     return
 
-            if kwargs['apikey'] != mylar.CONFIG.API_KEY and all([kwargs['apikey'] != mylar.DOWNLOAD_APIKEY, mylar.DOWNLOAD_APIKEY != None]):
+            if kwargs['apikey'] != mylar.CONFIG.API_KEY and all([kwargs['apikey'] != mylar.SSE_KEY, kwargs['apikey'] != mylar.DOWNLOAD_APIKEY, mylar.DOWNLOAD_APIKEY != None]):
                 self.data = self._failureResponse('Incorrect API key')
                 return
             else:
@@ -108,10 +150,11 @@ class Api(object):
                     self.apitype = 'normal'
                 elif kwargs['apikey'] == mylar.DOWNLOAD_APIKEY:
                     self.apitype = 'download'
-                logger.fdebug('Matched to key. Api set to : ' + self.apitype + ' mode.')
+                elif kwargs['apikey'] == mylar.SSE_KEY:
+                    self.apitype = 'sse'
                 self.apikey = kwargs.pop('apikey')
 
-            if not([mylar.CONFIG.API_KEY, mylar.DOWNLOAD_APIKEY]):
+            if not([mylar.CONFIG.API_KEY, mylar.DOWNLOAD_APIKEY, mylar.SSE_KEY]):
                 self.data = self._failureResponse('API key not generated')
                 return
 
@@ -122,11 +165,15 @@ class Api(object):
                 if self.apitype == 'download' and len(mylar.DOWNLOAD_APIKEY) != 32:
                     self.data = self._failureResponse('Download API key not generated correctly')
                     return
+                if self.apitype == 'sse' and len(mylar.SSE_KEY) != 32:
+                    self.data = self._failureResponse('SSE-API key not generated correctly')
+                    return
+
             else:
                 self.data = self._failureResponse('API key not generated correctly')
                 return
 
-        if kwargs['cmd'] not in cmd_list:
+        if kwargs['cmd'] not in cmd_list or (kwargs['cmd'] == 'checkGlobalMessags' and all([kwargs['apikey'] != mylar.SSE_KEY, self.apiktype != 'sse'])):
             self.data = self._failureResponse('Unknown command: %s' % kwargs['cmd'])
             return
         else:
@@ -138,7 +185,8 @@ class Api(object):
     def fetchData(self):
 
         if self.data == 'OK':
-            logger.fdebug('Received API command: ' + self.cmd)
+            if self.cmd != 'checkGlobalMessages':
+                logger.fdebug('Received API command: ' + self.cmd)
             methodToCall = getattr(self, "_" + self.cmd)
             result = methodToCall(**self.kwargs)
             if 'callback' not in self.kwargs:
@@ -210,13 +258,13 @@ class Api(object):
 
     def _getAPI(self, **kwargs):
         if 'username' not in kwargs:
-           self.data = self._failureResponse('Missing parameter: username')
+           self.data = self._failureResponse('Missing parameter: username & password MUST be enabled.')
            return
         else:
             username = kwargs['username']
 
         if 'password' not in kwargs:
-           self.data = self._failureResponse('Missing parameter: password')
+           self.data = self._failureResponse('Missing parameter: username & password MUST be enabled.')
            return
         else:
             password = kwargs['password']
@@ -352,11 +400,47 @@ class Api(object):
             return
         else:
             self.id = kwargs['id']
+            if self.id.startswith('4050-'):
+                self.id = re.sub('4050-', '', self.id).strip()
 
-        myDB = db.DBConnection()
-        myDB.action('DELETE from comics WHERE ComicID="' + self.id + '"')
-        myDB.action('DELETE from issues WHERE ComicID="' + self.id + '"')
-        myDB.action('DELETE from upcoming WHERE ComicID="' + self.id + '"')
+        directory_del = False
+        if 'directory' in kwargs:
+            directory_del = kwargs['directory']
+            if all([directory_del != 'true', directory_del != 'false']):
+               self.data = self._failureResponse('directory value incorrect (valid: true / false)')
+               return
+
+            if any([directory_del == 'False', directory_del == 'false']):
+               directory_del = False
+            elif any([directory_del == 'True', directory_del == 'true']):
+               directory_del = True
+            else:
+               directory_del = False  #safeguard anything else here.
+
+        try:
+            myDB = db.DBConnection()
+            delchk = myDB.selectone('SELECT ComicName, ComicYear, ComicLocation FROM comics where ComicID="' + self.id + '"').fetchone()
+            if not delchk:
+                logger.error('ComicID %s not found in watchlist.' %  self.id)
+                self.data = self._failureResponse('ComicID %s not found in watchlist.' % self.id)
+                return
+            logger.fdebug('Deletion request received for %s (%s) [%s]' % (delchk['ComicName'], delchk['ComicYear'], self.id))
+            myDB.action('DELETE from comics WHERE ComicID="' + self.id + '"')
+            myDB.action('DELETE from issues WHERE ComicID="' + self.id + '"')
+            myDB.action('DELETE from upcoming WHERE ComicID="' + self.id + '"')
+            if directory_del is True:
+                if os.path.exists(delchk['ComicLocation']):
+                    shutil.rmtree(delchk['ComicLocation'])
+                    logger.fdebug('[API-delComic] Comic Location (%s) successfully deleted' % delchk['ComicLocation'])
+                else:
+                    logger.fdebug('[API-delComic] Comic Location (%s) does not exist - cannot delete' % delchk['ComicLocation'])
+
+        except Exception as e:
+            logger.error('Unable to delete ComicID: %s. Error returned: %s' % (self.id, e))
+            self.data = self._failureResponse('Unable to delete ComicID: %s' % self.id)
+        else:
+            logger.fdebug('[API-delComic] Successfully deleted %s (%s) [%s]' % (delchk['ComicName'], delchk['ComicYear'], self.id))
+            self.data = self._successResponse('Successfully deleted %s (%s) [%s]' % (delchk['ComicName'], delchk['ComicYear'], self.id))
 
     def _pauseComic(self, **kwargs):
         if 'id' not in kwargs:
@@ -388,9 +472,164 @@ class Api(object):
             return
         else:
             self.id = kwargs['id']
+            id_list = []
+            if ',' in self.id:
+                id_list = self.id.split(',')
+
+            else:
+                id_list.append(self.id)
+
+        watch = []
+        already_added = []
+        notfound = []
+        myDB = db.DBConnection()
+        for comicid in id_list:
+            if comicid.startswith('4050-'):
+                comicid = re.sub('4050-', '', comicid).strip()
+
+            chkdb = myDB.selectone('SELECT ComicName, ComicYear FROM comics WHERE ComicID="' + comicid + '"').fetchone()
+            if not chkdb:
+                notfound.append({'comicid': comicid})
+            else:
+                if comicid not in mylar.REFRESH_QUEUE.queue: #if not any(ext['comicid'] == comicid for ext in mylar.REFRESH_LIST):
+                    watch.append({"comicid": comicid, "comicname": chkdb['ComicName']})
+                else:
+                    already_added.append({'comicid': comicid, 'comicname': chkdb['ComicName']})
+
+        if len(notfound) > 0:
+            logger.info('Unable to locate the following requested ID\'s for Refreshing: %s' % (notfound,))
+            self.data = self._successResponse('Unable to locate the following ID\'s for Refreshing (%s)' % (notfound,))
+        if len(already_added) == 1:
+            self.data = self._successResponse('[%s] %s has already been queued for refresh in a queue of %s items.' % (already_added[0]['comicid'], already_added[0]['comicname'], mylar.REFRESH_QUEUE.qsize()))
+        elif len(already_added) > 1:
+            self.data = self._successResponse('%s items (%s) have already been queued for refresh in a queue of % items.' % (len(already_added), already_added, mylar.REFRESH_QUEUE.qsize()))
+
+        if len(watch) == 1:
+            logger.info('[SHIZZLE-WHIZZLE] Now queueing to refresh %s %s' % (chkdb['ComicName'], chkdb['ComicYear']))
+        elif len(watch) > 1:
+            logger.info('[SHIZZLE-WHIZZLE] Now queueing to refresh %s items (%s)' % (len(watch), watch))
+        else:
+            return
 
         try:
-            importer.addComictoDB(self.id)
+            refred = importer.refresh_thread(watch)
+        except Exception as e:
+            logger.warn('[API-refreshComic] Unable to refresh ComicID %s. Error returned: %s' % (self.id, e))
+            return
+        else:
+            if len(watch) == 1:
+                ref_line = 'for ComicID %s' % (self.id)
+            else:
+                ref_line = 'for %s items (%s)' % (len(watch), watch)
+
+            logger.warn('[API-refreshComic] Successfully background submitted refresh %s' % (ref_line))
+            self.data = self._successResponse('Refresh successfully submitted %s.' % (self.id, ref_line))
+
+        return
+
+    def _changeBookType(self, **kwargs):
+        #change booktype of series
+        #id = comicid
+        #booktype = specified booktype to force to (Print, Digital, TPB, GN, HC, One-Shot)
+        if 'id' not in kwargs:
+            self.data = self._failureResponse('Missing ComicID (field: id)')
+            return
+        self.id = kwargs['id']
+
+        if 'booktype' not in kwargs:
+            self.data = self._failureResponse('Missing BookType (field: booktype)')
+            return
+        booktype = kwargs['booktype']
+
+        if booktype.lower() not in ['hc','gn','tpb','print','one-shot','digital']:
+            self.data = self._failureResponse('Missing BookType format (allowed values: TPB, GN, HC, Print, One-Shot, Digital)')
+            return
+        else:
+            booktype = booktype.lower()
+
+        myDB = db.DBConnection()
+        btresp = myDB.selectone('SELECT ComicName, ComicYear, Type, Corrected_Type FROM Comics WHERE ComicID="' + self.id +'"').fetchone()
+        if not btresp:
+            self.data = self._failureResponse('Unable to locate ComicID %s within watchlist' % self.id)
+            return
+        else:
+            if btresp['Corrected_Type'] is not None:
+                if btresp['Corrected_Type'].lower() == booktype:
+                    self.data = self._successResponse('[%s] Forced Booktype is already set as %s.' % (self.id, booktype))
+                    return
+                if btresp['Type'].lower() == booktype and btresp['Corrected_Type'] == booktype:
+                    self.data = self._successResponse('[%s] Booktype is already set as %s.' % (self.id, booktype))
+                    return
+
+            for bt in ['HC', 'GN', 'TPB', 'One-Shot', 'Digital', 'Print']:
+                if bt.lower() == booktype:
+                    booktype = bt
+                    break
+
+            try:
+                newValue = {'Corrected_Type': booktype}
+                newWrite = {'ComicID': self.id}
+                myDB.upsert("comics", newValue, newWrite)
+            except Exception as e:
+                self.data = self._failureResponse('[%s] Unable to update Booktype for ComicID: %s. Error returned: %s' % (self.id, e))
+                return
+            else:
+                self.data = self._successResponse('[%s] Updated Booktype to %s.' % (self.id, booktype))
+                return
+
+    def _changeStatus(self, **kwargs):
+        #change status_from of every issue in series to specified status_to
+        #if no comicid specified will mark ALL issues in EVERY series from status_from to specific status_to
+        #required fields: status_to, status_from. Optional: id  (which is the ComicID if applicable)
+        if all(['status_to' not in kwargs, 'status_from' not in kwargs]):
+            self.data = self._failureResponse('Missing Status')
+            return
+        else:
+            self.status_to = kwargs['status_to']
+            self.status_from = kwargs['status_from']
+
+        if 'id' not in kwargs:
+            self.data = self._failureResponse('Missing ComicID (field: id)')
+            return
+        else:
+            self.id = kwargs['id']
+            if self.id == 'All':
+                bulk = True
+            else:
+                bulk = False
+                self.id = kwargs['id']
+                if type(self.id) is list:
+                    bulk = True
+
+        logger.info('[BULK:%s] [%s --> %s] ComicIDs to Change Status: %s' % (bulk, self.status_from, self.status_to, self.id))
+
+        try:
+            self.data = helpers.statusChange(self.status_from, self.status_to, self.id, bulk=bulk, api=True)
+        except Exception as e:
+            logger.error('[ERROR] %s' % e)
+            self.data = e
+
+        return
+
+    def _recheckFiles(self, **kwargs):
+        #allow either individual / bulk recheck Files based on ComiciD
+        #multiples are allowed as long as in a list: {'id': ['100101', '101010', '20181', '47101']}
+        if 'id' not in kwargs:
+            self.data = self._failureResponse('Missing ComicID')
+            return
+        else:
+            self.id = kwargs['id']
+
+        if type(self.id) != list:
+            bulk = False
+        else:
+            bulk = True
+
+        logger.info('[BULK:%s] ComicIDs to ReCheck: %s' % (bulk, self.id))
+
+        try:
+            fc = webserve.WebInterface()
+            self.data = fc.forceRescan(ComicID=self.id, bulk=bulk, api=True)
         except Exception as e:
             self.data = e
 
@@ -434,6 +673,67 @@ class Api(object):
         controlValueDict = {'IssueID': self.id}
         newValueDict = {'Status': 'Skipped'}
         myDB.upsert("issues", newValueDict, controlValueDict)
+
+    def _seriesjsonListing(self, **kwargs):
+        if 'missing' in kwargs:
+            json_present = "WHERE seriesjsonPresent = 0 OR seriesjsonPresent is NULL"
+        else:
+            json_present = None
+        myDB = db.DBConnection()
+        msj_query = 'SELECT comicid, ComicLocation FROM comics {json_present}'.format(
+            json_present=json_present
+        )
+        results = self._resultsFromQuery(msj_query)
+        if len(results) > 0:
+            self.data = self._successResponse(
+                results
+            )
+        else:
+            self.data = self._failureResponse('no data returned from seriesjson query')
+
+    def _refreshSeriesjson(self, **kwargs):
+        # comicid = [list, comicid, 'missing', 'all', 'refresh-missing']
+        if 'comicid' not in kwargs:
+            self.data = self._failureResponse('Missing comicid')
+            return
+        else:
+            missing = False
+            refresh_missing = False
+            self.id = kwargs['comicid']
+            if any([self.id == 'missing', self.id == 'all', self.id == 'refresh-missing']):
+                bulk = True
+                if any([self.id == 'missing', self.id == 'refresh-missing']):
+                    if self.id == 'refresh-missing':
+                        refresh_missing = True
+                    missing = True
+                    self._seriesjsonListing(missing=True)
+                else:
+                    self._seriesjsonListing()
+                toqy = json.loads(self.data)
+                if toqy['success'] is True:
+                    toquery = []
+                    for x in toqy['data']:
+                        toquery.append(x['ComicID'])
+                else:
+                    self.data = self._failureResponse('No seriesjson data returned from query.')
+                    return
+            else:
+                bulk = False
+                if type(self.id) is list:
+                    bulk = True
+                toquery = self.id
+
+        logger.info('[API][Refresh-Series.json][BULK:%s][Only_Missing:%s] ComicIDs to refresh series.json files: %s' % (bulk, missing, len(toquery)))
+
+        try:
+            sm = series_metadata.metadata_Series(comicidlist=toquery, bulk=bulk, api=True, refreshSeries=refresh_missing)
+            sm.update_metadata_thread()
+        except Exception as e:
+            logger.error('[ERROR] %s' % e)
+            self.data = e
+
+        return
+
 
     def _forceSearch(self, **kwargs):
         search.searchforissue()
@@ -495,12 +795,22 @@ class Api(object):
         else:
             ddl = True
 
+        if 'oneoff' not in kwargs:
+            oneoff = False
+        else:
+            if kwargs['oneoff'] == 'True':
+                oneoff = True
+            else:
+                oneoff = False
+
+
         if 'apc_version' not in kwargs:
             logger.info('Received API Request for PostProcessing %s [%s]. Queueing...' % (self.nzb_name, self.nzb_folder))
             mylar.PP_QUEUE.put({'nzb_name':    self.nzb_name,
                                 'nzb_folder':  self.nzb_folder,
                                 'issueid':     issueid,
                                 'failed':      failed,
+                                'oneoff':      oneoff,
                                 'comicid':     comicid,
                                 'apicall':     True,
                                 'ddl':         ddl})
@@ -561,7 +871,17 @@ class Api(object):
         else:
             self.id = kwargs['id']
 
-        self.data = cache.getInfo(ComicID=self.id)
+        query = '{select} WHERE ComicID = {comic_id}'.format(
+            select=self._selectForComics(),
+            comic_id=self.id
+        )
+        results = self._resultsFromQuery(query)
+        if len(results) == 1:
+            self.data = self._successResponse(
+                results
+            )
+        else:
+            self.data = self._failureResponse('No comic found with that ID')
 
     def _getIssueInfo(self, **kwargs):
         if 'id' not in kwargs:
@@ -570,7 +890,17 @@ class Api(object):
         else:
             self.id = kwargs['id']
 
-        self.data = cache.getInfo(IssueID=self.id)
+        query = '{select} WHERE IssueID = {issue_id}'.format(
+            select=self._selectForIssues(),
+            issue_id=self.id
+        )
+        results = self._resultsFromQuery(query)
+        if len(results) == 1:
+            self.data = self._successResponse(
+                results
+            )
+        else:
+            self.data = self._failureResponse('No issue found with that ID')
 
     def _getArt(self, **kwargs):
         if 'id' not in kwargs:
@@ -613,7 +943,7 @@ class Api(object):
             else:
                 self.data = self._failureResponse('Failed to return a image')
 
-    def _findComic(self, name, issue=None, type_=None, mode=None, explisit=None, serinfo=None):
+    def _findComic(self, name, issue=None, type_=None, mode=None, serinfo=None):
         # set defaults
         if type_ is None:
             type_ = 'comic'
@@ -626,13 +956,13 @@ class Api(object):
             return
 
         if type_ == 'comic' and mode == 'series':
-            searchresults, explisit = mb.findComic(name, mode, issue=issue)
+            searchresults = mb.findComic(name, mode, issue=issue)
         elif type_ == 'comic' and mode == 'pullseries':
-            pass
+            searchresults = mb.findComic(name, mode, issue=issue)
         elif type_ == 'comic' and mode == 'want':
-            searchresults, explisit = mb.findComic(name, mode, issue)
+            searchresults = mb.findComic(name, mode, issue=issue)
         elif type_ == 'story_arc':
-            searchresults, explisit = mb.findComic(name, mode, issue=None, explisit='explisit', type='story_arc')
+            searchresults = mb.findComic(name, mode, issue=None, search_type='story_arc')
 
         searchresults = sorted(searchresults, key=itemgetter('comicyear', 'issues'), reverse=True)
         self.data = searchresults
@@ -662,11 +992,20 @@ class Api(object):
             comiclocation = comic.get('ComicLocation')
             f = os.path.join(comiclocation, issuelocation)
             if not os.path.isfile(f):
-                if mylar.CONFIG.MULTIPLE_DEST_DIRS is not None and mylar.CONFIG.MULTIPLE_DEST_DIRS != 'None':
-                    pathdir = os.path.join(mylar.CONFIG.MULTIPLE_DEST_DIRS, os.path.basename(comiclocation))
-                    f = os.path.join(pathdir, issuelocation)
-                    self.file = f
-                    self.filename = issuelocation
+                try:
+                    if all([mylar.CONFIG.MULTIPLE_DEST_DIRS is not None, mylar.CONFIG.MULTIPLE_DEST_DIRS != 'None']):
+                        if os.path.exists(os.path.join(mylar.CONFIG.MULTIPLE_DEST_DIRS, os.path.basename(comiclocation))):
+                            secondary_folders = os.path.join(mylar.CONFIG.MULTIPLE_DEST_DIRS, os.path.basename(comiclocation))
+                        else:
+                            ff = mylar.filers.FileHandlers(ComicID=issue['ComicID'])
+                            secondary_folders = ff.secondary_folders(comiclocation)
+
+                        f = os.path.join(secondary_folders, issuelocation)
+                        self.file = f
+                        self.filename = issuelocation
+
+                except Exception:
+                    pass
             else:
                 self.file = f
                 self.filename = issuelocation
@@ -741,6 +1080,524 @@ class Api(object):
         wi = webserve.WebInterface()
         logger.info("arclist: %s - arcid: %s - storyarcname: %s - storyarcissues: %s" % (arclist, self.id, storyarcname, issuecount))
         wi.addStoryArc_thread(arcid=self.id, storyarcname=storyarcname, storyarcissues=issuecount, arclist=arclist, **kwargs)
+        return
+
+    def _checkGlobalMessages(self, **kwargs):
+        the_message = {'status': None, 'event': None, 'comicname': None, 'seriesyear': None, 'comicid': None, 'tables': None, 'message': None}
+        if mylar.GLOBAL_MESSAGES is not None:
+            try:
+                event = mylar.GLOBAL_MESSAGES['event']
+            except Exception:
+                event = None
+
+            if event is not None and event == 'shutdown':
+                the_message = {'status': mylar.GLOBAL_MESSAGES['status'], 'event': event, 'message': mylar.GLOBAL_MESSAGES['message']}
+            else:
+                the_message = {'status': mylar.GLOBAL_MESSAGES['status'], 'event': event, 'comicid': mylar.GLOBAL_MESSAGES['comicid'], 'tables': mylar.GLOBAL_MESSAGES['tables'], 'message': mylar.GLOBAL_MESSAGES['message']}
+                try:
+                    the_fields = {'comicname': mylar.GLOBAL_MESSAGES['comicname'], 'seriesyear': mylar.GLOBAL_MESSAGES['seriesyear']}
+                    the_message = dict(the_message, **the_fields)
+                except Exception as e:
+                    logger.warn('error: %s' % e)
+            #logger.fdebug('the_message added: %s' % (the_message,))
+            mylar.GLOBAL_MESSAGES = None
+        self.data = self._eventStreamResponse(the_message)
+
+    def _listProviders(self, **kwargs):
+        try:
+            newznabs = []
+            for nz in mylar.CONFIG.EXTRA_NEWZNABS:
+                uid = nz[4]
+                if '#' in nz[4]:
+                    cats = re.sub('#', ',', nz[4][nz[4].find('#')+1:].strip()).strip()
+                    uid = nz[4][:nz[4].find('#')].strip()
+                else:
+                    cats = None
+                newznabs.append({'name': nz[0],
+                                 'host': nz[1],
+                                 'apikey': nz[3],
+                                 'categories': cats,
+                                 'uid': uid,
+                                 'enabled': bool(int(nz[5])),
+                                 'id': int(nz[6])})
+            torznabs= []
+            for nz in mylar.CONFIG.EXTRA_TORZNABS:
+                cats = nz[4]
+                if '#' in nz[4]:
+                    cats = re.sub('#', ',', nz[4]).strip()
+                torznabs.append({'name': nz[0],
+                                 'host': nz[1],
+                                 'apikey': nz[3],
+                                 'categories': nz[4],
+                                 'enabled': bool(int(nz[5])),
+                                 'id': int(nz[6])})
+
+            providers = {'newznabs': newznabs, 'torznabs': torznabs}
+        except Exception as e:
+            self.data = self._failureResponse(e)
+        else:
+            self.data = self._successResponse(providers)
+        return
+
+    def _addProvider(self, **kwargs):
+        if 'providertype' not in kwargs:
+            self.data = self._failureResponse('No provider type provided')
+            logger.fdebug('[API][addProvider] %s' % (self.data,))
+            return
+        else:
+            providertype = kwargs['providertype']
+            if all([providertype != 'newznab', providertype != 'torznab']):
+                self.data = self._failureResponse('providertype indicated %s is not a valid option. Options are `newznab` or `torznab`.' % providertype)
+                logger.fdebug('[API][addProvider] %s' % (self.data,))
+                return
+
+        if any(['host' not in kwargs, 'name' not in kwargs, 'prov_apikey' not in kwargs, 'enabled' not in kwargs]):
+            if providertype == 'newznab':
+                self.data = self._failureResponse('Missing arguement. Required arguements are: `name`, `host`, `prov_apikey`, `enabled`. `categories` & `uid` is optional but `uid` is required for RSS.')
+            elif providertype == 'torznab':
+                self.data = self._failureResponse('Missing arguement. Required arguements are: `name`, `host`, `prov_apikey`, `categories`, `enabled.`')
+                logger.fdebug('[API][addProvider] %s' % (self.data,))
+            return
+
+        if providertype == 'newznab':
+            if 'name' in kwargs:
+                newznab_name = kwargs['name']
+                if any([newznab_name is None, newznab_name.strip() == '']):
+                    self.data = self._failureResponse('name given for provider cannot be None or blank')
+                    logger.fdebug('[API][addProvider] %s' % (self.data,))
+                    return
+                for x in mylar.CONFIG.EXTRA_NEWZNABS:
+                    if x[0].lower() == newznab_name.lower():
+                        self.data = self._failureResponse('%s already exists as a provider.' % newznab_name)
+                        logger.fdebug('[API][addProvider] %s' % (self.data,))
+                        return
+
+            if 'host' in kwargs:
+                newznab_host = kwargs['host']
+                if not newznab_host.startswith('http'):
+                    self.data = self._failureResponse('protocol is required for % host entry' % providertype)
+                    logger.fdebug('[API][addProvider] %s' % (self.data,))
+                    return
+                if newznab_host.startswith('https'):
+                    newznab_verify = '1'
+                else:
+                    newznab_verify = '0'
+            if 'prov_apikey' in kwargs:
+                newznab_apikey = kwargs['prov_apikey']
+
+            newznab_enabled = '0' # set the default to disabled.
+            if 'enabled' in kwargs:
+                newznab_enabled = '1'
+            if 'uid' in kwargs:
+                newznab_uid = kwargs['uid']
+            else:
+                newznab_uid = None
+
+            if 'categories' in kwargs:
+                newznab_categories = kwargs['categories']
+                if newznab_uid is not None:
+                    newznab_uid += '%s%s'.strip() % ('#', re.sub(',', '#', newznab_categories))
+                else:
+                    newznab_uid = '%s%s'.strip() % ('#', re.sub(',', '#', newznab_categories))
+
+            #prov_id assignment here
+            prov_id = mylar.PROVIDER_START_ID + 1
+
+            prov_line = (newznab_name, newznab_host, newznab_verify, newznab_apikey, newznab_uid, newznab_enabled, prov_id)
+            if prov_line not in mylar.CONFIG.EXTRA_NEWZNABS:
+                mylar.CONFIG.EXTRA_NEWZNABS.append(prov_line)
+            else:
+                self.data = self._failureResponse('exact details belong to another provider id already [%]. Maybe you should be using changeProvider' % prov_id)
+                logger.fdebug('[API][addProvider] %s' % (self.data,))
+                return
+
+            p_name = newznab_name
+
+        elif providertype == 'torznab':
+            if 'name' in kwargs:
+                torznab_name = kwargs['name']
+                if any([torznab_name is None, torznab_name.strip() == '']):
+                    self.data = self._failureResponse('name given for provider cannot be None or blank')
+                    logger.fdebug('[API][addProvider] %s' % (self.data,))
+                    return
+                for x in mylar.CONFIG.EXTRA_TORZNABS:
+                    if x[0].lower() == torznab_name.lower():
+                        self.data = self._failureResponse('%s already exists as a provider.' % torznab_name)
+                        logger.fdebug('[API][addProvider] %s' % (self.data,))
+                        return
+
+            if 'host' in kwargs:
+                torznab_host = kwargs['host']
+                if not torznab_host.startswith('http'):
+                    self.data = self._failureResponse('protocol is required for % host entry' % providertype)
+                    logger.fdebug('[API][addProvider] %s' % (self.data,))
+                    return
+                if torznab_host.startswith('https'):
+                    torznab_verify = '1'
+                else:
+                    torznab_verify = '0'
+            if 'prov_apikey' in kwargs:
+                torznab_apikey = kwargs['prov_apikey']
+            torznab_enabled = '0'
+            if 'enabled' in kwargs:
+                torznab_enabled = '1'
+            if 'categories' in kwargs:
+                torznab_categories = kwargs['categories']
+                if ',' in torznab_categories:
+                    tc = torznab_categories.split(',')
+                    torznab_categories = '#'.join(tc).strip()
+
+            #prov_id assignment here
+            prov_id = mylar.PROVIDER_START_ID + 1
+
+            prov_line = (torznab_name, torznab_host, torznab_verify, torznab_apikey, torznab_categories, torznab_enabled, prov_id)
+            if prov_line not in mylar.CONFIG.EXTRA_TORZNABS:
+                mylar.CONFIG.EXTRA_TORZNABS.append(prov_line)
+            else:
+                self.data = self._failureResponse('exact details belong to another provider id already [%]. Maybe you should be using changeProvider' % prov_id)
+                logger.fdebug('[API][addProvider] %s' % (self.data,))
+                return
+
+            p_name = torznab_name
+
+        try:
+            mylar.CONFIG.writeconfig()
+        except Exception as e:
+            logger.error('[API][ADD_PROVIDER][%s] error returned : %s' % (providertype, e))
+            self.data = self._failureResponse('Unable to add %s provider %s to the provider list. Check the logs.' % (providertype, p_name))
+        else:
+            self.data = self._successResponse('Successfully added %s provider %s to the provider list [prov_id: %s]' % (providertype, p_name, prov_id))
+        return
+
+    def _delProvider(self, **kwargs):
+        providername = None
+        prov_id = None
+        if 'name' in kwargs:
+            providername = kwargs['name'].strip()
+
+        if 'prov_id' in kwargs:
+            prov_id = int(kwargs['prov_id'])
+
+        if any([providername is None, providername == '']) and prov_id is None:
+            self.data = self._failureResponse('at least one of prov_id or name must be provided (cannot be blank)')
+            logger.fdebug('[API][delProvider] %s' % (self.data,))
+            return
+
+        providertype = None
+        if 'providertype' in kwargs:
+            providertype = kwargs['providertype'].strip()
+        else:
+            self.data = self._failureResponse('No provider type provided')
+            logger.fdebug('[API][addProvider] %s' % (self.data,))
+            return
+
+        if any([providertype is None, providertype == '']) or all([providertype != 'torznab', providertype != 'newznab']):
+            if any([providertype is None, providertype == '']):
+                self.data = self._failureResponse('`providertype` cannot be None or blank (either `torznab` or `newznab`)')
+            elif all([providertype != 'torznab', providertype != 'newznab']):
+                self.data = self._failureResponse('`providertype` provided not recognized. Must be either `torznab` or `newznab`)')
+            logger.fdebug('[API][delProvider] %s' % (self.data,))
+            return
+
+        del_match = False
+        newznabs = []
+        if providertype == 'newznab':
+            if prov_id is not None:
+                prov_match = 'id'
+            else:
+                prov_match = 'name'
+            for nz in mylar.CONFIG.EXTRA_NEWZNABS:
+                if prov_match == 'id':
+                    if prov_id == nz[6]:
+                        del_match = True
+                        providername = nz[0]
+                        continue
+                    else:
+                        newznabs.append(nz)
+                else:
+                    if providername.lower() == nz[0]:
+                        del_match = True
+                        prov_id = nz[6]
+                        continue
+                    else:
+                        newznabs.append(nz)
+
+            if del_match is True:
+                mylar.CONFIG.EXTRA_NEWZNABS = ((newznabs))
+        else:
+            torznabs= []
+            if prov_id is not None:
+                prov_match = 'id'
+            else:
+                prov_match = 'name'
+            for nz in mylar.CONFIG.EXTRA_TORZNABS:
+                if prov_match == 'id':
+                    if prov_id == nz[6]:
+                        del_match = True
+                        providername = nz[0]
+                        continue
+                    else:
+                        torznabs.append(nz)
+                else:
+                    if providername.lower() == nz[0]:
+                        del_match = True
+                        prov_id = nz[6]
+                        continue
+                    else:
+                        torznabs.append(nz)
+
+            if del_match is True:
+                mylar.CONFIG.EXTRA_TORZNABS = ((torznabs))
+
+        if del_match is False:
+            self.data = self._failureResponse('Cannot remove %s as a provider, as it does not exist as a %s provider' % (providername, providertype))
+            logger.fdebug('[API][delProvider] %s' % self.data)
+            return
+        else:
+            try:
+                mylar.CONFIG.writeconfig()
+            except Exception as e:
+                logger.error('[API][ADD_PROVIDER][%s] error returned : %s' % (providertype, e))
+                self.data = self._failureResponse('Unable to save config of deleted %s provider %s. Check the logs.' % (providertype, providername))
+            else:
+                self.data = self._successResponse('Successfully removed %s provider %s [prov_id:%s]' % (providertype, providername, prov_id))
+                logger.fdebug('[API][delProvider] %s' % self.data)
+        return
+
+    def _changeProvider(self, **kwargs):
+        providername = None
+        changename = None
+        prov_id = None
+        if 'altername' in kwargs:
+            changename = kwargs.pop('altername').strip()
+            if any([changename is None, changename == '']):
+                self.data = self._failureResponse('altered name given for provider cannot be None or blank')
+                logger.fdebug('[API][changeProvider] %s' % (self.data,))
+                return
+
+        if 'prov_id' in kwargs:
+            prov_id = int(kwargs['prov_id'])
+
+        if 'name' not in kwargs:
+            if prov_id is None:
+                self.data = self._failureResponse('provider id (`prov_id`) or provider name (`name`) not given. One must be supplied.')
+                logger.fdebug('[API][changeProvider] %s' % (self.data,))
+                return
+        else:
+            providername = kwargs['name'].strip()
+            if all([providername is None, providername == '']):
+                self.data = self._failureResponse('name given for provider cannot be None or blank')
+                logger.fdebug('[API][changeProvider] %s' % (self.data,))
+                return
+
+        providertype = None
+        if 'providertype' not in kwargs:
+            self.data = self._failureResponse('No provider type provided')
+            logger.fdebug('[API][changeProvider] %s' % (self.data,))
+            return
+        else:
+            providertype = kwargs['providertype'].strip()
+            if all([providertype != 'newznab', providertype != 'torznab']):
+                self.data = self._failureResponse('providertype indicated %s is not a valid option. Options are `newznab` or `torznab`.' % providertype)
+                logger.fdebug('[API][changerovider] %s' % (self.data,))
+                return
+
+        # find the values to change.
+        if 'host' in kwargs:
+            providerhost = kwargs['host']
+            if providerhost.startswith('http'):
+                if providerhost.startswith('https'):
+                    prov_verify = '1'
+                else:
+                    prov_verify = '0'
+            else:
+                self.data = self._failureResponse('protocol is required for % host entry' % providertype)
+                logger.fdebug('[API][changeProvider] %s' % (self.data,))
+                return
+        else:
+            providerhost = None
+            prov_verify = None
+
+        if 'prov_apikey' in kwargs:
+            prov_apikey = kwargs['prov_apikey']
+        else:
+            prov_apikey = None
+
+        if 'enabled' in kwargs:
+            tmp_enable = kwargs['enabled']
+            prov_enabled = '1'
+            if tmp_enable == 'true':
+                prov_enabled = '1'
+            elif any([tmp_enable == 'false', tmp_enable is None, tmp_enable == '']):
+                prov_enabled = '0'
+            else:
+                self.data = self._failureResponse('`enabled` value must be `true`, `false` or not declared')
+                logger.fdebug('[API][changeProvider] %s' % (self.data,))
+                return
+
+        elif 'disabled' in kwargs:
+            tmp_enable = kwargs['disabled']
+            prov_enabled = '0'
+            if tmp_enable == 'true':
+                prov_enabled = '0'
+            elif any([tmp_enable == 'false', tmp_enable is None, tmp_enable == '']):
+                prov_enabled = '1'
+            else:
+                self.data = self._failureResponse('`disabled` value must be `true`, `false` or not declared')
+                logger.fdebug('[API][changeProvider] %s' % (self.data,))
+                return
+        else:
+            prov_enabled = None
+
+        torznab_categories = None
+        if 'categories' in kwargs and providertype == 'torznab':
+            torznab_categories = kwargs['categories']
+            if ',' in torznab_categories:
+                tc = torznab_categories.split(',')
+                torznab_categories = '#'.join(tc).strip()
+
+        if 'uid' in kwargs and providertype == 'newznab':
+            newznab_uid = kwargs['uid']
+        else:
+            newznab_uid = None
+
+        newznab_categories = None
+        if 'categories' in kwargs and providertype == 'newznab':
+            newznab_categories = kwargs['categories']
+            if newznab_uid is not None:
+                newznab_uid += '%s%s'.strip() % ('#', re.sub(',', '#', newznab_categories))
+            else:
+                newznab_uid = '%s%s'.strip() % ('#', re.sub(',', '#', newznab_categories))
+
+        newznabs = []
+        change_match = []
+        if providertype == 'newznab':
+            if prov_id is not None:
+                prov_match = 'id'
+            else:
+                prov_match = 'name'
+            for nz in mylar.CONFIG.EXTRA_NEWZNABS:
+                if prov_match == 'id':
+                    if nz[6] != prov_id:
+                        newznabs.append(nz)
+                        continue
+                else:
+                    if providername.lower() != nz[0].lower():
+                        newznabs.append(nz)
+                        continue
+                if not prov_id:
+                    # cannot alter prov_id via changeProvider method
+                    prov_id = nz[6]
+                if changename is not None:
+                    if providername is None:
+                        providername = changename
+                        change_match.append('name')
+                    elif providername.lower() != changename.lower():
+                        providername = changename
+                        change_match.append('name')
+                else:
+                    if providername is None:
+                        providername = nz[0]
+                    else:
+                        change_match.append('name')
+                p_host = nz[1]
+                if providerhost is not None:
+                    if p_host.lower() != providerhost.lower():
+                        p_host = providerhost
+                        change_match.append('host')
+                p_verify = nz[2]
+                if prov_verify is not None:
+                    if p_verify != prov_verify:
+                        p_verify = prov_verify
+                        change_match.append('verify')
+                p_apikey = nz[3]
+                if prov_apikey is not None:
+                    if p_apikey != prov_apikey:
+                        p_apikey = prov_apikey
+                        change_match.append('apikey')
+                p_uid = nz[4]
+                if newznab_uid is not None:
+                    if p_uid != newznab_uid:
+                        p_uid = newznab_uid
+                        change_match.append('uid')
+                p_enabled = nz[5]
+                if p_enabled != prov_enabled and prov_enabled is not None:
+                    p_enabled = prov_enabled
+                    change_match.append('enabled')
+                newznabs.append((providername, p_host, p_verify, p_apikey, p_uid, p_enabled, prov_id))
+
+            if len(change_match) > 0:
+                mylar.CONFIG.EXTRA_NEWZNABS = ((newznabs))
+        else:
+            torznabs= []
+            if prov_id is not None:
+                prov_match = 'id'
+            else:
+                prov_match = 'name'
+            for nt in mylar.CONFIG.EXTRA_TORZNABS:
+                if prov_match == 'id':
+                    if nt[6] != prov_id:
+                        torznabs.append(nt)
+                        continue
+                else:
+                    if providername.lower() != nt[0].lower():
+                        torznabs.append(nt)
+                        continue
+                if not prov_id:
+                    # cannot alter prov_id via changeProvider method
+                    prov_id = nt[6]
+                if changename is not None:
+                    if providername is None:
+                        providername = changename
+                        change_match.append('name')
+                    elif providername.lower() != changename.lower():
+                        providername = changename
+                        change_match.append('name')
+                else:
+                    if providername is None:
+                        providername = nt[0]
+                    else:
+                        change_match.append('name')
+                p_host = nt[1]
+                if providerhost is not None:
+                    if p_host.lower() != providerhost.lower():
+                        p_host = providerhost
+                        change_match.append('host')
+                p_verify = nt[2]
+                if p_verify != prov_verify and prov_verify is not None:
+                    p_verify = prov_verify
+                    change_match.append('verify')
+                p_apikey = nt[3]
+                if prov_apikey is not None:
+                    if p_apikey != prov_apikey:
+                        p_apikey = prov_apikey
+                        change_match.append('apikey')
+                p_categories = nt[4]
+                if torznab_categories is not None:
+                    if p_categories != torznab_categories:
+                        p_categories = torznab_categories
+                        change_match.append('categories')
+                p_enabled = nt[5]
+                if p_enabled != prov_enabled and prov_enabled is not None:
+                    p_enabled = prov_enabled
+                    change_match.append('enabled')
+                torznabs.append((providername, p_host, p_verify, p_apikey, p_categories, p_enabled, prov_id))
+
+            if len(change_match) > 0:
+                mylar.CONFIG.EXTRA_TORZNABS = ((torznabs))
+
+        if len(change_match) == 0:
+            self.data = self._failureResponse('Nothing to change for %s provider %s. It does not exist as a %s provider or nothing to change' % (providertype, providername, providertype))
+            logger.fdebug('[API][changeProvider] %s' % self.data)
+            return
+        else:
+            try:
+                mylar.CONFIG.writeconfig()
+            except Exception as e:
+                logger.error('[API][ADD_PROVIDER][%s] error returned : %s' % (providertype, e))
+            else:
+                self.data = self._successResponse('Successfully changed %s for %s provider %s [prov_id:%s]' % (change_match, providertype, providername, prov_id))
+                logger.fdebug('[API][changeProvider] %s' % self.data)
         return
 
 class REST(object):
