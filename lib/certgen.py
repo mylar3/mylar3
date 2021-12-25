@@ -8,8 +8,9 @@
 Certificate generation module.
 """
 
-from OpenSSL import crypto
 import time
+from OpenSSL import crypto
+
 
 TYPE_RSA = crypto.TYPE_RSA
 TYPE_DSA = crypto.TYPE_DSA
@@ -56,21 +57,25 @@ def createCertRequest(pkey, digest="md5", **name):
     req.sign(pkey, digest)
     return req
 
-def createCertificate(req, (issuerCert, issuerKey), serial, (notBefore, notAfter), digest="md5"):
+def createCertificate(req, iss_cert_key, serial, before_after, digest="md5"):
     """
     Generate a certificate given a certificate request.
 
-    Arguments: req        - Certificate reqeust to use
-               issuerCert - The certificate of the issuer
-               issuerKey  - The private key of the issuer
-               serial     - Serial number for the certificate
-               notBefore  - Timestamp (relative to now) when the certificate
-                            starts being valid
-               notAfter   - Timestamp (relative to now) when the certificate
-                            stops being valid
-               digest     - Digest method to use for signing, default is md5
+    Arguments: req          - Certificate reqeust to use
+               iss_cert_key - A tuple containing these two vars:
+                              1. The certificate of the issuer
+                              2. The private key of the issuer
+               serial       - Serial number for the certificate
+               before_after - A Tuple containing these two vars:
+                              1. Timestamp (relative to now) when the certificate
+                                 starts being valid
+                              2. Timestamp (relative to now) when the certificate
+                                 stops being valid
+               digest       - Digest method to use for signing, default is md5
     Returns:   The signed certificate in an X509 object
     """
+    issuerCert, issuerKey = iss_cert_key
+    notBefore, notAfter = before_after
     cert = crypto.X509()
     cert.set_serial_number(serial)
     cert.gmtime_adj_notBefore(notBefore)
