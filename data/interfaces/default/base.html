@@ -214,7 +214,7 @@
                 console.log('addbyid:'+data.status, data.comicid, data.table, data.message);
                 $('#ajaxMsg').removeClass();
                 var dspline = '</br></br><input type="button" value="View Series" onclick="location.href=\'comicDetails?ComicID='+data.comicid+'\';"/>';
-                $('#ajaxMsg').html("<div class='msg'><center>"+data.message+dspline+"</center></div>");
+                $('#ajaxMsg').html("<div class='msg'>"+data.message+dspline+"</div>");
                 $('#ajaxMsg').addClass('success').fadeIn().delay(5000).fadeOut();
             }
         }, false);
@@ -224,7 +224,7 @@
                 var data = JSON.parse(e.data);
                 console.log('scheduler:'+data.status,data.message);
                 $('#ajaxMsg').removeClass();
-                $('#ajaxMsg').html("<div class='msg'><center>"+data.message+"</center></div>");
+                $('#ajaxMsg').html("<div class='msg'>"+data.message+"</div>");
                 if (data.status == 'success'){
                     $('#ajaxMsg').addClass('success').fadeIn().delay(3000).fadeOut();
                 } else {
@@ -244,7 +244,7 @@
                     var data = JSON.parse(e.data);
                     console.log(data.status, data.comicid, data.tables, data.message);
                     $('#ajaxMsg').removeClass();
-                    $('#ajaxMsg').html("<div class='msg'><center>"+data.message+"</center></div>");
+                    $('#ajaxMsg').html("<div class='msg'>"+data.message+"</div>");
                     var cid = retrieve_comicid();
                     var tt = document.getElementById("page_name");
                     if (data.status == 'success'){
