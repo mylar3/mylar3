@@ -3,6 +3,7 @@
 	min-height: 125px;
 	clear: both;
 	_height: 302px;
+	overflow: hidden;
 	zoom: 1; /* Feeling sorry for IE */
 }
 #wanted_table_wrapper {

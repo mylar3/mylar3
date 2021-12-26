@@ -530,7 +530,7 @@ header #logo {
 }
 footer {
   display: table;
-  margin: 60px auto 50px auto;
+  margin: 5px auto 50px auto;
   width: 960px;
   padding-top: 10px;
   border-top: 1px solid #EEE;
@@ -595,7 +595,8 @@ footer {
 #ajaxMsg .msg {
   font-family: "Trebuchet MS", Helvetica, Arial, sans-serif;
   line-height: normal;
-  padding-left: 20px;
+  padding: 5px 20px;
+  text-align: center;
 }
 #ajaxMsg .loader {
   position: relative;
@@ -1909,7 +1910,7 @@ DIV.progress-container > DIV
 #actions {
   float: right;
   text-align: right;
-  margin-right: 10px;
+  margin-right: 0px;
   margin-top: -5px;
   color: #cccccc;
 }
