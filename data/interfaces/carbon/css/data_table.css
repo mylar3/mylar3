@@ -236,6 +236,44 @@ table.display_log td.center {
 }
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ * DataTables display for notifs popup
+ */
+table.display_notifs {
+        margin: 20px auto;
+        clear: both;
+        border:1px solid #1c1e22;
+        width: 100%;
+}
+
+table.display_notifs thead th {
+        padding: 3px 18px 3px 10px;
+        background-color: white;
+        font-weight: bold;
+        border-bottom: 3px solid #1c1e22;
+}
+
+table.display_notifs tfoot th {
+        padding: 3px 18px 3px 10px;
+        border-top: 1px solid black;
+        font-weight: bold;
+}
+
+table.display_notifs tr.heading2 td {
+        border-bottom: 1px solid #aaa;
+}
+
+table.display_notifs td {
+        padding: 4px 10px;
+        font-size: 12px;
+        background-color: #272b30;
+        border-left: 1px solid #1c1e22;
+        border-bottom: 1px solid #1c1e22;
+}
+table.display_notifs td.center {
+        text-align: center;
+}
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
  * DataTables sorting
  */
 
@@ -391,6 +429,12 @@ table.display tr.even.gradeF {
         background-color: #FF5858;
 }
 
+table.display tr.odd.gradeY {
+        background-color: #0A0A0A;
+}
+table.display tr.even.gradeY {
+        background-color: #0A0A0A;
+}
 table.display tr.odd.gradeT1 {
         background-color: #FFDDDD;
 }
@@ -398,10 +442,10 @@ table.display tr.even.gradeT1 {
         background-color: #FFDDDD;
 }
 table.display tr.odd.gradeT2 {
-        background-color: #A97D7B;
+        background-color: #9D2423;
 }
 table.display tr.even.gradeT2 {
-        background-color: #A97D7B;
+        background-color: #9D2423;
 }
 table.display tr.gradeL #status {
 	background: url("/../../../images/loader_black.gif") no-repeat scroll 15px center transparent;
@@ -422,6 +466,7 @@ table.display tr.gradeP td,
 table.display tr.gradeD td,
 table.display tr.gradeT td,
 table.display tr.gradeF td,
+table.display tr.gradeY td,
 table.display tr.gradeT1 td,
 table.display tr.gradeT2 td,
 table.display tr.gradeZ td {border-bottom: 1px solid #1c1e22;border-right: 1px solid #1c1e22; }
@@ -538,6 +583,14 @@ table.display_no_select tr.even.gradeF {
         background-color: #FF5858;
 }
 
+table.display_no_select tr.odd.gradeY {
+        background-color: #0A0A0A;
+}
+
+table.display_no_select tr.even.gradeY {
+        background-color: #0A0A0A;
+}
+
 table.display_no_select tr.odd.gradeZ {
         background-color: #FAFAFA;
 }
@@ -555,11 +608,11 @@ table.display_no_select tr.even.gradeT1 {
 }
 
 table.display_no_select tr.odd.gradeT2 {
-        background-color: #FFDDAA;
+        background-color: #9D2423;
 }
 
 table.display_no_select tr.even.gradeT2 {
-        background-color: white;
+        background-color: #9D2423;
 }
 
 table.display_no_select tr.gradeL #status {
@@ -581,6 +634,7 @@ table.display_no_select tr.gradeD td,
 table.display_no_select tr.gradeT td,
 table.display_no_select tr.gradeS td,
 table.display_no_select tr.gradeF td,
+table.display_no_select tr.gradeY td,
 table.display_no_select tr.gradeT1 td,
 table.display_no_select tr.gradeT2 td,
 table.display_no_select tr.gradeZ td {border-bottom: 1px solid #1c1e22; border-right: 1px solid #1c1e22;}

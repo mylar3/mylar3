@@ -2312,4 +2312,20 @@ figure.item{
   display: block;
   line-height: .5em;
 }
-
+.td-center {
+  text-align: center;
+}
+.watermark {
+  position: absolute;
+  color: lightgray;
+  opacity: 0.15;
+  font-size: 1.5em;
+  width: 100%;
+  margin-top: -15px;
+  z-index:10;
+}
+div.center { text-align: center; }
+div.botpad { padding-bottom: 20px; }
+div.toppad { padding-top: 20px; }
+div.bigbotpad { padding-bottom: 40px; }
+div.bigtoppad { padding-top: 40px; }

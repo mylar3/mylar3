@@ -746,7 +746,11 @@ class PostProcessor(object):
                                     fcdigit = helpers.issuedigits(re.sub('biannual', '', str(biannchk)).strip())
                                 else:
                                     if 'annual' in temploc.lower():
-                                        fcdigit = helpers.issuedigits(re.sub('2021 annual', '', str(temploc.lower())).strip())
+                                        year_check = re.findall(r'(\d{4})(?=[\s]|annual\b|$)', temploc, flags=re.I)
+                                        if year_check:
+                                            ann_line = '%s annual' % year_check[0]
+                                            fcdigit = helpers.issuedigits(re.sub(ann_line, '', str(temploc.lower())).strip())
+                                            #fcdigit = helpers.issuedigits(re.sub('2021 annual', '', str(temploc.lower())).strip())
                                         fcdigit = helpers.issuedigits(re.sub('annual', '', str(temploc.lower())).strip())
                                     else:
                                         fcdigit = helpers.issuedigits(re.sub('special', '', str(temploc.lower())).strip())
@@ -1212,7 +1216,11 @@ class PostProcessor(object):
                                                 fcdigit = helpers.issuedigits(re.sub('biannual', '', str(biannchk)).strip())
                                             else:
                                                 if 'annual' in temploc.lower():
-                                                    fcdigit = helpers.issuedigits(re.sub('2021 annual', '', str(temploc.lower())).strip())
+                                                    year_check = re.findall(r'(\d{4})(?=[\s]|annual\b|$)', temploc, flags=re.I)
+                                                    if year_check:
+                                                        ann_line = '%s annual' % year_check[0]
+                                                        fcdigit = helpers.issuedigits(re.sub(ann_line, '', str(temploc.lower())).strip())
+                                                        #fcdigit = helpers.issuedigits(re.sub('2021 annual', '', str(temploc.lower())).strip())
                                                     fcdigit = helpers.issuedigits(re.sub('annual', '', str(temploc.lower())).strip())
                                                 else:
                                                     fcdigit = helpers.issuedigits(re.sub('special', '', str(temploc.lower())).strip())
@@ -1538,7 +1546,11 @@ class PostProcessor(object):
                                                 logger.fdebug('%s Bi-Annual detected.' % module)
                                                 fcdigit = helpers.issuedigits(re.sub('biannual', '', str(biannchk)).strip())
                                             else:
-                                                fcdigit = helpers.issuedigits(re.sub('2021 annual', '', str(temploc.lower())).strip())
+                                                year_check = re.findall(r'(\d{4})(?=[\s]|annual\b|$)', temploc, flags=re.I)
+                                                if year_check:
+                                                    ann_line = '%s annual' % year_check[0]
+                                                    fcdigit = helpers.issuedigits(re.sub(ann_line, '', str(temploc.lower())).strip())
+                                                    #fcdigit = helpers.issuedigits(re.sub('2021 annual', '', str(temploc.lower())).strip())
                                                 fcdigit = helpers.issuedigits(re.sub('annual', '', str(temploc.lower())).strip())
                                                 logger.fdebug('%s Annual detected [%s]. ComicID assigned as %s' % (module, fcdigit, ofv['ComicID']))
                                             annchk = "yes"

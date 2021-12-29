@@ -1228,9 +1228,13 @@ class FileChecker(object):
                     issue_number = '%s %s' % (isn, issue_number)
                 else:
                     issue_number = isn
-                series_name = re.sub('2021 annual', '', series_name, flags=re.I).strip()
+                year_check = re.findall(r'(\d{4})(?=[\s]|annual\b|$)', series_name, flags=re.I)
+                if year_check:
+                    ann_line = '%s annual' % year_check[0]
+                    logger.fdebug('ann_line: %s' % ann_line)
+                    series_name = re.sub(ann_line, '', series_name, flags=re.I).strip()
+                    series_name_decoded = re.sub(ann_line, '', series_name_decoded, flags=re.I).strip()
                 series_name = re.sub('annual', '', series_name, flags=re.I).strip()
-                series_name_decoded = re.sub('2021 annual', '', series_name_decoded, flags=re.I).strip()
                 series_name_decoded = re.sub('annual', '', series_name_decoded, flags=re.I).strip()
             elif 'special' in series_name.lower():
                 isn = 'Special'

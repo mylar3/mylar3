@@ -213,7 +213,7 @@
                                                         </a>
                                                      %endif
                                                 %elif weekly['COMICID'] == weekly['HAVEIT'] or weekly['HAVEIT'] == 'Yes':
-                                                    <a href="#" title="mark this issue as Wanted" onclick="doAjaxCall('queueIssue?IssueID=${weekly['ISSUEID']}&ComicID=${weekly['COMICID']}&ComicIssue=${weekly['ISSUE']}&mode=want',$(this),'table')" data-success="${weekly['COMIC']} #${weekly['ISSUE']} has now been marked as Wanted.">
+                                                    <a href="#" title="mark this issue as Wanted" onclick="doAjaxCall('queueissue?IssueID=${weekly['ISSUEID']}&ComicID=${weekly['COMICID']}&ComicIssue=${weekly['ISSUE']}&mode=want',$(this),'table')" data-success="${weekly['COMIC']} #${weekly['ISSUE']} has now been marked as Wanted.">
                                                     %if mylar.CONFIG.SHOW_ICONS:
                                                         <img style="margin: 0px 5px" src="images/add.png" height="25" width="25" class="highqual" />
                                                     %else:
