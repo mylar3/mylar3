@@ -33,7 +33,8 @@ def addvialist(queue):
             item = queue.get(True)
             if item == 'exit':
                 break
-            logger.info('[MASS-REFRESH][1/%s] Now refreshing %s [%s] ' % (queue.qsize()+1, item['comicname'], item['comicid']))
+            logger.info('[MASS-REFRESH][1/%s] Now refreshing %s (%s) [%s] ' % (queue.qsize()+1, item['comicname'], item['seriesyear'], item['comicid']))
+            mylar.GLOBAL_MESSAGES = {'status': 'success', 'comicname': item['comicname'], 'seriesyear': item['seriesyear'], 'comicid': item['comicid'], 'tables': 'both', 'message': 'Now refreshing %s (%s)' % (item['comicname'], item['seriesyear'])}
             dbUpdate([item['comicid']], calledfrom='refresh')
         else:
             mylar.REFRESH_QUEUE.put('exit')
@@ -400,7 +401,7 @@ def latest_update(ComicID, LatestIssue, LatestDate, ReleaseComicID=None):
         if not db_check:
             logger.fdebug('Annual has not been added yet to series')
         else:
-            cid = db_check[0][0]
+            cid = db_check[0]
             logger.fdebug('ReleaseComicID found of %s linking to series %s' % (ReleaseComicID, cid))
             if cid != ComicID:
                 cid = ComicID
@@ -412,12 +413,18 @@ def latest_update(ComicID, LatestIssue, LatestDate, ReleaseComicID=None):
                      "LatestDate":       str(LatestDate)}
     myDB.upsert("comics", newlatestDict, latestCTRLValueDict)
 
-def upcoming_update(ComicID, ComicName, IssueNumber, IssueDate, forcecheck=None, futurepull=None, altissuenumber=None, weekinfo=None):
+def upcoming_update(ComicID, ComicName, IssueNumber, IssueDate, forcecheck=None, futurepull=None, altissuenumber=None, weekinfo=None, releasecomicid=None):
     # here we add to upcoming table...
     myDB = db.DBConnection()
     dspComicName = ComicName #to make sure that the word 'annual' will be displayed on screen
     if 'annual' in ComicName.lower():
-        adjComicName = re.sub("\\bannual\\b", "", ComicName.lower()) # for use with comparisons.
+        year_check = re.findall(r'(\d{4})(?=[\s]|annual\b|$)', ComicName, flags=re.I)
+        if year_check:
+            ann_line = '%s annual' % year_check[0]
+            logger.fdebug('ann_line: %s' % ann_line)
+            adjComicName = re.sub(ann_line, '', ComicName, flags=re.I).strip()
+        #adjComicName = re.sub("2021 annual", "", ComicName.lower()) # for use with comparisons.
+        adjComicName = re.sub("\\bannual\\b", "", adjComicName.lower()) # for use with comparisons.
         logger.fdebug('annual detected - adjusting name to : ' + adjComicName)
     else:
         adjComicName = ComicName
@@ -1393,6 +1400,12 @@ def forceRescan(ComicID, archive=None, module=None, recheck=False):
                 issyear = reann['IssueDate'][:4]
                 old_status = reann['Status']
 
+                year_check = re.findall(r'(/d{4})(?=[\s]|annual\b|$)', temploc, flags=re.I)
+                if year_check:
+                    ann_line = '%s annual' % year_check[0]
+                    logger.fdebug('ann_line: %s' % ann_line)
+                    fcdigit = helpers.issuedigits(re.sub(ann_line, '', temploc.lower()).strip())
+                #fcdigit = helpers.issuedigits(re.sub('2021 annual', '', temploc.lower()).strip())
                 fcdigit = helpers.issuedigits(re.sub('annual', '', temploc.lower()).strip())
                 if fcdigit == 999999999999999:
                     fcdigit = helpers.issuedigits(re.sub('special', '', temploc.lower()).strip())

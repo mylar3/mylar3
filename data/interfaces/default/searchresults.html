@@ -9,14 +9,16 @@
 
 </%def>
 <%def name="body()">
+        <input type="hidden" id="page_name" value="search_results" />
 	<div id="paddingheader">
                 <%
                       if search_type == 'story_arc':
                           typesel = " Story Arc search"
                       else:
                           typesel = " search"
-                      searchtext = typesel + " results for : </br><center>" + name + "</center>"
+                      searchtext = typesel + " results for : </br><center>" + query + "</center>"
                  %>
+                <input type="hidden" id="search_query" name="search_query" value="${query_id}" />
 
 		<h1 class="clearfix"><img src="${icons['icon_search']}" alt="Search results"/>${searchtext}</h1>
 <!--
@@ -44,131 +46,466 @@
 
         </br>
 
-        <div class="table_wrapper">
-	<table class="display" id="searchresults_table">
+        <div class="table_wrapper" id="search_wrapper">
+
+            <form action="mark_the_results" method="get" id="markresults" name="markresults">
+               <div style="position:absolute;float:left;display:none;" id="markresult">Mark selected series as
+                    <select name="action" id="mark_results" onChange="mark_the_results()">
+                            <option disabled="disabled" selected="selected">Choose...</option>
+                            <option value="mass">Add Series</option>
+                    </select>
+                    <input type="hidden" value="Go">
+               </div>
+
+            <table class="display select" id="searchresults_table">
 		<thead>
 			<tr>
-				<th id="blank"></th>
+                                <th id="select" align="left"><input type="checkbox" name="select_all" value="1" id="results-select-all" class="checkbox" /></th>
 				<th id="name">Comic Name</th>
                                 <th id="publisher">Publisher</th>
                                 <th id="comicyear">Year</th>
 				<th id="issues">Issues</th>
-				<th id="add"></th>
+				<th id="options"></th>
 			</tr>
 		</thead>
 		<tbody>
-			%if searchresults:
-				%for result in searchresults:
-				<%
-                                        if result['haveit'] == 'No':
-                                            haveit = 'No'
-                                        else:
-                                            haveit = result['haveit']['comicid']
-					grade = 'Z'
-                                        rtype = None
-                                        if search_type != 'story_arc':
-                                            if result['type'] == 'Digital':
-                                                rtype = '[Digital]'
-                                                grade = 'Z'
-                                            elif result['type'] == 'TPB':
-                                                rtype = '[TPB]'
-                                                grade = 'Z'
-                                            elif result['type'] == 'GN':
-                                                rtype = '[GN]'
-                                                grade = 'Z'
-                                            elif result['type'] == 'HC':
-                                                rtype = '[HC]'
-                                                grade = 'Z'
-                                            else:
-                                                grade = 'B'
-
-                                        if haveit != "No":
-                                            grade = 'H';
-				%>
-				<tr class="grade${grade}">
-					<td class="blank"></td>
-                                        %if result['deck'] == 'None' or result['deck'] is None:
-                                            %if rtype is None:
-   					        <td class="name"><a href="${result['url']}" target="_blank">${result['name']}</a></td>
-                                            %else:
-   					        <td class="name"><a href="${result['url']}" target="_blank">${result['name']} ${rtype}</a></td>
-                                            %endif
-                                        %else:
-                                            %if rtype is None:
-   					        <td class="name"><a href="${result['url']}" title="${result['deck']}" target="_blank">${result['name']}</a></td>
-                                            %else:
-   					        <td class="name"><a href="${result['url']}" title="${result['deck']}" target="_blank">${result['name']} ${rtype}</a></td>
-                                            %endif
-                                        %endif
-                                        <td class="publisher">${result['publisher']}</a></td>
-                                        <td class="comicyear">${result['comicyear']}</a></td>
-					<td class="issues">${result['issues']}</td>
-
-					%if result['haveit'] == "No":
-                                            %if search_type == 'story_arc':
-						<td class="add" nowrap="nowrap"><a href="addStoryArc?arcid=${result['comicid']}&cvarcid=${result['cvarcid']}&storyarcname=${result['name'] |u}&storyarcyear=${result['comicyear']}&storyarcpublisher=${result['publisher'] |u}&storyarcissues=${result['issues']}&arclist=${result['arclist']}&desc=${result['description']}&image=${result['comicimage']}"><span class="ui-icon ui-icon-plus"></span> Add this Story Arc</a></td>
-                                            %else:
-                                                <td class="add" nowrap="nowrap"><a href="#" title="Add this comic" onclick="doAjaxCall('addbyid?comicid=${result['comicid']}&calledby=True&ogcname=${result['name']| u}',$(this),'table');return true;"><span class="ui-icon ui-icon-plus"></span> Add this Comic</a></td>
-                                            %endif
-					%else:
-                                            %if search_type == 'story_arc':
-						<td class="add" nowrap="nowrap"><a href="detailStoryArc?StoryArcID=${haveit}&StoryArcName=${result['name']}"><span class="ui-icon ui-icon-arrowreturnthick-1-n"></span> Already in library</a></td>
-                                            %else:
-						<td class="add" nowrap="nowrap"><a href="comicDetails?ComicID=${haveit}"><span class="ui-icon ui-icon-arrowreturnthick-1-n"></span> Already in library</a></td>
-                                            %endif
-					%endif
-				</tr>
-				%endfor
-			%endif
 		</tbody>
-	</table>
+	    </table>
+            </form>
 	</div>
 </%def>
 
 <%def name="headIncludes()">
-	<link rel="stylesheet" href="interfaces/${interface}/css/data_table.css">
+        <link rel="stylesheet" type="text/css" href="interfaces/${interface}/css/data_table.css" />
 </%def>
 
 <%def name="javascriptIncludes()">
+        <script src="js/libs/jquery.dataTables.1.10.25.min.js"></script>
+        <script src="js/libs/full_numbers_no_ellipses.js"></script>
         <script type="text/javascript">
         $("#createfolders").click(function() {
             $('#CreatetheFolders').submit();
             return true;
         });
-        </script>
 
-	<script src="js/libs/jquery.dataTables.min.js"></script>
-
-	<script>
-        function initThisPage(){
-
-                initActions();
-		$('#searchresults_table').dataTable(
-			{
-			       "bDestroy": true,
-			       "aoColumnDefs": [
-			         { 'bSortable': false, 'aTargets': [ 0 ] }
-			       ],
-			       "oLanguage": {
-			     	       "sLengthMenu":"Show _MENU_ results per page",
-				       "sEmptyTable": "No results",
-				       "sInfo":"Showing _START_ to _END_ of _TOTAL_ results",
-				       "sInfoEmpty":"Showing 0 to 0 of 0 results",
-				       "sInfoFiltered":"(filtered from _MAX_ total results)",
-				       "sSearch" : ""},
-			       "iDisplayLength": 25,
-			       "sPaginationType": "full_numbers",
-			       "aaSorting": []
-                        });
-
-                resetFilters("result");
-                setTimeout(function(){
-                    initFancybox();
-                },1500);
+        function count_checks(){
+            var checks = document.getElementsByName("comicid[]");
+            cc = document.getElementById("markresult");
+            var checkfound = false;
+            for (var i=0; i<checks.length; i++) {
+                if (checks[i].checked) {
+                    checkfound = true;
+                    break;
+                }
+            }
+            if (checkfound == true){
+                cc.style.display = "block";
+            } else {
+                cc.style.display = "none";
+            }
         }
 
+        // ... more
+        function moreMore() {
+           var dots = document.getElementById("dots");
+           var moreText = document.getElementById("more");
+           var optText = document.getElementById("readMore");
+           if (dots.style.display == "none"){
+             dots.style.display = "inline";
+             optText.innerHTML = " more";
+             moreText.style.display = "none";
+           } else {
+             dots.style.display = "none";
+             optText.innerHTML = "  less";
+             moreText.style.display = "inline";
+           }
+        }
+
+        function addseries(comicid, query_id, com_location, booktype){
+            if(typeof(com_location) === "undefined" || com_location === null){
+                com_location = null;
+            }
+            if(typeof(booktype) === "undefined" || booktype === null){
+                booktype = null;
+            }
+            console.log('com_location:'+com_location);
+            $.when($.ajax({
+                 type: "GET",
+                 url: "addbyid",
+                 data: { comicid: comicid, query_id: query_id, com_location: com_location, booktype: booktype},
+                 success: function(response) {
+                    //obj = JSON.parse(response);
+                 },
+                 error: function(data)
+                     {
+                       alert('ERROR'+data.responseText);
+                     },
+            })).done(function(data) {
+                 //reload_table();
+            });
+        }
+
+        // get the click value from the last column (options).
+        $('table.display').on('click', 'a', function() {
+            var action = this.id;
+            if (!action){
+                return;
+            }
+            if (action == 'edit_add'){
+                console.log('adding via editor');
+            } else {
+                var dataline = $('#searchresults_table').DataTable().row(this.closest('tr')).data();
+                console.log(dataline);
+                console.log('action:'+action);
+                comicid = dataline[0];
+                query_id = retrieve_searchquery(); 
+                //query_id = dataline[10];
+                if (action.startsWith('addbyid')) {
+                    addseries(comicid, query_id);
+                } else if (action == 'extend_detail'){
+                    var table = $('#searchresults_table').DataTable();
+                    var tr = $(this).closest('tr');
+                    var row = table.row( tr );
+
+                    if ( row.child.isShown() ) {
+                        // This row is already open - close it
+                        document.getElementById("addbyid_"+comicid).style.display = "inline";
+                        row.child.hide();
+                        tr.removeClass('shown');
+                        tr.removeClass("gradeY");
+                    }
+                    else {
+                        tr.addClass("gradeY");
+                        document.getElementById("addbyid_"+comicid).style.display = "none";
+                        document.getElementById("loading_spinner_"+comicid).style.display = "block";
+                        // Open this row
+                        var cv = editTHEResults(comicid,null,null,query_id).then( response );
+                        cv.done(function(data){
+                            dc = JSON.parse(data);
+                            const regex = /\\n|\\r\\n|\\n\\r|\\r/g;
+                            dc.description.replace(regex, '<br>');
+                            if (dc.description.length > 300) {
+                                cdescription = dc.description.substring(0, 300)+'<span id="dots">...</span><span id="more">'+dc.description.substring(301,700)+'</span><a href="#" onclick="moreMore()" style="color:yellow;" id="readMore"> more</a>';
+                            } else {
+                                if (dc.description == 'None'){
+                                    cdescription = 'No description available';
+                                } else {
+                                    cdescription = dc.description;
+                                }
+                            }
+
+                            var dropdown = "<select name='booktype' id='booktype' onchange='update_location("+comicid+",null, booktype)' style='font-size:14px;'>"+
+                               "<option value='Print' selected='selected'>Print</option>" +
+                               "<option value='TPB'>TPB</option>" +
+                               "<option value='HC'>HC</option>" +
+                               "<option value='GC'>GC</option>" +
+                               "<option value='One-Shot'>One-Shot</option>" +
+                               "<option value='Digital'>Digital</option>" +
+                               "</select>";
+
+                            location_line = '<input type="text" id="com_location" name="com_location" style="line-height:1.25em;font-size:14px" value="'+dc.comlocation+'" size="60em" onChange="update_location('+comicid+', location, null)" /></a>';
+                            the_line =  '<form name="add_the_series"><table cellpadding="5" cellspacing="0" border="0" style="background-color:#0A0A0A;padding-left:50px;">'+
+                                            '<tr>'+
+                                                 '<td width="133"><img id="comicimage" style="float:left;padding-right:10px;padding-bottom:5px;" src="data:image/jpeg;base64,'+dc.image+'" height="200" width="132" /></td>'+
+                                                 '<td valign="top"><p>'+cdescription+'</p></td>'+
+                                                 '<td valign="bottom" align="right"><input type="button" name="Add" style="float:right;bottom:20px;" value="Add" onclick="return addseries(comicid, query_id, dc.comlocation, dc.booktype)" />'+
+                                            '</tr>'+
+                                            '<tr>'+
+                                                  '<td>Comic Location:</td>'+
+                                                  '<td>'+location_line+'<span style="float:right;">&nbsp&nbsp&nbsp'+
+                                                  '<input type="button" name="Regenerate" title="Regenerate directory value using new values" value="Regenerate" onclick="return addseries(comicid, query_id, dc.comlocation, dc.booktype)" /></span>'+
+                                                  '<span style="float:right;">'+dropdown+'</span></td>'+
+                                            '</tr>'+
+                                            '</table></form>';
+                            row.child( the_line ).show();
+                            tr.addClass('shown');
+                            drop_the_down(dc.booktype);
+                            document.getElementById("loading_spinner_"+comicid).style.display = "none";
+                        });
+                    }
+                }
+            }
+        });
+
+        function update_location(comicid, comlocation, btype){
+            var location = document.getElementById("com_location");
+            var bktype = document.getElementById("booktype");
+            var booktype = bktype.options[bktype.selectedIndex];
+            var query_id = retrieve_searchquery();
+            console.log(location.value + ' --- '+ booktype.text);
+            if (comlocation){
+                cloc = location.value;
+            } else {
+                cloc = null;
+            }
+            if (btype){
+                bt = booktype.text;
+            } else { 
+                bt = null;
+            }
+            //boomers = editTHEResults(comicid, location.value, booktype.text, query_id, true);
+            boomers = editTHEResults(comicid, cloc, bt, query_id, true);
+            boomers.done(function(data){
+                dc = JSON.parse(data);
+                if (cloc){
+                    location.value = dc.comlocation;
+                }
+                if (btype) {
+                    bktype.text = dc.booktype;
+                }
+           });
+        }
+
+        function drop_the_down(booktype) {
+            var mySelect = document.getElementById("booktype");
+
+            for(var i, j = 0; i = mySelect.options[j]; j++) {
+                if(i.value == booktype) {
+                    mySelect.selectedIndex = j;
+                    break;
+                }
+            } 
+        }
+
+        function editTHEResults(comicid, location=null, booktype=null, query_id=null, imageloaded=null){
+            return $.ajax({
+                type: "GET",
+                url: "editDetails",
+                data: { comicid: comicid, location: location, booktype: booktype, query_id: query_id, imageloaded: imageloaded }
+            }).done(function(data) {
+                return data;
+            });
+        }
+
+        function retrieve_searchquery() {
+            return document.getElementById("search_query").value;
+        }
+
+
+        function mark_the_results(){
+            var action=$("#mark_results option:selected").val();
+            var checks = document.getElementsByName("comicid[]");
+            var query_id = retrieve_searchquery();
+            var checkboxesChecked = [];
+            for (var i=0; i<checks.length; i++) {
+                if (checks[i].checked) {
+                    // console.log(checks[i].value);
+                    checkboxesChecked.push(checks[i].value);
+                }
+            }
+            // console.log(checkboxesChecked);
+            $.when($.ajax({
+                 type: "GET",
+                 url: "markseries",
+                 data: { action: action, serieslist: checkboxesChecked, query_id: query_id },
+                 success: function(response) {
+                    obj = JSON.parse(response);
+                 },
+                 error: function(data)
+                     {
+                       alert('ERROR'+data.responseText);
+                     },
+            })).done(function(data) {
+                 //reload_table();
+            });
+        }
+
+        function initThisPage(){
+                initActions();
+                $.fn.DataTable.ext.pager.numbers_length = 3;
+                $('#searchresults_table').dataTable( {
+                    "preDrawCallback": function (settings){
+                        pageScrollPos = $('#searchresults_table div.datatables_scrollBody').scrollTop();
+                        // reset the mark_issues dropdown so it won't keep the last selection
+                        dropdown = document.getElementById("mark_results");
+                        dropdown.selectedIndex = 0;
+                        document.getElementById("markresult").style.display = "none";
+                        document.getElementById("results-select-all").checked = false;
+                    },
+                    "sDom": '<"clear"f><"clear"lp><"clear">rt<"clear"ip>',
+                    "destroy": true,
+                    "processing": true,
+                    "serverSide": true,
+                    "ajax": {
+                        "data": function (d) {
+                            d.query = retrieve_searchquery();
+                        }
+                    },
+                    "ajaxSource": "loadSearchResults",
+                    "columnDefs": [
+                       {
+                           "sortable": false,
+                           "targets": [0],
+                           "visible": true,
+                           "render": function (data,type,full,meta){
+                              return '<input type="checkbox" name="comicid[]" value="' + $('<div/>').text(full[0]).html() + '">';
+                           },
+                       },
+                       {
+                           "sortable": true,
+                           "targets": [1],
+                           "visible": true,
+                           "render": function (data,type,full){
+                               if (full[7] === null || full[7] === "Print"){
+                                   booktype = '';
+                               } else {
+                                   booktype = '['+full[7]+']';
+                               }
+                               if (full[1].length > 65) {
+                                   response = '<a href="' + full[6] + '" target="_blank"><span title="' + full[1] + '">' + full[1].substring(0,62) + '...   ' + booktype + '</span></a>';
+                               } else {
+                                   response = '<a href="' + full[6] + '" target="_blank">' + full[1] + '   ' + booktype + '</a>';
+                               }
+                               return response;
+                           }
+                       },
+                       {
+                           "sortable": true,
+                           "targets": [2],
+                           "visible": true,
+                           "render": function (data,type,full){
+                               return full[2];
+                           }
+                       },
+                       {
+                           "sortable": true,
+                           "targets": [3],
+                           "visible": true,
+                           "render": function (data,type,full){
+                               return full[3];
+                           }
+                       },
+                       {
+                           "sortable": true,
+                           "targets": [4],
+                           "visible": true,
+                           "render": function (data,type,full){
+                               return full[4];
+                           }
+                       },
+                       {
+                           "sortable": true,
+                           "targets": [5],
+                           "visible": true,
+                           "render": function (data,type,full){
+                               if (full[9] === "No") {
+                                   displayline = '<a id="addbyid_'+full[0]+'" name="addbyid" href="#"><span class="ui-icon ui-icon-plus"></span>Add this Comic</a>';
+                                   displayline += '<a id="extend_detail" name="extend_detail" href="#"><span class="ui-icon ui-icon-plus"></span>Edit</a>';
+                                   displayline += '<span id="loading_spinner_'+full[0]+'" style="top:-5px;position:relative;display:none;float:right;"><img src="images/loader_black.gif"  alt="loading"/></span>';
+                               } else {
+                                   displayline = '<a id="alreadyhave" name="alreadyhave" href="comicDetails?ComicID=' + full[0] + '"><span class="ui-icon ui-icon-arrowreturnthick-1-n"></span>Already in Library</a>';
+                               }
+                               return displayline;
+                           }
+                       },
+                    ],
+                    "paginationType": "simple_numbers",
+                    "aaSorting": [[3, 'desc']],
+                    "displayLength": 25,
+                    "lengthMenu": [[10, 15, 25, 50, 100, 200, -1], [10, 15, 25, 50, 100, 200, 'All' ]],
+                    "language": {
+                         "search":"Filter:",
+                         "lengthMenu":"Show _MENU_ issues per page",
+                         "emptyTable": "No information available",
+                         "info":"Showing _START_ to _END_ of _TOTAL_ issues",
+                         "infoEmpty":"Showing 0 to 0 of 0 issues",
+                         "infoFiltered":"(filtered from _MAX_ total issues)"
+                    },
+                    "rowCallback": function (nRow, aData, iDisplayIndex, iDisplayIndexFull) {
+                        if (aData[7] === "Digital" || aData[7] === "TPB" || aData[7] === "GN" || aData[7] == "HC") {
+                            if (aData[9] === "No") {
+                                $('td', nRow).closest('tr').addClass("gradeZ");
+                            } else {
+                                $('td', nRow).closest('tr').addClass("gradeH");
+                            }
+                         } else {
+                            if (aData[9] === "No") {
+                                $('td', nRow).closest('tr').addClass("gradeB");
+                            } else {
+                                $('td', nRow).closest('tr').addClass("gradeH");
+                            }
+                         }
+                         nRow.children[0].id = 'select';
+                         nRow.children[1].id = 'name';
+                         nRow.children[2].id = 'publisher';
+                         nRow.children[3].id = 'comicyear';
+                         nRow.children[4].id = 'issues';
+                         //nRow.children[6].id = 'url';
+                         //nRow.children[7].id = 'type';
+                         //nRow.children[8].id = 'description';
+                         return nRow;
+                     },
+                     "drawCallback": function (settings) {
+                         // Jump to top of page
+                         $('#searchresults_table div.dataTables_scrollBody').scrollTop(pageScrollPos);
+                     },
+                     "serverData": function ( sSource, aoData, fnCallback ) {
+                                /* Add some extra data to the sender */
+                                aoData.push({"name": "search_query", "value": retrieve_searchquery() });
+                                $.getJSON(sSource, aoData, function (json) {
+                                        fnCallback(json)
+                                });
+                     },
+                     "fnInitComplete": function(oSettings, json)
+                     {
+                     },
+                });
+            };
+
         $(document).ready(function() {
-                initThisPage();
+            initThisPage();
+            var tables = $('table.display').DataTable();
+
+            $(document).on("change", '#checkboxControls input[type="checkbox"]', function() {
+            //$('#checkboxControls input[type="checkbox"]').onchange(function(){
+                tables.ajax.reload();
+            });
+
+            // issues table
+            // Handle click on "Select all" control
+            $('#results-select-all').on('click', function(){
+                // Get all rows with search applied
+                var rows = tables.rows({ 'search': 'applied' }).nodes();
+               // Check/uncheck checkboxes for all rows in the table
+               $('input[type="checkbox"]', rows).prop('checked', this.checked);
+               count_checks();
+            });
+
+            // Handle click on checkbox to set state of "Select all" control
+            $('#searchresults_table tbody').on('change', 'input[type="checkbox"]', function(){
+                count_checks();
+                // If checkbox is not checked
+                if(!this.checked){
+                    var el = $('#searchresults_table-select-all').get(0);
+                    // If "Select all" control is checked and has 'indeterminate' property
+                    if(el && el.checked && ('indeterminate' in el)){
+                        // Set visual state of "Select all" control
+                        // as 'indeterminate'
+                        el.indeterminate = true;
+                    }
+                }
+            });
+            // Handle form submission event
+            $('#markissues').on('submit', function(e){
+               var form = this;
+
+               // Iterate over all checkboxes in the table
+               tables.$('input[type="checkbox"]').each(function(){
+                  // If checkbox doesn't exist in DOM
+                  if(!$.contains(document, this)){
+                     // If checkbox is checked
+                     if(this.checked){
+                        // Create a hidden element
+                        $(form).append(
+                           $('<input>')
+                              .attr('type', 'hidden')
+                              .attr('name', this.name)
+                              .val(this.value)
+                        );
+                     }
+                  }
+               });
+            });
         });
 	</script>
 </%def>

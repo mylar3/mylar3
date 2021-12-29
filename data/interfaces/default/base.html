@@ -152,7 +152,35 @@
                                     %>
                                     ${prov}:${st_image} &nbsp
                                 %endfor
-                        </div>			
+                        </div>
+                        <div style="float:right;text-align:right;margin-right:-50px;margin-top:-50px;position:relative;">
+                            <a id="notifs" title="View Latest Notifications" href="javascript:void(0)" onclick="manageNotifications()"><img src="images/notif.png" height="75" width="150"/></a>
+                            <div id="notifs_dialog" title="Notifications" style="display:none">
+                               <div id="btn_container">
+                                   <div id="btn_notifs" style="float:right;padding-bottom:5px;margin-top:0px;">
+                                       <a id="menu_link_always" onclick="always_notifs()" href="#"><span id="always_the_notifs" title="Force notification display to be always on top" value="modal">Always on Top</span></a>
+                                       <a id="menu_link_edit" onclick="clear_notifs()" href="#"><span id="clear_notifs" title="Clear notifications for current session">Clear notifications</span></a>
+<!--
+                                       <a id="menu_link_edit" onclick="view_notifs()" href="#"><span id="view_notifs" title="Manage notifications">Manage notifications</span></a>
+-->
+                                  </div>
+                               </div>
+
+                               <div class="table_wrapper" id="notifs_wrapper">
+                                <table class="display_notifs" id="notifs_table">
+                                    <thead>
+                                        <tr>
+                                            <th id="date">Date</th>
+                                            <th id="message">Message</th>
+                                            <th id="comicid">ComicID</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                    </tbody>
+                                </table>
+                               </div>
+                            </div>
+                        </div>
 		</footer>
 		<a href="#main" id="toTop"><span>Back to top</span></a>
 	</div>
@@ -211,11 +239,31 @@
         evtSource.addEventListener("addbyid", function(e){
             if (e.data){
                 var data = JSON.parse(e.data);
-                console.log('addbyid:'+data.status, data.comicid, data.table, data.message);
-                $('#ajaxMsg').removeClass();
-                var dspline = '</br></br><input type="button" value="View Series" onclick="location.href=\'comicDetails?ComicID='+data.comicid+'\';"/>';
-                $('#ajaxMsg').html("<div class='msg'>"+data.message+dspline+"</div>");
-                $('#ajaxMsg').addClass('success').fadeIn().delay(5000).fadeOut();
+                var cid = retrieve_comicid();
+                if (data.status == 'mid-message-event' && data.comicid == cid && document.getElementById("page_name").value == 'series_detail'){
+                    reload_tabs();
+                    if (data.comicname != null || data.comicname != 'None'){
+                        title_loadings(data.comicname, data.seriesyear, data.comicid, data.message);
+                    }
+                } else {
+                    if (document.getElementById("page_name").value != 'series_detail' && data.comicid != cid && data.status != 'mid-message-event') {
+                        console.log('addbyid:'+data.status, data.comicid, data.table, data.message);
+                        $('#ajaxMsg').removeClass();
+                        var dspline = '</br></br><input type="button" value="View Series" onclick="location.href=\'comicDetails?ComicID='+data.comicid+'\';"/>';
+                        $('#ajaxMsg').html("<div class='msg'>"+data.message+dspline+"</div>");
+                        $('#ajaxMsg').addClass('success').fadeIn().delay(5000).fadeOut();
+                        if (data.comicname != null || data.comicname != 'None'){
+                            title_loadings(data.comicname, data.seriesyear, data.comicid, data.message);
+                        }
+                    } else if (data.status != 'mid-message-event'){
+                        $('#ajaxMsg').removeClass();
+                        $('#ajaxMsg').html("<div class='msg'>"+data.message+"</div>");
+                        $('#ajaxMsg').addClass('success').fadeIn().delay(5000).fadeOut();
+                        if (data.comicname != null || data.comicname != 'None'){
+                            title_loadings(data.comicname, data.seriesyear, data.comicid, data.message);
+                        }
+                    }
+                }
             }
         }, false);
 
@@ -243,14 +291,16 @@
                 if (e.data){
                     var data = JSON.parse(e.data);
                     console.log(data.status, data.comicid, data.tables, data.message);
-                    $('#ajaxMsg').removeClass();
-                    $('#ajaxMsg').html("<div class='msg'>"+data.message+"</div>");
+                    if (data.status != 'mid-message-event'){
+                        $('#ajaxMsg').removeClass();
+                        $('#ajaxMsg').html("<div class='msg'><center>"+data.message+"</center></div>");
+                    }
                     var cid = retrieve_comicid();
                     var tt = document.getElementById("page_name");
                     if (data.status == 'success'){
                         $('#ajaxMsg').addClass('success').fadeIn().delay(3000).fadeOut();
                         console.log('data.comicid:'+data.comicid)
-                        if ( (data.tables == 'both' || data.tables == 'tables') && ( document.body.innerHTML.search(data.comicid) || tt.value == 'history') ){
+                        if ( (data.tables == 'both' || data.tables == 'tables') && ( document.body.innerHTML.search(data.comicid) || tt.value == 'history' || tt.value == 'search_results') ){
                             console.log('reloading table1...');
                             reload_table();
                         }
@@ -263,12 +313,16 @@
                         }
                         if( data.comicid == cid && document.getElementById("page_name").value == 'series_detail'){
                             console.log('title_loading...');
-                            title_loadings(data.comicname, data.seriesyear, data.comicid, data.message);
+                            if (data.comicname != null || data.comicname != 'None'){
+                                title_loadings(data.comicname, data.seriesyear, data.comicid, data.message);
+                            }
                         }
                     } else if (data.status == 'failure') {
                         $('#ajaxMsg').addClass('error').fadeIn().delay(3000).fadeOut();
                         if( data.comicid == cid && document.getElementById("page_name").value == 'series_detail' ){
-                            title_loadings(data.comicname, data.seriesyear, data.comicid);
+                            if (data.comicname != null || data.comicname != 'None'){
+                                title_loadings(data.comicname, data.seriesyear, data.comicid);
+                            }
                         }
                     };
                 }
@@ -291,44 +345,311 @@
             var tables = $('table.display').DataTable();
             var tt = document.getElementById("page_name");
             if(typeof(tt) != 'undefined' && tt != null){
-                if (tt.value != "weekly" && tt.value != "upcoming" && tt.value != "import_results" && tt.value != "manage_comics" && tt.value != "manage_issues" && tt.value != "manage_failed" && tt.value != "reading_list" && tt.value != "storyarcs_index" && tt.value != "storyarc_detail") {
+                if (tt.value != "weekly" && tt.value != "import_results" && tt.value != "manage_comics" && tt.value != "manage_issues" && tt.value != "manage_failed" && tt.value != "reading_list" && tt.value != "storyarcs_index" && tt.value != "storyarc_detail") {
                     // this is required so it doesn't error if on the weekly page
-                    // once weekly & upcoming pages are converted to dynamic loading, this if can be removed
+                    // once weekly & other pages are converted to dynamic loading, this if can be removed
                     tables.ajax.reload(null,false);
                 }
             }
+
+            if ( $('#notifs_dialog').dialog('isOpen') === true){
+                console.log('notifs_dialog open');
+                try {
+                    if ( $.fn.dataTable.isDataTable( '#notifs_table' ) ) {
+                        var t2 = $('table.display_notifs').DataTable();
+                        t2.ajax.reload(null,false);
+                    } else {
+                        data_the_table();
+                    }
+                } catch(err) {
+                    console.log('notif table not initialised');
+                    data_the_table();
+                }
+            }
         }
+
         function reload_tabs() {
             console.log('reloading tabs..');
             var url =  $(location).attr('href');
+            if (url.includes("&addbyid")){
+                lenc = url.indexOf("&addbyid=");
+                bed = lenc.length + 1;
+                url = url.substring(0,lenc)+url.substring(lenc+10);
+            }
             var tabId = $('.ui-tabs-panel:visible').attr("id");
             $('.ui-tabs-panel:visible').load(url + " #"+ tabId, function() {
-                $("#tabs").tabs()
+                $("#tabs").tabs({
+                    cache: false,
+                });
             });
-            $("#tabs").tabs();
+            //var OtabId = $('.ui-tabs-panel:visible').attr("id");
+            //console.log('OtabId:'+OtabId);
+            //$('#tabs').tabs('load', "#tabs-2");
+            //$('#tabs').tabs('load', "#tabs-1");
+            //if ( OtabId == 'tabs-1' || OtabId == 'tabs-2' ){
+            //    if (OtabId === 'tabs-1'){
+            //        ntabId = "tabs-2";
+            //    } else {
+            //        ntabId = "tabs-1";
+            //    }
+            //    $('.ui-tabs-panel').load(url + " #"+ ntabId, function() {
+            //        console.log('reloading tab:'+ntabId);
+            //        //$("#tabs").tabs('load', " #"+ ntabId);
+            //    });
+            //}
+            //$('.ui-tabs-panel').load(url + " #"+ OtabId, function() {
+            //    console.log('reloading tab:'+OtabId);
+            //    //$("#tabs").tabs('load', "#"+ OtabId);
+            //});
         }
 
         function title_loadings(series_c_name,series_c_year, series_comicid, s_message) {
             var tt = document.getElementById("page_name");
-            var series_c_url = 'comicDetails?ComicID='+series_comicid;
-            console.log('series_c_name:'+series_c_name);
-
-            var s_status = document.getElementById("series_status");
-            var s_status_spinner = document.getElementById("loading_spinner");
-            var status_hidden = document.getElementById("status_hidden").value;
-            console.log('status:'+status_hidden);
-            if (s_message.search("Successfully added") || s_message.search("Successfully refreshed")){
-                s_status.style.display = "none";
-                s_status_spinner.style.display = "none";
-            } else {
-                s_status.style.display = "block";
-                s_status_spinner.style.display = "block";
+            if (tt.value == "series_detail"){
+                ignore_block = false;
+                if (typeof(s_message) != 'undefined' && s_message != null){
+                    var series_c_url = 'comicDetails?ComicID='+series_comicid;
+                    console.log('series_c_name:'+series_c_name);
+                    console.log('s_message:'+s_message);
+                    var s_status = document.getElementById("series_status");
+                    var s_status_spinner = document.getElementById("loading_spinner");
+                    var status_hidden = document.getElementById("status_hidden").value;
+                    console.log('status:'+status_hidden);
+                    console.log('successfully added:'+s_message.search("Successfully added"));
+                    console.log('successfully refreshed:'+s_message.search("Successfully refreshed"));
+                    if ((s_message.search("Successfully added") == 0 || s_message.search("Successfully refreshed") == 0 || status_hidden != 'Loading')) {
+                        console.log('not blocking');
+                        s_status.style.display = "none";
+                        s_status.innerHTML = '';
+                        s_status_spinner.style.display = "none";
+                    } else if (typeof(series_c_name) != 'undefined' && series_c_name != null){
+                        console.log('blocking');
+                        s_status.style.display = "block";
+                        s_status.innerHTML = '(Comic information is currently being loaded)';
+                        s_status_spinner.style.display = "block";
+                        ignore_block = true;
+                    }
+                } else {
+                    console.log('else..');
+                    var status_hidden = document.getElementById("status_hidden").value;
+                    if (status_hidden == 'Loading'){
+                        console.log('loading status');
+                        document.getElementById("series_status").style.display = "block";
+                        document.getElementById("series_status").innerHTML = '(Comic information is currently being loaded)';
+                        document.getElementById("loading_spinner").style.display = "block";
+                    }
+                    series_c_name = document.getElementById("tab_comicname").value;
+                    series_c_year = document.getElementById("tab_comicyear").value;
+                    series_c_url = document.getElementById("tab_comicdetailurl").value;
+                }
+                if (ignore_block === false){
+                    console.log('ignore_block:'+ignore_block);
+                    var series_line = document.getElementById("series_line");
+                    series_line.innerHTML = '<a href="'+series_c_url+'" target="_blank">'+series_c_name+' ('+series_c_year+')</a>';
+                    console.log(series_line.innerHTML);
+                    document.title = 'Mylar - '+series_c_name;
+                }
             }
-            var series_line = document.getElementById("series_line");
-            series_line.innerHTML = '<a href="'+series_c_url+'" target="_blank">'+series_c_name+' ('+series_c_year+')</a>';
-            console.log(series_line.innerHTML);
         }
 
+        function clear_notifs(){
+            $.when($.ajax({
+                 type: "GET",
+                 url: "clear_notifs",
+                 data: { session_id:  "${mylar.SESSION_ID}" },
+                 success: function(response) {
+                    obj = JSON.parse(response);
+                    $('#ajaxMsg').html("<div class='msg'><span class='ui-icon ui-icon-check'></span>"+obj['message']+"</div>");
+                    if (obj['status'] == 'success'){
+                        $('#ajaxMsg').addClass('success').fadeIn().delay(3000).fadeOut();
+                    } else {
+                        $('#ajaxMsg').addClass('error').fadeIn().delay(3000).fadeOut();
+                    }
+                 },
+                 error: function(data)
+                     {
+                       alert('ERROR'+data.responseText);
+                     },
+            })).done(function(data) {
+                 notif_checks();
+            });
+        }
+
+        function always_notifs(reloads) {
+            if ( $('#notifs_dialog').dialog('isOpen') === true){
+                $("#notifs_dialog").dialog('destroy');
+            }
+            dd = document.getElementById("always_the_notifs");
+            de = document.getElementById("menu_link_always");
+            if (dd.value == 'top'){
+                console.log('not_modal')
+                tmpvalue = 'modal';  //opposite
+                de.style.background = "ffffff";
+                de.style.backgroundColor = "#ffffff";
+                de.style.backgroundImage = "-moz-linear-gradient(#599bdc, #3072b3) !important;linear-gradient(#599bdc, #3072b3) !important;-webkit-linear-gradient(#599bdc, #3072b3) !important;-o-linear-gradient(#599bdc, #3072b3) !important;";
+                de.style.filter = "progid:dximagetransform.microsoft.gradient(startColorstr=#fafafa, endColorstr=#eaeaea) !important";
+                de.style.color = "#FFF";
+                de.style.borderColor = "#272b30 #272b30 #272b30";
+                dialog_for_notifs(false);
+            } else {
+                console.log('modal')
+                tmpvalue = 'top'; //oppposite
+                de.style.background = "#3072b3";
+                de.style.backgroundColor = "#3072b3";
+                de.style.backgroundImage = "-moz-linear-gradient(#599bdc, #3072b3) !important;linear-gradient(#599bdc, #3072b3) !important;-webkit-linear-gradient(#599bdc, #3072b3) !important;-o-linear-gradient(#599bdc, #3072b3) !important;";
+                de.style.filter = "progid:dximagetransform.microsoft.gradient(startColorstr=#fafafa, endColorstr=#eaeaea) !important";
+                de.style.color = "#FFF";
+                de.style.borderColor = "#3072b3 #3072b3 #3072b3";
+                dialog_for_notifs(true);
+            }
+            if(typeof(reloads) === "undefined" || reloads === null){
+                notif_checks();
+            }
+            dd.value = tmpvalue;
+        }
+
+        function dialog_for_notifs(modal_value){
+            $("#notifs_dialog").dialog({
+                create: function(event, ui) {
+                    $(event.target).parent().css('position', 'fixed');
+                },
+                resizeStop: function(event, ui) {
+                    var position = [(Math.floor(ui.position.left) - $(window).scrollLeft()),
+                                     (Math.floor(ui.position.top) - $(window).scrollTop())];
+                    $(event.target).parent().css('position', 'fixed');
+                    $("#notifs_dialog").dialog('option','position',position);
+                },
+                modal: modal_value,
+                width: "70%",
+            });
+        }
+
+        // try to get the popup to stay on top on a new page load (doesn't work)
+        window.addEventListener("beforeunload", function (event) {
+            if (document.getElementById("always_the_notifs").value == 'top'){
+                dialog_for_notifs(false);
+            }
+        });
+
+        document.onkeyup=function(e){
+            var e = e || window.event;
+            if (e.altKey && e.which == 78) {
+                console.log('alt_N combo');
+                manageNotifications();
+            }
+        }
+
+        function manageNotifications() {
+            dialog_for_notifs(true);
+            always_notifs();
+            //notif_checks();
+        }
+
+        function notif_checks(){
+            try {
+                if ( $.fn.dataTable.isDataTable( '#notifs_table' ) ) {
+                    console.log('boom1');
+                    var t2 = $('table.display_notifs').DataTable();
+                    t2.ajax.reload(null,false);
+                    //t2.columns.adjust().draw();
+                } else {
+                    console.log('boom2');
+                    data_the_table();
+                }
+            } catch(err) {
+                console.log('boom3');
+                console.log('manage - no notifs table');
+                data_the_table();
+            }
+        }
+
+
+        function data_the_table(){
+            $('#notifs_table').dataTable( {
+                "preDrawCallback": function (settings){
+                    //pageScrollPos = $('#notifs_table div.datatables_scrollBody').scrollTop();
+                    //$("notifs_dialog").dialog({modal:true});
+                },
+                "sDom": '<"clear">t<"clear"p>',
+                "processing": true,
+                "serverSide": true,
+                "ajaxSource": 'manageNotifs',
+                "destroy": true,
+                "ajax": {
+                    "data": function (d) {
+                        d.session_id = "${mylar.SESSION_ID}",
+                        d.modal = document.getElementById("always_the_notifs").value
+                    },
+                },
+                "columnDefs": [
+                    {
+                       "sortable": true,
+                       "targets": [ 0 ],
+                       "visible": true,
+                       "render":function (data,type,full) {
+                           return full[0];
+                       }
+                    },
+                    {
+                       "sortable": true,
+                       "targets": [ 1 ],
+                       "visible": true,
+                       "render":function (data,type,full) {
+                            return full[1];
+                       }
+                    },
+                    {
+                       "sortable": true,
+                       "targets": [ 2 ],
+                       "visible": true,
+                       "render":function (data,type,full) {
+                           return '<a href="comicDetails?ComicID='+full[2]+'">'+full[2]+'</a>';
+                       }
+                    },
+                ],
+                "paginationType": "simple_numbers",
+                "displayLength": 25,
+                "stateSave": true,
+                "lengthMenu": [[10, 15, 25, 50, 100, 200, -1], [10, 15, 25, 50, 100, 200, 'All' ]],
+                "language": {
+                     "lengthMenu": "Show _MENU_ items per page",
+                     "emptyTable": "No information available",
+                     "infoEmpty": "Showing 0 to 0 of 0 lines",
+                },
+                "rowCallback": function (nRow, aData, iDisplayIndex, iDisplayIndexFull) {
+                     nRow.children[0].id = 'date';
+                     nRow.children[1].id = 'message';
+                     nRow.children[2].id = 'comicid';
+                     return nRow;
+                },
+                "drawCallback": function (o) {
+                     // Jump to top of page
+                     //$('#notifs_table div.dataTables_scrollBody').scrollTop(pageScrollPos);
+                },
+                "serverData": function ( sSource, aoData, fnCallback ) {
+                     /* Add some extra data to the sender */
+                     aoData.push({"name": "paging_session_id", "value": "${mylar.SESSION_ID}" });
+                     aoData.push({"name": "modal_p", "value": document.getElementById("always_the_notifs").value });
+                     $.getJSON(sSource, aoData, function (json) {
+                        if (json.modal){
+                            console.log('returned_modal_value:'+json.modal);
+                            if (json.modal != document.getElementById("always_the_notifs").value){
+                                document.getElementById("always_the_notifs").value = json.modal;
+                            }
+                            always_notifs(false);
+                        }
+                        fnCallback(json)
+                     });
+                },
+                "fnInitComplete": function(oSettings, json)
+                {
+                },
+            });
+        }
+
+        $(document).ready(function() {
+            //$("#notifs_table").dataTable();
+        });
         </script>
 	<!-- This template is made by Elmar Kouwenhoven -->
 </body>

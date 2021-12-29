@@ -44,7 +44,7 @@ _CONFIG_DEFINITIONS = OrderedDict({
     'NEWCOM_DIR': (str, 'General', None),
     'FFTONEWCOM_DIR': (bool, 'General', False),
     'FOLDER_SCAN_LOG_VERBOSE': (bool, 'General', False),
-    'INTERFACE': (str, 'General', 'default'),
+    'INTERFACE': (str, 'General', 'carbon'),
     'CORRECT_METADATA': (bool, 'General', False),
     'MOVE_FILES': (bool, 'General', False),
     'RENAME_FILES': (bool, 'General', False),

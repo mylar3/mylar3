@@ -1110,7 +1110,7 @@ def issuedigits(issnum):
                                 except ValueError as e:
                                     if len(issnum) == 1 and issnum.isalpha():
                                         break
-                                    logger.fdebug('[' + issno + '] Invalid numeric for issue - cannot be found. Ignoring.')
+                                    #logger.fdebug('[' + issno + '] Invalid numeric for issue - cannot be found. Ignoring.')
                                     issno = None
                                     tstord = None
                                     invchk = "true"
@@ -3628,7 +3628,7 @@ def job_management(write=False, job=None, last_run_completed=None, current_run=N
                     if mylar.SCHED_SEARCH_LAST is None:
                         mylar.SCHED_SEARCH_LAST = ji['prev_run_timestamp']
                     search_newstatus = ji['status']
-                    #mylar.SEARCH_STATUS = search_newstatus
+                    mylar.SEARCH_STATUS = search_newstatus
                     search_nextrun = ji['next_run_timestamp']
                 elif 'rss' in ji['JobName'].lower():
                     if mylar.SCHED_RSS_LAST is None:
