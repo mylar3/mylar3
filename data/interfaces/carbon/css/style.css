@@ -2451,3 +2451,9 @@ div.botpad { padding-bottom: 20px; }
 div.toppad { padding-top: 20px; }
 div.bigbotpad { padding-bottom: 40px; }
 div.bigtoppad { padding-top: 40px; }
+
+.spinny  { animation: spinning-cog 1.3s infinite ease; }
+@keyframes spinning-cog  { 0% { transform: rotate(0deg); } 20% { transform: rotate(-45deg); }	100% { transform: rotate(360deg); } }
+img.mylarload { height:64px;width:64px;position:relative;filter:drop-shadow(0px 0px 14px #c0c010); }
+img.mylarload.lastgood { filter: drop-shadow(0px 0px 14px #00f010); }
+img.mylarload.lastbad { filter: drop-shadow(0px 0px 14px #f01000); }

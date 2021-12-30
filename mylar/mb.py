@@ -222,6 +222,7 @@ def findComic(name, mode, issue, limityear=None, search_type=None):
                                 'url':                  xmlurl,
                                 'issues':               arcinfolist['issues'],
                                 'comicimage':           arcinfolist['comicimage'],
+                                'comicthumb':           arcinfolist['comicthumb'],
                                 'publisher':            xmlpub,
                                 'description':          arcinfolist['description'],
                                 'deck':                 arcinfolist['deck'],
@@ -236,6 +237,7 @@ def findComic(name, mode, issue, limityear=None, search_type=None):
                                 'url':                  xmlurl,
                                 'issues':               issuecount,
                                 'comicimage':           xmlimage,
+                                'comicthumb':           xmlthumb,
                                 'publisher':            xmlpub,
                                 'description':          xmldesc,
                                 'deck':                 xmldeck,
@@ -586,6 +588,19 @@ def storyarcinfo(xmlid):
         xmlimage = "cache/blankcover.jpg"
 
     try:
+        xmlimage = result.getElementsByTagName('super_url')[0].firstChild.wholeText
+    except Exception:
+        try:
+            xmlimage = result.getElementsByTagName('small_url')[0].firstChild.wholeText
+        except Exception:
+            xmlimage = "cache/blankcover.jpg"
+
+    try:
+        xmlthumb = result.getElementsByTagName('thumb_url')[0].firstChild.wholeText
+    except Exception:
+        xmlthumb = "cache/blankcover.jpg"
+
+    try:
         xmldesc = arcdom.getElementsByTagName('desc')[0].firstChild.wholeText
     except:
         xmldesc = "None"
@@ -613,6 +628,7 @@ def storyarcinfo(xmlid):
             'comicid':              xmlid,
             'issues':               issuecount,
             'comicimage':           xmlimage,
+            'comicthumb':           xmlthumb,
             'description':          xmldesc,
             'deck':                 xmldeck,
             'arclist':              arclist,

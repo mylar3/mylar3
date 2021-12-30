@@ -121,6 +121,27 @@
            }
         }
 
+        function addstoryarc(arcid, query_id){
+            document.getElementById("loading_spinner_"+arcid).style.display = "block";
+            $.when($.ajax({
+                 type: "GET",
+                 url: "addbyid",
+                 data: { comicid: comicid, query_id: query_id },
+                 success: function(response) {
+                    obj = JSON.parse(response);
+                    console.log(obj);
+                 },
+                 error: function(data)
+                     {
+                       alert('ERROR'+data.responseText);
+                     },
+            })).done(function(data) {
+                 document.getElementById("loading_spinner_"+arcid).style.display = "none";
+                 window.location.href = "detailStoryArc?StoryArcID="+obj['StoryArcID']+"&StoryArcName="+obj['StoryArcName']+"&CV_ArcID="+obj['CV_ArcID']+"";
+                 //reload_table();
+            });
+        }
+
         function addseries(comicid, query_id, com_location, booktype){
             if(typeof(com_location) === "undefined" || com_location === null){
                 com_location = null;
@@ -162,6 +183,8 @@
                 //query_id = dataline[10];
                 if (action.startsWith('addbyid')) {
                     addseries(comicid, query_id);
+                } else if (action.startsWith('addbyarcid')) {
+                    addstoryarc(comicid, query_id);
                 } else if (action == 'extend_detail'){
                     var table = $('#searchresults_table').DataTable();
                     var tr = $(this).closest('tr');
@@ -312,6 +335,7 @@
 
         function initThisPage(){
                 initActions();
+                var search_type = "${search_type}";
                 $.fn.DataTable.ext.pager.numbers_length = 3;
                 $('#searchresults_table').dataTable( {
                     "preDrawCallback": function (settings){
@@ -388,12 +412,22 @@
                            "targets": [5],
                            "visible": true,
                            "render": function (data,type,full){
-                               if (full[9] === "No") {
-                                   displayline = '<a id="addbyid_'+full[0]+'" name="addbyid" href="#"><span class="ui-icon ui-icon-plus"></span>Add this Comic</a>';
-                                   displayline += '<a id="extend_detail" name="extend_detail" href="#"><span class="ui-icon ui-icon-plus"></span>Edit</a>';
-                                   displayline += '<span id="loading_spinner_'+full[0]+'" style="top:-5px;position:relative;display:none;float:right;"><img src="images/loader_black.gif"  alt="loading"/></span>';
+                               console.log(search_type);
+                               if (search_type == "story_arc"){
+                                   if (full[9] === "No") {
+                                       displayline = '<a id="addbyarcid_'+full[0]+'" name="addbyarcid" href="#"><span class="ui-icon ui-icon-plus"></span>Add this StoryArc</a>';
+                                       displayline += '<span id="loading_spinner_'+full[0]+'" style="display:none;float:right;"><img src="images/loader_black.gif"  height="20" width="20" alt="loading"/></span>';
+                                   } else {
+                                       displayline = '<a id="alreadyhave" name="alreadyhave" href="detailStoryArc?StoryArcID=' + full[0] + '&StoryArcName=' + full[1] + '"><span class="ui-icon ui-icon-arrowreturnthick-1-n"></span>Already in Library</a>';
+                                   }
                                } else {
-                                   displayline = '<a id="alreadyhave" name="alreadyhave" href="comicDetails?ComicID=' + full[0] + '"><span class="ui-icon ui-icon-arrowreturnthick-1-n"></span>Already in Library</a>';
+                                   if (full[9] === "No") {
+                                       displayline = '<a id="extend_detail" name="extend_detail" href="#"><span class="ui-icon ui-icon-plus"></span>Edit</a>';
+                                       displayline += '<a id="addbyid_'+full[0]+'" name="addbyid" href="#"><span class="ui-icon ui-icon-plus"></span>Add this Comic</a>';
+                                       displayline += '<span id="loading_spinner_'+full[0]+'" style="display:none;float:right;"><img src="images/loader_black.gif"  height="20" width="20" alt="loading"/></span>';
+                                   } else {
+                                       displayline = '<a id="alreadyhave" name="alreadyhave" href="comicDetails?ComicID=' + full[0] + '"><span class="ui-icon ui-icon-arrowreturnthick-1-n"></span>Already in Library</a>';
+                                   }
                                }
                                return displayline;
                            }

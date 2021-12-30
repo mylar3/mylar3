@@ -31,10 +31,11 @@
               <form action="searchit" method="get">
                <fieldset>
                 <legend>Add StoryArc</legend>
-                    <input type="hidden" name="search_type" value="story_arc">
-                    <input type="text" value="" placeholder="Search for Story Arc" onfocus="if(this.value==this.defaultValue)  this.value='';" name="name" />
+                    <input type="hidden" id="search_type" name="search_type" value="story_arc">
+                    <input type="text" value="" id="name" placeholder="Search for Story Arc" onfocus="if(this.value==this.defaultValue)  this.value='';" name="name" />
                     <span class="mini-icon"></span>
-                    <input type="submit" value="Search"/>
+                    <input type="submit" value="Search" onclick="flippylogo();">
+                    <span id="loading_spinner" style="position:relative;display:none;float:right;"><img src="images/loader_black.gif"  alt="loading"/></span>
                </fieldset>
               </form>
 <!--
@@ -169,6 +170,12 @@
             $('#chkoptions').submit();
             return true;
         });
+
+        function showspinner() {
+            console.log('SPINNNER');
+            //$('img.mylarload').addClass('spinny').removeClass('lastgood').removeClass('lastbad');
+            document.getElementById("loading_spinner").style.display = "block";
+        }
         </script>
         <script>
         function initThisPage() {

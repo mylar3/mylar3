@@ -51,7 +51,7 @@
 		<header>			
 			<div class="wrapper">
 			<div id="logo">
-				<a href="home"><img src="images/mylarlogo.png" height="64" width="64" alt="mylar"></a>
+				<a href="home"><img class="mylarload" src="images/mylarlogo.png" alt="mylar" style=""></a>
 			</div>
 			<ul id="nav">
 				<li>
@@ -77,7 +77,7 @@
                 <form action="searchit" method="get">
                     <input type="text" value="" placeholder="Search" onfocus="if(this.value==this.defaultValue) this.value='';" name="name"/>
                     <span class="mini-icon"></span>
-                    <input type="submit" value="Search"/>
+                    <input type="submit" value="Search" onclick="flippylogo();"/>
                 </form>
             </div>
            
@@ -563,6 +563,9 @@
             }
         }
 
+        function flippylogo() {
+            $('img.mylarload').addClass('spinny').removeClass('lastgood').removeClass('lastbad');
+        }
 
         function data_the_table(){
             $('#notifs_table').dataTable( {
