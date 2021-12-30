@@ -37,7 +37,11 @@
                  <td id="mainimg">
                    <fieldset>
                       <div id="aristImg">
-                          <img src="${storyarcbanner}" onload="resizeimage('${bannerwidth}')" height="400" width="${bannerwidth}" id="banner" style="text-decoration: none;position: relative;top:0px;right:0px;left:0px;"/>
+                          %if storyarcbanner is not None:
+                              <img src="${storyarcbanner}" onload="resizeimage('${bannerwidth}')" height="400" width="${bannerwidth}" id="banner" style="text-decoration: none;position: relative;top:0px;right:0px;left:0px;"/>
+                          %else:
+                              </br>
+                          %endif
                                  <%
                                          if arcdetail['percent'] == 101:
                                                  css = '<div class=\"progress-container warning\">'

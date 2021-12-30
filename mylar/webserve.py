@@ -35,6 +35,7 @@ from mako.lookup import TemplateLookup
 from mako import exceptions
 
 import time
+import random
 import threading
 import csv
 import platform
@@ -794,18 +795,64 @@ class WebInterface(object):
             logger.fdebug('search_query: %s' % query)
 
         myDB = db.DBConnection()
-        results = myDB.select("SELECT * FROM tmp_searches WHERE query_id=?", [query])
-        if not results:
+        queryline = "SELECT * FROM tmp_searches WHERE query_id=?" # ORDER BY %s" % sortcolumn
+        db_results = myDB.select(queryline, [query])
+        if not db_results:
             try:
                 results = mb.findComic(name, mode, issue=None)
             except TypeError:
                 logger.error('Unable to perform required search for : [name: ' + name + '][mode: ' + mode + ']')
                 return
+        else:
+            results = []
+            for rt in db_results:
+                results.append({'comicname': rt['comicname'],
+                                'publisher': rt['publisher'],
+                                'comicid':   rt['comicid'],
+                                'comicyear': rt['comicyear'],
+                                'issues': int(rt['issues']),
+                                'deck': rt['deck'],
+                                'url': rt['url'],
+                                'type': rt['type'],
+                                'description': rt['description'],
+                                'haveit': rt['haveit'],
+                                'query_id': rt['query_id']})
 
-        logger.info('# of results: %s' % len(results))
+        if sSearch == "" or sSearch == None:
+            filtered = results[::]
+        else:
+            filtered = []
+            searchname = sSearch.split()
+            searchname = '*'.join(searchname)
+            searchname = re.sub('[\:\-\%\$\#\@\!\.\,\;\/\(\)\+\=\?]','*', sSearch.lower())
+            searchpattern = '*%s*' % re.sub('\s','*', searchname.lower())
+            for row in results:
+                try:
+                    searchname = fnmatch.fnmatch(row['comicname'].lower(), searchpattern)
+                    if any([sSearch.lower() in row['publisher'].lower(), searchname is True, sSearch.lower() in row['comicyear']]):
+                        filtered.append(row)
+                except Exception as e:
+                    pass
+
+        sortcolumn = 'comicname'
+        if iSortCol_0 == '1':
+            sortcolumn = 'comicname'
+        elif iSortCol_0 == '2':
+            sortcolumn = 'publisher'
+        elif iSortCol_0 == '3':
+            sortcolumn = 'comicyear'
+        elif iSortCol_0 == '4':
+            sortcolumn = 'issues'
+
+        if sortcolumn == 'issues':
+            filtered.sort(key=lambda x: (x[sortcolumn] is None, x[sortcolumn] == '', x[sortcolumn]), reverse=sSortDir_0 == "desc")
+        else:
+            filtered.sort(key=lambda x: (x[sortcolumn] is None, x[sortcolumn] == '', x[sortcolumn]), reverse=sSortDir_0 == "desc")
+
+        logger.info('# of results: %s' % len(filtered))
         iDisplayStart = int(iDisplayStart)
         iDisplayLength = int(iDisplayLength)
-        filtered = results[iDisplayStart:(iDisplayStart + iDisplayLength)]
+        filtered = filtered[iDisplayStart:(iDisplayStart + iDisplayLength)]
         rows = [[row['comicid'], row['comicname'], row['publisher'], row['comicyear'], row['issues'], row['deck'], row['url'], row['type'], row['description'], row['haveit'], row['query_id']] for row in filtered]
 
         return json.dumps({
@@ -815,27 +862,27 @@ class WebInterface(object):
         })
     loadSearchResults.exposed = True
 
-    def searchit(self, name, issue=None, mode=None, search_type=None, serinfo=None):
+    def searchit(self, name, issue=None, smode=None, search_type=None, serinfo=None):
         if search_type is None: search_type = 'comic'  # let's default this to comic search only for the time being (will add story arc, characters, etc later)
         else: logger.fdebug(str(search_type) + " mode enabled.")
         #mode dictates type of search:
         # --series     ...  search for comicname displaying all results
         # --pullseries ...  search for comicname displaying a limited # of results based on issue
         # --want       ...  individual comics
-        if mode is None: mode = 'series'
+        if smode is None: smode = 'series'
         if len(name) == 0:
             raise cherrypy.HTTPRedirect("home")
-        if search_type == 'comic' and mode == 'pullseries':
+        if search_type == 'comic' and smode == 'pullseries':
             if issue == 0:
                 #if it's an issue 0, CV doesn't have any data populated yet - so bump it up one to at least get the current results.
                 issue = 1
             try:
-                searchresults = mb.findComic(name, mode, issue=issue)
-                searchline = {'findComic': True, 'name': name, 'mode': mode, 'issue': issue, 'searchtype': 'comic'}
+                searchresults = mb.findComic(name, smode, issue=issue)
+                searchline = {'findComic': True, 'name': name, 'mode': smode, 'issue': issue, 'searchtype': 'comic'}
             except TypeError:
-                logger.error('Unable to perform required pull-list search for : [name: ' + name + '][issue: ' + issue + '][mode: ' + mode + ']')
+                logger.error('Unable to perform required pull-list search for : [name: ' + name + '][issue: ' + issue + '][mode: ' + smode + ']')
                 return
-        elif search_type == 'comic' and mode == 'series':
+        elif search_type == 'comic' and smode == 'series':
             if name.startswith('4050-'):
                 mismatch = "no"
                 comicid = re.sub('4050-', '', name)
@@ -844,24 +891,24 @@ class WebInterface(object):
                 #threading.Thread(target=importer.addComictoDB, args=[comicid, mismatch, None]).start()
                 #raise cherrypy.HTTPRedirect("comicDetails?ComicID=%s" % comicid)
             try:
-                searchresults = mb.findComic(name, mode, issue=None)
-                searchline = {'findComic': True, 'name': name, 'mode': mode, 'issue': None, 'searchtype': 'comic'}
+                searchresults = mb.findComic(name, smode, issue=None)
+                searchline = {'findComic': True, 'name': name, 'mode': smode, 'issue': None, 'searchtype': 'comic'}
             except TypeError:
-                logger.error('Unable to perform required search for : [name: ' + name + '][mode: ' + mode + ']')
+                logger.error('Unable to perform required search for : [name: ' + name + '][mode: ' + smode + ']')
                 return
-        elif search_type == 'comic' and mode == 'want':
+        elif search_type == 'comic' and smode == 'want':
             try:
-                searchresults = mb.findComic(name, mode, issue)
-                searchline = {'findComic': True, 'name': name, 'mode': mode, 'issue': issue, 'search_type': 'want'}
+                searchresults = mb.findComic(name, smode, issue)
+                searchline = {'findComic': True, 'name': name, 'mode': smode, 'issue': issue, 'search_type': 'want'}
             except TypeError:
-                logger.error('Unable to perform required one-off pull-list search for : [name: ' + name + '][issue: ' + issue + '][mode: ' + mode + ']')
+                logger.error('Unable to perform required one-off pull-list search for : [name: ' + name + '][issue: ' + issue + '][mode: ' + smode + ']')
                 return
         elif search_type == 'story_arc':
             try:
                 searchresults = mb.findComic(name, mode=None, issue=None, search_type='story_arc')
                 searchline = {'findComic': True, 'name': name, 'mode': None, 'issue': issue, 'search_type': 'story_arc'}
             except TypeError:
-                logger.error('Unable to perform required story-arc search for : [arc: ' + name + '][mode: ' + mode + ']')
+                logger.error('Unable to perform required story-arc search for : [arc: ' + name + '][mode: ' + smode + ']')
                 return
 
         try:
@@ -872,7 +919,6 @@ class WebInterface(object):
                 logger.error('You NEED to set a ComicVine API key prior to adding anything. It\'s Free - Go get one!')
                 return
 
-        import random
         query_id = random.randint(1,999999)
         # write it to temporary db here - so we don't have to continually poll CV
         myDB = db.DBConnection()
@@ -893,23 +939,20 @@ class WebInterface(object):
                     'url': x['url'],
                     'comicimage': x['comicimage'],
                     'thumbimage': x['comicthumb'],
-                    'volume': x['volume'],
-                    'publisherimprint': x['imprint'],
-                    #'cvarcid': x['cvarcid'],
-                    #'arclist': x['arclist'],
                     'description': x['description'],
                     'haveit': haveit,
-                    'mode': mode,
+                    'mode': smode,
                     'searchtype': search_type}
             if search_type == 'story_arc':
                 vals['cvarcid'] = x['cvarcid']
                 vals['arclist'] = x['arclist']
             else:
+                vals['volume'] = x['volume']
+                vals['publisherimprint'] = x['imprint']
                 vals['type'] =  x['type']
-
             myDB.upsert("tmp_searches", vals, ctrlid)
 
-        return serve_template(templatename="searchresults.html", title='Search Results for: "' + name + '"', query_id=query_id, query=name)
+        return serve_template(templatename="searchresults.html", title='Search Results for: "' + name + '"', query_id=query_id, query=name, search_type=search_type)
         # searchresults=searchresults, search_type=search_type, imported=None, ogcname=None, name=name, serinfo=serinfo)
     searchit.exposed = True
 
@@ -1093,26 +1136,45 @@ class WebInterface(object):
            myDB = db.DBConnection()
            query_chk = myDB.selectone("SELECT * FROM tmp_searches where query_id=? AND comicid=?", [query_id, comicid]).fetchone()
            if query_chk:
-               logger.info('query_id match to : %s' % (query_id))
-               ogcname = query_chk['comicname']
-               calledby = True
-               log_the_line = 'Attempting to add %s' % ogcname
-               if com_location is not None:
-                   log_the_line += ' [location:%s]' % com_location
-               if booktype is not None:
-                   log_the_line += ' [booktype:%s]' % booktype
+               if query_chk['searchtype'] == 'story_arc':
+                   logger.info('query_id storyarc match to : %s' % (query_id))
+                   #storyarcid = str(random.randint(1000,9999)) + str(query_chk['issues'])
+                   #arc_info = {'StoryArc': query_chk['comicname'],
+                   #            'CV_ArcID': query_chk['cvarcid'],
+                   #            'Publisher': query_chk['publisher'],
+                   #            'TotalIssues': query_chk['issues'],
+                   #            #'storyarcyear': query_chk['comicyear'],
+                   #            #'arclist': query_chk['arclist'],
+                   #            #'description': query_chk['description'],
+                   #            'ArcImage': query_chk['comicimage']}
+                   #myDB.upsert("storyarcs", arc_info, {'StoryArcID': storyarcid})
+                   response = self.addStoryArc(arcid=query_chk['comicid'], cvarcid=query_chk['cvarcid'], storyarcname=query_chk['comicname'],
+                                    storyarcyear=query_chk['comicyear'], storyarcpublisher=query_chk['publisher'], storyarcissues=query_chk['issues'],
+                                    arclist=query_chk['arclist'], desc=query_chk['description'], image=query_chk['comicimage'])
+                   return response
+                   #raise cherrypy.HTTPRedirect("detailStoryArc?StoryArcID=%s&StoryArcName=%s&CV_ArcID=%s" % (None, query_chk['comicname'], query_chk['cvarcid']))
+                   #return json.dumps({'status': 'success', 'StoryArcName': query_chk['comicname'], 'CV_ArcID': query_chk['cvarcid'], 'StoryArcID': None})
                else:
-                   booktype = query_chk['type']
-               logger.info(log_the_line)
-               vals = {'ComicName': query_chk['comicname'],
-                       'ComicPublisher': query_chk['publisher'],
-                       'ComicYear': query_chk['comicyear'],
-                       'ComicLocation': com_location,
-                       'DetailURL': query_chk['url'],
-                       'Description': query_chk['description'],
-                       'Type': booktype,
-                       'Total': query_chk['issues']}
-               myDB.upsert( "comics", vals, {'ComicID': comicid} )
+                   logger.info('query_id match to : %s' % (query_id))
+                   ogcname = query_chk['comicname']
+                   calledby = True
+                   log_the_line = 'Attempting to add %s' % ogcname
+                   if com_location is not None:
+                       log_the_line += ' [location:%s]' % com_location
+                   if booktype is not None:
+                       log_the_line += ' [booktype:%s]' % booktype
+                   else:
+                       booktype = query_chk['type']
+                   logger.info(log_the_line)
+                   vals = {'ComicName': query_chk['comicname'],
+                           'ComicPublisher': query_chk['publisher'],
+                           'ComicYear': query_chk['comicyear'],
+                           'ComicLocation': com_location,
+                           'DetailURL': query_chk['url'],
+                           'Description': query_chk['description'],
+                           'Type': booktype,
+                           'Total': query_chk['issues']}
+                   myDB.upsert( "comics", vals, {'ComicID': comicid} )
         else:
             logger.info('Attempting to add directly by ComicVineID: ' + str(comicid))
             if comicid.startswith('4050-'):
@@ -1134,6 +1196,7 @@ class WebInterface(object):
                             'Type': comicinfo['Type'],
                             'Total': comicinfo['ComicIssues']}
                     myDB.upsert( "comics", vals, {'ComicID': comicid} )
+
         if nothread is False:
             watch = []
             #if not any(ext['comicid'] == ComicID for ext in mylar.REFRESH_LIST):
@@ -1203,9 +1266,9 @@ class WebInterface(object):
                 else:
                     logger.warn(module + ' Unable to retrieve issue details at this time. Something is probably wrong.')
                     return
-#            else:
-#                logger.warn(module + ' ' + storyarcname + ' already exists on your Story Arc Watchlist.')
-#                raise cherrypy.HTTPRedirect("readlist")
+#               else:
+#                   logger.warn(module + ' ' + storyarcname + ' already exists on your Story Arc Watchlist.')
+#                   raise cherrypy.HTTPRedirect("readlist")
 
         #check to makes sure storyarcs dir is present in cache in order to save the images...
         if not os.path.isdir(os.path.join(mylar.CONFIG.CACHE_DIR, 'storyarcs')):
@@ -1229,34 +1292,33 @@ class WebInterface(object):
             imageurl = image
 
         logger.info('imageurl: %s' % imageurl)
-        try:
-            r = requests.get(imageurl, params=None, stream=True, verify=mylar.CONFIG.CV_VERIFY, headers=mylar.CV_HEADERS)
-        except Exception as e:
-            logger.warn('Unable to download image from CV URL link - possibly no arc picture is present: %s' % imageurl)
-        else:
-            logger.fdebug('comic image retrieval status code: %s' % r.status_code)
-
-            if str(r.status_code) != '200':
-                logger.warn('Unable to download image from CV URL link: %s [Status Code returned: %s]' % (imageurl, r.status_code))
+        if imageurl.startswith('http'):
+            try:
+                r = requests.get(imageurl, params=None, stream=True, verify=mylar.CONFIG.CV_VERIFY, headers=mylar.CV_HEADERS)
+            except Exception as e:
+                logger.warn('Unable to download image from CV URL link - possibly no arc picture is present: %s' % imageurl)
             else:
-                if r.headers.get('Content-Encoding') == 'gzip':
-                    import gzip
-                    from io import BytesIO
-                    buf = BytesIO(r.content)
-                    f = gzip.GzipFile(fileobj=buf)
+                logger.fdebug('comic image retrieval status code: %s' % r.status_code)
 
-                with open(coverfile, 'wb') as f:
-                    for chunk in r.iter_content(chunk_size=1024):
-                        if chunk: # filter out keep-alive new chunks
-                            f.write(chunk)
-                            f.flush()
+                if str(r.status_code) != '200':
+                    logger.warn('Unable to download image from CV URL link: %s [Status Code returned: %s]' % (imageurl, r.status_code))
+                else:
+                    if r.headers.get('Content-Encoding') == 'gzip':
+                        import gzip
+                        from io import BytesIO
+                        buf = BytesIO(r.content)
+                        f = gzip.GzipFile(fileobj=buf)
+
+                    with open(coverfile, 'wb') as f:
+                        for chunk in r.iter_content(chunk_size=1024):
+                            if chunk: # filter out keep-alive new chunks
+                                f.write(chunk)
+                                f.flush()
 
         arc_results = mylar.cv.getComic(comicid=None, rtype='issue', arcid=arcid, arclist=arclist)
         logger.fdebug('%s Arcresults: %s' % (module, arc_results))
         logger.fdebug('%s Arclist: %s' % (module, arclist))
         if len(arc_results) > 0:
-            import random
-
             issuedata = []
             if storyarcissues is None:
                 storyarcissues = len(arc_results['issuechoice'])
@@ -1406,7 +1468,8 @@ class WebInterface(object):
             return
         else:
             logger.info('%s Successfully Added %s' % (module, storyarcname))
-            raise cherrypy.HTTPRedirect("detailStoryArc?StoryArcID=%s&StoryArcName=%s" % (storyarcid, storyarcname))
+            return json.dumps({'status': 'success', 'StoryArcName': storyarcname, 'StoryArcID': storyarcid})
+            #raise cherrypy.HTTPRedirect("detailStoryArc?StoryArcID=%s&StoryArcName=%s" % (storyarcid, storyarcname))
     addStoryArc.exposed = True
 
     def wanted_Export(self,mode):
@@ -4154,7 +4217,7 @@ class WebInterface(object):
         logger.info('Status set to Skipped.')
     clear_arcstatus.exposed = True
 
-    def storyarc_main(self, arcid=None):
+    def storyarc_main(self, arcid=None, **kwargs):
         myDB = db.DBConnection()
         arclist = []
         if arcid is None:
@@ -4196,17 +4259,22 @@ class WebInterface(object):
             return arclist[0]
     storyarc_main.exposed = True
 
-    def detailStoryArc(self, StoryArcID, StoryArcName=None, **kwargs):
+    def detailStoryArc(self, StoryArcID, StoryArcName=None, CV_ArcID=None, **kwargs):
         myDB = db.DBConnection()
-        arcinfo = myDB.select("SELECT * from storyarcs WHERE StoryArcID=? and NOT Manual IS 'deleted' order by ReadingOrder ASC", [StoryArcID])
+        if StoryArcID is None and CV_ArcID is not None:
+            arcinfo = myDB.select("SELECT * from storyarcs WHERE CV_ArcID=? and NOT Manual IS 'deleted' order by ReadingOrder ASC", [CV_ArcID])
+        else:
+            arcinfo = myDB.select("SELECT * from storyarcs WHERE StoryArcID=? and NOT Manual IS 'deleted' order by ReadingOrder ASC", [StoryArcID])
+        issref = []
         try:
             cvarcid = arcinfo[0]['CV_ArcID']
             arcpub = arcinfo[0]['Publisher']
+            if StoryArcID is None:
+                StoryArcID = arcinfo[0]['StoryArcID']
             #if StoryArcName is None:
             StoryArcName = arcinfo[0]['StoryArc']
             lowyear = 9999
             maxyear = 0
-            issref = []
             for la in arcinfo:
                 if all([la['Status'] == 'Downloaded', la['Location'] is None,]):
                     issref.append({'IssueID':         la['IssueID'],
@@ -4245,57 +4313,93 @@ class WebInterface(object):
             helpers.updatearc_locs(StoryArcID, issref)
             arcinfo = myDB.select("SELECT * from storyarcs WHERE StoryArcID=? AND NOT Manual IS 'deleted' order by ReadingOrder ASC", [StoryArcID])
 
-        arcdetail = self.storyarc_main(arcid=arcinfo[0]['CV_ArcID'])
-        storyarcbanner = None
-        #bannerheight = 400
-        #bannerwidth = 263
-        filepath = None
-        sb = 'cache/storyarcs/' + str(arcinfo[0]['CV_ArcID']) + '-banner'
-        storyarc_imagepath = os.path.join(mylar.CONFIG.CACHE_DIR, 'storyarcs')
-        if not os.path.exists(storyarc_imagepath):
-            try:
-                os.mkdir(storyarc_imagepath)
-            except:
-                logger.warn('Unable to create storyarc image directory @ %s' % storyarc_imagepath)
-
-        if os.path.exists(storyarc_imagepath):
-            dir = os.listdir(storyarc_imagepath)
-            for fname in dir:
-                if str(arcinfo[0]['CV_ArcID']) in fname:
-                    storyarcbanner = sb
-                    filepath = os.path.join(storyarc_imagepath, fname)
-           #        if any(['H' in fname, 'W' in fname]):
-           #            if 'H' in fname:
-           #                bannerheight = int(fname[fname.find('H')+1:fname.find('.')])
-           #            elif 'W' in fname:
-           #                bannerwidth = int(fname[fname.find('W')+1:fname.find('.')])
-
-           #            if any([bannerwidth != 263, 'W' in fname]):
-           #                #accomodate poster size
-           #                storyarcbanner += 'W' + str(bannerheight)
-           #            else:
-           #                #for actual banner width (ie. 960x280)
-           #                storyarcbanner += 'H' + str(bannerheight)
-                    storyarcbanner += os.path.splitext(fname)[1] + '?' + datetime.datetime.now().strftime('%y-%m-%d %H:%M:%S')
-                    break
-
         template = 'storyarc_detail.html'
-        if filepath is not None:
-            import get_image_size
-            image = get_image_size.get_image_metadata(filepath)
-            imageinfo = json.loads(get_image_size.Image.to_str_json(image))
-            #logger.fdebug('imageinfo: %s' % imageinfo)
-            if imageinfo['width'] > imageinfo['height']:
-                template = 'storyarc_detail.html'
+
+        if arcinfo:
+            arcdetail = self.storyarc_main(arcid=arcinfo[0]['CV_ArcID'])
+            storyarcbanner = None
+            filepath = None
+            if arcinfo[0]['ArcImage'] is not None:
+                sb = 'cache/storyarcs/%s' % arcinfo[0]['ArcImage']
+                arcimage = True
+            else:
+                sb = 'cache/storyarcs/%s-banner' % arcinfo[0]['CV_ArcID']
+                arcimage = False
+            storyarc_imagepath = os.path.join(mylar.CONFIG.CACHE_DIR, 'storyarcs')
+            if not os.path.exists(storyarc_imagepath):
+                try:
+                    os.mkdir(storyarc_imagepath)
+                except:
+                    logger.warn('Unable to create storyarc image directory @ %s' % storyarc_imagepath)
+
+            if os.path.exists(storyarc_imagepath):
+                if arcimage is True:
+                    storyarcbanner = sb + '?' + datetime.datetime.now().strftime('%y-%m-%d %H:%M:%S')
+                    filepath = os.path.join(storyarc_imagepath, arcinfo[0]['ArcImage'])
+                else:
+                    dir = os.listdir(storyarc_imagepath)
+                    for fname in dir:
+                        if str(arcinfo[0]['CV_ArcID']) in fname:
+                            storyarcbanner = sb
+                            filepath = os.path.join(storyarc_imagepath, fname)
+                            storyarcbanner += os.path.splitext(fname)[1] + '?' + datetime.datetime.now().strftime('%y-%m-%d %H:%M:%S')
+                            break
+           #            if any(['H' in fname, 'W' in fname]):
+           #                if 'H' in fname:
+           #                    bannerheight = int(fname[fname.find('H')+1:fname.find('.')])
+           #                elif 'W' in fname:
+           #                    bannerwidth = int(fname[fname.find('W')+1:fname.find('.')])
+
+           #                if any([bannerwidth != 263, 'W' in fname]):
+           #                    #accomodate poster size
+           #                    storyarcbanner += 'W' + str(bannerheight)
+           #                else:
+           #                    #for actual banner width (ie. 960x280)
+           #                    storyarcbanner += 'H' + str(bannerheight)
+            logger.info('storyarcbanner: %s' % (storyarcbanner,))
+            if filepath is not None:
+                fname = os.path.basename(filepath)
+                if any(['H' in fname, 'W' in fname]):
+                   if 'H' in fname:
+                       bannerwidth = 263
+                       bannerheight = int(fname[fname.find('H')+1:fname.find('.')])
+                       template = 'storyarc_detail.html'
+                   elif 'W' in fname:
+                       bannerheight = 400
+                       bannerwidth = int(fname[fname.find('W')+1:fname.find('.')])
+                       template = 'storyarc_detail.poster.html'
+
+                #if any([bannerwidth != 263, 'W' in fname]):
+                #    #accomodate poster size
+                #    storyarcbanner += 'W' + str(bannerheight)
+                #else:
+                #    #for actual banner width (ie. 960x280)
+                #    storyarcbanner += 'H' + str(bannerheight)
+                else:
+                    import get_image_size
+                    image = get_image_size.get_image_metadata(filepath)
+                    imageinfo = json.loads(get_image_size.Image.to_str_json(image))
+                    logger.fdebug('imageinfo: %s' % imageinfo)
+                    if imageinfo['width'] > imageinfo['height']:
+                        template = 'storyarc_detail.html'
+                        bannerheight = '280'
+                        bannerwidth = '960'
+                    else:
+                        template = 'storyarc_detail.poster.html'
+                        bannerwidth = '263'
+                        bannerheight = '400'
+            else:
                 bannerheight = '280'
                 bannerwidth = '960'
-            else:
-                template = 'storyarc_detail.poster.html'
-                bannerwidth = '263'
-                bannerheight = '400'
         else:
-            bannerheight = '280'
+            arcdetail = {}
+            arcdetail['percent'] = 0
+            arcdetail['Have'] = 0
+            arcdetail['Total'] = 0
+            storyarcbanner = 'images/blank.gif'
             bannerwidth = '960'
+            bannerheight= '280'
+            spanyears = None
 
         return serve_template(templatename=template, title="Detailed Arc list", readlist=arcinfo, storyarcname=StoryArcName, storyarcid=StoryArcID, cvarcid=cvarcid, sdir=sdir, arcdetail=arcdetail, storyarcbanner=storyarcbanner, bannerheight=bannerheight, bannerwidth=bannerwidth, spanyears=spanyears)
     detailStoryArc.exposed = True
@@ -4503,7 +4607,6 @@ class WebInterface(object):
 
     def importReadlist(self, filename):
         from xml.dom.minidom import parseString, Element
-        import random
         myDB = db.DBConnection()
 
         file = open(filename)
@@ -5622,7 +5725,6 @@ class WebInterface(object):
                                       'issuenumber':   result['IssueNumber'],
                                       'import_id':     result['impID']})
 
-                    import random
                     SRID = str(random.randint(100000, 999999))
 
                     logger.info('[IMPORT] Issues found with valid ComicID information for : %s [%s]' % (comicinfo['ComicName'], comicinfo['ComicID']))
@@ -5894,7 +5996,6 @@ class WebInterface(object):
 
                 #generate random Search Results ID to allow for easier access for viewing logs / search results.
 
-                import random
                 SRID = str(random.randint(100000, 999999))
 
                     #link the SRID to the series that was just imported so that it can reference the search results when requested.
@@ -6997,7 +7098,7 @@ class WebInterface(object):
 
     def generateAPI(self):
 
-        import hashlib, random
+        import hashlib
 
         apikey = hashlib.sha256(str(random.getrandbits(256)).encode('utf-8')).hexdigest()[0:32]
         logger.info("New API generated")
@@ -8041,16 +8142,29 @@ class WebInterface(object):
     def manageBanner(self, comicid, action, height=None, width=None):
         rootpath = os.path.join(mylar.CONFIG.CACHE_DIR, 'storyarcs')
         if action == 'delete':
-            delete = False
+            deleted = False
             ext = ['.jpg', '.png', '.jpeg']
             loc = os.path.join(rootpath, str(comicid) + '-banner')
-            for x in ['.jpg', '.png', '.jpeg']:
-                if os.path.isfile(loc +x):
-                    os.remove(loc+x)
-                    deleted = True
-                    break
+            customs = 0
+            for root, dir, file in os.walk(rootpath):
+                for f in file:
+                    if any(ext in f for ext in ['.jpg', '.png', '.jpeg']):
+                        if comicid in f and any(['H' in f, 'W' in f]):
+                            customs+=1
+                            os.remove(os.path.join(root, f))
+                            deleted = True
+
+            if customs == 0:
+                # delete the o.g. if no custom covers present.
+                os.remove(loc)
+                deleted = True
+
             if deleted is True:
-                logger.info('Successfully deleted banner image for the given storyarc.')
+                if customs > 0:
+                    delmessage = '%s custom banner size images' % customs
+                else:
+                    delmessage = 'banner image'
+                logger.info('Successfully deleted %s for the given storyarc.' % delmessage)
             else:
                 logger.warn('Unable to located banner image in cache folder...')
         elif action == 'save':
@@ -8073,8 +8187,11 @@ class WebInterface(object):
             #        ext = x
             #        break
             if filepath is not None:
-                os.rename(filepath, os.path.join(rootpath, (str(comicid) + '-bannerH' + str(height) + ext)))
-                logger.info('successfully saved %s to new dimensions of banner : 960 x %s' % (str(comicid) + '-bannerH' + str(height) + ext, height))
+                new_imagename = str(comicid) + '-bannerH' + str(height) + ext
+                os.rename(filepath, os.path.join(rootpath, new_imagename))
+                logger.info('successfully saved %s to new dimensions of banner : 960 x %s' % (new_imagename, height))
+                myDB = db.DBConnection()
+                myDB.upsert("storyarcs", {'ArcImage': new_imagename}, {'StoryArcID': comicid})
             else:
                 logger.warn('unable to locate %s in cache directory in order to save' % filepath)
 
