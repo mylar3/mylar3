@@ -2332,6 +2332,19 @@ div.bigtoppad { padding-top: 40px; }
 
 .spinny  { animation: spinning-cog 1.3s infinite ease; }
 @keyframes spinning-cog  { 0% { transform: rotate(0deg); } 20% { transform: rotate(-45deg); }  100% { transform: rotate(360deg); } }
-img.mylarload { height:64px;width:64px;position:relative;filter:drop-shadow(0px 0px 14px #c0c010); }
-img.mylarload.lastgood { filter: drop-shadow(0px 0px 14px #00f010); }
-img.mylarload.lastbad { filter: drop-shadow(0px 0px 14px #f01000); }
+img.mylarload {
+  height: 64px;
+  width: 64px;
+  position: relative;
+  filter: drop-shadow(0 0 0.75rem rgb(192, 192, 16));
+  backdrop-filter: blur(0px) saturate(3);
+  box-shadow: none!important;
+}
+img.mylarload.lastgood {
+  filter: drop-shadow(0 0 0.75rem rgb(0, 240, 16));
+  backdrop-filter: blur(0px) saturate(3);
+}
+img.mylarload.lastbad {
+  filter: drop-shadow(0 0 0.75rem rgb(240, 0, 16));
+  backdrop-filter: blur(0px) saturate(3);
+}
