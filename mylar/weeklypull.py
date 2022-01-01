@@ -93,6 +93,11 @@ def pullit(forcecheck=None, weeknumber=None, year=None):
                weeknumber_mod = weeknumber
                year_mod = year
 
+            if weeknumber_mod == '00' and year_mod == '2022':
+                # because 01/2022 falls at the end of 52/2021, just force it to stay in the 52/2021 week
+                weeknumber_mod = '52'
+                year_mod = '2021'
+
             if all([forcecheck == 'yes', x == 1, current_weeknumber != weeknumber]):
                # if it's not the current week being requested during a recreate pull,
                # ignore it since it's checking for the previous week at this point

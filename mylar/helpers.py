@@ -2998,6 +2998,15 @@ def weekly_info(week=None, year=None, current=None):
             weeknumber = 52
             year = 2020
 
+        #monkey patch for 2021/2022 - week 52/week 0
+        if all([int(weeknumber) == 0, c_weeknumber == 52, c_weekyear == 2021]):
+            weeknumber = 1
+            year = 2022
+        elif all([int(weeknumber) == 0, c_weeknumber == 1, c_weekyear == 2022]):
+            weeknumber = 52
+            year = 2021
+
+
         #view specific week (prev_week, next_week)
         startofyear = date(year,1,1)
         week0 = startofyear - timedelta(days=startofyear.isoweekday())
@@ -3031,6 +3040,11 @@ def weekly_info(week=None, year=None, current=None):
             weeknumber = 52
             year = 2020
 
+        #monkey patch for 2021/2022 - week 52/week 0
+        if all([int(weeknumber) == 0, int(year) == 2022]) or all([int(weeknumber) == 52, int(year) == 2021]):
+            weeknumber = 52
+            year = 2021
+
         stweek = datetime.datetime.strptime(todaydate.strftime('%Y-%m-%d'), '%Y-%m-%d')
         startweek = stweek - timedelta(days = (stweek.weekday() + 1) % 7)
         midweek = startweek + timedelta(days = 3)
@@ -3040,6 +3054,10 @@ def weekly_info(week=None, year=None, current=None):
         # make sure the arrow going back will hit the correct week in the previous year.
         prev_week = 52
         prev_year = 2020
+    elif all([weeknumber == 0, year == 2022]):
+        # make sure the arrow going back will hit the correct week in the previous year.
+        prev_week = 52
+        prev_year = 2021
     else:
         prev_week = int(weeknumber) - 1
         prev_year = year
@@ -3052,6 +3070,9 @@ def weekly_info(week=None, year=None, current=None):
     if next_week > 52:
         next_year = int(year) + 1
         if all([weeknumber == 52, year == 2020]):
+            # make sure the next arrow will hit the correct week in the following year.
+            next_week = '1'
+        elif all([weeknumber == 52, year == 2021]):
             # make sure the next arrow will hit the correct week in the following year.
             next_week = '1'
         else:
