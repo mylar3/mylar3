@@ -85,7 +85,7 @@ def pullit(forcecheck=None, weeknumber=None, year=None):
 
                 weeknumber_mod = int(weeknumber) - 1
                 year_mod = year
-                if weeknumber_mod < 0:
+                if weeknumber_mod <= 0:
                     weeknumber_mod = 52
                     year_mod = int(year) - 1
             else:
