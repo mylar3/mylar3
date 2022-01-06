@@ -56,11 +56,15 @@ def addvialist(queue):
             if item == 'exit':
                 break
             if item['comicname'] is not None:
-                logger.info('[MASS-ADD][1/%s] Now adding %s [%s] ' % (queue.qsize()+1, item['comicname'], item['comicid']))
-                mylar.GLOBAL_MESSAGES = {'status': 'success', 'event': 'addbyid', 'comicname': item['comicname'], 'seriesyear': None, 'comicid': item['comicid'], 'tables': 'None', 'message': 'Now adding %s' % (urllib.parse.unquote_plus(item['comicname']))}
+                if item['seriesyear'] is not None:
+                    logger.info('[MASS-ADD][1/%s] Now adding %s (%s) [%s] ' % (queue.qsize()+1, item['comicname'], item['seriesyear'], item['comicid']))
+                    mylar.GLOBAL_MESSAGES = {'status': 'success', 'event': 'addbyid', 'comicname': item['comicname'], 'seriesyear': item['seriesyear'], 'comicid': item['comicid'], 'tables': 'None', 'message': 'Now adding %s (%s)' % (urllib.parse.unquote_plus(item['comicname']), item['seriesyear'])}
+                else:
+                    logger.info('[MASS-ADD][1/%s] Now adding %s [%s] ' % (queue.qsize()+1, item['comicname'], item['comicid']))
+                    mylar.GLOBAL_MESSAGES = {'status': 'success', 'event': 'addbyid', 'comicname': item['comicname'], 'seriesyear': item['seriesyear'], 'comicid': item['comicid'], 'tables': 'None', 'message': 'Now adding %s' % (urllib.parse.unquote_plus(item['comicname']))}
             else:
                 logger.info('[MASS-ADD][1/%s] Now adding ComicID: %s ' % (queue.qsize()+1, item['comicid']))
-                mylar.GLOBAL_MESSAGES = {'status': 'success', 'event': 'addbyid', 'comicname': item['comicname'], 'seriesyear': None, 'comicid': item['comicid'], 'tables': 'None', 'message': 'Now adding via ComicID %s' % (item['comicid'])}
+                mylar.GLOBAL_MESSAGES = {'status': 'success', 'event': 'addbyid', 'comicname': item['comicname'], 'seriesyear': item['seriesyear'], 'comicid': item['comicid'], 'tables': 'None', 'message': 'Now adding via ComicID %s' % (item['comicid'])}
 
             addComictoDB(item['comicid'])
         else:
@@ -253,7 +257,10 @@ def addComictoDB(comicid, mismatch=None, pullupd=None, imported=None, ogcname=No
         logger.info('Determined to be a one-shot issue. Forcing Edition to One-Shot')
         booktype = 'One-Shot'
     else:
-        booktype = comic['Type']
+        if comic['Type'] == 'None':
+            booktype = None
+        else:
+            booktype = comic['Type']
 
     # setup default location here
     u_comicnm = comic['ComicName']
@@ -296,7 +303,8 @@ def addComictoDB(comicid, mismatch=None, pullupd=None, imported=None, ogcname=No
         if gcdinfo['gcdvariation'] == "cv":
             comicIssues = str(int(comic['ComicIssues']) + 1)
 
-    if mylar.CONFIG.ALTERNATE_LATEST_SERIES_COVERS is False:
+    cimage = os.path.join(mylar.CONFIG.CACHE_DIR, str(comicid) + '.jpg')
+    if mylar.CONFIG.ALTERNATE_LATEST_SERIES_COVERS is False or not os.path.isfile(cimage):
         cimage = os.path.join(mylar.CONFIG.CACHE_DIR, str(comicid) + '.jpg')
         PRComicImage = os.path.join('cache', str(comicid) + ".jpg")
         ComicImage = helpers.replacetheslash(PRComicImage)
@@ -416,6 +424,8 @@ def addComictoDB(comicid, mismatch=None, pullupd=None, imported=None, ogcname=No
                     "Status":             "Loading"}
 
     myDB.upsert("comics", newValueDict, controlValueDict)
+
+    mylar.GLOBAL_MESSAGES = {'status': 'mid-message-event', 'event': 'addbyid', 'comicname': comic['ComicName'], 'seriesyear': SeriesYear, 'comicid': comicid, 'tables': 'None', 'message': 'mid-message-event'}
 
     #comicsort here...
     #run the re-sortorder here in order to properly display the page
@@ -568,11 +578,13 @@ def addComictoDB(comicid, mismatch=None, pullupd=None, imported=None, ogcname=No
 
                     if results:
                         logger.info('Attempting to grab wanted issues for : '  + comic['ComicName'])
-
+                        search_list = []
                         for result in results:
                             logger.fdebug('Searching for : ' + str(result['Issue_Number']))
                             logger.fdebug('Status of : ' + str(result['Status']))
-                            search.searchforissue(result['IssueID'])
+                            search_list.append(result['IssueID'])
+                        if len(search_list) > 0:
+                            threading.Thread(target=search.searchIssueIDList, args=[search_list]).start()
                     else: logger.info('No issues marked as wanted for ' + comic['ComicName'])
 
                     logger.info('Finished grabbing what I could.')
@@ -1021,7 +1033,7 @@ def issue_collection(issuedata, nostatus, serieslast_updated=None):
             #        dbwrite = "annuals"
 
             if nostatus == 'False':
-
+                #logger.info('checking issue #%s' % issue['Issue_Number'])
                 # Only change the status & add DateAdded if the issue is already in the database
                 if iss_exists is None:
                     newValueDict['DateAdded'] = helpers.today()
@@ -1035,20 +1047,21 @@ def issue_collection(issuedata, nostatus, serieslast_updated=None):
                     else:
                         datechk = datetime.datetime.strptime(dk, "%Y%m%d")
                         issue_week = datetime.datetime.strftime(datechk, "%Y%U")
+                        logger.info('issue_week: %s' % issue_week)
                         if mylar.CONFIG.AUTOWANT_ALL:
                             newValueDict['Status'] = "Wanted"
                             #logger.fdebug('autowant all')
                         elif serieslast_updated is None:
                             newValueDict['Status'] = "Skipped"
                         elif issue_week >= now_week and mylar.CONFIG.AUTOWANT_UPCOMING:
-                            #logger.fdebug(str(datechk) + ' >= ' + str(nowtime))
+                            logger.fdebug(str(datechk) + ' >= ' + str(nowtime))
                             newValueDict['Status'] = "Wanted"
                         elif all([int(re.sub('-', '', serieslast_updated).strip()) < int(dk), mylar.CONFIG.AUTOWANT_UPCOMING is True]):
                             logger.info('Autowant upcoming triggered for issue #%s' % issue['Issue_Number'])
                             newValueDict['Status'] = "Wanted"
                         else:
                             newValueDict['Status'] = "Skipped"
-                        #logger.fdebug('status is : ' + str(newValueDict))
+                        logger.fdebug('status is : ' + str(newValueDict))
                 else:
                     #logger.fdebug('Existing status for issue #%s : %s' % (issue['Issue_Number'], iss_exists['Status']))
                     if any([iss_exists['Status'] is None, iss_exists['Status'] == 'None']):
@@ -1070,7 +1083,7 @@ def issue_collection(issuedata, nostatus, serieslast_updated=None):
                 return
 
 
-def manualAnnual(manual_comicid=None, comicname=None, comicyear=None, comicid=None, annchk=None, manualupd=False, deleted=False):
+def manualAnnual(manual_comicid=None, comicname=None, comicyear=None, comicid=None, annchk=None, manualupd=False, deleted=False, forceadd=False):
         #called when importing/refreshing an annual that was manually added.
         myDB = db.DBConnection()
 
@@ -1081,7 +1094,7 @@ def manualAnnual(manual_comicid=None, comicname=None, comicyear=None, comicid=No
             issueid = manual_comicid
             logger.fdebug(str(issueid) + ' added to series list as an Annual')
             sr = cv.getComic(manual_comicid, 'comic')
-            if sr is None:
+            if sr is None and forceadd is False:
                 return
             logger.fdebug('Attempting to integrate ' + sr['ComicName'] + ' (' + str(issueid) + ') to the existing series of ' + comicname + '(' + str(comicyear) + ')')
             if len(sr) == 0:

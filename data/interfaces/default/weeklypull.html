@@ -128,7 +128,7 @@
                                 #if the comicid is present, but issue isn't marked as wanted.
                                 if any([weekly['HAVEIT'] == 'Yes', weekly['HAVEIT'] == weekly['COMICID']]) and weekly['STATUS'] == 'Skipped':
                                         grade = 'E'
-                                                               
+
 			%>
 			<tr class="grade${grade}">
                                 %if pullfilter is True:
@@ -213,7 +213,7 @@
                                                         </a>
                                                      %endif
                                                 %elif weekly['COMICID'] == weekly['HAVEIT'] or weekly['HAVEIT'] == 'Yes':
-                                                    <a href="#" title="mark this issue as Wanted" onclick="doAjaxCall('queueIssue?IssueID=${weekly['ISSUEID']}&ComicID=${weekly['COMICID']}&ComicIssue=${weekly['ISSUE']}&mode=want',$(this),'table')" data-success="${weekly['COMIC']} #${weekly['ISSUE']} has now been marked as Wanted.">
+                                                    <a href="#" title="mark this issue as Wanted" onclick="doAjaxCall('queueissue?IssueID=${weekly['ISSUEID']}&ComicID=${weekly['COMICID']}&ComicIssue=${weekly['ISSUE']}&mode=want',$(this),'table')" data-success="${weekly['COMIC']} #${weekly['ISSUE']} has now been marked as Wanted.">
                                                     %if mylar.CONFIG.SHOW_ICONS:
                                                         <img style="margin: 0px 5px" src="images/add.png" height="25" width="25" class="highqual" />
                                                     %else:
@@ -289,14 +289,14 @@
 		</tbody>
 	</table>
       </div>
-        <div style="z-index:10;position:absolute;text-align:center;margin-top:10px;">
+        <div style="z-index:10;overflow: hidden;margin-top:10px;">
+        <div style="z-index:10;float: left; text-align:center;margin-top:5px;">
             <div style="display:inline-block;">
-                 </br>
                  <small>last updated: ${weekinfo['last_update']}</small>
             </div>
         </div>
-        <div style="z-index:10;position:relative;float:right;margin-top:10px;">
-            <table style="border-spacing:3px;border-collapse:separate;">
+
+            <table style="float: right; border-spacing:3px;border-collapse:separate;">
               <tr>
                 <td style="float:left;margin-left:2px;vertical-align:middle;"><span style="border:1px solid#ccc;float:left;width:30px;height:12px;margin:4px;background:#641716;" title="Series is monitored & issue is Wanted"></span> monitored series</td>
                 <td style="float:left;margin-left:2px;vertical-align:middle;"><span style="border:1px solid#ccc;float:left;width:30px;height:12px;margin:4px;background:#444b54;" title="Series is Monitored & issue is Skipped"></span> monitored series</td>
@@ -306,6 +306,7 @@
               </tr>
             </table>
        </div>
+
 </%def>
 
 <%def name="headIncludes()">
@@ -356,7 +357,7 @@
                                     "bPaginate": false,
                                     "bDestroy": true
                             });
-                        } else{ 
+                        } else{
                             $('#downloads_table_body').append('<tr><td style="text-align:center;" colspan="3">No results returned</td></tr>');
                         }
                 $("#choose_specific_download_dialog").dialog({
@@ -461,6 +462,15 @@
                 });
                 $("#menu_link_delete").click(openMassAdd);
                 $("#pub_button").click(run_them);
+
+                // The linkfeedback class click handler
+                $('body').on('click', 'a[href="#"]', function() {
+                    var savet = this;
+                    $(this).css('position', 'relative').css('top', '3px');
+                    setTimeout(function() { $(savet).css('font-weight', '')}, 200);
+                    setTimeout(function() { $(savet).css('position', '').css('top', '')}, 400);
+                });
+
                 initActions();
 
                 $(function selector() {
@@ -564,3 +574,4 @@
         });
       </script>
 </%def>
+

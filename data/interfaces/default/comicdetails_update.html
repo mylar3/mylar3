@@ -28,7 +28,7 @@
                         %endif
 
                             <a id="menu_link_refresh" title="Rescan local files" onclick="force_rescan(${comic['ComicID']})">Recheck Files</a>
-                        <a id="menu_link_searchmissing" onclick="doAjaxCall('searchformissing?ComicID=${comic['ComicID']}', $(this), 'table');" href="#" data-success="Now queueing missing items for ${comic['ComicName']}">Search-4-Missing</a>
+                        <a id="menu_link_searchmissing" title="Search for all Missing files" onclick="search4missing(${comic['ComicID']})" href="#">Search-4-Missing</a>
                         %if mylar.CONFIG.ENABLE_META:
                             <a id="menu_link_refresh" href="#" title="perform metatagging on each Downloaded issue" onclick="group_metatag(${comic['ComicID']})">Manual MetaTagging</a>
                         %endif
@@ -53,16 +53,16 @@
 	<div id="paddingheader">
 		<h1>
                    </br>
-                        <span id="loading_spinner" style="display:none;">
-                                <img src="images/loader_black.gif" alt="loading" style="float:left; margin-right: 5px;"/>
-                        </span>
                         <div id="seriesheader" class="row">
                               <span id="series_line"></span>
-                              <span id="series_status" style="display:none;">
-                                    <h3><i>(Comic information is currently being loaded)</i></h3>
-                              </span>
                         </div>
                 </h1>
+                             <div>
+                                 <span id="loading_spinner" style="margin-bottom:0px;margin-top:10px;position:absolute;left:40%;transform:translate(-50%,-50%);display:none;">
+                                     <img src="images/loader_black.gif" alt="loading" />
+                                 </span>
+                                 <h3><i><span id="series_status" style="margin-bottom:0px;margin-top:10px;position:absolute;left:60%;transform:translate(-50%,-50%);display:none;"></i></h3></span>
+                             </div>
                              <div style="z-index:10; position: absolute; right: 0; top: 10;">
                              % if 'Previous' in series:
                              <a href="comicDetails?ComicID=${series['Previous']}"><img src="${icons['prev']}" width="16" height="18" /></a>
@@ -469,7 +469,7 @@
   </div>
 
      <div class="table_wrapper" id="issue_wrapper">
-       <h1><center>Issues</center></h1>
+       <div class="center toppad bigbotpad"><h1>Issues</h1></div>
        <form action="mark_the_issues" method="get" id="markissues" name="markissues">
         <div style="position:absolute;float:left;display:none;" id="markissue">Mark selected issues as
                 <select name="action" id="mark_issues" onChange="mark_the_issues('issues')" data-success="selected issues marked">
@@ -511,9 +511,7 @@
     </div>
 
     <div class="table_wrapper" id="annual_wrapper">
-       <br />
-       <h1><center>Annuals</center></h1>
-       <br />
+       <div class="center botpad"><h1>Annuals</h1></div>
        <form action="mark_the_issues" method="get" id="markannuals" name="markannuals">
         <div style="position:relative;float:left;display:none;" id="markannual">Mark selected annuals as
                 <select name="action" id="mark_annuals" onChange="mark_the_issues('annuals')" data-success="selected annuals marked">
@@ -548,14 +546,14 @@
      </div>
      <div>
          %if mylar.CONFIG.ANNUALS_ON:
-             <div style="position:relative; width:960px; height:10px; margin:10px auto;">
+             <div style="width:100%;">
                  <form action="manual_annual_add" method="GET">
                      <input type="hidden" name="comicid" value=${comic['ComicID']}>
                      <input type="hidden" name="comicname" value=${comic['ComicName'] |u}>
                      <input type="hidden" name="comicyear" value=${comic['ComicYear']}>
-                     <div style="position:absolute; top:30px; right:0px;">
-                         <center><label><strong><a href="#" title="Enter the ComicID of the annual(s) you want to add to the series"/>Comic ID</a></strong></label>
-                         <input type="text" name="manual_comicid" size="10"><input type="image" src="images/submit.png" height="25" width="25" class="highqual" /></center>
+                     <div style="text-align:right;">
+                         <label><strong><a href="#" title="Enter the ComicID of the annual(s) you want to add to the series"/>Comic ID</a></strong></label>
+                         <input type="text" name="manual_comicid" size="10"><input type="image" src="images/submit.png" height="25" width="25" class="highqual" />
                      </div>
                  </form>
              </div>
@@ -752,6 +750,7 @@
             }
         });
         });
+
         function annual_delete(comicid, annualid){
             $.when($.ajax({
                  type: "GET",
@@ -774,7 +773,6 @@
                  //reload_table();
             });
         }
-
 
         function mark_the_issues(tabletype){
             if (tabletype == 'issues'){
@@ -842,7 +840,7 @@
                        alert('ERROR'+data.responseText);
                      },
             })).done(function(data) {
-                 reload_table();
+                 reload_tables();
             });
         }
 
@@ -865,7 +863,7 @@
                        alert('ERROR'+data.responseText);
                      },
             })).done(function(data) {
-                 reload_table();
+                 reload_tables();
             });
         }
         function retry_issue(issueid, comicid, rlscomicid){
@@ -887,7 +885,7 @@
                        alert('ERROR'+data.responseText);
                      },
             })).done(function(data) {
-                 reload_table();
+                 reload_tables();
             });
         }
         function add_wanted(issueid, comicid, issuenumber, mode, msearch){
@@ -913,23 +911,23 @@
             });
         }                
 
-        function reload_table() {
+        function reload_tables() {
             var tables = $('table.display').DataTable();
             tables.ajax.reload(null,false);
         }
 
-        function reload_tabs() {
-            var url =  $(location).attr('href');
-            var tabId = $('.ui-tabs-panel:visible').attr("id");
-            $('.ui-tabs-panel:visible').load(url + " #"+ tabId, function() {
-                $("#tabs").tabs()
-            });
-        }
+        //function reload_tabs() {
+        //    var url =  $(location).attr('href');
+        //    var tabId = $('.ui-tabs-panel:visible').attr("id");
+        //    $('.ui-tabs-panel:visible').load(url + " #"+ tabId, function() {
+        //        $("#tabs").tabs()
+        //    });
+        //}
 
         function refresh_series(comicid){
-              $('#ajaxMsg').removeClass();
-              $('#ajaxMsg').html("<div class='msg'><span class='ui-icon ui-icon-check'></span>Updating series...</div>");
-              $('#ajaxMsg').addClass('success').fadeIn().delay(3000).fadeOut();
+              //$('#ajaxMsg').removeClass();
+              //$('#ajaxMsg').html("<div class='msg'><span class='ui-icon ui-icon-check'></span>Updating series...</div>");
+              //$('#ajaxMsg').addClass('success').fadeIn().delay(3000).fadeOut();
               $.when($.ajax({
                  type: "GET",
                  url: "refreshSeries",
@@ -980,15 +978,15 @@
                   //$('.ui-tabs-panel:visible').load(url + " #"+ tabId, function() {
                   //    $("#tabs").tabs()
                   //});
-                  reload_tabs();
-                  reload_table();
+                  //reload_tabs();
+                  //reload_tables();
               });
         }
 
         function force_rescan(comicid){
-              $('#ajaxMsg').removeClass();
-              $('#ajaxMsg').html("<div class='msg'><span class='ui-icon ui-icon-check'></span>Updating file information for series...</div>");
-              $('#ajaxMsg').addClass('success').fadeIn().delay(3000).fadeOut();
+              //$('#ajaxMsg').removeClass();
+              //$('#ajaxMsg').html("<div class='msg'><span class='ui-icon ui-icon-check'></span>Updating file information for series...</div>");
+              //$('#ajaxMsg').addClass('success').fadeIn().delay(3000).fadeOut();
               $.when($.ajax({
                  type: "GET",
                  url: "forceRescan",
@@ -1033,8 +1031,8 @@
                        alert('ERROR'+data.responseText);
                      },
               })).done(function(data) {
-                  reload_tabs();
-                  reload_table();
+                  //reload_tabs();
+                  //reload_tables();
               });
         }
 
@@ -1059,7 +1057,7 @@
                        alert('ERROR'+data.responseText);
                      },
               })).done(function(data) {
-                 //reload_table();
+                 //reload_tables();
               });
         }
 
@@ -1263,6 +1261,39 @@
         var loadingtext_active = false;
         var refreshInterval;
 
+        function search4missing(comicid){
+              //$('#ajaxMsg').removeClass();
+              //$('#ajaxMsg').html("<div class='msg'><span class='ui-icon ui-icon-check'></span>Updating file information for series...</div>");
+              //$('#ajaxMsg').addClass('success').fadeIn().delay(3000).fadeOut();
+              $.when($.ajax({
+                 type: "GET",
+                 url: "searchformissing",
+                 data: { ComicID: comicid },
+                 success: function(response) {
+                    //obj = JSON.parse(response);
+                    //$('#ajaxMsg').html("<div class='msg'><span class='ui-icon ui-icon-check'></span>Successfully ReChecked Files for series.</div>");
+                    //if (obj['status'] == 'success'){
+                    //    $('#ajaxMsg').addClass('success').fadeIn().delay(3000).fadeOut();
+                    //} else {
+                    //    $('#ajaxMsg').addClass('error').fadeIn().delay(3000).fadeOut();
+                    //}
+                 },
+                 error: function(data)
+                     {
+                       alert('ERROR'+data.responseText);
+                     },
+              })).done(function(data) {
+                  //var url =  $(location).attr('href');
+                  //var tabId = $('.ui-tabs-panel:visible').attr("id");
+                  //$('.ui-tabs-panel:visible').load(url + " #"+ tabId, function() {
+                  //    $("#tabs").tabs()
+                  //});
+                  //reload_tabs();
+                  //reload_table();
+              });
+        }
+
+
         function retrieve_comicid() {
             return document.getElementById("ComicID").value;
         }
@@ -1287,7 +1318,7 @@
                        alert('ERROR'+data.responseText);
                      },
             })).done(function(data) {
-                 reload_table();
+                 reload_tables();
             });
         }
 
@@ -1308,7 +1339,7 @@
                 $(annual_item).html('Store Date');
                 document.getElementById("display_the_date").innerHTML = 'Show Cover Date';
             }
-            reload_table();
+            reload_tables();
         }
 
        function count_checks(tabletype){
@@ -1342,9 +1373,11 @@
             series_c_year = document.getElementById("tab_comicyear").value;
             series_c_url = document.getElementById("tab_comicdetailurl").value;
             if (status_hidden == 'Loading'){
+                s_status.innerHTML = '(Comic information is currently being loaded)';
                 s_status.style.display = "block";
                 s_status_spinner.style.display = "block";
             } else {
+                s_status.innerHTML = '';
                 s_status.style.display = "none";
                 s_status_spinner.style.display = "none";
             }
@@ -1443,7 +1476,9 @@
         }
 
         function initThisPage(){
-                $( "#tabs" ).tabs();
+                $( "#tabs" ).tabs({
+                    cache: false,
+                });
                 $("#menu_link_delete").click(openDelete);
                 initActions();
                 $.fn.DataTable.ext.pager.numbers_length = 3;
@@ -1895,11 +1930,16 @@
             }
 
             title_loading();
-            //document.getElementById("title_loading_page").value = 'true';
 
             $(document).on("change", '#checkboxControls input[type="checkbox"]', function() {
             //$('#checkboxControls input[type="checkbox"]').onchange(function(){
                 tables.ajax.reload();
+            });
+
+            $("#tabs > ul > li > a").each(function (index, element) {
+                $(element).click(function() {
+                    $('#tabs').tabs('load', index);
+                });
             });
 
             // issues table

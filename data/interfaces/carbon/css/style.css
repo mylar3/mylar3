@@ -216,6 +216,7 @@ table th {
 }
 table th input[type="checkbox"] {
   vertical-align: middle;
+  text-align: center;
 }
 table th:first-child {
   border-left: 0;
@@ -552,7 +553,7 @@ header #logo {
 }
 footer {
   display: table;
-  margin: 60px auto 50px auto;
+  margin: 5px auto 50px auto;
   width: 960px;
   padding-top: 10px;
   border-top: 1px solid #EEE;
@@ -617,7 +618,8 @@ footer {
 #ajaxMsg .msg {
   font-family: "Trebuchet MS", Helvetica, Arial, sans-serif;
   line-height: normal;
-  padding-left: 20px;
+  padding: 5px 20px;
+  text-align: center;
 }
 #ajaxMsg .loader {
   position: relative;
@@ -826,8 +828,16 @@ div#searchbar .mini-icon {
   background-color: #641716;
   height: 30px;
 }
-.WantedTier {
-  background-color: #A97D7B;
+.Tier1 {
+  background-color: #641716;
+  height: 30px;
+}
+.Tier2 {
+  background-color: #9D2423;
+  height: 30px;
+}
+.Storyarcs {
+  background-color: #216f70;
   height: 30px;
 }
 .Snatched {
@@ -1529,71 +1539,58 @@ div#artistheader h2 a {
   min-width: 600px;
   text-align: left;
 }
+#searchresults_table th#select {
+  width: 7px;
+  text-align: center;
+}
 #searchresults_table th#name {
-  min-width: 525px;
+  min-width: 200px;
   text-align: left;
 }
 #searchresults_table th#comicyear {
-  min-width: 50px;
-  text-align: left;
+  width: 15px;
+  text-align: center;
+}
+#searchresults_table th#publisher {
+  width: 30px;
+  text-align: center;
 }
 #searchresults_table th#issues {
-  min-width: 50px;
+  width: 15px;
+  text-align: center;
+}
++#searchresults_table th#options {
+  width: 40px;
   text-align: left;
 }
-#searchresults_table th#add {
-  min-width: 75px;
-  text-align: left;
-}
-#searchresults_table #artistImg {
-  background: url("../../../images/loader_black.gif") no-repeat scroll center center #ffffff;
-  border: 3px solid #FFFFFF;
-  box-shadow: 1px 1px 2px 0 #555555;
-  float: left;
-  height: 50px;
-  overflow: hidden;
-  text-indent: -3000px;
-  width: 50px;
+#searchresults_table td#select {
+  width: 7px;
+  text-align: center;
+  vertical-align: middle;
 }
 #searchresults_table td#name {
-  min-width: 500px;
+  min-width: 200px;
   text-align: left;
+  vertical-align: middle;
+}
++#searchresults_table td#publisher {
+  width: 30px;
+  text-align: center;
   vertical-align: middle;
 }
 #searchresults_table td#comicyear {
-  min-width: 50px;
-  text-align: left;
+  width: 15px;
+  text-align: center;
   vertical-align: middle;
 }
 #searchresults_table td#issues {
-  min-width: 50px;
-  text-align: left;
+  width: 15px;
+  text-align: center;
   vertical-align: middle;
 }
-#searchresults_table td#add {
-  min-width: 75px;
+#searchresults_table td#options {
+  max-width: 40px;
   vertical-align: middle;
-}
-#searchresults_table td#score .bar {
-  width: 100px;
-  margin: 0 auto;
-  border: 1px solid #cccccc;
-  padding: 1px;
-  background-color: #FFF;
-}
-#searchresults_table td#score .bar .score {
-  height: 14px;
-  color: #343434;
-  color: #FFF;
-  font-size: 11px;
-  vertical-align: middle;
-  line-height: normal;
-  background-image: -moz-linear-gradient(#a3e532, #90cc2a) !important;
-  background-image: linear-gradient(#a3e532, #90cc2a) !important;
-  background-image: -webkit-linear-gradient(#a3e532, #90cc2a) !important;
-  background-image: -o-linear-gradient(#a3e532, #90cc2a) !important;
-  filter: progid:dximagetransform.microsoft.gradient(startColorstr=#fafafa, endColorstr=#eaeaea) !important;
-  -ms-filter: progid:dximagetransform.microsoft.gradient(startColorstr=#fafafa, endColorstr=#eaeaea) !important;
 }
 #impresults_table th#select {
   min-width: 10px;
@@ -1978,7 +1975,7 @@ DIV.progress-container > DIV
 #actions {
   float: right;
   text-align: right;
-  margin-right: 10px;
+  margin-right: 0px;
   margin-top: -5px;
   color: #cccccc;
 }
@@ -2113,21 +2110,60 @@ DIV.progress-container > DIV
 .clearfix:after {
   clear: both;
 }
-#upcoming_table th#comicname,
+#wanted_table th#select {
+  text-align: center;
+  vertical-align: middle;
+  width: 32px;
+}
 #wanted_table th#comicname {
-  min-width: 150px;
+  min-width: 256px;
   text-align: center;
 }
-#upcoming_table td#select,
-#upcoming_table td#status,
-#wanted_table td#select,
+#wanted_table th#issuenumber {
+  text-align: center;
+  vertical-align: middle;
+  width: 55px;
+}
+#wanted_table th#reldate {
+  width: 99px;
+  text-align: center;
+}
+#wanted_table th#status {
+  text-align: center;
+  vertical-align: middle;
+  width: 69px;
+}
+#wanted_table th#tier {
+  width: 159px;
+  text-align: center;
+}
+#wanted_table td#select {
+  text-align: center;
+  vertical-align: middle;
+  width: 32px;
+}
+#wanted_table td#comicname {
+  min-width: 256px;
+  text-align: center;
+}
+#wanted_table td#issuenumber {
+  text-align: center;
+  vertical-align: middle;
+  width: 55px;
+}
+#wanted_table td#reldate {
+  width: 99px;
+  text-align: center;
+}
 #wanted_table td#status {
   text-align: center;
   vertical-align: middle;
+  width: 69px;
 }
-#upcoming_table th#type,
-#wanted_table th#type,
-#wanted_table th#tier,
+#wanted_table td#tier {
+  width: 159px;
+  text-align: center;
+}
 #searchresults_table th#score {
   min-width: 75px;
   text-align: center;
@@ -2248,16 +2284,14 @@ img.highqual {
 }
 table#issue_table { width: 100%; padding: 10px; }
 
-table#issue_table th#select { vertical-align: middle; text-align: center; max-width: 5px; }
-table#issue_table th#int_issuenumber { text-align: left; max-width: 10px }
+table#issue_table th#select { vertical-align: middle; text-align: center; max-width: 7px; }
 table#issue_table th#issuenumber { text-align: center; max-width: 20px; }
 table#issue_table th#issuename { text-align: center; max-width: 200px; }
 table#issue_table th#reldate { text-align: center; max-width: 45px; }
 table#issue_table th#status { text-align: center; max-width: 55px; }
 table#issue_table th#options { text-align: center; max-width: 120px; }
 
-table#issue_table td#select { vertical-align: middle; text-align: center; max-width: 5px; }
-table#issue_table td#int_issuenumber { vertical-align: middle; text-align: left; max-width: 10px; }
+table#issue_table td#select { vertical-align: middle; text-align: center; max-width: 7px; }
 table#issue_table td#issuenumber { vertical-align: middle; text-align: center; max-width: 20px; }
 table#issue_table td#issuename { vertical-align: middle; text-align: center; max-width: 200px; }
 table#issue_table td#reldate { vertical-align: middle; text-align: center; max-width: 45px; }
@@ -2282,6 +2316,15 @@ table#annual_table td#areldate { vertical-align: middle; text-align: center; max
 table#annual_table td#astatus { vertical-align: middle; text-align: center; max-width: 55px; }
 table#annual_table td#aoptions { vertical-align: middle; text-align: center; max-width: 120px; }
 
+table#notifs_table { width: 100%; padding: 10px; }
+
+table#notifs_table th#date { vertical-align: middle; text-align: center; max-width: 25px; }
+table#notifs_table th#message { text-align: center; max-width: 150px; }
+table#notifs_table th#comicid { text-align: center; max-width: 15px; }
+table#notifs_table td#date { vertical-align: middle; text-align: center; max-width: 25px; }
+table#notifs_table td#message { vertical-align: middle; text-align: center; max-width: 150px; }
+table#notifs_table td#comicid { vertical-align: middle; text-align: center; max-width: 15px; }
+
 #btn_container {
   float: right;
   height: 30px;
@@ -2289,7 +2332,8 @@ table#annual_table td#aoptions { vertical-align: middle; text-align: center; max
   width: 100%;
   z-index: 998;
 }
-#btn_container #btn_menu {
+#btn_container #btn_menu,
+#btn_container #btn_notifs {
   float: right;
   margin-top: 5px;
   position: relative;
@@ -2303,7 +2347,8 @@ table#annual_table td#aoptions { vertical-align: middle; text-align: center; max
   width: 100%;
   z-index: 1;
 }
-#btn_container_center #btn_menu {
+#btn_container_center #btn_menu,
+#btn_contianer_center #btn_notifs {
   float: center;
   margin-top: 5px;
   position: relative;
@@ -2315,6 +2360,17 @@ table#annual_table td#aoptions { vertical-align: middle; text-align: center; max
   background-image: -webkit-linear-gradient(#616161, #4e4e4e) !important;
   background-image: -o-linear-gradient(#616161, #4e4e4e) !important;
   filter: progid:dximagetransform.microsoft.gradient(startColorstr=#6a6a6a, endColorstr=#4a4a4a) !important;
+  font-family: "Helvetica Neue", Helvetica, Arial, Geneva, sans-serif;
+  font-size: 12px;
+  font-weight: normal;
+}
+#btn_notifs a {
+  background-color: #272b30;
+  background-image: -moz-linear-gradient(#272b30, #272b30) !important;
+  background-image: linear-gradient(#272b30, #272b30) !important;
+  background-image: -webkit-linear-gradient(#272b30, #272b30) !important;
+  background-image: -o-linear-gradient(#272b30, #272b30) !important;
+  filter: progid:dximagetransform.microsoft.gradient(startColorstr=#fafafa, endColorstr=#eaeaea) !important;
   font-family: "Helvetica Neue", Helvetica, Arial, Geneva, sans-serif;
   font-size: 12px;
   font-weight: normal;
@@ -2389,4 +2445,28 @@ figure.item{
   width: 100%;
   margin-top: -15px;
   z-index:10;
+}
+div.center { text-align: center; }
+div.botpad { padding-bottom: 20px; }
+div.toppad { padding-top: 20px; }
+div.bigbotpad { padding-bottom: 40px; }
+div.bigtoppad { padding-top: 40px; }
+
+.spinny  { animation: spinning-cog 1.3s infinite ease; }
+@keyframes spinning-cog  { 0% { transform: rotate(0deg); } 20% { transform: rotate(-45deg); }	100% { transform: rotate(360deg); } }
+img.mylarload {
+  height: 64px;
+  width: 64px;
+  position: relative;
+  filter: drop-shadow(0 0 0.75rem rgb(192, 192, 16));
+  backdrop-filter: blur(0px) saturate(3);
+  box-shadow: none!important;
+}
+img.mylarload.lastgood {
+  filter: drop-shadow(0 0 0.75rem rgb(0, 240, 16));
+  backdrop-filter: blur(0px) saturate(3);
+}
+img.mylarload.lastbad {
+  filter: drop-shadow(0 0 0.75rem rgb(240, 0, 16));
+  backdrop-filter: blur(0px) saturate(3);
 }

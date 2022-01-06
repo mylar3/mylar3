@@ -530,7 +530,7 @@ header #logo {
 }
 footer {
   display: table;
-  margin: 60px auto 50px auto;
+  margin: 5px auto 50px auto;
   width: 960px;
   padding-top: 10px;
   border-top: 1px solid #EEE;
@@ -595,7 +595,8 @@ footer {
 #ajaxMsg .msg {
   font-family: "Trebuchet MS", Helvetica, Arial, sans-serif;
   line-height: normal;
-  padding-left: 20px;
+  padding: 5px 20px;
+  text-align: center;
 }
 #ajaxMsg .loader {
   position: relative;
@@ -1909,7 +1910,7 @@ DIV.progress-container > DIV
 #actions {
   float: right;
   text-align: right;
-  margin-right: 10px;
+  margin-right: 0px;
   margin-top: -5px;
   color: #cccccc;
 }
@@ -2311,4 +2312,39 @@ figure.item{
   display: block;
   line-height: .5em;
 }
+.td-center {
+  text-align: center;
+}
+.watermark {
+  position: absolute;
+  color: lightgray;
+  opacity: 0.15;
+  font-size: 1.5em;
+  width: 100%;
+  margin-top: -15px;
+  z-index:10;
+}
+div.center { text-align: center; }
+div.botpad { padding-bottom: 20px; }
+div.toppad { padding-top: 20px; }
+div.bigbotpad { padding-bottom: 40px; }
+div.bigtoppad { padding-top: 40px; }
 
+.spinny  { animation: spinning-cog 1.3s infinite ease; }
+@keyframes spinning-cog  { 0% { transform: rotate(0deg); } 20% { transform: rotate(-45deg); }  100% { transform: rotate(360deg); } }
+img.mylarload {
+  height: 64px;
+  width: 64px;
+  position: relative;
+  filter: drop-shadow(0 0 0.75rem rgb(192, 192, 16));
+  backdrop-filter: blur(0px) saturate(3);
+  box-shadow: none!important;
+}
+img.mylarload.lastgood {
+  filter: drop-shadow(0 0 0.75rem rgb(0, 240, 16));
+  backdrop-filter: blur(0px) saturate(3);
+}
+img.mylarload.lastbad {
+  filter: drop-shadow(0 0 0.75rem rgb(240, 0, 16));
+  backdrop-filter: blur(0px) saturate(3);
+}

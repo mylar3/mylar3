@@ -15,29 +15,24 @@
 <%def name="body()">
         <input type="hidden" id="page_name" value="upcoming" />
 	<div class="title">
-		<h1 class="clearfix"><img src="${icons['icon_wanted']}" alt="Wanted Issues"/>Wanted Issues (${wantedcount})</h1>
+		<h1 class="clearfix"><img src="${icons['icon_wanted']}" alt="Wanted Issues"/>Wanted Issues (<span id="wanted_count"></span>)</h1>
 	</div>
 
-        <div id="checkboxControls" style="float: right; vertical-align: middle; margin: 5px 3px 3px 3px;">
-          <div style="padding-bottom: 5px;">
-            <label for="Wanted" class="checkbox inline Wanted"><input type="checkbox" id="Wanted" checked="checked" /> Wanted: <b>${isCounts['Wanted']}</b></label>
-            <label for="WantedTier" class="checkbox inline WantedTier">Tiered: <b>${isCounts['WantedTier']}</b></label>
-            %if mylar.CONFIG.UPCOMING_SNATCHED is True:
-                %if int(isCounts['Snatched']) > 0:
-                    <label for="Snatched" class="checkbox inline Snatched"><input type="checkbox" id="Snatched" checked="checked" /> Snatched: <b>${isCounts['Snatched']}</b></label>
-                %endif
-            %endif
-            %if int(isCounts['Failed']) > 0 and mylar.CONFIG.FAILED_DOWNLOAD_HANDLING is True:
-                <label for="Failed" class="checkbox inline Failed"><input type="checkbox" id="Failed" checked="checked" /> Failed: <b>${isCounts['Failed']}</b></label>
-            %endif
+        <div id="checkboxControls" name="checkboxControls" style="float: right; vertical-align: middle; margin: 5px 3px 3px 3px;">
+         <div style="padding-bottom: 5px;">
+             <label for="Wanted" class="checkbox inline Wanted" id="wantedlabel" style="display:none;"><input type="checkbox" name="Wanted" id="Wanted" checked="checked" /> Wanted: <b><span id="wantedcount"></span></b></label>
+             <label for="Tier1" class="checkbox inline Tier1" id="tier1label" style="display:none;"><input type="checkbox" name="Tier1" id="Tier1" checked="checked" />Tier-1: <b><span id="tier1count"></span></b></label>
+             <label for="Tier2" class="checkbox inline Tier2" id="tier2label" style="display:none;"><input type="checkbox" name="Tier2" id="Tier2" checked="checked" />Tier-2: <b><span id="tier2count"></span></b></label>
+             <label for="Snatched" class="checkbox inline Snatched" id="snatchedlabel" style="display:none;"><input type="checkbox" name="Snatched" id="Snatched" checked="checked" /> Snatched: <b><span id="snatchedcount"></span></b></label>
+             <label for="Storyarcs" class="checkbox inline Storyarcs" id="storyarcslabel" style="display:none;"><input type="checkbox" name="Storyarcs" id="Storyarcs" checked="checked" /> StoryArcs: <b><span id="storyarcscount"></span></b></label>
+             <label for="Failed" class="checkbox inline Failed" id="failedlabel" style="display:none;"><input type="checkbox" name="Failed" id="Failed" checked="checked" /> Failed: <b><span id="failedcount"></span></b></label>
+         </div>
         </div>
-       </div>
 
-	<div class="table_wrapper" id="wanted_table_wrapper" >
-         <form action="markissues" method="get" id="markissues">
-          <div id="markissue" style="top:0;">
-                Mark selected issues as
-                <select name="action" onChange="doAjaxCall('markissues',$(this),'table',true);" data-error="You didn't select any issues" data-success="selected issues marked">
+        <div class="table_wrapper" id="wanted_table_wrapper">
+          <form action="mark_the_issues" method="get" id="markissues" name="markissues">
+            <div style="position:absolute;float:left;display:none;" id="markissue">Mark selected issues as
+                <select name="action" id="mark_issues" onChange="mark_the_issues()" data-success="selected issues marked">
                                 <option disabled="disabled" selected="selected">Choose...</option>
                                 <option value="Wanted">Wanted</option>
                                 <option value="Skipped">Skipped</option>
@@ -47,172 +42,69 @@
                                 <option value="OppositeTier">Opposite Tier</option>
                 </select>
                 <input type="hidden" value="Go">
-          </div>
-                <small style="float: right; vertical-align: middle;">Date shown in SearchTier is when the issue was added to the Wanted list</small>
-		<table class="display" id="wanted_table">
+            </div>
+
+            <small style="float: right; vertical-align: middle;">Date shown in SearchTier is when the issue was added to the Wanted list</small>
+	    <table class="display select" id="wanted_table">
 		<thead>
 			<tr>
-				<th id="select"><input type="checkbox" onClick="toggle(this)" /></th>
+                                <th id="select"><input type="checkbox" name="select_all" value="1" id="wanted-select-all" class="checkbox" /></th>
 				<th id="comicname">Comic</th>
-				<th id="issuenumber">Issue</th>
-				<th id="reldate">Release Date</th>
+				<th id="issuenumber">#</th>
+				<th id="reldate">Rls Date</th>
+				<th id="status">Status</th>
                                 <th id="tier">SearchTier</th>
-				<th id="options">Options</th>
 			</tr>
 		</thead>
 		<tbody>
-		%for issue in issues:
-                        <%
-                                if issue['Status'] == 'Wanted':
-                                        grade = 'X'
-
-                                        try:
-                                                if issue['DateAdded'] <= mylar.SEARCH_TIER_DATE:
-                                                        tier = "2nd"
-                                                        grade = 'T2'
-                                                else:
-                                                        tier = "1st [%s]" % issue['DateAdded']
-                                                        grade = 'X'
-                                        except:
-                                                tier = "1st [%s]" % issue['DateAdded']
-                                                grade = 'T2'
-
-                                elif issue['Status'] == 'Snatched':
-                                        grade = 'C'
-                                elif issue['Status'] == 'Failed':
-                                        grade = 'F'
-                                else:
-                                        grade = 'Z'
-
-                        %>
-
-                        <tr class="${issue['Status']} grade${grade}">
-                                <%
-                                      linkit = 'comicDetails?ComicID=%s' % issue['ComicID']
-                                      try:
-                                          if issue['StoryArcID'] is not None:
-                                              lineheader = issue['StoryArc']
-                                              linkit = 'detailStoryArc?StoryArcID=%s&StoryArcName=%s' % (issue['StoryArcID'],issue['StoryArc'])
-                                              issuenumber = issue['IssueNumber']
-                                              issueid = issue['IssueArcID']
-                                          else:
-                                              lineheader = None
-                                              issuenumber = issue['Issue_Number']
-                                              issueid = issue['IssueID']
-                                      except:
-                                          lineheader = None
-                                          try:
-                                              issuenumber = issue['Issue_Number']
-                                          except:
-                                              issuenumber = issue['IssueNumber']
-                                          issueid = issue['IssueID']
-
-                                      if any(d['IssueID'] == str(issue['IssueID']) for d in ann_list):
-                                          try:
-                                              adjcomicname = issue['ReleaseComicName']
-                                          except Exception as e:
-                                              adjcomicname = issue['ComicName']
-                                      else:
-                                          adjcomicname = issue['ComicName']
-                                      endif
-
-                                      try:
-                                          if issue['DateAdded'] <= mylar.SEARCH_TIER_DATE:
-                                              tier = "2nd"
-                                          else:
-                                              tier = "1st [%s]" % issue['DateAdded']
-                                      except:
-                                          tier = "1st [%s]" % issue['DateAdded']
-                                      
-                                %>
-                                <td id="select"><input type="checkbox" name="${issueid}" class="checkbox" value="${issueid}"/></td>
-				<td id="comicname">
-                                %if lineheader is not None:
-                                    <b>[${lineheader}]</b><a href="${linkit}"> ${adjcomicname}</a>
-                                %else:
-                                    <a href="${linkit}">${adjcomicname}</a>
-                                %endif
-                                </td>
-                                <td id="issuenumber">${issuenumber}</td>
-				<td id="reldate">${issue['IssueDate']}</td>
-                                %if issue['Status'] == 'Wanted':
-  				        <td id="tier" style="text-align:center;">${tier}</td>
-                                %else:
-                                        <td id="tier"></td>
-                                %endif
-                                <td id="options">
-<!--
-                                <a class="menu_link_edit" id="choose_specific_download" title="Choose Specific Download" href="javascript:void(0)" onclick="getAvailableDownloads('${issueid}')"><i class="fa fa-search"></i><img src="images/magnifier.png" height="25" width="25" class="highqual" /></a>
-                                <div id="choose_specific_download_dialog" title="Choose a specific download for ${adjcomicname} #${issuenumber}" style="display:none" class="configtable">
-                                <table class="display" id="downloads_table">
-                                        <thead>
-                                                <tr>
-                                                        <th id="title">Title</th>
-                                                        <th id="provider">Provider</th>
-                                                        <th id="size">Size</th>
-                                                        <th id="kind">Kind</th>
-                                                </tr>
-                                        </thead>
-                                        <tbody id="downloads_table_body" value="Now searching....this might take up to 90 seconds.">
-                                        </tbody>
-                                </table>
-                                </div>
--->
-                                </td>
-                        </div
-			</tr>
-		%endfor
 		</tbody>
-	</table>
+	    </table>
 	</form>
-	</div>
+        </div>
+        </br>
 
-	<div class="title">
-		<h1 class="clearfix"><img src="${icons['icon_upcoming']}" alt="Upcoming Issues"/>Upcoming Issues</h1>
-	</div>
+        <div class="title">
+                <h1 class="clearfix"><img src="${icons['icon_upcoming']}" alt="Upcoming Issues"/>Upcoming Issues</h1>
+        </div>
 
         <div id="tabs">
                 <ul>
                         <li><a href="#tabs-1">This Week's Upcoming (${upcoming_count})</a></li>
-                        <li><a href="#tabs-2">Upcoming nodata</a></li>
-<!--
-                        <li><a href="#tabs-3">Future Upcoming (${futureupcoming_count})</a></li>
--->
+                        <li><a href="#tabs-2">Future Auto-Wants</a></li>
                 </ul>
 
         <div id="tabs-1">
-
-
-	<div class="table_wrapper">
-		<table class="display_no_select" id="upcoming_table">
+          <div class="table_wrapper">
+            <table class="display_no_select" id="upcoming_table">
                 %if upcoming:
-    		    <thead>
-			    <tr>
-				    <th id="comicname">Comic</th>
-				    <th id="issuenumber">Issue</th>
-				    <th id="reldate">Release Date</th>
-				    <th id="status">Status</th>
-			    </tr>
-		    </thead>
-		    <tbody>
+                    <thead>
+                            <tr>
+                                    <th id="comicname">Comic</th>
+                                    <th id="issuenumber">Issue</th>
+                                    <th id="reldate">Release Date</th>
+                                    <th id="status">Status</th>
+                            </tr>
+                    </thead>
+                    <tbody>
                     %for upcome in upcoming:
-		   	    <tr class="gradeZ">
-			   	    <td id="comicname"><a href="comicDetails?ComicID=${upcome['ComicID']}">${upcome['ComicName']}</a></td>
-				    <td id="issuenumber">${upcome['IssueNumber']}</td>
-				    <td id="reldate">${upcome['IssueDate']}</td>
-				    <td id="status">${upcome['Status']}</td>
-			    </tr>
-  		    %endfor
+                            <tr class="gradeZ">
+                                    <td id="comicname"><a href="comicDetails?ComicID=${upcome['ComicID']}">${upcome['ComicName']}</a></td>
+                                    <td id="issuenumber">${upcome['IssueNumber']}</td>
+                                    <td id="reldate">${upcome['IssueDate']}</td>
+                                    <td id="status">${upcome['Status']}</td>
+                            </tr>
+                    %endfor
                 %else:
                   <tr><td align="center" width="100%"> no upcoming data to display</td></tr>
                 %endif
                </tbody>
-	</table>
-	</div>
+            </table>
+          </div>
         </div>
         <div id="tabs-2">
            <a name="upcoming_nodata"></a>
            <a id="menu_link_edit" href="future_check">Force Check Availability</a>
+           <div style="float:right;text-align:right;font-size:20px;font-weight:bold;" title="manually add issue to auto-want list">+</div>
            <div class="table_wrapper">
                 <table class="display_no_select" id="upcoming_table">
                 %if future_nodata_upcoming:
@@ -229,7 +121,7 @@
                     %for f_nodata in future_nodata_upcoming:
                             <tr class="gradeZ">
                                     <td id="delcolumn">
-                                         <a href="upcoming#upcoming_nodata" title="Delete series from auto-Want list" onclick="doAjaxCall('removeautowant?comicname=${f_nodata['ComicName'] |u}&release=${f_nodata['IssueDate']}',$(this),'table')" data-success="${f_nodata['ComicName']} has been removed from the auto-want list"><img src="images/skipped_icon.png" height="25" width="25" class="highqual" /></a>
+                                    <a href="upcoming#upcoming_nodata" title="Delete series from auto-Want list" onclick="doAjaxCall('removeautowant?comicname=${f_nodata['ComicName'] |u}&release=${f_nodata['IssueDate']}',$(this),'table')" data-success="${f_nodata['ComicName']} has been removed from the auto-want list"><img src="images/skipped_icon.png" height="25" width="25" class="highqual" /></a>
                                     </td>
                                     %if f_nodata['ComicID'] is not None:
                                         <td id="comicname"><a href="comicDetails?ComicID=${f_nodata['ComicID']}">${f_nodata['ComicName']}</a></td>
@@ -242,44 +134,13 @@
                             </tr>
                     %endfor
                 %else:
-                  <tr><td align="center" width="100%">no upcoming future data to display</td></tr>
+                  <div align="center">No items currently being watched</div>
                 %endif
                </tbody>
                </table>
             </div>
         </div>
-<!--
-        <div id="tabs-3">
-           <a id="menu_link_edit" href="futurepulllist">View Future Pull-list</a>
-           <div class="table_wrapper">
-                <table class="display_no_select" id="upcoming_table">
-                %if futureupcoming:
-                    <thead>
-                        <tr>
-                                <th id="comicname">Comic</th>
-                                <th id="issuenumber">Issue</th>
-                                <th id="reldate">Release Date</th>
-                                <th id="status">Status</th>
-                        </tr>
-                    </thead>
-                <tbody>
-                    %for f_upcome in futureupcoming:
-                            <tr class="gradeZ">
-                                    <td id="comicname">${f_upcome['ComicName']}</td>
-                                    <td id="issuenumber">${f_upcome['IssueNumber']}</td>
-                                    <td id="reldate">${f_upcome['IssueDate']}</td>
-                                    <td id="status">${f_upcome['Status']}</td>
-                            </tr>
-                    %endfor
-                %else:
-                  <tr><td align="center" width="100%">no upcoming future data to display</td></tr>
-                %endif
-                </tbody>
-               </table>
-         </div>
-        </div>
--->
-     </div>
+
 </%def>
 
 <%def name="headIncludes()">
@@ -289,118 +150,323 @@
 <%def name="javascriptIncludes()">
 	<script src="js/libs/jquery.dataTables.min.js"></script>
         <script>
-        // show/hide different types of rows when the checkboxes are changed
-        $("#checkboxControls input").change(function(e){
-            var whichClass = $(this).attr('id')
-            $(this).showHideRows(whichClass)
-            return
-            $('tr.'+whichClass).each(function(i){
-                $(this).toggle();
-            });
-        });
-
-        // initially show/hide all the rows according to the checkboxes
-        $("#checkboxControls input").each(function(e){
-            var status = this.checked;
-            $("tr."+$(this).attr('id')).each(function(e){
-                if (status) {
-                    $(this).show();
-                } else {
-                    $(this).hide();
+        function mark_the_issues(){
+            var action=$("#mark_issues option:selected").val();
+            var checks = document.getElementsByName("issueid[]");
+            var checkboxesChecked = [];
+            for (var i=0; i<checks.length; i++) {
+                if (checks[i].checked) {
+                    // console.log(checks[i].value);
+                    checkboxesChecked.push(checks[i].value);
                 }
+            }
+            // console.log(checkboxesChecked);
+            $.when($.ajax({
+                 type: "GET",
+                 url: "markissues",
+                 data: { action: action, issueids: checkboxesChecked },
+                 success: function(response) {
+                    obj = JSON.parse(response);
+                 },
+                 error: function(data)
+                     {
+                       alert('ERROR'+data.responseText);
+                     },
+            })).done(function(data) {
+                 //reload_table();
             });
-        });
-
-        $.fn.showHideRows = function(whichClass){
-
-            var status = $('#checkboxControls > input, #'+whichClass).prop('checked')
-            $("tr."+whichClass).each(function(e){
-                if (status) {
-                    $(this).show();
-                } else {
-                    $(this).hide();
-                }
-            });
-        };
-
-        function getAvailableDownloads(issueid) {
-                ShowSpinner();
-                $.getJSON("choose_specific_download", {issueid: issueid}, function(data) {
-                        loader.remove();
-                        feedback.fadeOut();
-                        search_results = data
-                        for( var i = 0, len = data.length; i < len; i++ ) {
-                        $('#downloads_table_body').append('<tr><td id="title"><a href="javascript:void(0)" onclick="downloadSpecificRelease('+i+')">'+data[i].nzbtitle+'</a></td><td id="provider">'+data[i].provider+'</td><td id="size">'+data[i].size+'</td><td id="kind">'+data[i].kind+'</td></tr>');
-                }
-                        $('#downloads_table').dataTable({
-                                "aoColumns": [
-                                        null,
-                                        null,
-                                        null,
-                                        null
-                                ],
-                                "aaSorting": [[ 1, 'desc']],
-                                "bFilter": false,
-                                "bInfo": false,
-                                "bPaginate": false,
-                                "bDestroy": true
-                        });
-                $("#choose_specific_download_dialog").dialog({
-                        width: "70%",
-                        maxHeight: 500
-                });
-                return false;
-                });
         }
 
-        function downloadSpecificRelease(i){
-
-                name = search_results[i].nzbtitle
-                prov = search_results[i].tmpprov
-                nzbid = search_results[i].nzbid
-                ShowSpinner();
-                $.getJSON("download_specific_release", {nzbid: nzbid, provider: prov, name: name}, function(data) {
-                        loader.remove();
-                        feedback.fadeOut();
-                        refreshSubmenu();
-                        $("#choose_specific_download_dialog").dialog("close");
-                });
-        }
-
-        function ShowSpinner() {
-                feedback = $("#ajaxMsg");
-                update = $("#updatebar");
-                if ( update.is(":visible") ) {
-                        var height = update.height() + 35;
-                        feedback.css("bottom",height + "px");
-                } else {
-                        feedback.removeAttr("style");
+       function count_checks(){
+            var checks = document.getElementsByName("issueid[]");
+            cc = document.getElementById("markissue");
+            var checkfound = false;
+            for (var i=0; i<checks.length; i++) {
+                if (checks[i].checked) {
+                    checkfound = true;
+                    break;
                 }
-                loader = $("<i class='fa fa-refresh fa-spin'></i>");
-                feedback.prepend(loader);
-                feedback.fadeIn();
+            }
+            if (checkfound == true){
+                cc.style.display = "block";
+            } else {
+                cc.style.display = "none";
+            }
         }
 
-        var loadingMessage = false;
-        var spinner_active = false;
-        var loadingtext_active = false;
-        var refreshInterval;
+        function retrieve_filters() {
+            filters = []
+            filters.push({"name": "Wanted", "value": document.getElementById("Wanted").checked });
+            filters.push({"name": "Snatched", "value": document.getElementById("Snatched").checked });
+            filters.push({"name": "Storyarcs", "value": document.getElementById("Storyarcs").checked });
+            filters.push({"name": "Tier1", "value": document.getElementById("Tier1").checked });
+            filters.push({"name": "Tier2", "value": document.getElementById("Tier2").checked });
+            filters.push({"name": "Failed", "value": document.getElementById("Failed").checked });
+            return JSON.stringify(filters);
+        }
+
+        function update_filters() {
+            $.when($.ajax({
+                 type: "GET",
+                 url: "update_upcoming_filters",
+                 success: function(response) {
+                    obj = JSON.parse(response);
+                    if (obj['status'] == 'success'){
+                        obj_filters = obj['filters'];
+                        wantedcount = document.getElementById("wantedlabel");
+                        if (parseInt(obj_filters['wanted'], 10) > 0){
+                            wantedcount.style.display = "inline";
+                            document.getElementById("wantedcount").innerHTML = obj_filters['wanted'];
+                        } else if (parseInt(obj_filters['wanted'], 10) <= 0) {
+                            document.getElementById("wantedcount").innerHTML = "";
+                            wantedcount.style.display = "none";
+                        }
+                        tier1count = document.getElementById("tier1label");
+                        if (parseInt(obj_filters['tier1'], 10) > 0){
+                            tier1count.style.display = "inline";
+                            document.getElementById("tier1count").innerHTML = obj_filters['tier1'];
+                        } else if (parseInt(obj_filters['tier1'], 10) <= 0) {
+                            document.getElementById("tier1count").innerHTML = "";
+                            tier1count.style.display = "none";
+                        }
+                        tier2count = document.getElementById("tier2label");
+                        if (parseInt(obj_filters['tier2'], 10) > 0){
+                            tier2count.style.display = "inline";
+                            document.getElementById("tier2count").innerHTML = obj_filters['tier2'];
+                        } else if (parseInt(obj_filters['tier2'], 10) <= 0) {
+                            document.getElementById("tier2count").innerHTML = "";
+                            tier2count.style.display = "none";
+                        }
+                        snatchedcount = document.getElementById("snatchedlabel");
+                        if (parseInt(obj_filters['snatched'], 10) > 0){
+                            snatchedcount.style.display = "inline";
+                            document.getElementById("snatchedcount").innerHTML = obj_filters['snatched'];
+                        } else if (parseInt(obj_filters['snatched'], 10) <= 0) {
+                            document.getElementById("snatchedcount").innerHTML = "";
+                            snatchedcount.style.display = "none";
+                        }
+                        failedcount = document.getElementById("failedlabel");
+                        if (parseInt(obj_filters['failed'], 10) > 0){
+                            failedcount.style.display = "inline";
+                            document.getElementById("failedcount").innerHTML = obj_filters['failed'];
+                        } else if (parseInt(obj_filters['failed'], 10) <= 0) {
+                            document.getElementById("failedcount").innerHTML = "";
+                            failedcount.style.display = "none";
+                        }
+                        storyarcscount = document.getElementById("storyarcslabel");
+                        if (parseInt(obj_filters['storyarcs'], 10) > 0){
+                            storyarcscount.style.display = "inline";
+                            document.getElementById("storyarcscount").innerHTML = obj_filters['storyarcs'];
+                        } else if (parseInt(obj_filters['storyarcs'], 10) <= 0) {
+                            document.getElementById("storyarcscount").innerHTML = "";
+                            storyarcsdcount.style.display = "none";
+                        }
+                        document.getElementById("wanted_count").innerHTML = parseInt(obj_filters['tier1'],10) + parseInt(obj_filters['tier2'],10);
+                    }
+                 },
+                 error: function(data)
+                     {
+                       alert('ERROR'+data.responseText);
+                     },
+            })).done(function(data) {
+                 console.log('finished counts updated.');
+            });           
+        }
 
 	function initThisPage() {
-                $(function() {
-                        $( "#tabs" ).tabs();
-                });
-		$('#wanted_table').dataTable({
-			"bDestroy":true,
-			"bFilter": false,
-			"bInfo": false,
-			"bPaginate": false
-		});
-		resetFilters("issues");
-		initActions();
-	}
+            $(function() {
+                     $( "#tabs" ).tabs();
+            });
+            initActions();
+            $.fn.DataTable.ext.pager.numbers_length = 5;
+            $('#wanted_table').dataTable({
+                "preDrawCallback": function (settings){
+                    pageScrollPos = $('#wanted_table div.datatables_scrollBody').scrollTop();
+                    // make sure the filter counts are up-to-date
+                    update_filters();
+                    // reset the mark_issues dropdown so it won't keep the last selection
+                    dropdown = document.getElementById("mark_issues");
+                    dropdown.selectedIndex = 0;
+                    document.getElementById("markissue").style.display = "none";
+                    document.getElementById("wanted-select-all").checked = false;
+                },
+                "sDom": '<"clear"f><"clear"lp><"clear">rt<"clear"ip>',
+		"destroy": true,
+		"processing": true,
+		"serverSide": true,
+                "ajax": {
+                    "data": function (d) {
+                        d.filters = retrieve_filters();
+                    }
+                },
+		"ajaxSource": 'loadupcoming',
+                "columnDefs": [
+                    {
+                        "sortable": false,
+                        "targets": [ 0 ],
+                        "visible": true,
+                        "render":function (data,type,full,meta) {
+                           return '<input type="checkbox" name="issueid[]" value="' + $('<div/>').text(full[3]).html() + '" />';
+                        }
+                    },
+                    {
+                        "sortable": true,
+                        "targets": [ 1 ],
+                        "visible": true,
+                        "render":function (data,type,full) {
+                           if(typeof(full[8]) === "undefined" || full[8] === null){
+                               linkit = '<a href="comicDetails?ComicID='+full[5]+'">'+full[0]+'</a>';
+                           } else {
+                               // storyarcs
+                               if (full[10] == "oneoff"){
+                                   // exists only in storyarcs
+                                   linkit = '<a href="detailStoryArc?StoryArcID='+full[8]+'&StoryArcName='+full[7]+'">[<b>'+full[7]+'</b>] '+full[0]+'</a>';
+                               } else {
+                                   // exists in both watchlist & storyarcs
+                                   linkit = '<b>[<a href="detailStoryArc?StoryArcID='+full[8]+'&StoryArcName='+full[7]+'">'+full[7]+'] </b><a href="comicDetails?ComicID='+full[5]+'"> '+full[0]+'</a>';
+                               }
+                           }
+                           return linkit;
+                        }
+                     },
+                    {
+                        "sortable": true,
+                        "targets": [ 2 ],
+                        "visible": true,
+                        "render":function (data,type,full) {
+                           return full[1];
+                        }
+                    },
+                    {
+                        "sortable": true,
+                        "targets": [ 3 ],
+                        "visible": true,
+                        "render":function (data,type,full) {
+                            return full[2];
+                        }
+                    },
+                    {
+                        "sortable": true,
+                        "targets": [ 4 ],
+                        "visible": true,
+                        "render":function (data,type,full) {
+                            return full[6];
+                        }
+                    },
+                    {
+                        "sortable": true,
+                        "targets": [ 5 ],
+                        "visible": true,
+                        "render":function (data,type,full){
+                            return full[4];
+                        }
+                    },
+                    ],
+                "paginationType": "simple_numbers",
+                "aaSorting": [[3, 'desc']],
+                "displayLength": 25,
+                "stateSave": true,
+                "lengthMenu": [[10, 15, 25, 50, 100, 200, -1], [10, 15, 25, 50, 100, 200, 'All' ]],
+                "language": {
+                     "search":"Filter:",
+                     "lengthMenu":"Show _MENU_ items per page",
+                     "emptyTable": "No history information available",
+                     "info":"Showing _START_ to _END_ of _TOTAL_ items",
+                     "infoEmpty":"Showing 0 to 0 of 0 items",
+                     "infoFiltered":"(filtered from _MAX_ total items)"
+                },
+                "rowCallback": function (nRow, aData, iDisplayIndex, iDisplayIndexFull) {
+                     if (aData[6] === "Wanted") {
+                        if (aData[4].includes("1st")){
+                            $('td', nRow).closest('tr').addClass(aData[6]).addClass('gradeX');
+                        } else {
+                            $('td', nRow).closest('tr').addClass(aData[6]).addClass('gradeT2');
+                        }
+                     } else if (aData[6] === "Snatched") {
+                        $('td', nRow).closest('tr').addClass(aData[6]).addClass('gradeC');
+                     } else if (aData[6] === "Failed"){
+                        $('td', nRow).closest('tr').addClass(aData[6]).addClass('gradeF');
+                     } else {
+                        $('td', nRow).closest('tr').addClass(aData[6]).addClass('gradeZ');
+                     }
+                     nRow.children[0].id = 'select';
+                     nRow.children[1].id = 'comicname';
+                     nRow.children[2].id = 'issuenumber';
+                     nRow.children[3].id = 'reldate';
+                     nRow.children[4].id = 'status';
+                     nRow.children[5].id = 'tier';
+                     return nRow;
+                },
+                "drawCallback": function (o) {
+                     // Jump to top of page
+                     $('#wanted_table div.dataTables_scrollBody').scrollTop(pageScrollPos);
+                },
+                "serverData": function ( sSource, aoData, fnCallback ) {
+                    /* Add some extra data to the sender */
+                    aoData.push({"name": "filters", "value": retrieve_filters() });
+                    $.getJSON(sSource, aoData, function (json) {
+                            fnCallback(json)
+                    });
+                },
+                "fnInitComplete": function(oSettings, json)
+                {
+                },
+            });
+	};
 	$(document).ready(function() {
-		initThisPage();
+            initThisPage();
+            var tables = $('table.display').DataTable();
+            $(document).on("change", '#checkboxControls input[type="checkbox"]', function() {
+            //$('#checkboxControls input[type="checkbox"]').onchange(function(){
+                tables.ajax.reload();
+            });
+
+            // wanted table
+            // Handle click on "Select all" control
+            $('#wanted-select-all').on('click', function(){
+                // Get all rows with search applied
+                var rows = tables.rows({ 'search': 'applied' }).nodes();
+               // Check/uncheck checkboxes for all rows in the table
+               $('input[type="checkbox"]', rows).prop('checked', this.checked);
+               count_checks();
+            });
+
+            // Handle click on checkbox to set state of "Select all" control
+            $('#wanted_table tbody').on('change', 'input[type="checkbox"]', function(){
+                count_checks();
+
+                // If checkbox is not checked
+                if(!this.checked){
+                    var el = $('#wanted_table-select-all').get(0);
+                    // If "Select all" control is checked and has 'indeterminate' property
+                    if(el && el.checked && ('indeterminate' in el)){
+                        // Set visual state of "Select all" control
+                        // as 'indeterminate'
+                        el.indeterminate = true;
+                    }
+                }
+            });
+            // Handle form submission event
+            $('#markissues').on('submit', function(e){
+               var form = this;
+
+               // Iterate over all checkboxes in the table
+               tables.$('input[type="checkbox"]').each(function(){
+                  // If checkbox doesn't exist in DOM
+                  if(!$.contains(document, this)){
+                     // If checkbox is checked
+                     if(this.checked){
+                        // Create a hidden element
+                        $(form).append(
+                           $('<input>')
+                              .attr('type', 'hidden')
+                              .attr('name', this.name)
+                              .val(this.value)
+                        );
+                     }
+                  }
+               });
+            });
 	});
 	</script>
 </%def>

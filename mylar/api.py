@@ -75,11 +75,16 @@ class Api(object):
         #    'data': results
         #}
         #{'status': mylar.GLOBAL_MESSAGES['status'], 'comicid': mylar.GLOBAL_MESSAGES['comicid'], 'tables': mylar.GLOBAL_MESSAGES['tables'], 'message': mylar.GLOBAL_MESSAGES['message']}
+        #logger.info('global_message: %s' % (results,))
         if results['status'] is not None:
             if results['event'] == 'addbyid':
                 try:
-                    data = '\nevent: addbyid\ndata: {\ndata: "status": "' + results['status'] + '",\ndata: "comicid": "' + results['comicid']+ '",\ndata: "message": "' + results['message'] + '",\ndata: "tables": "' + results['tables'] + '",\ndata: "comicname": "' + results['comicname'] + + '",\ndata: "seriesyear": "' + results['seriesyear'] + '"\ndata: }\n\n'
-                except Exception:
+                    if results['seriesyear']:
+                        data = '\nevent: addbyid\ndata: {\ndata: "status": "' + results['status'] + '",\ndata: "comicid": "' + results['comicid']+ '",\ndata: "message": "' + results['message'] + '",\ndata: "tables": "' + results['tables'] + '",\ndata: "comicname": "' + results['comicname'] + '",\ndata: "seriesyear": "' + results['seriesyear'] + '"\ndata: }\n\n'
+                    else:
+                        data = '\nevent: addbyid\ndata: {\ndata: "status": "' + results['status'] + '",\ndata: "comicid": "' + results['comicid']+ '",\ndata: "message": "' + results['message'] + '",\ndata: "tables": "' + results['tables'] + '",\ndata: "comicname": "' + results['comicname'] + '",\ndata: "seriesyear": "' + results['seriesyear'] + '"\ndata: }\n\n'
+                except Exception as e:
+                    logger.warn('error: %s' % e)
                     data = '\nevent: addbyid\ndata: {\ndata: "status": "' + results['status'] + '",\ndata: "comicid": "' + results['comicid']+ '",\ndata: "message": "' + results['message'] + '",\ndata: "tables": "' + results['tables'] + '"\ndata: }\n\n'
             elif results['event'] == 'scheduler_message':
                 try:
@@ -643,10 +648,13 @@ class Api(object):
             self.id = kwargs['id']
 
         try:
-            importer.addComictoDB(self.id)
+            ac = webserve.WebInterface()
+            ac.addbyid(self.id, calledby=True, nothread=False)
+            #importer.addComictoDB(self.id)
         except Exception as e:
             self.data = e
-
+        else:
+            self.data = self._successResponse("Successfully queued up addding id: %s" % self.id)
         return
 
     def _queueIssue(self, **kwargs):
@@ -1100,6 +1108,15 @@ class Api(object):
                 except Exception as e:
                     logger.warn('error: %s' % e)
             #logger.fdebug('the_message added: %s' % (the_message,))
+            if mylar.GLOBAL_MESSAGES['status'] != 'mid-message-event':
+                myDB = db.DBConnection()
+                tmp_message = dict(the_message, **{'session_id': mylar.SESSION_ID})
+                tmp_message.pop('tables')
+                the_tmp_message = tmp_message.pop('message')
+                the_real_message = re.sub(r'\r\n|\n|</br>', '', the_tmp_message)
+                tmp_message = dict(tmp_message, **{'message': the_real_message})
+                #logger.fdebug('the_message re-added: %s' % (tmp_message,))
+                myDB.upsert( "notifs", tmp_message, {'date': helpers.now()} )
             mylar.GLOBAL_MESSAGES = None
         self.data = self._eventStreamResponse(the_message)
 

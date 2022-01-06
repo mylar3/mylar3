@@ -222,6 +222,7 @@ def findComic(name, mode, issue, limityear=None, search_type=None):
                                 'url':                  xmlurl,
                                 'issues':               arcinfolist['issues'],
                                 'comicimage':           arcinfolist['comicimage'],
+                                'comicthumb':           arcinfolist['comicthumb'],
                                 'publisher':            xmlpub,
                                 'description':          arcinfolist['description'],
                                 'deck':                 arcinfolist['deck'],
@@ -236,6 +237,7 @@ def findComic(name, mode, issue, limityear=None, search_type=None):
                                 'url':                  xmlurl,
                                 'issues':               issuecount,
                                 'comicimage':           xmlimage,
+                                'comicthumb':           xmlthumb,
                                 'publisher':            xmlpub,
                                 'description':          xmldesc,
                                 'deck':                 xmldeck,
@@ -293,6 +295,7 @@ def findComic(name, mode, issue, limityear=None, search_type=None):
                         cl = 0
                         xmlTag = 'None'
                         xml_lastissueid = 'None'
+                        xml_firstissueid = 'None'
                         while (cl < cnl):
                             if result.getElementsByTagName('name')[cl].parentNode.nodeName == 'volume':
                                 xmlTag = result.getElementsByTagName('name')[cl].firstChild.wholeText
@@ -303,6 +306,8 @@ def findComic(name, mode, issue, limityear=None, search_type=None):
 
                             if result.getElementsByTagName('name')[cl].parentNode.nodeName == 'last_issue':
                                 xml_lastissueid = result.getElementsByTagName('id')[cl].firstChild.wholeText
+                            if result.getElementsByTagName('name')[cl].parentNode.nodeName == 'first_issue':
+                                xml_firstissueid = result.getElementsByTagName('id')[cl].firstChild.wholeText
                             cl+=1
 
                         try:
@@ -312,6 +317,11 @@ def findComic(name, mode, issue, limityear=None, search_type=None):
                                 xmlimage = result.getElementsByTagName('small_url')[0].firstChild.wholeText
                             except Exception:
                                 xmlimage = "cache/blankcover.jpg"
+
+                        try:
+                            xmlthumb = result.getElementsByTagName('thumb_url')[0].firstChild.wholeText
+                        except Exception:
+                            xmlthumb = "cache/blankcover.jpg"
 
                         if (result.getElementsByTagName('start_year')[0].firstChild) is not None:
                             xmlYr = result.getElementsByTagName('start_year')[0].firstChild.wholeText
@@ -367,6 +377,7 @@ def findComic(name, mode, issue, limityear=None, search_type=None):
 
                             try:
                                 xmldesc = result.getElementsByTagName('description')[0].firstChild.wholeText
+                                #xmldesc = cv.drophtml(xmldesc)
                             except:
                                 xmldesc = "None"
 
@@ -376,55 +387,79 @@ def findComic(name, mode, issue, limityear=None, search_type=None):
                             except:
                                 xmldeck = "None"
 
-                            xmltype = None
-                            if xmldeck != 'None':
-                                if any(['print' in xmldeck.lower(), 'digital' in xmldeck.lower(), 'paperback' in xmldeck.lower(), 'one shot' in re.sub('-', '', xmldeck.lower()).strip(), 'hardcover' in xmldeck.lower()]):
-                                    if all(['print' in xmldeck.lower(), 'reprint' not in xmldeck.lower()]):
-                                        xmltype = 'Print'
-                                    elif 'digital' in xmldeck.lower():
-                                        xmltype = 'Digital'
-                                    elif 'paperback' in xmldeck.lower():
-                                        xmltype = 'TPB'
-                                    elif 'graphic novel' in xmldeck.lower():
-                                        xmltype = 'GN'
-                                    elif 'hardcover' in xmldeck.lower():
-                                        xmltype = 'HC'
-                                    elif 'oneshot' in re.sub('-', '', xmldeck.lower()).strip():
-                                        xmltype = 'One-Shot'
-                                    else:
-                                        xmltype = 'Print'
-
-                            if xmldesc != 'None' and xmltype is None:
-                                if 'print' in xmldesc[:60].lower() and all(['print edition can be found' not in xmldesc.lower(), 'reprints' not in xmldesc.lower()]):
-                                    xmltype = 'Print'
-                                elif 'digital' in xmldesc[:60].lower() and 'digital edition can be found' not in xmldesc.lower():
-                                    xmltype = 'Digital'
-                                elif all(['paperback' in xmldesc[:60].lower(), 'paperback can be found' not in xmldesc.lower()]) or all(['hardcover' not in xmldesc[:60].lower(), 'collects' in xmldesc[:60].lower()]):
-                                    xmltype = 'TPB'
-                                elif all(['graphic novel' in xmldesc[:60].lower(), 'graphic novel can be found' not in xmldesc.lower()]):
-                                    xmltype = 'GN'
-                                elif 'hardcover' in xmldesc[:60].lower() and 'hardcover can be found' not in xmldesc.lower():
-                                    xmltype = 'HC'
-                                elif any(['one-shot' in xmldesc[:60].lower(), 'one shot' in xmldesc[:60].lower()]) and any(['can be found' not in xmldesc.lower(), 'following the' not in xmldesc.lower()]):
-                                    i = 0
-                                    xmltype = 'One-Shot'
-                                    avoidwords = ['preceding', 'after the special', 'following the']
-                                    while i < 2:
-                                        if i == 0:
-                                            cbd = 'one-shot'
-                                        elif i == 1:
-                                            cbd = 'one shot'
-                                        tmp1 = xmldesc[:60].lower().find(cbd)
-                                        if tmp1 != -1:
-                                            for x in avoidwords:
-                                                tmp2 = xmldesc[:tmp1].lower().find(x)
-                                                if tmp2 != -1:
-                                                    xmltype = 'Print'
-                                                    i = 3
-                                                    break
-                                        i+=1
+                            givb = cv.get_imprint_volume_and_booktype(True, xmlYr, xmlpub, xml_firstissueid, xmldesc, xmldeck)
+                            logger.info('givb: %s' % (givb,))
+                            if givb:
+                                if givb['Type'] == 'None':
+                                    xmltype = None
                                 else:
-                                    xmltype = 'Print'
+                                    xmltype = givb['Type']
+                                if givb['ComicDescription'] == 'None':
+                                    xmldes = None
+                                else:
+                                    xmldesc = givb['ComicDescription']
+                                if givb['ComicVersion'] == 'None':
+                                    xmlvol = None
+                                else:
+                                    xmlvol = givb['ComicVersion']
+                                if givb['ComicPublisher'] == 'None':
+                                    xmlpub = None
+                                else:
+                                    xmlpub = givb['ComicPublisher']
+                                if givb['PublisherImprint'] == 'None':
+                                    xmlimprint = None
+                                else:
+                                    xmlimprint = givb['PublisherImprint']
+
+                            #xmltype = None
+                            #if xmldeck != 'None':
+                            #    if any(['print' in xmldeck.lower(), 'digital' in xmldeck.lower(), 'paperback' in xmldeck.lower(), 'one shot' in re.sub('-', '', xmldeck.lower()).strip(), 'hardcover' in xmldeck.lower()]):
+                            #        if all(['print' in xmldeck.lower(), 'reprint' not in xmldeck.lower()]):
+                            #            xmltype = 'Print'
+                            #        elif 'digital' in xmldeck.lower():
+                            #            xmltype = 'Digital'
+                            #        elif 'paperback' in xmldeck.lower():
+                            #            xmltype = 'TPB'
+                            #        elif 'graphic novel' in xmldeck.lower():
+                            #            xmltype = 'GN'
+                            #        elif 'hardcover' in xmldeck.lower():
+                            #            xmltype = 'HC'
+                            #        elif 'oneshot' in re.sub('-', '', xmldeck.lower()).strip():
+                            #            xmltype = 'One-Shot'
+                            #        else:
+                            #            xmltype = 'Print'
+
+                            #if xmldesc != 'None' and xmltype is None:
+                            #    if 'print' in xmldesc[:60].lower() and all(['print edition can be found' not in xmldesc.lower(), 'reprints' not in xmldesc.lower()]):
+                            #        xmltype = 'Print'
+                            #    elif 'digital' in xmldesc[:60].lower() and 'digital edition can be found' not in xmldesc.lower():
+                            #        xmltype = 'Digital'
+                            #    elif all(['paperback' in xmldesc[:60].lower(), 'paperback can be found' not in xmldesc.lower()]) or all(['hardcover' not in xmldesc[:60].lower(), 'collects' in xmldesc[:60].lower()]):
+                            #        xmltype = 'TPB'
+                            #    elif all(['graphic novel' in xmldesc[:60].lower(), 'graphic novel can be found' not in xmldesc.lower()]):
+                            #        xmltype = 'GN'
+                            #    elif 'hardcover' in xmldesc[:60].lower() and 'hardcover can be found' not in xmldesc.lower():
+                            #        xmltype = 'HC'
+                            #    elif any(['one-shot' in xmldesc[:60].lower(), 'one shot' in xmldesc[:60].lower()]) and any(['can be found' not in xmldesc.lower(), 'following the' not in xmldesc.lower()]):
+                            #        i = 0
+                            #        xmltype = 'One-Shot'
+                            #        avoidwords = ['preceding', 'after the special', 'following the']
+                            #        while i < 2:
+                            #            if i == 0:
+                            #                cbd = 'one-shot'
+                            #            elif i == 1:
+                            #                cbd = 'one shot'
+                            #            tmp1 = xmldesc[:60].lower().find(cbd)
+                            #            if tmp1 != -1:
+                            #                for x in avoidwords:
+                            #                    tmp2 = xmldesc[:tmp1].lower().find(x)
+                            #                    if tmp2 != -1:
+                            #                        xmltype = 'Print'
+                            #                        i = 3
+                            #                        break
+                            #            i+=1
+                            #    else:
+                            #        xmltype = 'Print'
 
                             if xmlid in comicLibrary:
                                 haveit = comicLibrary[xmlid]
@@ -437,12 +472,16 @@ def findComic(name, mode, issue, limityear=None, search_type=None):
                                     'url':                  xmlurl,
                                     'issues':               xmlcnt,
                                     'comicimage':           xmlimage,
+                                    'comicthumb':           xmlthumb,
                                     'publisher':            xmlpub,
                                     'description':          xmldesc,
                                     'deck':                 xmldeck,
                                     'type':                 xmltype,
                                     'haveit':               haveit,
                                     'lastissueid':          xml_lastissueid,
+                                    'firstissueid':         xml_firstissueid,
+                                    'volume':               xmlvol,
+                                    'imprint':              xmlimprint,
                                     'seriesrange':          yearRange  # returning additional information about series run polled from CV
                                     })
                             #logger.fdebug('year: %s - constraint met: %s [%s] --- 4050-%s' % (xmlYr,xmlTag,xmlYr,xmlid))
@@ -549,6 +588,19 @@ def storyarcinfo(xmlid):
         xmlimage = "cache/blankcover.jpg"
 
     try:
+        xmlimage = result.getElementsByTagName('super_url')[0].firstChild.wholeText
+    except Exception:
+        try:
+            xmlimage = result.getElementsByTagName('small_url')[0].firstChild.wholeText
+        except Exception:
+            xmlimage = "cache/blankcover.jpg"
+
+    try:
+        xmlthumb = result.getElementsByTagName('thumb_url')[0].firstChild.wholeText
+    except Exception:
+        xmlthumb = "cache/blankcover.jpg"
+
+    try:
         xmldesc = arcdom.getElementsByTagName('desc')[0].firstChild.wholeText
     except:
         xmldesc = "None"
@@ -576,6 +628,7 @@ def storyarcinfo(xmlid):
             'comicid':              xmlid,
             'issues':               issuecount,
             'comicimage':           xmlimage,
+            'comicthumb':           xmlthumb,
             'description':          xmldesc,
             'deck':                 xmldeck,
             'arclist':              arclist,

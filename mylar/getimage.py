@@ -210,7 +210,7 @@ def retrieve_image(url):
     return ComicImage
 
 def load_image(filename, resize=600):
-    logger.info('filename: %s' % filename)
+    #logger.info('filename: %s' % filename)
     # used to load an image from file for display using the getimage method (w/out extracting) ie. series detail cover page
     with open(filename, 'rb') as i:
         imagefile = i.read()

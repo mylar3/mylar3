@@ -50,6 +50,7 @@ def run(dirName, nzbName=None, issueid=None, comversion=None, manual=None, filen
         logger.fdebug('Filepath: %s' %filepath)
         logger.fdebug('Filename: %s' %filename)
         new_folder = tempfile.mkdtemp(prefix='mylar_', dir=mylar.CONFIG.CACHE_DIR) #prefix, suffix, dir
+        os.chmod(new_folder, 0o777)
         logger.fdebug('New_Folder: %s' % new_folder)
         new_filepath = os.path.join(new_folder, filename)
         logger.fdebug('New_Filepath: %s' % new_filepath)
