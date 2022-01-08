@@ -398,21 +398,21 @@
                                    <div class="row">
                                        <label>Directory Location</label>
                                        <input type="text" id="com_location" name="com_location" value="${comic['ComicLocation']}" size="90">
-                                       <small>The directory where all the comics are located for this particular comic</small>
+                                       <small>Directory where all the comics are located for this series</small>
                                    </div>
 
                                    <div class="row">
                                        <label>Alternate Search Names</label>
                                        <input type="text" name="alt_search" value="${comic['AlternateSearch']}" size="90" />
                                        <a href="#" title="Seperate multiple entries with ##"><img src="images/info32.png" height="16" alt="" /></a>
-                                       <small>Alternate comic names to be searched in case naming is different (ie. Hack/Slash = hack-slash)</small>
+                                       <small>Alternate comic names to be searched in case naming is different</small>
                                    </div>
 
                                    <div class="row">
                                        <label>Alternate File-Naming</label>
                                        <input type="text" name="alt_filename" value="${comic['AlternateFileName']}" size="90">
                                        <a href="#" title="Alternate File Naming"><img src="images/info32.png" height="16" alt="" /></a>
-                                       <small>Alternate file-naming to be used when post-processing / renaming files instead of the actual title.</small>
+                                       <small>Use this instead of CV name during post-processing / renaming</small>
                                    </div>
 
                                    <div class="row">
@@ -438,8 +438,8 @@
                                        <input type="text" name="torrentid_32p" placeholder="torrent id #" value="${comicConfig['torrentid_32p']}" size="40">
                                    </div>
                                    %endif
+                             <span style="position:absolute;float:right;right:30px;bottom:25px;"><input type="submit" value="Update"/></span>
                         </fieldset>
-                     <input type="submit" style="float:right;bottom:20px;" value="Update"/>
                 </form>
                </td>
              </tr>
@@ -719,6 +719,10 @@
                 $("#issue-box").draggable();
             } else if (action == 'metatag' || action == 'ametatag'){
                 run_single_metatag(issueid, comicid, issuenumber);
+            } else if (action == 'readlistadd'){
+                add2readinglist(issueid);
+            } else if (action == 'downloadissue'){
+                downloadthisissue(issueid);
             } else if (action == 'manqueueit' || action == 'amanqueueit'){
                 if (action == 'amanqueueit'){
                     add_wanted(issueid, comicid, issuenumber, 'want_ann', true);
@@ -841,6 +845,57 @@
                      },
             })).done(function(data) {
                  reload_tables();
+            });
+        }
+
+        function add2readinglist(issueid){
+            $.when($.ajax({
+                 type: "GET",
+                 url: "addtoreadlist",
+                 data: { IssueID: issueid },
+                 success: function(response) {
+                    obj = JSON.parse(response);
+                    $('#ajaxMsg').html("<div class='msg'><span class='ui-icon ui-icon-check'></span>"+obj['message']+"</div>");
+                    if (obj['status'] == 'success'){
+                        $('#ajaxMsg').addClass('success').fadeIn().delay(3000).fadeOut();
+                    } else {
+                        $('#ajaxMsg').addClass('error').fadeIn().delay(3000).fadeOut();
+                    }
+                 },
+                 error: function(data)
+                     {
+                       alert('ERROR'+data.responseText);
+                     },
+            })).done(function(data) {
+                 //reload_tables();
+            });
+        }
+        function shizzlemedown(filepath){
+            $.ajax({
+                 type: "GET",
+                 url: "downloadthis",
+                 data: { pathfile: filepath },
+            })
+        }
+        function downloadthisissue(issueid){
+            $.ajax({
+                 type: "GET",
+                 url: "download_checkthis",
+                 data: { issueid: issueid },
+                 success: function(response) {
+                    obj = JSON.parse(response);
+                    $('#ajaxMsg').html("<div class='msg'><span class='ui-icon ui-icon-check'></span>"+obj['message']+"</div>");
+                    if (obj['status'] == 'success'){
+                        $('#ajaxMsg').addClass('success').fadeIn().delay(3000).fadeOut();
+                        shizzlemedown(obj['filepath']);
+                    } else {
+                        $('#ajaxMsg').addClass('error').fadeIn().delay(3000).fadeOut();
+                    }
+                 },
+                 error: function(data)
+                     {
+                       alert('ERROR'+data.responseText);
+                     },
             });
         }
 
@@ -1612,6 +1667,10 @@
                                    }
                                }
                                displayline += '<a id="listbox" name="listbox" href="#issue-box" class="issue-window">'+issueimg+'</a>';
+                               if (full[3] == 'Downloaded'){
+                                   displayline += '<a id="readlistadd" name="readlistadd" title="Add to Reading List" href="#"><img src="images/glasses-icon.png" height="25" width="25" style="margin:2px 1px 3px 3px;" /></a>';
+                                   displayline += '<a href="downloadthis?issueid='+String(full[4])+'" title="Download this issue"><img src="images/download_icon.png" height="25" width="25" style="margin:2px 1px 3px 3px;" /></a>';
+                               }
                                return displayline;
                            }
                        },

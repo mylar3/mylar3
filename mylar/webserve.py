@@ -802,7 +802,11 @@ class WebInterface(object):
                 results = mb.findComic(name, mode, issue=None)
             except TypeError:
                 logger.error('Unable to perform required search for : [name: ' + name + '][mode: ' + mode + ']')
-                return
+                return json.dumps({
+                    'iTotalDisplayRecords': 0,
+                    'iTotalRecords': 0,
+                    'aaData': [],
+                })
         else:
             results = []
             for rt in db_results:
@@ -1764,7 +1768,11 @@ class WebInterface(object):
                         logger.warn('Unable to remove directory as it does not exist in : ' + seriesdir)
                 else:
                     logger.warn('Unable to remove directory as it does not exist in : ' + seriesdir)
-            logger.info('Successful deletion of %s %s (%s) from your watchlist' % (ComicName, seriesvol, seriesyear))
+            if seriesvol is None:
+                dspline = '%s (%s)' % (ComicName, seriesyear)
+            else:
+                dspline = '%s %s (%s)' % (ComicName, seriesvol, seriesyear)
+            logger.info('Successful deletion of %s from your watchlist' % (dspline))
             helpers.ComicSort(sequence='update')
         raise cherrypy.HTTPRedirect("home")
     deleteSeries.exposed = True
@@ -3074,7 +3082,7 @@ class WebInterface(object):
             filters = json.loads(kwargs.get('filters'))
         except Exception as e:
             filters = []
-        logger.info('filters: %s' % (filters,))
+        #logger.fdebug('filters: %s' % (filters,))
 
         myDB = db.DBConnection()
         if sSortDir_0 == 'desc':
@@ -3234,9 +3242,9 @@ class WebInterface(object):
                 if matched is True:
                     filtered.append([ark['comicname'], ark['issuenumber'], ark['releasedate'], key, tier, ark['comicid'], ark['status'], ark['storyarc'], ark['storyarcid'], ark['issuearcid'], "oneoff"])
 
-        logger.info('[%s] one-off arcs: %s' % (len(arcs), arcs,))
+        #logger.fdebug('[%s] one-off arcs: %s' % (len(arcs), arcs,))
 
-        logger.info('sort_column: %s: sort_directioN: %s' % (iSortCol_0,sSortDir_0))
+        logger.fdebug('sort_column: %s: sort_directioN: %s' % (iSortCol_0,sSortDir_0))
         sortcolumn = 2 #'releasedate'
         if iSortCol_0 == '1':
             sortcolumn = 0 #'comicame'
@@ -3287,7 +3295,7 @@ class WebInterface(object):
         if missinglist:
             threading.Thread(target=search.searchIssueIDList, args=[missinglist]).start()
             logger.info('[SEARCH-FOR-MISSING] Queued up %s issues to seach for' % (len(missinglist)))
-            mylar.GLOBAL_MESSAGES = {'status': 'success', 'comicname': comicname, 'seriesyear': comicyear, 'comicid': ComicID, 'tables': None, 'message': 'Successfully queued up %s issues of %s (%s)to search for' % (len(missinglist), comicname, comicyear)}
+            mylar.GLOBAL_MESSAGES = {'status': 'success', 'comicname': comicname, 'seriesyear': comicyear, 'comicid': ComicID, 'tables': 'None', 'message': 'Successfully queued up %s issues of %s (%s)to search for' % (len(missinglist), comicname, comicyear)}
         else:
             logger.info('[SEARCH-FOR-MISSING] Nothing to queue up')
             mylar.GLOBAL_MESSAGES = {'status': 'success', 'comicname': None, 'seriesyear': None, 'comicid': ComicID, 'tables': 'None', 'message': 'Nothing to queue up'}
@@ -3297,23 +3305,34 @@ class WebInterface(object):
     def skipped2wanted(self, comicid, fromupdate=None):
         # change all issues for a given ComicID that are Skipped, into Wanted.
         issuestowanted = []
-        issuesnumwant = []
+        issuesnumwant = 0
+        annsnumwant = 0
+        mvvalues = {"Status": "Wanted"}
         myDB = db.DBConnection()
-        skipped2 = myDB.select("SELECT * from issues WHERE ComicID=? AND Status='Skipped'", [comicid])
+        skipped2 = myDB.select("SELECT issueid, 0 as type from issues WHERE ComicID=? AND Status='Skipped'", [comicid])
+        if mylar.CONFIG.ANNUALS_ON:
+            skipped2 += myDB.select("SELECT issueid, 1 as type from annuals WHERE ComicID=? AND Status='Skipped'", [comicid])
         for skippy in skipped2:
-            mvcontroldict = {"IssueID":    skippy['IssueID']}
-            mvvalues = {"Status":         "Wanted"}
-            myDB.upsert("issues", mvvalues, mvcontroldict)
-            issuestowanted.append(skippy['IssueID'])
-            issuesnumwant.append(skippy['Issue_Number'])
-        if len(issuestowanted) > 0:
+            mvcontroldict = {"IssueID": skippy['IssueID']}
+            if skippy['type'] == 1:
+                skip_table = 'annuals'
+                issuesnumwant +=1
+            else:
+                skip_table = 'issues'
+                annsnumwant +=1
+            myDB.upsert(skip_table, mvvalues, mvcontroldict)
+            issuestowanted.append(skippy['issueid'])
+        if issuesnumwant > 0:
+            num_line = '%s issues' % issuesnumwant
+            if annsnumwant > 0:
+                num_line += ' and %s annauls' % annsnumwant
             if fromupdate is None:
-                logger.info("Marking issues: %s as Wanted" % issuesnumwant)
+                logger.info("Marking %s as Wanted" % num_line)
                 threading.Thread(target=search.searchIssueIDList, args=[issuestowanted]).start()
-                line_message = 'Successfully changed %s issues from Skipped 2 Wanted' % len(issuestowanted)
+                line_message = 'Successfully changed %s from Skipped 2 Wanted' % num_line
                 line_status = 'success'
             else:
-                logger.info('Marking issues: %s as Wanted' & issuesnumwant)
+                logger.info('Marking %s as Wanted' % num_line)
                 logger.info('These will be searched for on next Search Scan / Force Check')
                 return
         else:
@@ -3336,7 +3355,8 @@ class WebInterface(object):
 
     annualDelete.exposed = True
 
-    def ddl_requeue(self, mode, id=None):
+    def ddl_requeue(self, mode, id=None, issueid=None):
+        logger.info('id: %s / mode: %s / issueid: %s' % (id, mode, issueid))
         myDB = db.DBConnection()
         if mode == 'clear_queue':
             chk = myDB.selectone("SELECT count(*) AS count FROM ddl_info WHERE status = 'Queued'").fetchone()
@@ -3383,6 +3403,7 @@ class WebInterface(object):
                                      'size':     item['size'],
                                      'comicid':  item['comicid'],
                                      'issueid':  item['issueid'],
+                                     'site':     item['site'],
                                      'id':       item['id'],
                                      'resume':   resume})
 
@@ -3409,7 +3430,7 @@ class WebInterface(object):
 
         resultlist = 'There are currently no items waiting in the Direct Download (DDL) Queue for processing.'
         s_info = myDB.select("SELECT a.ComicName, a.ComicVersion, a.ComicID, a.ComicYear, b.Issue_Number, b.IssueID, c.size, c.status, c.id, c.updated_date, c.issues, c.year FROM comics as a INNER JOIN issues as b ON a.ComicID = b.ComicID INNER JOIN ddl_info as c ON b.IssueID = c.IssueID") # WHERE c.status != 'Downloading'")
-        o_info = myDB.select("Select a.ComicName, b.Issue_Number, a.IssueID, a.ComicID, c.size, c.status, c.id, c.updated_date, c.issues, c.year from oneoffhistory a join snatched b on a.issueid=b.issueid join ddl_info c on b.issueid=c.issueid where b.provider = 'ddl'")
+        o_info = myDB.select("Select a.ComicName, b.Issue_Number, a.IssueID, a.ComicID, c.size, c.status, c.id, c.updated_date, c.issues, c.year from oneoffhistory a join snatched b on a.issueid=b.issueid join ddl_info c on b.issueid=c.issueid where b.provider like 'DDL%'")
         if s_info:
             resultlist = []
             for si in s_info:
@@ -3480,7 +3501,7 @@ class WebInterface(object):
         myDB = db.DBConnection()
         resultlist = 'There are currently no items waiting in the Direct Download (DDL) Queue for processing.'
         s_info = myDB.select("SELECT a.ComicName, a.ComicVersion, a.ComicID, a.ComicYear, b.Issue_Number, b.IssueID, c.size, c.status, c.id, c.updated_date, c.issues, c.year FROM comics as a INNER JOIN issues as b ON a.ComicID = b.ComicID INNER JOIN ddl_info as c ON b.IssueID = c.IssueID") # WHERE c.status != 'Downloading'")
-        o_info = myDB.select("Select a.ComicName, b.Issue_Number, a.IssueID, a.ComicID, c.size, c.status, c.id, c.updated_date, c.issues, c.year from oneoffhistory a join snatched b on a.issueid=b.issueid join ddl_info c on b.issueid=c.issueid where b.provider = 'ddl'")
+        o_info = myDB.select("Select a.ComicName, b.Issue_Number, a.IssueID, a.ComicID, c.size, c.status, c.id, c.updated_date, c.issues, c.year from oneoffhistory a join snatched b on a.issueid=b.issueid join ddl_info c on b.issueid=c.issueid where b.provider like 'DDL%'")
         if s_info:
             resultlist = []
             for si in s_info:
@@ -3577,7 +3598,7 @@ class WebInterface(object):
             rows = filtered[iDisplayStart:(iDisplayStart + iDisplayLength)]
         else:
             rows = filtered
-        rows = [[row['comicid'], row['series'], row['size'], row['progress'], row['status'], row['updated_date'], row['queueid']] for row in rows]
+        rows = [[row['comicid'], row['series'], row['size'], row['progress'], row['status'], row['updated_date'], row['queueid'], row['issueid']] for row in rows]
         #rows = [{'comicid': row['comicid'], 'series': row['series'], 'size': row['size'], 'progress': row['progress'], 'status': row['status'], 'updated_date': row['updated_date']} for row in rows]
         #logger.info('rows: %s' % rows)
         return json.dumps({
@@ -4600,8 +4621,11 @@ class WebInterface(object):
 
     def addtoreadlist(self, IssueID):
         read = readinglist.Readinglist(IssueID=IssueID)
-        read.addtoreadlist()
-        return
+        chkreturn = read.addtoreadlist()
+        if chkreturn is not None:
+            return json.dumps({'status': chkreturn['status'], 'message': chkreturn['message']})
+        else:
+            return
         #raise cherrypy.HTTPRedirect("comicDetails?ComicID=%s" % readlist['ComicID'])
     addtoreadlist.exposed = True
 
@@ -6357,6 +6381,7 @@ class WebInterface(object):
                     "newznab": helpers.checked(mylar.CONFIG.NEWZNAB),
                     "extra_newznabs": sorted(mylar.CONFIG.EXTRA_NEWZNABS, key=itemgetter(5), reverse=True),
                     "enable_ddl": helpers.checked(mylar.CONFIG.ENABLE_DDL),
+                    "enable_getcomics": helpers.checked(mylar.CONFIG.ENABLE_GETCOMICS),
                     "enable_rss": helpers.checked(mylar.CONFIG.ENABLE_RSS),
                     "rss_checkinterval": mylar.CONFIG.RSS_CHECKINTERVAL,
                     "rss_last": rss_sclast,
@@ -6808,7 +6833,8 @@ class WebInterface(object):
                            'lowercase_filenames', 'autowant_upcoming', 'autowant_all', 'comic_cover_local', 'cover_folder_local', 'series_metadata_local', 'alternate_latest_series_covers', 'cvinfo', 'snatchedtorrent_notify',
                            'prowl_enabled', 'prowl_onsnatch', 'pushover_enabled', 'pushover_onsnatch', 'pushover_image', 'boxcar_enabled',
                            'boxcar_onsnatch', 'pushbullet_enabled', 'pushbullet_onsnatch', 'telegram_enabled', 'telegram_onsnatch', 'telegram_image', 'discord_enabled', 'discord_onsnatch', 'slack_enabled', 'slack_onsnatch',
-                           'email_enabled', 'email_enc', 'email_ongrab', 'email_onpost', 'opds_enable', 'opds_authentication', 'opds_metainfo', 'opds_pagesize', 'enable_ddl', 'deluge_pause'] #enable_public
+                           'email_enabled', 'email_enc', 'email_ongrab', 'email_onpost', 'opds_enable', 'opds_authentication', 'opds_metainfo', 'opds_pagesize', 'enable_ddl',
+                           'enable_getcomics', 'deluge_pause'] #enable_public
 
         for checked_config in checked_configs:
             if checked_config not in kwargs:
@@ -7136,12 +7162,38 @@ class WebInterface(object):
 
     opds.exposed = True
 
-    def downloadthis(self, pathfile=None):
-        #pathfile should be escaped via the |u tag from within the html call already.
-        logger.fdebug('filepath to retrieve file from is : ' + pathfile)
-        from cherrypy.lib.static import serve_download
-        return serve_download(pathfile)
+    def downloadthis(self, issueid):
+        myDB = db.DBConnection()
+        issue = myDB.selectone('SELECT a.ComicLocation, b.* FROM comics a LEFT JOIN issues b ON a.comicid = b.comicid WHERE b.issueid=?', [issueid]).fetchone()
+        if issue:
+            secondary_folders = None
+            if mylar.CONFIG.MULTIPLE_DEST_DIRS:
+                try:
+                    if os.path.exists(os.path.join(mylar.CONFIG.MULTIPLE_DEST_DIRS, os.path.basename(issue['ComicLocation']))):
+                        secondary_folders = os.path.join(mylar.CONFIG.MULTIPLE_DEST_DIRS, os.path.basename(issue['ComicLocation']))
+                    else:
+                        # when loading a new series initially the publisher value might not be written out the db yet.
+                        # pass this all on the initial load if it's not  - it'll catch it when the page finishes loading.
+                        ff = mylar.filers.FileHandlers(ComicID=issue['ComicID'])
+                        secondary_folders = ff.secondary_folders(issue['ComicLocation'])
+                except Exception:
+                    pass
+        else:
+            return json.dumps({'status': 'failure', 'message': 'Unable to locate selected issue in database'})
 
+        pathfile = None
+        if all([issue['Location'] is not None, issue['ComicLocation'] is not None]):
+            if os.path.exists(os.path.join(issue['ComicLocation'], issue['Location'])):
+                pathfile = os.path.join(issue['ComicLocation'], issue['Location'])
+            elif secondary_folders is not None:
+                if os.path.exists(os.path.join(secondary_folders, issue['Location'])):
+                    pathfile = os.path.join(secondary_folders, issue['Location'])
+
+        if pathfile is None:
+            return json.dumps({'status': 'failure', 'message': 'Unable to find issue - you might want to ReCheck Files'})
+        else:
+            dspline = 'Now downloading issue #%s of %s' % (issue['Issue_Number'], issue['ComicName'])
+            return cherrypy.lib.static.serve_download( pathfile )
     downloadthis.exposed = True
 
     def IssueInfo(self, issueid): #filelocation, comicname=None, issue=None, date=None, title=None, issueid=None):
@@ -7985,8 +8037,10 @@ class WebInterface(object):
                                 'a_year':  None,
                                 'a_filename':  None,
                                 'a_size':  None,
-                                'a_id':  None})
+                                'a_id':  None,
+                                'a_issueid': None})
          else:
+             filelocation = None
              if active['filename'] is not None:
                  filelocation = os.path.join(mylar.CONFIG.DDL_LOCATION, active['filename'])
                  #logger.fdebug('checking file existance: %s' % filelocation)

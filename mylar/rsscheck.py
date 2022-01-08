@@ -395,8 +395,9 @@ def ddl(forcerss=False):
     headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 6.1; WOW64; rv:40.0) Gecko/20100101 Firefox/40.1'}
     ddl_feed = 'https://getcomics.info/feed/'
     try:
-        r = requests.get(ddl_feed, verify=True, headers=headers)
+        r = requests.get(ddl_feed, verify=True, headers=headers, timeout=30)
     except Exception as e:
+        #need to handle timeouts / downtime here
         logger.warn('Error fetching RSS Feed Data from DDL: %s' % (e))
         return False
     else:
@@ -408,58 +409,58 @@ def ddl(forcerss=False):
                 logger.warn('[ERROR] Status code returned: %s' % r.status_code)
             return False
 
-        feedme = feedparser.parse(r.content)
-        results = []
-        for entry in feedme.entries:
-            soup = BeautifulSoup(entry.summary, 'html.parser')
-            orig_find = soup.find("p", {"style": "text-align: center;"})
-            i = 0
-            option_find = orig_find
-            while True: #i <= 10:
-                prev_option = option_find
-                option_find = option_find.findNext(text=True)
-                if 'Year' in option_find:
-                    year = option_find.findNext(text=True)
-                    year = re.sub('\|', '', year).strip()
-                else:
-                   if 'Size' in prev_option:
-                        size = option_find #.findNext(text=True)
-                        if '- MB' in size: size = '0 MB'
-                        possible_more = orig_find.next_sibling
-                        break
-            i+=1
+    feedme = feedparser.parse(r.content)
+    results = []
+    for entry in feedme.entries:
+        soup = BeautifulSoup(entry.summary, 'html.parser')
+        orig_find = soup.find("p", {"style": "text-align: center;"})
+        i = 0
+        option_find = orig_find
+        while True: #i <= 10:
+            prev_option = option_find
+            option_find = option_find.findNext(text=True)
+            if 'Year' in option_find:
+                year = option_find.findNext(text=True)
+                year = re.sub('\|', '', year).strip()
+            else:
+               if 'Size' in prev_option:
+                   size = option_find #.findNext(text=True)
+                   if '- MB' in size: size = '0 MB'
+                   possible_more = orig_find.next_sibling
+                   break
+        i+=1
 
-            link = entry.link
-            title = entry.title
-            updated = entry.updated
-            if updated.endswith('+0000'):
-                updated = updated[:-5].strip()
-            tmpid = entry.id
-            id = tmpid[tmpid.find('=')+1:]
-            if 'KB' in size:
-                szform = 'KB'
-                sz = 'K'
-            elif 'GB' in size:
-                szform = 'GB'
-                sz = 'G'
-            elif 'MB' in size:
-                szform = 'MB'
-                sz = 'M'
-            elif 'TB' in size:
-                szform = 'TB'
-                sz = 'T'
-            tsize = helpers.human2bytes(re.sub('[^0-9]', '', size).strip() + sz)
+        link = entry.link
+        title = entry.title
+        updated = entry.updated
+        if updated.endswith('+0000'):
+            updated = updated[:-5].strip()
+        tmpid = entry.id
+        id = tmpid[tmpid.find('=')+1:]
+        if 'KB' in size:
+            szform = 'KB'
+            sz = 'K'
+        elif 'GB' in size:
+            szform = 'GB'
+            sz = 'G'
+        elif 'MB' in size:
+            szform = 'MB'
+            sz = 'M'
+        elif 'TB' in size:
+            szform = 'TB'
+            sz = 'T'
+        tsize = helpers.human2bytes(re.sub('[^0-9]', '', size).strip() + sz)
 
-            #link can be referenced with the ?p=id url
-            results.append({'Title':   title,
-                            'Size':    tsize,
-                            'Link':    id,
-                            'Site':    'DDL',
-                            'Pubdate': updated})
+        #link can be referenced with the ?p=id url
+        results.append({'Title':   title,
+                        'Size':    tsize,
+                        'Link':    id,
+                        'Site':    'DDL(GetComics)',
+                        'Pubdate': updated})
 
-        if len(results) >0:
-            logger.info('[RSS][DDL] %s entries have been indexed and are now going to be stored for caching.' % len(results))
-            rssdbupdate(results, len(results), 'ddl')
+    if len(results) >0:
+        logger.info('[RSS][DDL] %s entries have been indexed and are now going to be stored for caching.' % len(results))
+        rssdbupdate(results, len(results), 'ddl')
 
     return
 
@@ -683,9 +684,9 @@ def ddl_dbsearch(seriesname, issue, comicid=None, nzbprov=None, oneoff=False):
                           'length':  dl['Size']
                           })
 
-    ddlinfo['entries'] = ddltheinfo
+    #ddlinfo['entries'] = ddltheinfo
 
-    return ddlinfo
+    return ddltheinfo
 
 def torrentdbsearch(seriesname, issue, comicid=None, nzbprov=None, oneoff=False):
     myDB = db.DBConnection()
@@ -847,9 +848,9 @@ def torrentdbsearch(seriesname, issue, comicid=None, nzbprov=None, oneoff=False)
                           'length':  tor['Size']
                           })
 
-    torinfo['entries'] = tortheinfo
+    #torinfo['entries'] = tortheinfo
 
-    return torinfo
+    return tortheinfo
 
 def nzbdbsearch(seriesname, issue, comicid=None, nzbprov=None, searchYear=None, ComicVersion=None, oneoff=False):
     myDB = db.DBConnection()
@@ -964,8 +965,8 @@ def nzbdbsearch(seriesname, issue, comicid=None, nzbprov=None, searchYear=None, 
             #logger.fdebug("entered info for " + nzb['Title'])
 
 
-    nzbinfo['entries'] = nzbtheinfo
-    return nzbinfo
+    #nzbinfo['entries'] = nzbtheinfo
+    return nzbtheinfo
 
 def torsend2client(seriesname, issue, seriesyear, linkit, site, pubhash=None):
     logger.info('matched on ' + seriesname)

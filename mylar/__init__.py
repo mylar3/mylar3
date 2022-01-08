@@ -770,10 +770,11 @@ def dbcheck():
     c.execute('CREATE TABLE IF NOT EXISTS jobhistory (JobName TEXT, prev_run_datetime timestamp, prev_run_timestamp REAL, next_run_datetime timestamp, next_run_timestamp REAL, last_run_completed TEXT, successful_completions TEXT, failed_completions TEXT, status TEXT, last_date timestamp)')
     c.execute('CREATE TABLE IF NOT EXISTS manualresults (provider TEXT, id TEXT, kind TEXT, comicname TEXT, volume TEXT, oneoff TEXT, fullprov TEXT, issuenumber TEXT, modcomicname TEXT, name TEXT, link TEXT, size TEXT, pack_numbers TEXT, pack_issuelist TEXT, comicyear TEXT, issuedate TEXT, tmpprov TEXT, pack TEXT, issueid TEXT, comicid TEXT, sarc TEXT, issuearcid TEXT)')
     c.execute('CREATE TABLE IF NOT EXISTS storyarcs(StoryArcID TEXT, ComicName TEXT, IssueNumber TEXT, SeriesYear TEXT, IssueYEAR TEXT, StoryArc TEXT, TotalIssues TEXT, Status TEXT, inCacheDir TEXT, Location TEXT, IssueArcID TEXT, ReadingOrder INT, IssueID TEXT, ComicID TEXT, ReleaseDate TEXT, IssueDate TEXT, Publisher TEXT, IssuePublisher TEXT, IssueName TEXT, CV_ArcID TEXT, Int_IssueNumber INT, DynamicComicName TEXT, Volume TEXT, Manual TEXT, DateAdded TEXT, DigitalDate TEXT, Type TEXT, Aliases TEXT, ArcImage TEXT)')
-    c.execute('CREATE TABLE IF NOT EXISTS ddl_info (ID TEXT UNIQUE, series TEXT, year TEXT, filename TEXT, size TEXT, issueid TEXT, comicid TEXT, link TEXT, status TEXT, remote_filesize TEXT, updated_date TEXT, mainlink TEXT, issues TEXT)')
+    c.execute('CREATE TABLE IF NOT EXISTS ddl_info (ID TEXT UNIQUE, series TEXT, year TEXT, filename TEXT, size TEXT, issueid TEXT, comicid TEXT, link TEXT, status TEXT, remote_filesize TEXT, updated_date TEXT, mainlink TEXT, issues TEXT, site TEXT, submit_date TEXT)')
     c.execute('CREATE TABLE IF NOT EXISTS exceptions_log(date TEXT UNIQUE, comicname TEXT, issuenumber TEXT, seriesyear TEXT, issueid TEXT, comicid TEXT, booktype TEXT, searchmode TEXT, error TEXT, error_text TEXT, filename TEXT, line_num TEXT, func_name TEXT, traceback TEXT)')
     c.execute('CREATE TABLE IF NOT EXISTS tmp_searches (query_id INTEGER, comicid INTEGER, comicname TEXT, publisher TEXT, publisherimprint TEXT, comicyear TEXT, issues TEXT, volume TEXT, deck TEXT, url TEXT, type TEXT, cvarcid TEXT, arclist TEXT, description TEXT, haveit TEXT, mode TEXT, searchtype TEXT, comicimage TEXT, thumbimage TEXT, PRIMARY KEY (query_id, comicid))')
     c.execute('CREATE TABLE IF NOT EXISTS notifs(session_id INT, date TEXT, event TEXT, comicid TEXT, comicname TEXT, issuenumber TEXT, seriesyear TEXT, status TEXT, message TEXT, PRIMARY KEY (session_id, date))')
+    c.execute('CREATE TABLE IF NOT EXISTS provider_searches(provider TEXT UNIQUE, type TEXT, lastrun INTEGER, active TEXT)')
     conn.commit
     c.close
 
@@ -947,6 +948,11 @@ def dbcheck():
         c.execute('SELECT seriesjsonPresent from comics')
     except sqlite3.OperationalError:
         c.execute('ALTER TABLE comics ADD COLUMN seriesjsonPresent INT')
+
+    try:
+        c.execute('SELECT AltSearch_Priority from comics')
+    except sqlite3.OperationalError:
+        c.execute('ALTER TABLE comics ADD COLUMN AltSearch_Priority INT')
 
     try:
         c.execute('SELECT DynamicComicName from comics')
@@ -1435,6 +1441,16 @@ def dbcheck():
     except sqlite3.OperationalError:
         c.execute('ALTER TABLE ddl_info ADD COLUMN issues TEXT')
 
+    try:
+        c.execute('SELECT site from ddl_info')
+    except sqlite3.OperationalError:
+        c.execute('ALTER TABLE ddl_info ADD COLUMN site TEXT')
+
+    try:
+        c.execute('SELECT submit_date from ddl_info')
+    except sqlite3.OperationalError:
+        c.execute('ALTER TABLE ddl_info ADD COLUMN submit_date TEXT')
+
     #if it's prior to Wednesday, the issue counts will be inflated by one as the online db's everywhere
     #prepare for the next 'new' release of a series. It's caught in updater.py, so let's just store the
     #value in the sql so we can display it in the details screen for everyone to wonder at.
@@ -1481,6 +1497,15 @@ def dbcheck():
     job_history = []
     for jh in job_listing:
         job_history.append(jh)
+
+    #update tables here as necessary based on current version of mylar.
+    #this won't be written to the ini until a save of the config after load, but it should be oldconfig_version+1 on load
+    if mylar.CONFIG.OLDCONFIG_VERSION == '11':
+        logger.info('now updating table data to ensure DDL is properly populated with correct data.')
+        c.execute("UPDATE snatched SET Provider = 'DDL(GetComics)' WHERE Provider = 'ddl'")
+        c.execute("UPDATE nzblog SET PROVIDER = 'DDL(GetComics)' WHERE PROVIDER = 'ddl'")
+        c.execute("UPDATE rssdb SET site = 'DDL(GetComics)' WHERE site = 'DDL'")
+        c.execute("UPDATE ddl_info SET site = 'DDL(GetComics)' WHERE site is NULL")
 
     #logger.fdebug('job_history loaded: %s' % job_history)
     conn.commit()

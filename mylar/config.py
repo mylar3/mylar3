@@ -12,7 +12,7 @@ import threading
 import re
 import configparser
 import mylar
-from mylar import logger, helpers, encrypted
+from mylar import logger, helpers, encrypted, filechecker
 
 config = configparser.ConfigParser()
 
@@ -328,9 +328,13 @@ _CONFIG_DEFINITIONS = OrderedDict({
     'PUBLIC_VERIFY': (bool, 'Torrents', True),
 
     'ENABLE_DDL': (bool, 'DDL', False),
+    'ENABLE_GETCOMICS': (bool, 'DDL', False),
     'ALLOW_PACKS': (bool, 'DDL', False),
+    'DDL_QUERY_DELAY': (int, 'DDL', 15),
     'DDL_LOCATION': (str, 'DDL', None),
     'DDL_AUTORESUME': (bool, 'DDL', True),
+    'ENABLE_FLARESOLVERR': (bool, 'DDL', False),
+    'FLARESOLVERR_URL': (str, 'DDL', None),
 
     'AUTO_SNATCH': (bool, 'AutoSnatch', False),
     'AUTO_SNATCH_SCRIPT': (str, 'AutoSnatch', None),
@@ -432,7 +436,7 @@ class Config(object):
                 count = sum(1 for line in open(self._config_file))
             else:
                 count = 0
-            self.newconfig = 11
+            self.newconfig = 12
             if count == 0:
                 CONFIG_VERSION = 0
                 MINIMALINI = False
@@ -587,12 +591,13 @@ class Config(object):
                 shutil.move(self._config_file, os.path.join(mylar.DATA_DIR, 'config.ini.backup'))
             except:
                 logger.warn('Unable to make proper backup of config file in %s' % os.path.join(mylar.DATA_DIR, 'config.ini.backup'))
-            if self.CONFIG_VERSION < 11:
+            if self.CONFIG_VERSION < 12:
                 logger.info('Attempting to update configuration..')
                 #8-torznab multiple entries merged into extra_torznabs value
                 #9-remote rtorrent ssl option
                 #10-encryption of all keys/passwords.
                 #11-provider_ids
+                #12-ddl separation into multiple providers, new keys, update tables
                 self.config_update()
             setattr(self, 'CONFIG_VERSION', str(self.newconfig))
             config.set('General', 'CONFIG_VERSION', str(self.newconfig))
@@ -663,6 +668,15 @@ class Config(object):
             #        b_list.append(tuple(tmp_i))
             #        b_cnt +=1
             #setattr(self, 'EXTRA_TORZNABS', b_list)
+
+        if self.newconfig < 12:
+            #change enable_ddl to be a true/false for multiple ddl providers
+            #set enable_getcomics to True by default if that's the case.
+            if self.ENABLE_DDL is True:
+                self.ENABLE_GETCOMICS = True
+                config.set('DDL', 'enable_getcomics', self.ENABLE_GETCOMICS)
+            #tables will be updated by checking the OLDCONFIG_VERSION in __init__
+            logger.info('Successfully updated config to version 12 ( multiple DDL provider option )')
 
         logger.info('Configuration upgraded to version %s' % self.newconfig)
 
@@ -1185,10 +1199,19 @@ class Config(object):
             setattr(self, 'FOLDER_FORMAT', ann_remove)
             config.set('General', 'folder_format', ann_remove)
 
+        # need to recheck this cause of how enable_ddl and enable_getcomics are now
+        self.ENABLE_GETCOMICS = self.ENABLE_DDL
+        config.set('DDL', 'enable_getcomics', str(self.ENABLE_GETCOMICS))
+
         if not self.DDL_LOCATION:
             self.DDL_LOCATION = self.CACHE_DIR
             if self.ENABLE_DDL is True:
                 logger.info('Setting DDL Location set to : %s' % self.DDL_LOCATION)
+        else:
+            dcreate = filechecker.validateAndCreateDirectory(self.DDL_LOCATION, create=True, dmode='ddl location')
+            if dcreate is False and self.ENABLE_DDL is True:
+                logger.warn('Unable to create ddl_location specified in config: %s. Reverting to default cache location.' % self.DDL_LOCATION)
+                self.DDL_LOCATION = self.CACHE_DIR
 
         if self.MODE_32P is False and self.RSSFEED_32P is not None:
             mylar.KEYS_32P = self.parse_32pfeed(self.RSSFEED_32P)
@@ -1424,10 +1447,11 @@ class Config(object):
             PR_NUM +=1
 
         if self.ENABLE_DDL:
-            PR.append('DDL')
-            PR_NUM +=1
+            if self.ENABLE_GETCOMICS:
+                PR.append('DDL(GetComics)')
+                PR_NUM +=1
 
-        PPR = ['32p', 'nzb.su', 'dognzb', 'Experimental', 'DDL']
+        PPR = ['32p', 'nzb.su', 'dognzb', 'Experimental', 'DDL(GetComics)']
         if self.NEWZNAB:
             for ens in self.EXTRA_NEWZNABS:
                 if str(ens[5]) == '1': # if newznabs are enabled

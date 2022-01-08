@@ -1248,8 +1248,8 @@ class FileChecker(object):
         if (any([issue_number is None, series_name is None]) and booktype == 'issue'):
 
             if all([issue_number is None, booktype == 'issue', issue_volume is not None]):
-                logger.fdebug('Possible UNKNOWN TPB/GN/HC detected - no issue number present, no clarification in filename, but volume present with series title')
-                booktype = 'TPB/GN/HC'
+                logger.fdebug('Possible UNKNOWN TPB/GN/HC {One-Shot} detected - no issue number present, no clarification in filename, but volume present with series title')
+                booktype = 'TPB/GN/HC/One-Shot'
             else:
                 logger.fdebug('Cannot parse the filename properly. I\'m going to make note of this filename so that my evil ruler can make it work.')
 
