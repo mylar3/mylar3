@@ -25,16 +25,108 @@ import re
 import time
 import datetime
 from bs4 import BeautifulSoup
-import cfscrape
+import requests
 import zipfile
+import json
 import mylar
-from mylar import db, logger, helpers
-
+from mylar import db, logger, helpers, search_filer
 
 class GC(object):
-    def __init__(self, query=None, issueid=None, comicid=None, oneoff=False):
+
+    def cookie_receipt(self, main_url=None):
+        #self.session_path = self.session_path if self.session_path is not None else os.path.join(mylar.CONFIG.SECURE_DIR, ".gc_cookies.dat")
+
+        # if main_url is not None, it's being passed via the test on the config page.
+        flare_test = False
+        if main_url is None:
+            if mylar.CONFIG.ENABLE_FLARESOLVERR:
+                # (ie. http://192.168.2.2:8191/v1 )
+                main_url = mylar.CONFIG.FLARESOLVERR_URL
+            else:
+                main_url = 'https://getcomics.info'
+        else:
+            flare_test = True
+
+        test_success = False
+        if not os.path.exists(self.session_path):
+            logger.fdebug('[GC_Cookie_Creator] GetComics Session cookie does not exist. Attempting to create.')
+
+            if any([mylar.CONFIG.ENABLE_FLARESOLVERR, flare_test is True]):
+                #get the coookies here for use down-below
+                get_cookies = self.session.post(
+                              main_url,
+                              json={'url': 'https://getcomics.info', 'cmd': 'request.get'},
+                              verify=False,
+                              headers=self.flare_headers,
+                              timeout=30,
+                              )
+                if get_cookies.status_code == 200:
+                    try:
+                        gc_json = get_cookies.json()
+                        gc_cookie = gc_json['solution']['cookies']
+                        with open(self.session_path, 'w') as f:
+                            json.dump(gc_cookie, f)
+                    except Exception as e:
+                        logger.warn('[GC_Cookie_Saver] Unable to save cookie to file - will try to recreate later.')
+                    else:
+                        logger.fdebug('[GC_Cookie_Saver] Successfully saved cookie to file.')
+                        for c in gc_cookie:
+                           self.session.cookies.set(name=c['name'], value=c['value'])
+                        test_success = True
+            else:
+                get_cookies = self.session.get(
+                              main_url,
+                              verify=True,
+                              headers=self.headers,
+                              timeout=30,
+                              )
+                if get_cookies.status_code == 200:
+                    try:
+                        gc_cookie = get_cookies.cookies
+                        with open(self.session_path, 'w') as f:
+                            json.dump(gc_cookie, f)
+                    except Exception as e:
+                        logger.warn('[GC_Cookie_Saver] Unable to save cookie to file - will try to recreate later.')
+                    else:
+                        if gc_cookie is not None:
+                            logger.fdebug('[GC_Cookie_Saver] Successfully saved cookie to file.')
+                            for c in gc_cookie:
+                               self.session.cookies.set(name=c['name'], value=c['value'])
+                        test_success = True
+
+        else:
+            logger.fdebug('[GC_Cookie_Loader] GetComics Session cookie found. Attempting to load...')
+            try:
+                with open(self.session_path, 'r') as f:
+                    gc_load = json.load(f)
+                    for c in gc_load:
+                       self.session.cookies.set(name=c['name'], value=c['value'])
+            except Exception as e:
+                logger.warn('[GC_Cookie_Loader] Unable to load cookie from file - will recreate.')
+            else:
+                logger.fdebug('[GC_Cookie_Loader] Successfully loaded cookie from file.')
+                test_success = True
+
+        if flare_test is True:
+            return test_success
+
+    def __init__(self, query=None, issueid=None, comicid=None, oneoff=False, session_path=None, provider_stat=None):
 
         self.valreturn = []
+
+        self.flare_headers = {
+            'Content-type': 'application/json'
+        }
+
+        self.headers = {
+            'Accept-encoding': 'gzip',
+            'User-Agent': 'Mozilla/5.0 (Windows NT 6.1; WOW64; rv:40.0) Gecko/20100101 Firefox/40.1',
+            'Referer': 'https://getcomics.info/',
+        }
+
+        self.session = requests.Session()
+
+        self.session_path = session_path if session_path is not None else os.path.join(mylar.CONFIG.SECURE_DIR, ".gc_cookies.dat")
 
         self.url = 'https://getcomics.info'
 
@@ -56,21 +148,33 @@ class GC(object):
             'Referer': 'https://getcomics.info/',
         }
 
-    def search(self):
-        results = {}
-        resultset = []
-        try:
-            with cfscrape.create_scraper() as s:
-                try:
-                    cf_cookievalue, cf_user_agent = s.get_tokens(
-                        self.url, headers=self.headers
-                   )
-                except Exception as e:
-                    cf_cookievalue = None
-                    cf_user_agent = None
+        self.provider_stat = provider_stat
 
-                for sf in self.search_format:
-                    sf_issue = self.query['issue']
+    def search(self,is_info=None):
+
+        self.cookie_receipt()
+
+        results = {}
+        try:
+            reversed_order = True
+            total_pages = 1
+            pagenumber = 1
+            if is_info is not None:
+                if is_info['chktpb'] == 0:
+                    logger.debug('removing query from loop that accounts for no issue number')
+                else:
+                    self.search_format.insert(0, self.query['comicname'])
+                    logger.debug('setting no issue number query to be first due to no issue number')
+            for sf in self.search_format:
+                resultset = []
+                verified_matches = []
+                sf_issue = self.query['issue']
+                if is_info['chktpb'] == 1 and self.query['comicname'] == sf:
+                    comicname = re.sub(r'[\&\:\?\,\/\-]', '', self.query['comicname'])
+                    comicname = re.sub("\\band\\b", '', comicname, flags=re.I)
+                    comicname = re.sub("\\bthe\\b", '', comicname, flags=re.I)
+                    queryline = re.sub(r'\s+', ' ', comicname)
+                else:
                     if any([self.query['issue'] == 'None', self.query['issue'] is None]):
                         sf_issue = None
                     if sf.count('%s') == 3:
@@ -86,46 +190,73 @@ class GC(object):
                         else:
                             queryline = sf % (self.query['comicname'], sf_issue, self.query['year'])
                     else:
-                        if sf_issue is None:
+                        if sf == self.search_format[4]:
                             splits = sf.split(' ')
                             splits.pop(1)
                             queryline = ' '.join(splits) % (self.query['comicname'])
                         else:
                             queryline = sf % (self.query['comicname'], sf_issue)
 
-                    logger.fdebug('[DDL-QUERY] Query set to: %s' % queryline)
+                logger.fdebug('[DDL-QUERY] Query set to: %s' % queryline)
+                pause_the_search = mylar.CONFIG.DDL_QUERY_DELAY #mylar.search.check_the_search_delay()
+                diff = mylar.search.check_time(self.provider_stat['lastrun']) # only limit the search queries - the other calls should be direct and not as intensive
+                if diff < pause_the_search:
+                    logger.warn('[PROVIDER-SEARCH-DELAY][DDL] Waiting %s seconds before we search again...' % (pause_the_search - int(diff)))
+                    time.sleep(pause_the_search - int(diff))
+                else:
+                    logger.fdebug('[PROVIDER-SEARCH-DELAY][DDL] Last search took place %s seconds ago. We\'re clear...' % (int(diff)))
 
-                    t = s.get(
-                        self.url + '/',
+                if queryline:
+                    gc_url = self.url
+                    if pagenumber != 1 and pagenumber != total_pages:
+                        gc_url = '%s/page/%s' % (self.url, pagenumber)
+                        logger.fdebug('parsing for page %s' % pagenumber)
+                    logger.fdebug('session cookies: %s' % (self.session.cookies,))
+                    t = self.session.get(
+                        gc_url + '/',
                         params={'s': queryline},
                         verify=True,
-                        cookies=cf_cookievalue,
                         headers=self.headers,
                         stream=True,
                         timeout=30,
                     )
 
+                    write_time = time.time()
+                    mylar.search.last_run_check(write={'DDL(GetComics)': {'active': True, 'lastrun': write_time, 'type': 'DDL'}})
+                    self.provider_stat['lastrun'] = write_time
+
                     with open(self.local_filename, 'wb') as f:
                         for chunk in t.iter_content(chunk_size=1024):
-                            if chunk:  # filter out keep-alive new chunks
+                           if chunk:  # filter out keep-alive new chunks
                                 f.write(chunk)
                                 f.flush()
 
-                    for x in self.search_results()['entries']:
-                        bb = next((item for item in resultset if item['link'] == x['link']), None)
-                        try:
-                            if 'Weekly' not in self.query['comicname'] and 'Weekly' in x['title']:
-                                continue
-                            elif bb is None:
-                                resultset.append(x)
-                        except:
-                            resultset.append(x)
-                        else:
+                for x in self.search_results(pagenumber,total_pages)['entries']:
+                    if total_pages != 1:
+                        total_pages = x['total_pages']
+                    if pagenumber != 1:
+                        pagenumber = x['page']
+                    bb = next((item for item in resultset if item['link'] == x['link']), None)
+                    try:
+                        if 'Weekly' not in self.query['comicname'] and 'Weekly' in x['title']:
                             continue
+                        elif bb is None:
+                            resultset.append(x)
+                    except Exception as e:
+                        resultset.append(x)
+                    else:
+                        continue
 
-                    if len(resultset) > 1:
+                logger.info('resultset: %s' % (resultset,))
+                if len(resultset) >= 1:
+                    results['entries'] = resultset
+                    sfs = search_filer.search_check()
+                    verified_matches = sfs.checker(results, is_info)
+                    if verified_matches:
+                        logger.fdebug('verified_matches: %s' % (verified_matches,))
                         break
-                    time.sleep(2)
+                logger.fdebug('sleep...%s%s' % (mylar.CONFIG.DDL_QUERY_DELAY, 's'))
+                time.sleep(mylar.CONFIG.DDL_QUERY_DELAY)
 
         except requests.exceptions.Timeout as e:
             logger.warn(
@@ -188,36 +319,31 @@ class GC(object):
 
             return 'no results'
         else:
-            results['entries'] = resultset
-            return results
+            #results['entries'] = resultset
+            return verified_matches
+            #return results
 
     def loadsite(self, id, link):
+        self.cookie_receipt()
+
         title = os.path.join(mylar.CONFIG.CACHE_DIR, 'getcomics-' + id)
-        with cfscrape.create_scraper() as s:
-            try:
-                self.cf_cookievalue, cf_user_agent = s.get_tokens(
-                    link, headers=self.headers
-                )
-            except Exception as e:
-                self.cf_cookievalue = None
-                self.cf_user_agent = None
+        logger.fdebug('now loading info from local html to resolve via url: %s' % link)
 
-            t = s.get(
-                link,
-                verify=True,
-                cookies=self.cf_cookievalue,
-                headers=self.headers,
-                stream=True,
-                timeout=30,
-            )
+        logger.fdebug('session cookies: %s' % (self.session.cookies,))
+        t = self.session.get(
+            link,
+            verify=True,
+            stream=True,
+            timeout=30,
+        )
 
-            with open(title + '.html', 'wb') as f:
-                for chunk in t.iter_content(chunk_size=1024):
-                    if chunk:  # filter out keep-alive new chunks
-                        f.write(chunk)
-                        f.flush()
+        with open(title + '.html', 'wb') as f:
+            for chunk in t.iter_content(chunk_size=1024):
+                if chunk:  # filter out keep-alive new chunks
+                    f.write(chunk)
+                    f.flush()
 
-    def search_results(self):
+    def search_results(self, pagenumber=1, total_pages=1):
         results = {}
         resultlist = []
         soup = BeautifulSoup(open(self.local_filename, encoding='utf-8'), 'html.parser')
@@ -226,6 +352,18 @@ class GC(object):
             strip=True
         )
         logger.info('There are %s results' % re.sub('Articles', '', resultline).strip())
+        if pagenumber == 1 and int(re.sub('Articles', '', resultline).strip()) == 12:
+            # get paging (soon)
+            pagelines = soup.findAll("a", {"class": "page-numbers"})
+            logger.fdebug('pagelines: %s' % (pagelines,))
+            if len(pagelines) > 1:
+                page_line = pagelines[len(pagelines)-1]['href']
+                logger.fdebug('page_line: %s' % page_line)
+                pages_ref = urllib.parse.urlsplit(page_line)
+                logger.fdebug('page_url: %s' % (pages_ref,))
+                page_cnt = list(filter(None, pages_ref.path.rsplit('/')))
+                pages = page_cnt[len(page_cnt)-1]
+                logger.fdebug('number of pages: %s' % pages)
 
         for f in soup.findAll("article"):
             id = f['id']
@@ -290,15 +428,9 @@ class GC(object):
             # if it's a pack - remove the issue-range and the possible issue years
             # (cause it most likely will span) and pass thru as separate items
             if pack is True:
-                brackets = re.findall("\(.*?\)", title)
-                for b in brackets:
-                    if issues in b:
-                        title = re.sub(b, '', title).strip()
-                        break
-                if not brackets:
-                    title = re.sub(issues, '', title).strip()
+                title = re.sub(issues, '', title).strip()
                 # kill any brackets in the issue line here.
-                issues = re.sub(r'[\(|\)|\[|\]]', '', issues).strip()
+                issues = re.sub(r'[\(\)\[\]]', '', issues).strip()
                 if title.endswith('#'):
                     title = title[:-1].strip()
             else:
@@ -370,7 +502,9 @@ class GC(object):
                     "link": link,
                     "year": year,
                     "id": re.sub('post-', '', id).strip(),
-                    "site": 'DDL',
+                    "site": 'DDL(GetComics)',
+                    "page": pagenumber,
+                    "total_pages": total_pages,
                 }
             )
 
@@ -384,6 +518,7 @@ class GC(object):
             booktype = comicinfo[0]['booktype']
         except Exception:
             booktype = None
+
         myDB = db.DBConnection()
         series = None
         year = None
@@ -571,6 +706,7 @@ class GC(object):
                 'comicid': self.comicid,
                 'link': x['link'],
                 'mainlink': mainlink,
+                'site': 'DDL(GetComics)',
                 'updated_date': datetime.datetime.now().strftime('%Y-%m-%d %H:%M'),
                 'status': 'Queued',
             }
@@ -587,6 +723,7 @@ class GC(object):
                     'issueid': self.issueid,
                     'oneoff': self.oneoff,
                     'id': mod_id,
+                    'site': 'DDL(GetComics)',
                     'resume': None,
                 }
             )
@@ -594,7 +731,7 @@ class GC(object):
 
         return {'success': True}
 
-    def downloadit(self, id, link, mainlink, resume=None):
+    def downloadit(self, id, link, mainlink, resume=None, issueid=None):
         # logger.info('[%s] %s -- mainlink: %s' % (id, link, mainlink))
         if mylar.DDL_LOCK is True:
             logger.fdebug(
@@ -607,25 +744,19 @@ class GC(object):
 
         myDB = db.DBConnection()
         filename = None
+        self.cookie_receipt()
         try:
-            with cfscrape.create_scraper() as s:
+            with requests.Session() as s:
                 if resume is not None:
                     logger.info(
                         '[DDL-RESUME] Attempting to resume from: %s bytes' % resume
                     )
                     self.headers['Range'] = 'bytes=%d-' % resume
-                try:
-                    cf_cookievalue, cf_user_agent = s.get_tokens(
-                        mainlink, headers=self.headers, timeout=30
-                    )
-                except Exception as e:
-                    cf_cookievalue = None
-                    cf_user_agent = None
 
-                t = s.get(
+                logger.fdebug('session cookies: %s' % (self.session.cookies,))
+                t = self.session.get(
                     link,
                     verify=True,
-                    cookies=cf_cookievalue,
                     headers=self.headers,
                     stream=True,
                     timeout=30,
@@ -637,6 +768,11 @@ class GC(object):
                 if 'GetComics.INFO' in filename:
                     filename = re.sub('GetComics.INFO', '', filename, re.I).strip()
 
+                if filename is not None:
+                    file, ext = os.path.splitext(filename)
+                    filename = '%s[__%s__]%s' % (file, issueid, ext)
+                logger.info('filename: %s' % filename)
+
                 try:
                     remote_filesize = int(t.headers['Content-length'])
                     logger.fdebug('remote filesize: %s' % remote_filesize)
@@ -644,10 +780,10 @@ class GC(object):
                     if 'run.php-urls' not in link:
                         link = re.sub('run.php-url=', 'run.php-urls', link)
                         link = re.sub('go.php-url=', 'run.php-urls', link)
-                        t = s.get(
+                        logger.fdebug('session cookies: %s' % (self.session.cookies,))
+                        t = self.session.get(
                             link,
                             verify=True,
-                            cookies=cf_cookievalue,
                             headers=self.headers,
                             stream=True,
                             timeout=30,

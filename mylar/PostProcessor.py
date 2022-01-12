@@ -509,14 +509,14 @@ class PostProcessor(object):
                     if not any(re.sub('[\|\s]', '', mod_seriesname).lower() == x for x in loopchk):
                         loopchk.append(re.sub('[\|\s]', '', mod_seriesname.lower()))
 
-                    if any([self.issueid is not None, self.comicid is not None]):
+                    if any([self.issueid is not None, self.comicid is not None]) and fl['issueid'] is None:
                         comicseries = myDB.select('SELECT * FROM comics WHERE ComicID=?', [self.comicid])
                     else:
                         if fl['issueid'] is not None:
                             logger.info('issueid detected in filename: %s' % fl['issueid'])
-                            csi = myDB.selectone('SELECT i.ComicID, i.IssueID, i.Issue_Number, c.ComicName FROM comics as c JOIN issues as i ON c.ComicID = i.ComicID WHERE i.IssueID=?', [fl['issueid']]).fetchone()
+                            csi = myDB.selectone('SELECT i.ComicID, i.IssueID, i.Issue_Number, c.ComicName, c.ComicYear, c.AgeRating FROM comics as c JOIN issues as i ON c.ComicID = i.ComicID WHERE i.IssueID=?', [fl['issueid']]).fetchone()
                             if csi is None:
-                                csi = myDB.selectone('SELECT i.ComicID as comicid, i.IssueID, i.Issue_Number, a.ReleaseComicName, c.ComicName FROM comics as c JOIN annuals as a ON c.ComicID = a.ComicID WHERE a.IssueID=? AND NOT a.Deleted', [fl['issueid']]).fetchone()
+                                csi = myDB.selectone('SELECT i.ComicID as comicid, i.IssueID, i.Issue_Number, a.ReleaseComicName, c.ComicName, c.ComicYear, c.AgeRating FROM comics as c JOIN annuals as a ON c.ComicID = a.ComicID WHERE a.IssueID=? AND NOT a.Deleted', [fl['issueid']]).fetchone()
                                 if csi is not None:
                                     annchk = 'yes'
                                 else:
@@ -528,7 +528,10 @@ class PostProcessor(object):
                                 clocation = os.path.join(fl['comiclocation'], fl['sub'], fl['comicfilename']) #helpers.conversion(fl['comicfilename']))
                             else:
                                 logger.fdebug('%s[CLOCATION] %s' % (module, fl['comiclocation']))
-                                clocation = os.path.join(fl['comiclocation'],fl['comicfilename']) #helpers.conversion(fl['comicfilename']))
+                                if os.path.isfile(fl['comiclocation']):
+                                    clocation = fl['comiclocation']
+                                else:
+                                    clocation = os.path.join(fl['comiclocation'],fl['comicfilename']) #helpers.conversion(fl['comicfilename']))
                             annualtype = None
                             if annchk == 'yes':
                                 if 'Annual' in csi['ReleaseComicName']:
@@ -546,7 +549,9 @@ class PostProcessor(object):
                                                 "IssueNumber":     csi['Issue_Number'],
                                                 "AnnualType":      annualtype,
                                                 "ComicName":       csi['ComicName'],
+                                                "AgeRating":       csi['AgeRating'],
                                                 "Series":          fl['series_name'],
+                                                "SeriesYear":      csi['ComicYear'],
                                                 "AltSeries":       fl['alt_series'],
                                                 "One-Off":         False,
                                                 "ForcedMatch":     True})

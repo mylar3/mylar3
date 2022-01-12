@@ -107,9 +107,8 @@
 		<tbody>
 		%for weekly in weeklyresults:
 			<%
-				if weekly['STATUS'] == 'Skipped':
-					grade = 'Z'
-				elif weekly['STATUS'] == 'Wanted':
+                                grade = 'Z'
+				if weekly['STATUS'] == 'Wanted':
 					grade = 'X'
 				elif weekly['STATUS'] == 'Snatched':
 					grade = 'C'
@@ -230,7 +229,7 @@
                                                         %endif
                                                         </a>
                                                      %endif
-                                                     <a href="searchit?name=${weekly['COMIC'] | u}&issue=${weekly['ISSUE']}&mode=pullseries" title="Search for this series to add to your watchlist">
+                                                     <a href="searchit?name=${weekly['COMIC'] | u}&issue=${weekly['ISSUE']}&smode=pullseries" title="Search for this series to add to your watchlist">
                                                      %if mylar.CONFIG.SHOW_ICONS:
                                                          <img style="margin: 0px 5px" src="images/search_add.png" height="25" width="25" class="highqual" />
                                                      %else:
@@ -316,7 +315,7 @@
 </%def>
 
 <%def name="javascriptIncludes()">
-	<script src="js/libs/jquery.dataTables.min.js"></script>
+        <script src="js/libs/jquery.dataTables.1.10.25.min.js"></script>
         <script src="js/libs/selectize.js"></script>
         <script src="js/libs/circular-json.js"></script>
         <script type="text/javascript">

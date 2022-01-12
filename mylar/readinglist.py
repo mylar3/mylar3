@@ -49,7 +49,7 @@ class Readinglist(object):
             readlist = myDB.selectone("SELECT * from annuals where IssueID=?", [self.IssueID]).fetchone()
             if readlist is None:
                 logger.error(self.module + ' Cannot locate IssueID - aborting..')
-                return
+                return {'status': 'failure', 'message': 'Unable to locate issue in database. Does it exist?'}
             else:
                 logger.fdebug('%s Successfully found annual for %s' % (self.module, readlist['ComicID']))
                 annualize = True
@@ -57,6 +57,7 @@ class Readinglist(object):
         logger.info(self.module + ' Attempting to add issueid ' + readlist['IssueID'])
         if comicinfo is None:
             logger.info(self.module + ' Issue not located on your current watchlist. I should probably check story-arcs but I do not have that capability just yet.')
+            return {'status': 'failure', 'message': 'Unable to locate issue in your watchlist. Does it exist?'}
         else:
             locpath = None
             if all([mylar.CONFIG.MULTIPLE_DEST_DIRS is not None, mylar.CONFIG.MULTIPLE_DEST_DIRS != 'None']):
@@ -102,7 +103,7 @@ class Readinglist(object):
 
                 myDB.upsert("readlist", newval, ctrlval)
                 logger.info(self.module + ' Added ' + dspinfo + ' to the Reading list.')
-        return
+        return {'status': 'success', 'message': 'Successfully added %s to your reading list' % dspinfo}
 
     def markasRead(self, IssueID=None, IssueArcID=None):
         myDB = db.DBConnection()

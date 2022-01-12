@@ -3186,8 +3186,9 @@ def ddl_downloader(queue):
                    'updated_date': datetime.datetime.now().strftime('%Y-%m-%d %H:%M')}
             myDB.upsert('ddl_info', val, ctrlval)
 
-            ddz = getcomics.GC()
-            ddzstat = ddz.downloadit(item['id'], item['link'], item['mainlink'], item['resume'])
+            if item['site'] == 'DDL(GetComics)':
+                ddz = getcomics.GC()
+                ddzstat = ddz.downloadit(item['id'], item['link'], item['mainlink'], item['resume'], item['issueid'])
 
             if ddzstat['success'] is True:
                 tdnow = datetime.datetime.now()
@@ -3607,7 +3608,7 @@ def date_conversion(originaldate):
     hours = (absdiff.days * 24 * 60 * 60 + absdiff.seconds) / 3600.0
     return hours
 
-def job_management(write=False, job=None, last_run_completed=None, current_run=None, status=None):
+def job_management(write=False, job=None, last_run_completed=None, current_run=None, status=None, failure=False):
         jobresults = []
 
         #import db
@@ -3793,7 +3794,12 @@ def job_management(write=False, job=None, last_run_completed=None, current_run=N
                                 jobstore = jbst
                                 break
                             elif job == 'Auto-Search' and 'search' in jb.lower():
-                                nextrun_stamp = utctimestamp() + (mylar.CONFIG.SEARCH_INTERVAL * 60)
+                                if failure is True:
+                                   logger.info('Previous job could not run due to other jobs. Scheduling Auto-Search for 10 minutes from now.')
+                                   s_interval = (10 * 60)
+                                else:
+                                   s_interval = mylar.CONFIG.SEARCH_INTERVAL * 60
+                                nextrun_stamp = utctimestamp() + s_interval
                                 jobstore = jbst
                                 break
                             elif job == 'RSS Feeds' and 'rss' in jb.lower():
