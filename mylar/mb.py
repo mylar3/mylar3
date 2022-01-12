@@ -90,7 +90,7 @@ def pullsearch(comicapi, comicquery, offset, search_type):
     else:
         return dom
 
-def findComic(name, mode, issue, limityear=None, search_type=None):
+def findComic(name, mode, issue, limityear=None, search_type=None, annual_check=False):
 
     #with mb_lock:
     comicResults = None
@@ -387,8 +387,8 @@ def findComic(name, mode, issue, limityear=None, search_type=None):
                             except:
                                 xmldeck = "None"
 
-                            givb = cv.get_imprint_volume_and_booktype(True, xmlYr, xmlpub, xml_firstissueid, xmldesc, xmldeck)
-                            logger.info('givb: %s' % (givb,))
+                            givb = cv.get_imprint_volume_and_booktype(True, xmlYr, xmlpub, xml_firstissueid, xmldesc, xmldeck, annual_check)
+                            logger.fdebug('givb: %s' % (givb,))
                             if givb:
                                 if givb['Type'] == 'None':
                                     xmltype = None

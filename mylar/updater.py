@@ -1244,6 +1244,23 @@ def forceRescan(ComicID, archive=None, module=None, recheck=False):
                 old_status = reiss['Status']
                 issname = reiss['IssueName']
 
+                if reiss['forced_file'] is not None and bool(reiss['forced_file']) is True:
+                    logger.fdebug(module + '[FORCED-MATCH] Matched...issue: ' + rescan['ComicName'] + '#' + reiss['Issue_Number'] + ' --- ' + str(int_iss))
+                    havefiles+=1
+                    haveissue = "yes"
+                    isslocation = tmpfc['ComicFilename'] #helpers.conversion(tmpfc['ComicFilename'])
+                    issSize = str(tmpfc['ComicSize'])
+                    logger.fdebug(module + ' .......filename: ' + isslocation)
+                    logger.fdebug(module + ' .......filesize: ' + str(tmpfc['ComicSize']))
+                    # to avoid duplicate issues which screws up the count...let's store the filename issues then
+                    # compare earlier...
+                    issuedupechk.append({'fcdigit':   int_iss,
+                                         'filename':  tmpfc['ComicFilename'],
+                                         'filesize':  tmpfc['ComicSize'],
+                                         'issueyear': issyear,
+                                         'issueid':   reiss['IssueID']})
+                    break
+
                 fnd_iss_except = 'None'
 
                 if temploc is not None:
@@ -1585,6 +1602,32 @@ def forceRescan(ComicID, archive=None, module=None, recheck=False):
     except Exception as e:
         logger.warn('Error updating: %s' % e)
     logger.fdebug('[haves] issue_status_writing took %s' % (datetime.datetime.now() - b_start))
+
+    #if this far, forced_file is true and the file didn't parse properly due to w/e reason, we need to force the filename to link to the given issueid.
+    reforce = myDB.select('SELECT * FROM issues WHERE ComicID=? AND forced_file = 1', [ComicID])
+    if reforce is not None:
+        for rfc in reforce:
+            logger.fdebug('%s [FORCED-MATCH] Matched...issue: %s #%s --- %s' % (module, rfc['ComicName'], rfc['Issue_Number'], rfc['Int_IssueNumber']))
+            havefiles+=1
+            logger.fdebug('%s .......filename: %s' % (module, rfc['Location']))
+            logger.fdebug('%s .......filesize: %s' % (module, rfc['ComicSize']))
+
+            controlValueDict = {"IssueID": rfc['IssueID']}
+
+            #if Archived, increase the 'Have' count.
+            if archive:
+                issStatus = "Archived"
+            else:
+                issStatus = "Downloaded"
+
+            issID_to_ignore.append(rfc['IssueID'])
+
+            newValueDict = {"Location":           rfc['Location'],
+                            "ComicSize":          rfc['ComicSize'],
+                            "Status":             issStatus
+                            }
+
+            myDB.upsert("issues", newValueDict, controlValueDict)
 
     #here we need to change the status of the ones we DIDN'T FIND above since the loop only hits on FOUND issues.
     update_iss = []

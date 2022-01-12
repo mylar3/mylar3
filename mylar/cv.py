@@ -898,7 +898,8 @@ def GetIssuesInfo(comicid, dom, arcid=None):
                 logger.fdebug('No Issue Number available - Trade Paperbacks, Graphic Novels and Compendiums are not supported as of yet.')
             else:
                 tempissue['Issue_Number'] = tempissue['Issue_Number'].strip()
-
+                if 'Issue #' in tempissue['Issue_Number']:
+                    tempissue['Issue_Number'] = re.sub('Issue #', '', tempissue['Issue_Number']).strip()
             try:
                 tempissue['ComicImage'] = subtrack.getElementsByTagName('small_url')[0].firstChild.wholeText
             except:
@@ -1332,6 +1333,10 @@ def UpdateDates(dom):
         except:
             logger.fdebug('No Issue Number available - Trade Paperbacks, Graphic Novels and Compendiums are not supported as of yet.')
             tempissue['IssueNumber'] = 'None'
+        else:
+            if 'Issue #' in tempissue['IssueNumber']:
+                tempissue['IssueNumber'] = re.sub('Issue #', '', tempissue['IssueNumber']).strip()
+
         try:
             tempissue['date_last_updated'] = dm.getElementsByTagName('date_last_updated')[0].firstChild.wholeText
         except:
@@ -1365,6 +1370,11 @@ def singleIssue(results):
         issue_info['issueid'] = data['id']
         issue_info['image'] = data['image']['medium_url'] #/ ['screen_url'] / ['screen_large_url'] / ['original_url']
         issue_info['issue_number'] = data['issue_number']
+        try:
+            if 'Issue #' in issue_info['issue_number']:
+                issue_info['issue_number'] = re.sub('Issue #', '', issue_info['issue_number']).strip()
+        except Exception:
+            pass
         for x in data['person_credits']:
             issuecredits.append({'role': x['role'], 'name': x['name']})
         issue_info['credits'] = issuecredits
@@ -1408,6 +1418,9 @@ def GetImportList(results):
             tempseries['Issue_Number'] = implist.getElementsByTagName('issue_number')[0].firstChild.wholeText
         except:
             logger.fdebug('No Issue Number available - Trade Paperbacks, Graphic Novels and Compendiums are not supported as of yet.')
+        else:
+            if 'Issue #' in tempseries['Issue_Number']:
+                tempseries['Issue_Number'] = re.sub('Issue #', '', tempseries['Issue_Number']).strip()
 
         logger.info('tempseries:' + str(tempseries))
         serieslist.append({"ComicID":      tempseries['ComicID'],
@@ -1458,7 +1471,7 @@ def drophtml(html):
     else:
         return ''
 
-def get_imprint_volume_and_booktype(series, comicyear, publisher, firstissueid, description, deck):
+def get_imprint_volume_and_booktype(series, comicyear, publisher, firstissueid, description, deck, annual_check=False):
     # this is used to quick_load the imprint, volume and booktype of a specific issue (ie. searchresults editing a result)
     comic = {}
 
@@ -1580,7 +1593,10 @@ def get_imprint_volume_and_booktype(series, comicyear, publisher, firstissueid, 
     desdeck = 0
     #the description field actually holds the Volume# - so let's grab it
     try:
-        comic_desc = drophtml(description)
+        if annual_check is False:
+            comic_desc = drophtml(description)
+        else:
+            comic_desc = description
         desdeck +=1
     except:
         comic_desc = 'None'

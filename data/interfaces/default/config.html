@@ -849,7 +849,14 @@
                         </fieldset>
                         <fieldset>
                                 <div class="row checkbox left clearfix">
-                                    <input type="checkbox" id="enable_ddl" name="enable_ddl" value=1 ${config['enable_ddl']} /><legend>Enable DDL (GetComics)</legend>
+                                     <input id="enable_ddl" type="checkbox" onclick="initConfigCheckbox($(this));" name="enable_ddl" value="1" ${config['enable_ddl']} /><legend>DDL (Direct Download)</legend>
+                                </div>
+                                <div class="config">
+                                   <div id="ddl_providers">
+                                        <div class="row checkbox left clearfix">
+                                            <input type="checkbox" id="enable_getcomics" name="enable_getcomics" value="1" ${config['enable_getcomics']} /><label>Enable GetComics</label>
+                                       </div>
+                                   </div>
                                 </div>
                         </fieldset>
                         <fieldset>
@@ -1824,6 +1831,35 @@
                         else
                         {
                                 $("#opdscredentials").slideUp();
+                        }
+                });
+
+                if ($("#enable_ddl").is(":checked"))
+                        {
+                                if ( document.getElementById("enable_getcomics").checked == false ){
+                                    document.getElementById("enable_getcomics").checked = true;
+                                    document.getElementById("enable_getcomics").setAttribute("disabled", "disabled");
+                                }
+                                $("#ddl_providers").slideDown();
+                        }
+                else    {
+                                document.getElementById("enable_getcomics").checked = false;
+                                $("#ddl_providers").slideUp();
+                        }
+
+                $("#enable_ddl").click(function(){
+                        if ($("#enable_ddl").is(":checked"))
+                        {
+                                if ( document.getElementById("enable_getcomics").checked == false ){
+                                    document.getElementById("enable_getcomics").checked = true;
+                                    document.getElementById("enable_getcomics").setAttribute("disabled", "disabled");
+                                }
+                                $("#ddl_providers").slideDown();
+                        }
+                        else
+                        {
+                                document.getElementById("enable_getcomics").checked = false;
+                                $("#ddl_providers").slideUp();
                         }
                 });
 
@@ -2828,6 +2864,7 @@
                 initConfigCheckbox("#ddump");
                 initConfigCheckbox("#enable_failed");
                 initConfigCheckbox("#enable_meta");
+                initConfigCheckbox("#enable_ddl");
                 initConfigCheckbox("#zero_level");
                 initConfigCheckbox("#post_processing");
                 initConfigCheckbox("#enable_check_folder");

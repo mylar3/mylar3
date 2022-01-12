@@ -25,7 +25,7 @@ sys.path.insert(1, os.path.join(os.path.dirname(__file__), 'lib'))
 
 import mylar
 
-from mylar import webstart, logger, filechecker, versioncheck, maintenance
+from mylar import webstart, logger, filechecker, versioncheck, maintenance, maintenance_webstart
 
 import argparse
 
@@ -103,7 +103,6 @@ def main():
     # Set up and gather command line arguments
     parser = argparse.ArgumentParser(description='Automated Comic Book Downloader')
     subparsers = parser.add_subparsers(title='Subcommands', dest='maintenance')
-    parser_maintenance = subparsers.add_parser('maintenance', help='Enter maintenance mode (no GUI). Additional commands are available (maintenance --help)')
 
     #main parser
     parser.add_argument('-v', '--verbose', action='store_true', help='Increase console logging verbosity')
@@ -112,23 +111,47 @@ def main():
     parser.add_argument('-p', '--port', type=int, help='Force mylar to run on a specified port')
     parser.add_argument('-b', '--backup', action='store_true', help='Will automatically backup & keep the last 2 copies of the .db & ini files prior to startup')
     parser.add_argument('-w', '--noweekly', action='store_true', help='Turn off weekly pull list check on startup (quicker boot sequence)')
+    parser.add_argument('-iu', '--ignoreupdate', action='store_true', help='Do not update db if required (for problem bypass)')
     parser.add_argument('--datadir', help='Specify a directory where to store your data files')
     parser.add_argument('--config', help='Specify a config file to use')
     parser.add_argument('--nolaunch', action='store_true', help='Prevent browser from launching on startup')
     parser.add_argument('--pidfile', help='Create a pid file (only relevant when running as a daemon)')
     parser.add_argument('--safe', action='store_true', help='redirect the startup page to point to the Manage Comics screen on startup')
-    parser_maintenance.add_argument('-xj', '--exportjson', action='store', help='Export existing mylar.db to json file')
-    parser_maintenance.add_argument('-id', '--importdatabase', action='store', help='Import a mylar.db into current db')
-    parser_maintenance.add_argument('-ij', '--importjson', action='store', help='Import a specified json file containing just {"ComicID": "XXXXX"} into current db')
-    parser_maintenance.add_argument('-st', '--importstatus', action='store_true', help='Provide current maintenance status')
-    parser_maintenance.add_argument('-u', '--update', action='store_true', help='force mylar to perform an update as if in GUI')
-    parser_maintenance.add_argument('-fs', '--fixslashes', action='store_true', help='remove double-slashes from within paths in db')
+
+    parser_maintenance = subparsers.add_parser('maintenance', help='Enter maintenance mode (no GUI). Additional commands are available (maintenance --help)')
+    parser_maintenance.add_argument('-xj', '--exportjson', action='store', help='Export existing mylar.db to json file', default=argparse.SUPPRESS)
+    parser_maintenance.add_argument('-id', '--importdatabase', action='store', help='Import a mylar.db into current db', default=argparse.SUPPRESS)
+    parser_maintenance.add_argument('-ij', '--importjson', action='store', help='Import a specified json file containing just {"ComicID": "XXXXX"} into current db', default=argparse.SUPPRESS)
+    parser_maintenance.add_argument('-st', '--importstatus', action='store_true', help='Provide current maintenance status', default=argparse.SUPPRESS)
+    parser_maintenance.add_argument('-u', '--update', action='store_true', help='force mylar to perform an update as if in GUI', default=argparse.SUPPRESS)
+    parser_maintenance.add_argument('-fs', '--fixslashes', action='store_true', help='remove double-slashes from within paths in db', default=argparse.SUPPRESS)
     #parser_maintenance.add_argument('-it', '--importtext', action='store', help='Import a specified text file into current db')
 
     args = parser.parse_args()
 
+    #these need to be set for things to register
+    args_exportjson = None
+    args_importdatabase = None
+    args_importjson = None
+    args_importstatus = False
+    args_update = False
+    args_fixslashes = False
+
+    if 'exportjson' in args:
+        args_exportjson = args.exportjson
+    if 'importdatabase' in args:
+        args_importdatabase = args.importdatabase
+    if 'importjson' in args:
+        args_importjson = args.importjson
+    if 'importstatus' in args:
+        args_importstatus = True
+    if 'update'in args:
+        args_update = True
+    if 'fixslashes' in args:
+        args_fixslashes = True
+
     if args.maintenance:
-        if all([args.exportjson is None, args.importdatabase is None, args.importjson is None, args.importstatus is False, args.update is False, args.fixslashes is False]):
+        if all([args_exportjson is None, args_importdatabase is None, args_importjson is None, args_importstatus is False, args_update is False, args_fixslashes is False]):
             print('Expecting subcommand with the maintenance positional argumeent')
             sys.exit()
         mylar.MAINTENANCE = True
@@ -144,6 +167,9 @@ def main():
         mylar.LOG_LEVEL = 0
     else:
         mylar.LOG_LEVEL = None
+
+    if args.ignoreupdate:
+        mylar.MAINTENANCE = False
 
     if args.daemon:
         if sys.platform == 'win32':
@@ -260,30 +286,61 @@ def main():
     if mylar.DAEMON:
         mylar.daemonize()
 
-    if mylar.MAINTENANCE is True and any([args.exportjson, args.importjson, args.update is True, args.importstatus is True, args.fixslashes is True]):
+    print('mylar.MAINTENANCE: %s'%  mylar.MAINTENANCE)
+    print('mylar.MAINTENANCE_TOTAL: %s'%  mylar.MAINTENANCE_DB_TOTAL)
+    if mylar.MAINTENANCE is True and (mylar.MAINTENANCE_UPDATE or any([args_exportjson, args_importjson, args_update is True, args_importstatus is True, args_fixslashes is True])):
+        print("here")
+        # Start up a temporary maintenance server for GUI display only.
+        maint_config = {
+            'http_port': int(mylar.CONFIG.HTTP_PORT),
+            'http_host': mylar.CONFIG.HTTP_HOST,
+            'http_root': mylar.CONFIG.HTTP_ROOT,
+            'enable_https': mylar.CONFIG.ENABLE_HTTPS,
+            'https_cert': mylar.CONFIG.HTTPS_CERT,
+            'https_key': mylar.CONFIG.HTTPS_KEY,
+            'https_chain': mylar.CONFIG.HTTPS_CHAIN,
+            'http_username': mylar.CONFIG.HTTP_USERNAME,
+            'http_password': mylar.CONFIG.HTTP_PASSWORD,
+            'authentication': mylar.CONFIG.AUTHENTICATION,
+            'login_timeout': mylar.CONFIG.LOGIN_TIMEOUT
+        }
+
+        # Try to start the server.
+        maintenance_webstart.initialize(maint_config)
+        versioncheck.versionload()
+        print("started")
         loggermode = '[MAINTENANCE-MODE]'
-        if args.importstatus: #mylar.MAINTENANCE is True:
+
+        restart_method = True  #True will restart, False will shutdown.
+
+        if mylar.MAINTENANCE_UPDATE:
+            ur = maintenance.Maintenance('db update')
+            restart_method = ur.update_db()
+            if restart_method is None:
+                restart_method = True
+
+        elif args_importstatus:
             cs = maintenance.Maintenance('status')
             cstat = cs.check_status()
         else:
             logger.info('%s Initializing maintenance mode' % loggermode)
 
-            if args.update is True:
+            if args_update is True:
                 logger.info('%s Attempting to update Mylar so things can work again...' % loggermode)
                 try:
                     mylar.shutdown(restart=True, update=True, maintenance=True)
                 except Exception as e:
                     sys.exit('%s Mylar failed to update: %s' % (loggermode, e))
 
-            elif args.importdatabase:
+            elif args_importdatabase:
                 #for attempted db import.
-                maintenance_path = args.importdatabase
+                maintenance_path = args_importdatabase
                 logger.info('%s db path accepted as %s' % (loggermode, maintenance_path))
                 di = maintenance.Maintenance('database-import', file=maintenance_path)
                 d = di.database_import()
-            elif args.importjson:
+            elif args_importjson:
                 #for attempted file re-import (json format)
-                maintenance_path = args.importjson
+                maintenance_path = args_importjson
                 logger.info('%s file indicated as being in json format - path accepted as %s' % (loggermode, maintenance_path))
                 ij = maintenance.Maintenance('json-import', file=maintenance_path)
                 j = ij.json_import()
@@ -293,24 +350,27 @@ def main():
             #    logger.info('%s file indicated as being in list format - path accepted as %s' % (loggermode, maintenance_path))
             #    it = maintenance.Maintenance('list-import', file=maintenance_path)
             #    t = it.list_import()
-            elif args.exportjson:
+            elif args_exportjson:
                 #for export of db comicid's in json format
-                maintenance_path = args.exportjson
+                maintenance_path = args_exportjson
                 logger.info('%s file indicated as being written to json format - destination accepted as %s' % (loggermode, maintenance_path))
                 ej = maintenance.Maintenance('json-export', output=maintenance_path)
                 j = ej.json_export()
-            elif args.fixslashes:
+            elif args_fixslashes:
                 #for running the fix slashes on the db manually
                 logger.info('%s method indicated as fix slashes' % loggermode)
                 fs = maintenance.Maintenance('fixslashes')
                 j = fs.fix_slashes()
             else:
-                logger.info('%s Not a valid command: %s' % (loggermode, maintenance_info))
+                logger.info('%s Not a valid command: %s' % (loggermode, args.maintenance))
                 sys.exit()
             logger.info('%s Exiting Maintenance mode' % (loggermode))
 
-        #possible option to restart automatically after maintenance has completed...
-        sys.exit()
+        #restart automatically after maintenance has completed...
+
+        maintenance_webstart.shutdown()
+        logger.info('%s Maintenance webserver has been shut down.'% (loggermode))
+        mylar.shutdown(restart=restart_method, maintenance=True)
 
     # Force the http port if neccessary
     if args.port:
@@ -350,12 +410,12 @@ def main():
         'opds_pagesize': mylar.CONFIG.OPDS_PAGESIZE,
     }
 
+    # Try to start the server.
+    webstart.initialize(web_config)
+
     #check for version here after web server initialized so it doesn't try to repeatidly hit github
     #for version info if it's already running
     versioncheck.versionload()
-
-    # Try to start the server.
-    webstart.initialize(web_config)
 
     if mylar.CONFIG.LAUNCH_BROWSER and not args.nolaunch:
         mylar.launch_browser(mylar.CONFIG.HTTP_HOST, http_port, mylar.CONFIG.HTTP_ROOT)

@@ -237,11 +237,11 @@
                            %for j in jobs:
                               <%
                                     if j['status'] == 'Paused':
-                                        grade = '#D9150F'
+                                        grade = '#EC7564'
                                     elif j['status'] == 'Waiting':
-                                        grade = '#0F49D9'
+                                        grade = '#52A9EE'
                                     elif j['status'] == 'Running':
-                                        grade = '#55D90F'
+                                        grade = '#7AEE52'
                                %>
                               <tr>
                                 <td id="job" style="width: 50px;text-align: center;">${j['jobname']}</td>

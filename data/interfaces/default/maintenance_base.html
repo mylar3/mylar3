@@ -1,0 +1,96 @@
+<%
+	import mylar
+%>
+<!doctype html>
+<!--[if lt IE 7 ]> <html lang="en" class="no-js ie6"> <![endif]-->
+<!--[if IE 7 ]>    <html lang="en" class="no-js ie7"> <![endif]-->
+<!--[if IE 8 ]>    <html lang="en" class="no-js ie8"> <![endif]-->
+<!--[if IE 9 ]>    <html lang="en" class="no-js ie9"> <![endif]-->
+<!--[if (gt IE 9)|!(IE)]><!--> <html lang="en" class="no-js"> <!--<![endif]-->
+<head>
+	<meta charset="UTF-8">
+	<meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+	
+	<title>Mylar - ${title}</title>
+	<meta name="description" content="Mylar 'default' interface - made by Elmar Kouwenhoven">
+	<meta name="author" content="Elmar Kouwenhoven">
+	
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	
+	<link rel="apple-touch-icon" href="images/mylarlogo.png">
+	<link rel="stylesheet" href="interfaces/${interface}/css/style.css?v=${mylar.CURRENT_VERSION}"">
+	<link rel="stylesheet" href="interfaces/${interface}/css/jquery-ui.css">
+        <link rel="icon" href="images/favicon.ico" type="image/x-icon">
+        <link rel="shortcut icon" href="images/favicon.ico" type="image/x-icon">
+	${next.headIncludes()}
+	
+	<script src="js/libs/modernizr-2.8.3.min.js"></script>
+	<script src="js/libs/jquery-1.7.2.min.js"></script>
+</head>
+<body>
+      	    <div id="container">
+		<header>
+                        <div class="wrapper">
+                     
+			<div id="logo">
+                                <img class="mylarload2" src="images/mylarlogo.png" alt="mylar" height="64" width="64" style="">
+			</div>
+			<ul id="nav">
+				<li>MAINTENANCE MODE</li>
+			</ul>
+                        </div>
+		</header>
+
+		<div id="main" class="main">
+			<div id="subhead">
+				${next.headerIncludes()}
+			</div>
+			${next.body()}
+		</div>
+
+		<footer>
+			<div id="actions">
+				<small>
+                                <a href="shutdown"><span class="ui-button-icon-primary ui-icon ui-icon-power"></span>Shutdown</a> |
+                                <a href="restart"><span class="ui-button-icon-primary ui-icon ui-icon-power"></span>Restart</a> |
+                                %if mylar.CONFIG.AUTHENTICATION > 0:
+                                    <a href="auth/logout"><span class="ui-button-icon-primary ui-icon ui-icon-power"></span>Logout</a></br>
+                                %endif
+                                </small>
+			</div>
+			<div id="version">
+                                Version: <em>
+                                %if mylar.CURRENT_VERSION_NAME:
+                                    ${mylar.CURRENT_VERSION_NAME}
+                                %else:
+                                    ${mylar.CURRENT_VERSION}
+                                %endif
+                                </em>
+				(${mylar.CONFIG.GIT_BRANCH})
+			</div>	
+		</footer>
+		<a href="#main" id="toTop"><span>Back to top</span></a>
+
+	<script src="js/libs/jquery-ui.min.js"></script> 
+        <script src="js/common.js"></script>
+	
+	${next.javascriptIncludes()}
+	
+	<script src="js/plugins.js"></script>
+	<script src="js/script.js"></script>
+	<!--[if lt IE 7 ]>
+	<script src="js/libs/dd_belatedpng.js"></script>
+	<script> DD_belatedPNG.fix('img, .png_bg');</script>
+	<![endif]-->
+        <script>
+        function flippylogo() {
+            $('img.mylarload').addClass('spinny').removeClass('lastgood').removeClass('lastbad');
+        }
+        </script>
+
+</body>
+</html>
+
+<%def name="javascriptIncludes()"></%def>
+<%def name="headIncludes()"></%def>
+<%def name="headerIncludes()"></%def>
