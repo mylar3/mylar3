@@ -940,11 +940,12 @@ class search_check(object):
                                 entry['title'] = entry['filename']
                                 nzbid = entry['id']
                             else:
-                                nzbid = search.generate_id(provider_stat, entry['link'])
-                                #try:
-                                #    entry['link'] = entry.enclosures[0]['url']
-                                #except Exception:
-                                #    pass
+                                try:
+                                    logger.fdebug('title_id: %s' % (entry['id'],))
+                                    if 'details' in entry['id']:
+                                        nzbid = search.generate_id(provider_stat, entry['id'])
+                                except Exception as e:
+                                    nzbid = search.generate_id(provider_stat, entry['link'])
                             if all([manual is not True, alt_match is False]):
                                 downloadit = True
                             else:
@@ -990,6 +991,7 @@ class search_check(object):
                                         nzbprov == 'nzb.su',
                                         nzbprov == 'experimental',
                                         'newznab' in nzbprov,
+                                        provider_stat['type'] == 'newznab',
                                     ]
                                 ):
                                     tprov = nzbprov
