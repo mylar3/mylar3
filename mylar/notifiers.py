@@ -66,21 +66,21 @@ class PROWL:
                 'priority': mylar.CONFIG.PROWL_PRIORITY}
 
         http_handler.request("POST",
-                             "/publicapi/add",
+                                "/publicapi/add",
                                 headers = {'Content-type': "application/x-www-form-urlencoded"},
                                 body = urlencode(data))
         response = http_handler.getresponse()
         request_status = response.status
 
         if request_status == 200:
-            logger.info(module + ' Prowl notifications sent.')
-            return True
+                logger.info(module + ' Prowl notifications sent.')
+                return True
         elif request_status == 401:
                 logger.info(module + ' Prowl auth failed: %s' % response.reason)
-            return False
+                return False
         else:
-            logger.info(module + ' Prowl notification failed.')
-            return False
+                logger.info(module + ' Prowl notification failed.')
+                return False
 
     def test_notify(self):
         self.notify('ZOMG Lazors Pewpewpew!', 'Test Message')
@@ -130,7 +130,7 @@ class PUSHOVER:
         module += '[NOTIFIER]'
 
         if snatched_nzb:
-            if snatched_nzb[-1] == '\.':
+            if snatched_nzb[-1] == '\.': 
                 snatched_nzb = snatched_nzb[:-1]
             message = "Mylar has snatched: " + snatched_nzb + " from " + prov + " and " + sent_to
 
@@ -209,7 +209,7 @@ class BOXCAR:
                 'notification[title]': title.encode('utf-8').strip(),
                 'notification[long_message]': msg.encode('utf-8'),
                 'notification[sound]': "done"
-            })
+                })
 
             req = urllib.request.Request(self.url)
             handle = urllib.request.urlopen(req, data)
@@ -448,14 +448,14 @@ class SLACK:
             pass
 
         payload = {
-            #            "text": text,
-            #            "attachments": [
-            #                {
-            #                    "color": "#36a64f",
-            #                    "text": attachment_text
-            #                }
-            #            ]
-            # FIX: #1861 move notif from attachment to msg body - bbq
+#            "text": text,
+#            "attachments": [
+#                {
+#                    "color": "#36a64f",
+#                    "text": attachment_text
+#                }
+#            ]
+ # FIX: #1861 move notif from attachment to msg body - bbq
             "text": attachment_text
         }
 
