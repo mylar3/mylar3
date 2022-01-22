@@ -576,7 +576,7 @@ class Config(object):
             #config.set('General', 'OLDCONFIG_VERSION', str(self.CONFIG_VERSION))
             setattr(self, 'CONFIG_VERSION', self.newconfig)
             config.set('General', 'CONFIG_VERSION', str(self.newconfig))
-            self.writeconfig()
+            self.writeconfig(startup=startup)
         else:
             if self.OLDCONFIG_VERSION != self.CONFIG_VERSION:
                 setattr(self, 'OLDCONFIG_VERSION', str(self.CONFIG_VERSION))
@@ -630,14 +630,14 @@ class Config(object):
                 self.config_update()
             setattr(self, 'CONFIG_VERSION', self.newconfig)
             config.set('General', 'CONFIG_VERSION', self.newconfig)
-            self.writeconfig()
+            self.writeconfig(startup=startup)
 
         if startup is False:
             # need to do provider sequence AFTER db check
             self.provider_sequence()
         self.configure(startup=startup)
         if self.WRITE_THE_CONFIG is True:
-            self.writeconfig()
+            self.writeconfig(startup=startup)
         return self
 
     def config_update(self):
@@ -861,7 +861,7 @@ class Config(object):
             self.encrypt_items(mode='encrypt')
 
 
-    def writeconfig(self, values=None):
+    def writeconfig(self, values=None, startup=False):
         logger.fdebug("Writing configuration to file")
         config.set('Newznab', 'extra_newznabs', ', '.join(self.write_extras(self.EXTRA_NEWZNABS)))
         tmp_torz = self.write_extras(self.EXTRA_TORZNABS)
@@ -872,7 +872,8 @@ class Config(object):
         setattr(self, 'EXTRA_NEWZNABS', extra_newznabs)
         setattr(self, 'EXTRA_TORZNABS', extra_torznabs)
 
-        self.provider_sequence()
+        if startup is False:
+            self.provider_sequence()
 
         ###this should be moved elsewhere...
         if type(self.IGNORED_PUBLISHERS) != list:
