@@ -487,7 +487,7 @@ class DISCORD:
 
         # Setup discord variables
         payload = {}
-        timestamp = str(datetime.fromtimestamp(time.time()))
+        timestamp = str(datetime.utcnow())
 
         if 'snatched' in attachment_text.lower():
             snatched_text = '%s: %s' % (attachment_text, snatched_nzb)
