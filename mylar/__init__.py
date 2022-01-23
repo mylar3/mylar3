@@ -1456,9 +1456,13 @@ def dbcheck():
     # so it can stagger the requests across an hr or more
     try:
         c.execute('SELECT last_date from jobhistory')
-    except sqlite3.OperationalError:
-        c.execute('ALTER TABLE jobhistory ADD COLUMN last_date timestamp')
-        mylar.DB_BACKFILL = True
+    except (sqlite3.OperationalError, Exception) as e:
+        try:
+            c.execute('ALTER TABLE jobhistory ADD COLUMN last_date timestamp')
+        except (sqlite3.OperationalError, Exception) as e:
+            mylar.DB_BACKFILL = False # table already exists but something about last_date is f'd
+        else:
+            mylar.DB_BACKFILL = True
     else:
         mylar.DB_BACKFILL = False
 
@@ -1535,10 +1539,6 @@ def dbcheck():
     except Exception:
         pass
 
-    job_listing = c.execute('SELECT * FROM jobhistory')
-    job_history = []
-    for jh in job_listing:
-        job_history.append(jh)
 
     #update tables here as necessary based on current version of mylar.
     #this won't be written to the ini until a save of the config after load, but it should be oldconfig_version+1 on load
@@ -1551,7 +1551,6 @@ def dbcheck():
             c.execute("UPDATE rssdb SET site = 'DDL(GetComics)' WHERE site = 'DDL'")
             c.execute("UPDATE ddl_info SET site = 'DDL(GetComics)' WHERE site is NULL")
 
-    #logger.fdebug('job_history loaded: %s' % job_history)
     conn.commit()
     c.close()
 
