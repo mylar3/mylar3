@@ -15,7 +15,7 @@ import subprocess
 from subprocess import CalledProcessError, check_output
 import mylar
 
-from mylar import logger
+from mylar import logger, notifiers
 
 
 def run(dirName, nzbName=None, issueid=None, comversion=None, manual=None, filename=None, module=None, manualmeta=False, readingorder=None, agerating=None):
@@ -40,6 +40,7 @@ def run(dirName, nzbName=None, issueid=None, comversion=None, manual=None, filen
         filename = os.path.split(filename)[1]   # just the filename itself
     except:
         logger.warn('Unable to detect filename within directory - I am aborting the tagging. You best check things out.')
+        sendnotify("Error - Unable to detect filename within directory. Tagging aborted.", filename, module)
         return "fail"
 
     #make use of temporary file location in order to post-process this to ensure that things don't get hammered when converting
@@ -62,6 +63,7 @@ def run(dirName, nzbName=None, issueid=None, comversion=None, manual=None, filen
     except Exception as e:
         logger.warn('%s Unexpected Error: %s [%s]' % (module, sys.exc_info()[0], e))
         logger.warn(module + ' Unable to create temporary directory to perform meta-tagging. Processing without metatagging.')
+        sendnotify("Error - Unable to create temporary directory to perform meta-tagging. Processing without metatagging.", filename, module)
         tidyup(og_filepath, new_filepath, new_folder, manualmeta)
         return "fail"
 
@@ -278,6 +280,7 @@ def run(dirName, nzbName=None, issueid=None, comversion=None, manual=None, filen
                     return 'corrupt'
                 else:
                     logger.warn(module + '[COMIC-TAGGER][CBR-TO-CBZ] Failed to convert cbr to cbz - check permissions on folder : ' + mylar.CONFIG.CACHE_DIR + ' and/or the location where Mylar is trying to tag the files from.')
+                    sendnotify('Error - Failed to convert cbr to cbz - check permissions on folder : ' + mylar.CONFIG.CACHE_DIR + ' and/or the location where Mylar is trying to tag the files from.', filename, module)
                     tidyup(og_filepath, new_filepath, new_folder, manualmeta)
                     return 'fail'
             elif 'Cannot find' in out:
@@ -317,3 +320,47 @@ def tidyup(filepath, new_filepath, new_folder, manualmeta):
             if all([os.path.exists(new_folder), os.path.isfile(filepath)]):
                 shutil.rmtree(new_folder)
 
+def sendnotify(message, filename, module):
+
+    prline = filename
+
+    prline2 = 'Mylar metatagging error: ' + message + ' File: ' + prline
+
+    try:
+        if mylar.CONFIG.PROWL_ENABLED:
+            pushmessage = prline
+            prowl = notifiers.PROWL()
+            prowl.notify(pushmessage, "Mylar metatagging error: ", module=module)
+
+        if mylar.CONFIG.PUSHOVER_ENABLED:
+            pushover = notifiers.PUSHOVER()
+            pushover.notify(prline, prline2, module=module)
+
+        if mylar.CONFIG.BOXCAR_ENABLED:
+            boxcar = notifiers.BOXCAR()
+            boxcar.notify(prline=prline, prline2=prline2, module=module)
+
+        if mylar.CONFIG.PUSHBULLET_ENABLED:
+            pushbullet = notifiers.PUSHBULLET()
+            pushbullet.notify(prline=prline, prline2=prline2, module=module)
+
+        if mylar.CONFIG.TELEGRAM_ENABLED:
+            telegram = notifiers.TELEGRAM()
+            telegram.notify(prline2)
+
+        if mylar.CONFIG.SLACK_ENABLED:
+            slack = notifiers.SLACK()
+            slack.notify("Mylar metatagging error: ", prline2, module=module)
+
+        if mylar.CONFIG.DISCORD_ENABLED:
+            discord = notifiers.DISCORD()
+            discord.notify(filename, message, module=module)
+
+        if mylar.CONFIG.EMAIL_ENABLED and mylar.CONFIG.EMAIL_ONPOST:
+            logger.info("Sending email notification")
+            email = notifiers.EMAIL()
+            email.notify(prline2, "Mylar metatagging error: ", module=module)
+    except Exception as e:
+        logger.warn('[NOTIFICATION] Unable to send notification: %s' % e)
+
+    return

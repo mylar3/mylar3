@@ -487,7 +487,7 @@ class DISCORD:
 
         # Setup discord variables
         payload = {}
-        timestamp = str(datetime.fromtimestamp(time.time()))
+        timestamp = str(datetime.utcnow())
 
         if 'snatched' in attachment_text.lower():
             snatched_text = '%s: %s' % (attachment_text, snatched_nzb)
@@ -538,6 +538,28 @@ class DISCORD:
                             {
                                 "name": "Sent to",
                                 "value": sent_to
+                            }
+                        ],
+                        "timestamp": timestamp
+                    }
+                ]
+            }
+        elif 'error' in attachment_text.lower():
+            payload = {
+                "username": "Mylar",
+                "avatar_url": "https://github.com/mylar3/mylar3/raw/master/data/images/mylarlogo.png",
+                "content": attachment_text,
+                "embeds": [
+                    {
+                        "author": {
+                            "name": "Mylar Error"
+                        },
+                        "description": attachment_text,
+                        "color": 16705372,
+                        "fields": [
+                            {
+                                "name": "File",
+                                "value": text
                             }
                         ],
                         "timestamp": timestamp
