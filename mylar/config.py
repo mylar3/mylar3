@@ -560,10 +560,34 @@ class Config(object):
         self.config_vals()
 
         if any([self.CONFIG_VERSION == 0, self.CONFIG_VERSION < self.newconfig]):
+            cback_path = os.path.join(mylar.DATA_DIR, 'config.ini-v%s.backup' % (self.CONFIG_VERSION))
             try:
-                shutil.move(self._config_file, os.path.join(mylar.DATA_DIR, 'config.ini.backup'))
-            except:
-                print(('Unable to make proper backup of config file in %s' % os.path.join(mylar.DATA_DIR, 'config.ini.backup')))
+                #start naming backup ini files as config.ini-vXX.backup
+                if os.path.exists(cback_path):
+                    max_value = None
+                    cf_val = 'config.ini-v%s.backup.???' % self.CONFIG_VERSION
+                    for f in glob.glob(os.path.join(mylar.DATA_DIR, cf_val)):
+                        backup_num = f[-3:]
+                        if backup_num.isdigit():
+                            if max_value is None:
+                                max_value = int(backup_num)
+                            elif int(backup_num) > max_value:
+                                max_value = int(backup_num)
+                    if max_value is None:
+                        tmp_back = cback_path + '.000'
+                        print('[versioned_backup] Backing up existing config file as %s' % tmp_back)
+                        shutil.copy(self._config_file, tmp_back)
+                    else:
+                        max_value +=1
+                        tmp_back = cback_path + '.{:03d}'.format(max_value)
+                        print('[versioned_backup] Backing up existing config file as %s' % tmp_back)
+                        shutil.copy(self._config_file, tmp_back)
+                else:
+                    print('Backing up existing config file as %s' % cback_path)
+                    shutil.copy(self._config_file, cback_path)
+            except Exception as e:
+                print('[%s] Unable to make proper backup of config file in %s' % (e, os.path.join(mylar.DATA_DIR, 'config.ini.backup')))
+
             if self.CONFIG_VERSION < 12:
                 print('Attempting to update configuration..')
                 #8-torznab multiple entries merged into extra_torznabs value
@@ -615,28 +639,11 @@ class Config(object):
         setattr(self, 'EXTRA_TORZNABS', extra_torznabs)
         setattr(self, 'IGNORED_PUBLISHERS', self.get_ignored_pubs())
 
-        if any([self.CONFIG_VERSION == 0, self.CONFIG_VERSION < self.newconfig]):
-            try:
-                shutil.move(self._config_file, os.path.join(mylar.DATA_DIR, 'config.ini.backup'))
-            except:
-                logger.warn('Unable to make proper backup of config file in %s' % os.path.join(mylar.DATA_DIR, 'config.ini.backup'))
-            if self.CONFIG_VERSION < 12:
-                logger.info('Attempting to update configuration..')
-                #8-torznab multiple entries merged into extra_torznabs value
-                #9-remote rtorrent ssl option
-                #10-encryption of all keys/passwords.
-                #11-provider_ids
-                #12-ddl separation into multiple providers, new keys, update tables
-                self.config_update()
-            setattr(self, 'CONFIG_VERSION', self.newconfig)
-            config.set('General', 'CONFIG_VERSION', self.newconfig)
-            self.writeconfig(startup=startup)
-
         if startup is False:
             # need to do provider sequence AFTER db check
             self.provider_sequence()
         self.configure(startup=startup)
-        if self.WRITE_THE_CONFIG is True:
+        if self.WRITE_THE_CONFIG is True or startup is True:
             self.writeconfig(startup=startup)
         return self
 

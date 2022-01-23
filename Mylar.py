@@ -286,10 +286,9 @@ def main():
     if mylar.DAEMON:
         mylar.daemonize()
 
-    print('mylar.MAINTENANCE: %s'%  mylar.MAINTENANCE)
-    print('mylar.MAINTENANCE_TOTAL: %s'%  mylar.MAINTENANCE_DB_TOTAL)
+    #print('mylar.MAINTENANCE: %s'%  mylar.MAINTENANCE)
+    #print('mylar.MAINTENANCE_TOTAL: %s'%  mylar.MAINTENANCE_DB_TOTAL)
     if mylar.MAINTENANCE is True and (mylar.MAINTENANCE_UPDATE or any([args_exportjson, args_importjson, args_update is True, args_importstatus is True, args_fixslashes is True])):
-        print("here")
         # Start up a temporary maintenance server for GUI display only.
         maint_config = {
             'http_port': int(mylar.CONFIG.HTTP_PORT),

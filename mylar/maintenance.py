@@ -19,6 +19,8 @@ import re
 import threading
 import sqlite3
 import json
+import shutil
+import glob
 
 import mylar
 from mylar import logger, importer, filechecker, helpers
@@ -93,6 +95,9 @@ class Maintenance(object):
         self.db_version_check()
 
         if self.db_version < 1:
+
+            # backup mylar.db here
+            self.backup_db()
 
             # -- rssdb table - ComicName and Issue_Number added.
             # Values are generated based on existing data
@@ -339,6 +344,42 @@ class Maintenance(object):
         #force set logging to warning level only so the progress indicator can be displayed in console
         wc = mylar.webserve.WebInterface()
         wc.toggleVerbose(level=level)
+
+    def backup_db(self):
+        logger.info('Attempting to backup mylar database prior to updating...')
+        cback_path = os.path.join(mylar.DATA_DIR, 'mylar.db.backup')
+        try:
+            #start naming backup ini files as mylar.db.backup.xxx
+            if os.path.exists(cback_path):
+                max_value = None
+                cf_val = 'mylar.db.backup.???'
+                for f in glob.glob(os.path.join(mylar.DATA_DIR, cf_val)):
+                    backup_num = f[-3:]
+                    if backup_num.isdigit():
+                        if max_value is None:
+                            max_value = int(backup_num)
+                        elif int(backup_num) > max_value:
+                            max_value = int(backup_num)
+                if max_value is None:
+                    tmp_back = cback_path + '.000'
+                else:
+                    max_value +=1
+                    tmp_back = cback_path + '.{:03d}'.format(max_value)
+                logger.info('[versioned_backup] Backing up existing mylar database as %s' % tmp_back)
+                shutil.copy(self.dbfile, tmp_back)
+                db_backed = tmp_back
+            else:
+                logger.info('Backing up existing mylar database as %s' % cback_path)
+                shutil.copy(self.dbfile, cback_path)
+                db_backed = cback_path
+        except Exception as e:
+            logger.info('[%s] Unable to make proper backup of config file in %s' % (e, self.dbfile))
+        else:
+            if os.path.exists(db_backed):
+                logger.info('Successfully backed up mylar database to %s. Continuing update now...' % db_backed)
+            else:
+                logger.warn('Unable to verify backup location of %s - backup of db might not have been successful.' % db_backed)
+
 
     def update_db(self):
 
