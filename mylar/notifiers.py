@@ -544,6 +544,28 @@ class DISCORD:
                     }
                 ]
             }
+        elif 'error' in attachment_text.lower():
+            payload = {
+                "username": "Mylar",
+                "avatar_url": "https://github.com/mylar3/mylar3/raw/master/data/images/mylarlogo.png",
+                "content": attachment_text,
+                "embeds": [
+                    {
+                        "author": {
+                            "name": "Mylar Error"
+                        },
+                        "description": attachment_text,
+                        "color": 16705372,
+                        "fields": [
+                            {
+                                "name": "File",
+                                "value": text
+                            }
+                        ],
+                        "timestamp": timestamp
+                    }
+                ]
+            }
         # If snatched is not in the message, it's a download and post-process
         else:
             # extract series and issue number
