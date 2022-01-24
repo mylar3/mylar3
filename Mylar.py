@@ -18,6 +18,7 @@ import argparse
 import errno
 import shutil
 import time
+import re
 import threading
 import signal
 
@@ -109,7 +110,7 @@ def main():
     parser.add_argument('-q', '--quiet', action='store_true', help='Turn off console logging')
     parser.add_argument('-d', '--daemon', action='store_true', help='Run as a daemon')
     parser.add_argument('-p', '--port', type=int, help='Force mylar to run on a specified port')
-    parser.add_argument('-b', '--backup', action='store_true', help='Will automatically backup & keep the last 2 copies of the .db & ini files prior to startup')
+    parser.add_argument('-b', '--backup', nargs='?', const='both', help='Will automatically backup & keep the last 4 rolling copies.')
     parser.add_argument('-w', '--noweekly', action='store_true', help='Turn off weekly pull list check on startup (quicker boot sequence)')
     parser.add_argument('-iu', '--ignoreupdate', action='store_true', help='Do not update db if required (for problem bypass)')
     parser.add_argument('--datadir', help='Specify a directory where to store your data files')
@@ -218,6 +219,24 @@ def main():
     else:
         mylar.NOWEEKLY = False
 
+    try:
+        backup = False
+        backup_db = False
+        backup_cfg = False
+        if 'backup' in args:
+            backup = True
+            if args.backup == 'ini':
+                backup_cfg = True
+            elif args.backup == 'db':
+                backup_db = True
+            elif args.backup == 'both':
+                backup_cfg = True
+                backup_db = True
+            else:
+                backup = False
+    except Exception as e:
+        backup = False
+
     # Put the database in the DATA_DIR
     mylar.DB_FILE = os.path.join(mylar.DATA_DIR, 'mylar.db')
 
@@ -239,46 +258,26 @@ def main():
             raise SystemExit('Cannot write to the data directory: ' + mylar.DATA_DIR + '. Exiting...')
 
     # backup the db and configs before they load.
-    if args.backup or mylar.CONFIG.BACKUP_ON_START:
-        print('[AUTO-BACKUP] Backing up .db and config.ini files for safety.')
-        backupdir = os.path.join(mylar.DATA_DIR, 'backup')
+    if (backup is True and any([backup_cfg is True, backup_db is True])) or mylar.CONFIG.BACKUP_ON_START:
+        if mylar.CONFIG.BACKUP_ON_START:
+            backup_cfg = True
+            backup_db = True
+        if mylar.CONFIG.BACKUP_ON_START or all([backup_cfg is True, backup_db is True]):
+            logger.info('[AUTO-BACKUP] Backing up mylar.db & config.ini files for safety.')
+        elif backup_cfg is True:
+            logger.info('[AUTO-BACKUP] Backing up config.ini file for safety.')
+        elif backup_db is True:
+            logger.info('[AUTO-BACKUP] Backing up mylar.db file for safety.')
 
-        try:
-            os.makedirs(backupdir)
-            print('[AUTO-BACKUP] Directory does not exist for backup - creating : ' + backupdir)
-        except OSError as exception:
-            if exception.errno != errno.EEXIST:
-                print('[AUTO-BACKUP] Directory already exists.')
-                raise
-
-        i = 0
-        while (i < 2):
-            if i == 0:
-                ogfile = mylar.DB_FILE
-                back = os.path.join(backupdir, 'mylar.db')
-                back_1 = os.path.join(backupdir, 'mylar.db.1')
-            else:
-                ogfile = mylar.CONFIG_FILE
-                back = os.path.join(backupdir, 'config.ini')
-                back_1 = os.path.join(backupdir, 'config.ini.1')
-
-            try:
-                print('[AUTO-BACKUP] Now Backing up ' + back + ' file')
-                if os.path.isfile(back_1):
-                    print('[AUTO-BACKUP] ' + back_1 + ' exists. Deleting and keeping new.')
-                    os.remove(back_1)
-                if os.path.isfile(back):
-                    print('[AUTO-BACKUP] Now renaming ' + back + ' to ' + back_1)
-                    shutil.move(back, back_1)
-                print('[AUTO-BACKUP] Now copying db file to ' + back)
-                shutil.copy(ogfile, back)
-
-            except OSError as exception:
-                if exception.errno != errno.EEXIST:
-                    print('[AUTO-BACKUP] Error encountered: %s' % (exception,))
-                    raise
-
-            i += 1
+        sys.exit()
+        mm = maintenance.Maintenance('backup')
+        back_check = mm.backup_files(cfg=backup_cfg, dbs=backup_db)
+        failures = [re.sub('mylar database', 'mylar.db', x['file']) for x in back_check if x['status'] == 'failure']
+        successes = [re.sub('mylar database', 'mylar.db', x['file']) for x in back_check if x['status'] == 'success']
+        if failures:
+            logger.warn('[AUTO-BACKUP] Failure backing up %s files [%s]' % (len(failures), failures))
+        if successes:
+            logger.info('[AUTO-BACKUP] Successful backup of %s files [%s]' % (len(successes), successes))
 
     # Rename the main thread
     threading.currentThread().name = "MAIN"

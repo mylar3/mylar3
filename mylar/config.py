@@ -12,7 +12,7 @@ import threading
 import re
 import configparser
 import mylar
-from mylar import logger, helpers, encrypted, filechecker, db
+from mylar import logger, helpers, encrypted, filechecker, db, maintenance
 
 config = configparser.ConfigParser()
 
@@ -85,6 +85,8 @@ _CONFIG_DEFINITIONS = OrderedDict({
     'SECURE_DIR': (str, 'General', None),
     'ENCRYPT_PASSWORDS': (bool, 'General', False),
     'BACKUP_ON_START': (bool, 'General', False),
+    'BACKUP_LOCATION': (str, 'General', None),
+    'BACKUP_RETENTION': (int, 'General', 4),
     'BACKFILL_LENGTH': (int, 'General', 8),  # weeks
     'BACKFILL_TIMESPAN': (int, 'General', 10),   # minutes
     'PROBLEM_DATES': (str, 'General', []),
@@ -560,33 +562,15 @@ class Config(object):
         self.config_vals()
 
         if any([self.CONFIG_VERSION == 0, self.CONFIG_VERSION < self.newconfig]):
-            cback_path = os.path.join(mylar.DATA_DIR, 'config.ini-v%s.backup' % (self.CONFIG_VERSION))
-            try:
-                #start naming backup ini files as config.ini-vXX.backup
-                if os.path.exists(cback_path):
-                    max_value = None
-                    cf_val = 'config.ini-v%s.backup.???' % self.CONFIG_VERSION
-                    for f in glob.glob(os.path.join(mylar.DATA_DIR, cf_val)):
-                        backup_num = f[-3:]
-                        if backup_num.isdigit():
-                            if max_value is None:
-                                max_value = int(backup_num)
-                            elif int(backup_num) > max_value:
-                                max_value = int(backup_num)
-                    if max_value is None:
-                        tmp_back = cback_path + '.000'
-                        print('[versioned_backup] Backing up existing config file as %s' % tmp_back)
-                        shutil.copy(self._config_file, tmp_back)
-                    else:
-                        max_value +=1
-                        tmp_back = cback_path + '.{:03d}'.format(max_value)
-                        print('[versioned_backup] Backing up existing config file as %s' % tmp_back)
-                        shutil.copy(self._config_file, tmp_back)
-                else:
-                    print('Backing up existing config file as %s' % cback_path)
-                    shutil.copy(self._config_file, cback_path)
-            except Exception as e:
-                print('[%s] Unable to make proper backup of config file in %s' % (e, os.path.join(mylar.DATA_DIR, 'config.ini.backup')))
+            if not self.BACKUP_LOCATION:
+                # this is needed here since the configuration hasn't run to check the location value yet.
+                self.BACKUP_LOCATION = os.path.join(mylar.DATA_DIR, 'backup')
+
+            backupinfo = {'location': self.BACKUP_LOCATION,
+                          'config_version': self.CONFIG_VERSION,
+                          'backup_retention': self.BACKUP_RETENTION}
+            cc = maintenance.Maintenance('backup')
+            bcheck = cc.backup_files(cfg=True, dbs=False, backupinfo=backupinfo)
 
             if self.CONFIG_VERSION < 12:
                 print('Attempting to update configuration..')
@@ -1036,7 +1020,7 @@ class Config(object):
             try:
                os.makedirs(self.CACHE_DIR)
             except OSError:
-                logger.error('[Cache Check] Could not create cache dir. Check permissions of datadir: ' + mylar.DATA_DIR)
+                logger.error('[Cache Check] Could not create cache dir. Check permissions of datadir: %s' % mylar.DATA_DIR)
 
 
         if not self.SECURE_DIR:
@@ -1046,7 +1030,16 @@ class Config(object):
             try:
                os.makedirs(self.SECURE_DIR)
             except OSError:
-                logger.error('[Secure DIR Check] Could not create secure directory. Check permissions of datadir: ' + mylar.DATA_DIR)
+                logger.error('[Secure DIR Check] Could not create secure directory. Check permissions of datadir: %s' % mylar.DATA_DIR)
+
+        if not self.BACKUP_LOCATION:
+            self.BACKUP_LOCATION = os.path.join(mylar.DATA_DIR, 'backup')
+
+        if not os.path.exists(self.BACKUP_LOCATION):
+            try:
+                os.makedirs(self.BACKUP_LOCATION)
+            except OSError:
+                logger.error('[Backup Location Check] Could not create backup directory. Check permissions for creation of : %s' % self.BACKUP_LOCATION)
 
         #make sure the cookies.dat file is not in cache
         for f in glob.glob(os.path.join(self.CACHE_DIR, '.32p_cookies.dat')):
@@ -1561,7 +1554,7 @@ class Config(object):
                 for d in PPR:
                     #logger.fdebug('checking entry %s against %s' % (PR[i], d) #d['provider'])
                     if d == PR[i]:
-                        x = [p['order_seq'] for p in PROV_ORDER if p['provider'] == PR[i]]
+                        x = [p['order_seq'] for p in PROV_ORDER if p['provider'].lower() == PR[i].lower()]
                         if x:
                             ord = x[0]
                         else:
@@ -1646,16 +1639,16 @@ class Config(object):
                p_list[ck['provider']] = {'active': ck['active'], 'lastrun': ck['lastrun'], 'type': ck['type']}
 
        for k, v in self.PROVIDER_ORDER.items():
-           if not any(p == v for p, pv in p_list.items()):
+           if not any(p.lower() == v.lower() for p, pv in p_list.items()):
                logger.info('%s was not found in search db. Writing it..' % v)
                if 'DDL' in v:
                    t_type = 'DDL'
-               elif 'experimental' in v:
+               elif any(['experimental' in v, 'Experimental' in v]):
                    t_type = 'experimental'
                elif 'dog' in v:
                    t_type = 'dognzb'
-               elif 'nzbsu' in v:
-                   t_type = 'nzbsu'
+               elif any(['nzb.su' in v, 'nzbsu' in v]):
+                   t_type = 'nzb.su'
                else:
                    nnf = False
                    if self.EXTRA_NEWZNABS:
