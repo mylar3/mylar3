@@ -269,7 +269,6 @@ def main():
         elif backup_db is True:
             logger.info('[AUTO-BACKUP] Backing up mylar.db file for safety.')
 
-        sys.exit()
         mm = maintenance.Maintenance('backup')
         back_check = mm.backup_files(cfg=backup_cfg, dbs=backup_db)
         failures = [re.sub('mylar database', 'mylar.db', x['file']) for x in back_check if x['status'] == 'failure']
