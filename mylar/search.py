@@ -374,7 +374,7 @@ def search_init(
                         searchprov['DDL(GetComics)']['active'] = True
                 elif prov_order[prov_count] == '32p' and not provider_blocked:
                     searchprov['32P'] = ({'type': 'torrent', 'lastrun': 0, 'active': True})
-                elif prov_order[prov_count] == 'Experimental' and not provider_blocked and 'experimental' not in checked_once:
+                elif prov_order[prov_count] == 'experimental' and not provider_blocked and 'experimental' not in checked_once:
                     if 'experimental' not in searchprov.keys():
                         prov_order[prov_count] = 'experimental'  # cause it's Experimental for display
                         logger.info('resetting searchprov - last run here..')

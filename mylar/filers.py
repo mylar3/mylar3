@@ -168,7 +168,7 @@ class FileHandlers(object):
         chunk_folder_format = re.sub(r'\s+', ' ', chunk_folder_format)
 
         # if the path contains // in linux it will incorrectly parse things out.
-        logger.fdebug('newPath: %s' % re.sub('//', '/', chunk_folder_format).strip())
+        #logger.fdebug('newPath: %s' % re.sub('//', '/', chunk_folder_format).strip())
 
         #do work to generate folder path
         values = {'$Series':        series,

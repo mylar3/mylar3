@@ -96,9 +96,6 @@ class Maintenance(object):
 
         if self.db_version < 1:
 
-            # backup mylar.db here
-            self.backup_db()
-
             # -- rssdb table - ComicName and Issue_Number added.
             # Values are generated based on existing data
 
@@ -157,7 +154,8 @@ class Maintenance(object):
 
             self.sql_closemylar()
         else:
-            logger.fdebug('[DB-CHECK-UPDATE] Nothing needs updating within dB.')
+            if not mylar.MAINTENANCE_UPDATE:
+                logger.fdebug('[DB-CHECK-UPDATE] Nothing needs updating within dB.')
 
 
     def check_failed_update(self):
@@ -345,47 +343,92 @@ class Maintenance(object):
         wc = mylar.webserve.WebInterface()
         wc.toggleVerbose(level=level)
 
-    def backup_db(self):
-        logger.info('Attempting to backup mylar database prior to updating...')
-        cback_path = os.path.join(mylar.DATA_DIR, 'mylar.db.backup')
-        try:
-            #start naming backup ini files as mylar.db.backup.xxx
-            if os.path.exists(cback_path):
-                max_value = None
-                cf_val = 'mylar.db.backup.???'
-                for f in glob.glob(os.path.join(mylar.DATA_DIR, cf_val)):
-                    backup_num = f[-3:]
-                    if backup_num.isdigit():
-                        if max_value is None:
-                            max_value = int(backup_num)
-                        elif int(backup_num) > max_value:
-                            max_value = int(backup_num)
-                if max_value is None:
-                    tmp_back = cback_path + '.000'
-                else:
-                    max_value +=1
-                    tmp_back = cback_path + '.{:03d}'.format(max_value)
-                logger.info('[versioned_backup] Backing up existing mylar database as %s' % tmp_back)
-                shutil.copy(self.dbfile, tmp_back)
-                db_backed = tmp_back
-            else:
-                logger.info('Backing up existing mylar database as %s' % cback_path)
-                shutil.copy(self.dbfile, cback_path)
-                db_backed = cback_path
-        except Exception as e:
-            logger.info('[%s] Unable to make proper backup of config file in %s' % (e, self.dbfile))
-        else:
-            if os.path.exists(db_backed):
-                logger.info('Successfully backed up mylar database to %s. Continuing update now...' % db_backed)
-            else:
-                logger.warn('Unable to verify backup location of %s - backup of db might not have been successful.' % db_backed)
+    def backup_files(self, cfg=False, dbs=False, backupinfo=None):
+        cfgloop = []
+        if cfg is True:
+            cfgloop.append('config.ini')
+        if dbs is True:
+            cfgloop.append('mylar database')
+        rtn_message = []
 
+        if backupinfo is None:
+            location = mylar.CONFIG.BACKUP_LOCATION
+            config_version = mylar.CONFIG.CONFIG_VERSION
+            backup_retention = mylar.CONFIG.BACKUP_RETENTION
+        else:
+            location = backupinfo['location']
+            config_version = backupinfo['config_version']
+            backup_retention = backupinfo['backup_retention']
+
+        if not os.path.exists(location):
+            try:
+                os.makedirs(location)
+            except OSError:
+                logger.error('[Backup Location Check] Could not create backup directory. Check permissions for creation of : %s' % location)
+
+        for cf in cfgloop:
+            logger.info('Attempting to backup %s...' % cf)
+            if cf == 'mylar database':
+                if location is None:
+                    cback_path = os.path.join(mylar.DATA_DIR, 'mylar.db.backup')
+                    root_path = mylar.DATA_DIR
+                else:
+                    cback_path = os.path.join(location, 'mylar.db.backup')
+                    root_path = location
+                cf_val = 'mylar.db.backup.???'
+                source_file = self.dbfile
+            else:
+                if location is None:
+                    cback_path = os.path.join(mylar.DATA_DIR, 'config.ini-v%s.backup' % (config_version))
+                    root_path = mylar.DATA_DIR
+                else:
+                    cback_path = os.path.join(location, 'config.ini-v%s.backup' % (config_version))
+                    root_path = location
+                cf_val = 'config.ini-v%s.backup.???' % config_version
+                source_file = mylar.CONFIG_FILE
+            try:
+                #start naming backup files as mylar.db.backup.xxx or config.ini-vXX.backup.xxx
+                if os.path.exists(cback_path):
+                    max_value = None
+                    for f in sorted(glob.glob(os.path.join(root_path, cf_val)), reverse=True):
+                        backup_num = f[-3:]
+                        if backup_num.isdigit():
+                            if backup_retention > int(backup_num):
+                                bpath = cback_path + '.{:03d}'.format(int(backup_num)+1)
+                                #logger.fdebug('[Rolling_Versioning %s-%s] copying %s to %s' % (int(backup_num), int(backup_num)+1, f, bpath))
+                                shutil.copy2(f, bpath)
+
+                    #logger.fdebug('[Rolling_Versioning %s-%s] copying %s to %s' % (int(backup_num), '0', cback_path, cback_path + '.000'))
+                    shutil.copy2(cback_path, cback_path + '.000')
+
+                    #logger.fdebug('[Rolling_Versioning %s-%s] copying %s to %s' % ('original', '.backup', source_file, cback_path))
+                    shutil.copy2(source_file, cback_path)
+                    db_backed = cback_path
+                else:
+                    #logger.fdebug('Backing up existing %s as %s' % (cf, cback_path))
+                    shutil.copy2(source_file, cback_path)
+                    db_backed = cback_path
+            except Exception as e:
+                logger.warn('[%s] Unable to make proper backup of %s in %s' % (e, cf, source_file))
+                rtn_message.append({'status': 'failure', 'file': cf})
+            else:
+                if os.path.exists(db_backed):
+                    logger.info('Successfully backed up %s to %s.' % (cf, db_backed))
+                    rtn_message.append({'status': 'success', 'file': cf})
+                else:
+                    logger.warn('Unable to verify backup location of %s - backup of %s might not have been successful.' % (db_backed, cf))
+                    rtn_message.append({'status': 'failure', 'file': cf})
+
+        return rtn_message
 
     def update_db(self):
 
         # mylar.MAINTENANCE_UPDATE will indicate what's being updated in the db
         if mylar.MAINTENANCE_UPDATE:
             self.db_version_check(display=False)
+
+            # backup mylar.db here
+            self.backup_files(dbs=True)
 
             for dmode in mylar.MAINTENANCE_UPDATE:
                 if dmode['mode'] == 'rss update':
