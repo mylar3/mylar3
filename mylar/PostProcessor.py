@@ -3135,7 +3135,8 @@ class PostProcessor(object):
             #    self.sendnotify(series, issueyear, dispiss, annchk, module)
             #    return self.queue.put(self.valreturn)
 
-            if any([all([mylar.CONFIG.PUSHOVER_IMAGE, mylar.CONFIG.PUSHOVER_ENABLED]), all([mylar.CONFIG.TELEGRAM_IMAGE, mylar.CONFIG.TELEGRAM_ENABLED]) ]):
+            # If using Pushover with image enabled, Telegram with image enabled, or Discord, extract the first image in the file for the notification
+            if any([all([mylar.CONFIG.PUSHOVER_IMAGE, mylar.CONFIG.PUSHOVER_ENABLED]), all([mylar.CONFIG.TELEGRAM_IMAGE, mylar.CONFIG.TELEGRAM_ENABLED]), all([mylar.CONFIG.DISCORD_ENABLED]) ]):
                 try:
                     get_cover = getimage.extract_image(dst, single=True, imquality='notif')
                     imageFile = get_cover['ComicImage']
@@ -3195,7 +3196,7 @@ class PostProcessor(object):
 
             if mylar.CONFIG.DISCORD_ENABLED:
                 discord = notifiers.DISCORD()
-                discord.notify("Download and Postprocessing completed", prline2, module=module)
+                discord.notify("Download and Postprocessing completed", prline2, module=module, imageFile=imageFile)
 
             if mylar.CONFIG.EMAIL_ENABLED and mylar.CONFIG.EMAIL_ONPOST:
                 logger.info("Sending email notification")

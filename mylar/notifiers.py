@@ -480,7 +480,7 @@ class DISCORD:
     def __init__(self, test_webhook_url=None):
         self.webhook_url = mylar.CONFIG.DISCORD_WEBHOOK_URL if test_webhook_url is None else test_webhook_url
 
-    def notify(self, text, attachment_text, snatched_nzb=None, prov=None, sent_to=None, module=None):
+    def notify(self, text, attachment_text, snatched_nzb=None, prov=None, sent_to=None, module=None, imageFile=None):
         if module is None:
             module = ''
         module += '[NOTIFIER]'
@@ -525,25 +525,34 @@ class DISCORD:
                         "fields": [
                             {
                                 "name": "Series",
-                                "value": series
+                                "value": series, 
+                                "inline": "true"
                             },
                             {
                                 "name": "Issue",
-                                "value": issue
+                                "value": issue,
+                                "inline": "true"
+                            },
+                            {
+                                "name": chr(173),
+                                "value": chr(173)
                             },
                             {
                                 "name": "Indexer",
-                                "value": prov
+                                "value": prov,
+                                "inline": "true"
                             },
                             {
                                 "name": "Sent to",
-                                "value": sent_to
+                                "value": sent_to,
+                                "inline": "true"
                             }
                         ],
                         "timestamp": timestamp
                     }
                 ]
             }
+        # If error is in the message
         elif 'error' in attachment_text.lower():
             payload = {
                 "username": "Mylar",
@@ -566,7 +575,7 @@ class DISCORD:
                     }
                 ]
             }
-        # If snatched is not in the message, it's a download and post-process
+        # If snatched or error is not in the message, it's a download and post-process
         else:
             # extract series and issue number
             series_num = attachment_text[41:]
@@ -574,36 +583,82 @@ class DISCORD:
             issue = series_num_split[len(series_num_split) - 1]
             series_num_split.pop()
             series = ' '.join(map(str, series_num_split))
-            payload = {
-                "username": "Mylar",
-                "avatar_url": "https://github.com/mylar3/mylar3/raw/master/data/images/mylarlogo.png",
-                "content": attachment_text,
-                "embeds": [
-                    {
-                        "author": {
-                            "name": "Downloaded by Mylar"
-                        },
-                        "description": "Issue downloaded!",
-                        "color": 32768,
-                        "fields": [
-                            {
-                                "name": "Series",
-                                "value": series
-                            },
-                            {
-                                "name": "Issue",
-                                "value": issue
-                            },
-                        ],
-                        "timestamp": timestamp
-                    }
-                ]
-            }
 
-        try:
-            response = requests.post(self.webhook_url, data=json.dumps(payload), headers={"Content-Type": "application/json"}, verify=True)
-        except Exception as e:
-            logger.info(module + 'Discord notify failed: ' + str(e))
+            # If there's an image file, put it in
+            if imageFile is not None:
+                payload = {
+                    "username": "Mylar",
+                    "avatar_url": "https://github.com/mylar3/mylar3/raw/master/data/images/mylarlogo.png",
+                    "content": attachment_text,
+                    "embeds": [
+                        {
+                            "author": {
+                                "name": "Downloaded by Mylar"
+                            },
+                            "description": "Issue downloaded!",
+                            "color": 32768,
+                            "fields": [
+                                {
+                                    "name": "Series",
+                                    "value": series,
+                                    "inline": "true"
+                                },
+                                {
+                                    "name": "Issue",
+                                    "value": issue,
+                                    "inline": "true"
+                                },
+                            ],
+                            "image": {
+                                "url": "attachment://image.jpg",
+                            },
+                            "timestamp": timestamp
+                        }
+                    ]
+                }
+            else:
+                payload = {
+                    "username": "Mylar",
+                    "avatar_url": "https://github.com/mylar3/mylar3/raw/master/data/images/mylarlogo.png",
+                    "content": attachment_text,
+                    "embeds": [
+                        {
+                            "author": {
+                                "name": "Downloaded by Mylar"
+                            },
+                            "description": "Issue downloaded!",
+                            "color": 32768,
+                            "fields": [
+                                {
+                                    "name": "Series",
+                                    "value": series,
+                                    "inline": "true"
+                                },
+                                {
+                                    "name": "Issue",
+                                    "value": issue,
+                                    "inline": "true"
+                                },
+                            ],
+                            "timestamp": timestamp
+                        }
+                    ]
+                }
+
+        if imageFile is not None:
+            files = {
+                'payload_json': (None, json.dumps(payload)),
+                'file1': ('image.jpg', base64.b64decode(imageFile))
+            }
+            try:
+                response = requests.post(self.webhook_url, files=files, verify=True)
+            except Exception as e:
+                logger.info(module + 'Discord notify failed: ' + str(e))
+        else:
+            try:
+                response = requests.post(self.webhook_url, data=json.dumps(payload), headers={"Content-Type": "application/json"}, verify=True)
+            except Exception as e:
+                logger.info(module + 'Discord notify failed: ' + str(e))
 
         # Error logging
         sent_successfuly = True
