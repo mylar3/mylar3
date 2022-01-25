@@ -2024,9 +2024,9 @@ def searchforissue(issueid=None, new=False, rsschecker=None, manual=False):
                         DateAdded = result['DateAdded']
 
                     if rsschecker is None and DateAdded >= mylar.SEARCH_TIER_DATE:
-                        logger.info(
-                            'adding: ComicID:%s  IssueiD: %s'
-                            % (result['ComicID'], result['IssueID'])
+                        logger.fdebug(
+                            '[TIER1] Adding: %s #%s [ComicID:%s / IssueiD: %s][ %s >= %s]'
+                            % (comicname, result['Issue_Number'], result['ComicID'], result['IssueID'], DateAdded, mylar.SEARCH_TIER_DATE)
                         )
                         mylar.SEARCH_QUEUE.put(
                             {
@@ -2045,42 +2045,46 @@ def searchforissue(issueid=None, new=False, rsschecker=None, manual=False):
                             sqlquery_name = re.sub('[\:\-]', '%', comic['ComicName']).strip()
                             rss_queue.append((comic['ComicName'], sqlquery_name, result['Issue_Number'], ComicYear, SeriesYear, Publisher, IssueDate, StoreDate, result['IssueID'], AlternateSearch, UseFuzzy, ComicVersion, result['SARC'], result['IssueArcID'], result['mode'], rsschecker, result['ComicID'], Comicname_filesafe, AllowPacks, OneOff, TorrentID_32p, DigitalDate, booktype, ignore_booktype))
                     else:
-                        smode = result['mode']
-                        foundNZB, prov = search_init(
-                            comicname,
-                            result['Issue_Number'],
-                            str(ComicYear),
-                            SeriesYear,
-                            Publisher,
-                            IssueDate,
-                            StoreDate,
-                            result['IssueID'],
-                            AlternateSearch,
-                            UseFuzzy,
-                            ComicVersion,
-                            SARC=result['SARC'],
-                            IssueArcID=result['IssueArcID'],
-                            smode=smode,
-                            rsschecker=rsschecker,
-                            ComicID=result['ComicID'],
-                            filesafe=Comicname_filesafe,
-                            allow_packs=AllowPacks,
-                            oneoff=OneOff,
-                            torrentid_32p=TorrentID_32p,
-                            digitaldate=DigitalDate,
-                            booktype=booktype,
-                            ignore_booktype=ignore_booktype,
-                        )
-                        if foundNZB['status'] is True:
-                            updater.foundsearch(
-                                result['ComicID'],
-                                result['IssueID'],
-                                mode=smode,
-                                provider=prov,
-                                SARC=result['SARC'],
-                                IssueArcID=result['IssueArcID'],
-                                hash=foundNZB['info']['t_hash'],
-                            )
+                        logger.fdebug('[TIER2] %s #%s [%s < %s]' % (comicname, result['Issue_Number'], DateAdded, mylar.SEARCH_TIER_DATE))
+                        continue
+                    # - removed below - if uncommented will ignore the Tier searches
+                    #else:
+                    #    smode = result['mode']
+                    #    foundNZB, prov = search_init(
+                    #        comicname,
+                    #        result['Issue_Number'],
+                    #        str(ComicYear),
+                    #        SeriesYear,
+                    #        Publisher,
+                    #        IssueDate,
+                    #        StoreDate,
+                    #        result['IssueID'],
+                    #        AlternateSearch,
+                    #        UseFuzzy,
+                    #        ComicVersion,
+                    #        SARC=result['SARC'],
+                    #        IssueArcID=result['IssueArcID'],
+                    #        smode=smode,
+                    #        rsschecker=rsschecker,
+                    #        ComicID=result['ComicID'],
+                    #        filesafe=Comicname_filesafe,
+                    #        allow_packs=AllowPacks,
+                    #        oneoff=OneOff,
+                    #        torrentid_32p=TorrentID_32p,
+                    #        digitaldate=DigitalDate,
+                    #        booktype=booktype,
+                    #        ignore_booktype=ignore_booktype,
+                    #    )
+                    #    if foundNZB['status'] is True:
+                    #        updater.foundsearch(
+                    #            result['ComicID'],
+                    #            result['IssueID'],
+                    #            mode=smode,
+                    #            provider=prov,
+                    #            SARC=result['SARC'],
+                    #            IssueArcID=result['IssueArcID'],
+                    #            hash=foundNZB['info']['t_hash'],
+                    #        )
 
                 except Exception as err:
                     exc_type, exc_value, exc_tb = sys.exc_info()
