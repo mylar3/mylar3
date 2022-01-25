@@ -2062,7 +2062,10 @@ class WebInterface(object):
                             date_added = helpers.today() #tier = "2nd"
                             tier1_cnt +=1
                         else:
-                            date_added = mylar.SEARCH_TIER_DATE #tier = "1st [%s]" % mi['DateAdded']
+                            dt = datetime.datetime.strptime(mylar.SEARCH_TIER_DATE, '%Y-%m-%d')
+                            dt-=datetime.timedelta(days=2)
+                            new_tier_date = datetime.datetime.strftime(dt, '%Y-%m-%d')
+                            date_added = new_tier_date #tier = "1st [%s]" % mi['DateAdded']
                             tier2_cnt +=1
                     except:
                         date_added = mylar.SEARCH_TIER_DATE #"1st [%s]" % mi['DateAdded']
