@@ -1651,6 +1651,11 @@
     </form>
 </%def>
 
+<%def name="headIncludes()">
+        // required for notif dialog to use proper css
+        <link rel="stylesheet" href="interfaces/${interface}/css/data_table.css">
+</%def>
+
 <%def name="javascriptIncludes()">
         <script src="js/libs/jquery.dataTables.min.js"></script>
         <script>
