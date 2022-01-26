@@ -1159,14 +1159,18 @@ def new_pullcheck(weeknumber, pullyear, comic1off_name=None, comic1off_id=None, 
 #                   if int(mylar.CURRENT_WEEKNUMBER) == int(weeknumber):
                     # here we add to upcoming table...
                     statusupdate = updater.upcoming_update(ComicID=comicid, ComicName=comicname, IssueNumber=week['issue'], IssueDate=ComicDate, forcecheck=forcecheck, weekinfo={'weeknumber':weeknumber,'year':pullyear}, releasecomicid=week['annuallink'])
-                    logger.fdebug('statusupdate: ' + str(statusupdate))
+                    logger.fdebug('statusupdate: %s' % statusupdate)
 
-                    if all([statusupdate is not None, statusupdate['Status'] != 'incorrect_match']):
-                        # here we add to comics.latest
-                        if mylar.CONFIG.ANNUALS_ON:
-                            updater.latest_update(ComicID=statusupdate['ComicID'], LatestIssue=week['issue'], LatestDate=ComicDate, ReleaseComicID=comicid)
-                        else:
-                            updater.latest_update(ComicID=comicid, LatestIssue=week['issue'], LatestDate=ComicDate)
+                    try:
+                        if statusupdate is not None:
+                            if statusupdate['Status'] != 'incorrect_match':
+                                # here we add to comics.latest
+                                if mylar.CONFIG.ANNUALS_ON:
+                                    updater.latest_update(ComicID=statusupdate['ComicID'], LatestIssue=week['issue'], LatestDate=ComicDate, ReleaseComicID=comicid)
+                                else:
+                                    updater.latest_update(ComicID=comicid, LatestIssue=week['issue'], LatestDate=ComicDate)
+                    except Exception as e:
+                        logger.warn('[Warning] %s' % e)
 
                     # here we update status of weekly table...
                     mismatched = False

@@ -454,7 +454,7 @@ def start():
                 else:
                     if SCHED_SEARCH_LAST is not None:
                         search_timestamp = float(SCHED_SEARCH_LAST)
-                        logger.fdebug('[AUTO-SEARCH] Search last run @ %s' % datetime.datetime.utcfromtimestamp(search_timestamp))
+                        logger.fdebug('[AUTO-SEARCH] Search last run @ %s' % helpers.utc_date_to_local(datetime.datetime.utcfromtimestamp(search_timestamp)))
                     else:
                         search_timestamp = helpers.utctimestamp() + (int(CONFIG.SEARCH_INTERVAL) *60)
 
@@ -464,7 +464,7 @@ def start():
                         SCHED.add_job(func=ss.run, id='search', name='Auto-Search', next_run_time=(datetime.datetime.utcnow() + timedelta(minutes=2)), trigger=IntervalTrigger(hours=0, minutes=CONFIG.SEARCH_INTERVAL, timezone='UTC'))
                     else:
                         search_diff = datetime.datetime.utcfromtimestamp(helpers.utctimestamp() + ((int(CONFIG.SEARCH_INTERVAL) * 60)  - (duration_diff*60)))
-                        logger.fdebug('[AUTO-SEARCH] Scheduling next run @ %s (every %s minutes)' % (search_diff, CONFIG.SEARCH_INTERVAL))
+                        logger.fdebug('[AUTO-SEARCH] Scheduling next run @ %s (every %s minutes)' % (helpers.utc_date_to_local(search_diff), CONFIG.SEARCH_INTERVAL))
                         SCHED.add_job(func=ss.run, id='search', name='Auto-Search', next_run_time=search_diff, trigger=IntervalTrigger(hours=0, minutes=CONFIG.SEARCH_INTERVAL, timezone='UTC'))
             else:
                 ss = searchit.CurrentSearcher()
@@ -519,7 +519,7 @@ def start():
                     SCHED.add_job(func=ws.run, id='weekly', name='Weekly Pullist', next_run_time=datetime.datetime.utcnow(), trigger=IntervalTrigger(hours=weektimer, minutes=0, timezone='UTC'))
                 else:
                     weekly_diff = datetime.datetime.utcfromtimestamp(weektimestamp + (weekly_interval - (duration_diff * 60)))
-                    logger.fdebug('[WEEKLY] Scheduling next run for @ %s every %s hours' % (weekly_diff, weektimer))
+                    logger.fdebug('[WEEKLY] Scheduling next run for @ %s every %s hours' % (helpers.utc_date_to_local(weekly_diff), weektimer))
                     SCHED.add_job(func=ws.run, id='weekly', name='Weekly Pullist', next_run_time=weekly_diff, trigger=IntervalTrigger(hours=weektimer, minutes=0, timezone='UTC'))
 
             #initiate startup rss feeds for torrents/nzbs here...
@@ -528,7 +528,7 @@ def start():
                 logger.info('[RSS-FEEDS] Initiating startup-RSS feed checks.')
                 if SCHED_RSS_LAST is not None:
                     rss_timestamp = float(SCHED_RSS_LAST)
-                    logger.info('[RSS-FEEDS] RSS last run @ %s' % datetime.datetime.utcfromtimestamp(rss_timestamp))
+                    logger.info('[RSS-FEEDS] RSS last run @ %s' % helpers.utc_date_to_local(datetime.datetime.utcfromtimestamp(rss_timestamp)))
                 else:
                     rss_timestamp = helpers.utctimestamp() + (int(CONFIG.RSS_CHECKINTERVAL) *60)
                 duration_diff = (helpers.utctimestamp() - rss_timestamp)/60
@@ -536,7 +536,7 @@ def start():
                     SCHED.add_job(func=rs.run, id='rss', name='RSS Feeds', args=[True], next_run_time=datetime.datetime.utcnow(), trigger=IntervalTrigger(hours=0, minutes=int(CONFIG.RSS_CHECKINTERVAL), timezone='UTC'))
                 else:
                     rss_diff = datetime.datetime.utcfromtimestamp(helpers.utctimestamp() + (int(CONFIG.RSS_CHECKINTERVAL) * 60) - (duration_diff * 60))
-                    logger.fdebug('[RSS-FEEDS] Scheduling next run for @ %s every %s minutes' % (rss_diff, CONFIG.RSS_CHECKINTERVAL))
+                    logger.fdebug('[RSS-FEEDS] Scheduling next run for @ %s every %s minutes' % (helpers.utc_date_to_local(rss_diff), CONFIG.RSS_CHECKINTERVAL))
                     SCHED.add_job(func=rs.run, id='rss', name='RSS Feeds', args=[True], next_run_time=rss_diff, trigger=IntervalTrigger(hours=0, minutes=int(CONFIG.RSS_CHECKINTERVAL), timezone='UTC'))
             else:
                  RSS_STATUS = 'Paused'
