@@ -1639,7 +1639,9 @@ class Config(object):
                p_list[ck['provider']] = {'active': ck['active'], 'lastrun': ck['lastrun'], 'type': ck['type']}
 
        for k, v in self.PROVIDER_ORDER.items():
+           write = False
            if not any(p.lower() == v.lower() for p, pv in p_list.items()):
+               write = True
                logger.info('%s was not found in search db. Writing it..' % v)
                if 'DDL' in v:
                    t_type = 'DDL'
@@ -1663,8 +1665,20 @@ class Config(object):
                                t_type = 'torznab'
                                nnf = True
                                break
-
                vals = {'active': False, 'lastrun': 0, 'type': t_type}
+           else:
+               try:
+                   tprov = [p_list[x] for x, y in p_list.items() if x.lower() == v.lower()][0]
+               except Exception:
+                   tprov = None
+
+               if tprov:
+                   if any(['nzb.su' in v, 'nzbsu' in v]) and tprov['type'] != 'nzb.su':
+                       # needed to ensure the type is set properly for this provider
+                       vals = {'active': tprov['active'], 'lastrun': tprov['lastrun'], 'type': 'nzb.su'}
+                       write = True
+
+           if write is True:
                ctrls = {'provider': v}
-               logger.info('writing: keys - %s: vals - %s' % (vals, ctrls))
+               logger.fdebug('writing: keys - %s: vals - %s' % (vals, ctrls))
                writeout = myDB.upsert("provider_searches", vals, ctrls)

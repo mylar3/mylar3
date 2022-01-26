@@ -153,7 +153,10 @@ def bytes_to_mb(bytes):
 
 def utc_date_to_local(run_time):
     pr = (run_time - datetime.datetime.utcfromtimestamp(0)).total_seconds()
-    run_it = datetime.datetime.fromtimestamp(pr)
+    try:
+        run_it = datetime.datetime.fromtimestamp(int(pr))
+    except Exception as e:
+        run_it = datetime.datetime.fromtimestamp(pr)
     return run_it
 
 def human_size(size_bytes):
