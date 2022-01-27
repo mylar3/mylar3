@@ -222,7 +222,7 @@ def run(dirName, nzbName=None, issueid=None, comversion=None, manual=None, filen
             logger.fdebug('%s Enabling ComicTagger script with options: %s' %(module, re.sub(f_tagoptions[f_tagoptions.index(mylar.CONFIG.COMICVINE_API)], 'REDACTED', str(f_tagoptions))))
             # generate a safe command line string to execute the script and provide all the parameters
             script_cmdlog = re.sub(f_tagoptions[f_tagoptions.index(mylar.CONFIG.COMICVINE_API)], 'REDACTED', str(script_cmd))
-        
+
         logger.fdebug(module + ' Executing command: ' +str(script_cmdlog))
         logger.fdebug(module + ' Absolute path to script: ' +script_cmd[0])
         try:
@@ -279,6 +279,8 @@ def run(dirName, nzbName=None, issueid=None, comversion=None, manual=None, filen
                     tidyup(og_filepath, new_filepath, new_folder, manualmeta)
                     return 'corrupt'
                 else:
+                    logger.fdebug('out: %s' % (out,))
+                    logger.fdebug('filename: %s' % (filename,))
                     logger.warn(module + '[COMIC-TAGGER][CBR-TO-CBZ] Failed to convert cbr to cbz - check permissions on folder : ' + mylar.CONFIG.CACHE_DIR + ' and/or the location where Mylar is trying to tag the files from.')
                     sendnotify('Error - Failed to convert cbr to cbz - check permissions on folder : ' + mylar.CONFIG.CACHE_DIR + ' and/or the location where Mylar is trying to tag the files from.', filename, module)
                     tidyup(og_filepath, new_filepath, new_folder, manualmeta)
@@ -300,7 +302,10 @@ def run(dirName, nzbName=None, issueid=None, comversion=None, manual=None, filen
             logger.warn(module + '[COMIC-TAGGER] Unable to run comictagger with the options provided: ' + re.sub(f_tagoptions[f_tagoptions.index(mylar.CONFIG.COMICVINE_API)], 'REDACTED', str(script_cmd)))
             tidyup(filepath, new_filepath, new_folder, manualmeta)
             return "fail"
-
+        except Exception as e:
+            logger.warn(module + '[COMIC-TAGGER] Error : %s' % e)
+            tidyup(filepath, new_filepath, new_folder, manualmeta)
+            return "fail"
         if mylar.CONFIG.CBR2CBZ_ONLY and initial_ctrun == False:
             break
 
