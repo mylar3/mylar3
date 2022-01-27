@@ -1045,5 +1045,5 @@ class search_check(object):
                             #log2file = log2file + "issues don't match.." + "\n"
                             downloadit = False
                             #foundc['status'] = False
-        logger.info('returning hold_the_matches: %s' % (hold_the_matches,))
+        #logger.fdebug('returning hold_the_matches: %s' % (hold_the_matches,))
         return hold_the_matches

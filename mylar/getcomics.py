@@ -86,7 +86,9 @@ class GC(object):
                         with open(self.session_path, 'w') as f:
                             json.dump(gc_cookie, f)
                     except Exception as e:
-                        logger.warn('[GC_Cookie_Saver] Unable to save cookie to file - will try to recreate later.')
+                        logger.warn('[GC_Cookie_Saver] Unable to save cookie to file - will try to recreate later. Error: %s' % e)
+                        if os.path.isfile(self.session_path):
+                            os.remove(self.session_path)
                     else:
                         if gc_cookie is not None:
                             logger.fdebug('[GC_Cookie_Saver] Successfully saved cookie to file.')
@@ -102,13 +104,16 @@ class GC(object):
                     for c in gc_load:
                        self.session.cookies.set(name=c['name'], value=c['value'])
             except Exception as e:
-                logger.warn('[GC_Cookie_Loader] Unable to load cookie from file - will recreate.')
+                logger.warn('[GC_Cookie_Loader] Unable to load cookie from file - will recreate. Error: %s' % e)
+                if os.path.isfile(self.session_path):
+                    os.remove(self.session_path)
             else:
                 logger.fdebug('[GC_Cookie_Loader] Successfully loaded cookie from file.')
                 test_success = True
 
         if flare_test is True:
             return test_success
+
 
     def __init__(self, query=None, issueid=None, comicid=None, oneoff=False, session_path=None, provider_stat=None):
 
@@ -190,7 +195,8 @@ class GC(object):
                         else:
                             queryline = sf % (self.query['comicname'], sf_issue, self.query['year'])
                     else:
-                        if sf == self.search_format[4]:
+                        #logger.fdebug('[%s] self.search_format: %s' % (len(self.search_format), self.search_format))
+                        if len(self.search_format) == 5 and sf == self.search_format[4]:
                             splits = sf.split(' ')
                             splits.pop(1)
                             queryline = ' '.join(splits) % (self.query['comicname'])

@@ -364,7 +364,7 @@ def search_init(
 
                 # this loads the previous runs from the db to ensure we're always persistant
                 searchprov = last_run_check(check=True)
-                logger.info('searchprov: %s' % (searchprov,))
+                #logger.fdebug('searchprov: %s' % (searchprov,))
 
                 #should be DDL(GetComics)
                 if prov_order[prov_count] == 'DDL(GetComics)' and not provider_blocked and 'DDL(GetComics)' not in checked_once:
@@ -459,8 +459,8 @@ def search_init(
                     else:
                         searchprov[prov_order[prov_count].lower()]['active'] = True
 
-                logger.info('searchprov: %s' % (searchprov,))
-               # mark the currently active provider here.
+                #logger.fdebug('searchprov: %s' % (searchprov,))
+                # mark the currently active provider here.
                 current_prov = get_current_prov(searchprov)
                 logger.info('current_prov: %s' % (current_prov))
 
@@ -799,12 +799,12 @@ def NZB_SEARCH(
     newznab_local = False
     untouched_name = None
     provider_stat = nzbprov
-    logger.info('provider_stat_before: %s' % (provider_stat))
+    #logger.fdebug('provider_stat_before: %s' % (provider_stat))
     if type(nzbprov) != str:
         nzbprov = list(nzbprov.keys())[0]
         provider_stat = provider_stat.get(list(provider_stat.keys())[0])
     logger.info('nzbprov: %s' % (nzbprov))
-    logger.info('provider_stat_after: %s' % (provider_stat))
+    #logger.fdebug('provider_stat_after: %s' % (provider_stat))
 
     if nzbprov == 'nzb.su':
         apikey = mylar.CONFIG.NZBSU_APIKEY
@@ -4141,12 +4141,12 @@ def last_run_check(write=None, check=None, provider=None):
                                           'active': ck['active']}
         return chk
     else:
-        logger.info('write: %s' % (write,))
+        #logger.fdebug('write: %s' % (write,))
         writekey = list(write.keys())[0]
         writevals = write[writekey]
         vals = {'active': writevals['active'], 'lastrun': writevals['lastrun'], 'type': writevals['type']}
         ctrls = {'provider': writekey}
-        logger.info('writing: keys - %s: vals - %s' % (vals, ctrls))
+        #logger.fdebug('writing: keys - %s: vals - %s' % (vals, ctrls))
         writeout = myDB.upsert("provider_searches", vals, ctrls)
 
 def check_the_search_delay(manual=False):
