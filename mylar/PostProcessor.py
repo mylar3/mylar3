@@ -26,6 +26,7 @@ import mylar
 import subprocess
 import urllib.request, urllib.error, urllib.parse
 import sys
+import pathlib
 from xml.dom.minidom import parseString
 
 
@@ -523,15 +524,38 @@ class PostProcessor(object):
                                     continue
                             else:
                                 annchk = 'no'
-                            if fl['sub']:
-                                logger.fdebug('%s[SUB: %s][CLOCATION: %s]' % (module, fl['sub'], fl['comiclocation']))
-                                clocation = os.path.join(fl['comiclocation'], fl['sub'], fl['comicfilename']) #helpers.conversion(fl['comicfilename']))
+
+                            if self.nzb_name == 'Manual Run':
+                                tname = str(pathlib.Path(fl['comicfilename']))
                             else:
-                                logger.fdebug('%s[CLOCATION] %s' % (module, fl['comiclocation']))
-                                if os.path.isfile(fl['comiclocation']):
-                                    clocation = fl['comiclocation']
+                                tname = str(pathlib.Path(fl['comiclocation']).name)
+                                tpath = fl['comiclocation']
+                            xyb = tname.find('[__')
+                            if xyb != -1:
+                                yyb = tname.find('__]', xyb)
+                                if yyb != -1:
+                                    rem_issueid = tname[xyb+3:yyb]
+                                    logger.fdebug('issueid: %s' % rem_issueid)
+                                    two_add = re.sub(r'\s+', '', tname[yyb+3:]).strip()
+                                    if any([two_add == '', two_add == ' ']):
+                                        nfilename = '%s' % tname[:xyb].strip()
+                                    else:
+                                        nfilename = '%s%s' % (tname[:xyb].strip(), two_add)
+                                    logger.fdebug('issueid information [%s] removed successfully: %s' % (rem_issueid, nfilename))
+
+                                if self.nzb_name == 'Manual Run':
+                                    if fl['sub'] is None:
+                                        tpath = os.path.join(self.nzb_folder, fl['comicfilename'])
+                                    else:
+                                        tpath = os.path.join(self.nzb_folder, fl['sub'], fl['comicfilename'])
+                                    cloct = pathlib.Path(tpath).with_name(nfilename)
+                                    clocation = str(pathlib.Path(tpath).rename(cloct))
                                 else:
-                                    clocation = os.path.join(fl['comiclocation'],fl['comicfilename']) #helpers.conversion(fl['comicfilename']))
+                                    cloct = pathlib.Path(tpath).with_name(nfilename)
+                                    clocation = str(pathlib.Path(tpath).rename(cloct))
+
+                                logger.fdebug('path with the issueid removed: %s' % clocation)
+
                             annualtype = None
                             if annchk == 'yes':
                                 if 'Annual' in csi['ReleaseComicName']:
