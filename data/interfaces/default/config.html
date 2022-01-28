@@ -502,7 +502,7 @@
                                               <div class="row">
                                                 <label>NZBGet Priority</label>
                                             <select name="nzbget_priority">
-                                %for prio in ['Default', 'Low', 'Normal', 'High', 'Paused']:
+                                %for prio in ['Default', 'Low', 'Normal', 'High', 'Force', 'Paused']:
                                                         <%
                                                                 if config['nzbget_priority'] == prio:
                                                                         outputselect = 'selected'

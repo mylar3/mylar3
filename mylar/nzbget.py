@@ -67,6 +67,10 @@ class NZBGet(object):
                 nzbgetpriority = -50
             elif mylar.CONFIG.NZBGET_PRIORITY == 'High':
                 nzbgetpriority = 50
+            elif mylar.CONFIG.NZBGET_PRIORITY == 'Very High':
+                nzbgetpriority = 100
+            elif mylar.CONFIG.NZBGET_PRIORITY == 'Force':
+                nzbgetpriority = 900
             #there's no priority for "paused", so set "Very Low" and deal with that later...
             elif mylar.CONFIG.NZBGET_PRIORITY == 'Paused':
                 nzbgetpriority = -100
