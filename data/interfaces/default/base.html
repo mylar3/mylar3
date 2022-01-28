@@ -98,6 +98,9 @@
 				<a href="restart"><span class="ui-button-icon-primary ui-icon ui-icon-power"></span>Restart</a> |
                                 %if mylar.CONFIG.AUTHENTICATION > 0:
                                     <a href="auth/logout"><span class="ui-button-icon-primary ui-icon ui-icon-power"></span>Logout</a></br>
+                                    <% bottom_foot = "-7px;" %>
+                                %else:
+                                    <% bottom_foot = "-25px;" %>
                                 %endif
                                 %if mylar.INSTALL_TYPE != 'docker':
                                     <a href="#" onclick="doAjaxCall('checkGithub',$(this))" data-success="Checking for update successful" data-error="Error checking for update"><span class="ui-icon ui-icon-refresh"></span>Check for new version</a>
@@ -153,8 +156,8 @@
                                     ${prov}:${st_image} &nbsp
                                 %endfor
                         </div>
-                        <div style="float:right;text-align:right;margin-right:-50px;margin-top:-50px;position:relative;">
-                            <a id="notifs" title="View Latest Notifications" href="javascript:void(0)" onclick="manageNotifications()"><img src="images/notif.png" height="75" width="150"/></a>
+                        <div style="text-align:right;position:relative;top:${bottom_foot}">
+                            <a id="notifs" title="View Latest Notifications" href="javascript:void(0)" onclick="manageNotifications()"><img src="images/notif.png" height="31" width="25"/></a>
                             <div id="notifs_dialog" title="Notifications" style="display:none">
                                <div id="btn_container">
                                    <div id="btn_notifs" style="float:right;padding-bottom:5px;margin-top:0px;">
