@@ -424,7 +424,7 @@ def upcoming_update(ComicID, ComicName, IssueNumber, IssueDate, forcecheck=None,
             logger.fdebug('ann_line: %s' % ann_line)
             adjComicName = re.sub(ann_line, '', ComicName, flags=re.I).strip()
         else:
-            adjComicName = re.sub("\\bannual\\b", "", adjComicName.lower()) # for use with comparisons.
+            adjComicName = re.sub("\\bannual\\b", "", ComicName, flags=re.I).strip() # for use with comparisons.
         logger.fdebug('annual detected - adjusting name to : %s' % adjComicName)
     else:
         adjComicName = ComicName
