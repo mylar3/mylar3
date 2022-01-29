@@ -422,7 +422,7 @@ class search_check(object):
                     or all(
                         [booktype != parsed_comic['booktype'], ignore_booktype is True]
                     )
-                    or booktype in parsed_comic['booktype']
+                    or re.sub('None', 'issue', str(booktype)) in parsed_comic['booktype']
                 ):
                     try:
                         fcomic = filechecker.FileChecker(watchcomic=ComicName)
