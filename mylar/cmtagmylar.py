@@ -281,7 +281,7 @@ def run(dirName, nzbName=None, issueid=None, comversion=None, manual=None, filen
                 else:
                     logger.fdebug('out: %s' % (out,))
                     logger.fdebug('filename: %s' % (filename,))
-                    cbz_message = 'Failed to convert cbr to cbz - check permissions on folder %s and/or the location where Mylar is trying to tag the files from.' % mylar.CONFIG.CACHE_FOLDER
+                    cbz_message = 'Failed to convert cbr to cbz - check permissions on folder %s and/or the location where Mylar is trying to tag the files from.' % mylar.CONFIG.CACHE_DIR
                     logger.warn('%s[COMIC-TAGGER][CBR-TO-CBZ]%s' % (module, cbz_message))
                     sendnotify('Error - %s' % (cbz_message), filename, module)
                     tidyup(og_filepath, new_filepath, new_folder, manualmeta)
