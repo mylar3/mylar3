@@ -472,6 +472,7 @@ class Maintenance(object):
 
                     if xlist:
                         resultlist = []
+                        delete_rows = []
                         for x in self.progressBar(xlist, prefix='Progress', suffix='Complete', length = 50, resume=dmode['resume']):
 
                             #signal capture here since we can't do it as per normal
@@ -502,43 +503,56 @@ class Maintenance(object):
 
                             mylar.MAINTENANCE_DB_COUNT +=1
                             if not x[1]:
+                                logger.fdebug('[MAINTENANCE-MODE][DB-CONVERSION][JUNK-NAME] %s' % x[1])
+                                delete_rows.append((x[0],))
                                 continue
-                            flc = filechecker.FileChecker(file=x[1])
-                            filelist = flc.listFiles()
-                            if all([filelist['series_name'] != '', filelist['series_name'] is not None]) and filelist['issue_number'] != '-':
-                                issuenumber = filelist['issue_number']
-                                seriesname = re.sub(r'[\u2014|\u2013|\u2e3a|\u2e3b]', '-', filelist['series_name']).strip()
-                                if seriesname.endswith('-') and '#' in seriesname[-6:]:
-                                    ck1 = seriesname.rfind('#')
-                                    ck2 = seriesname.rfind('-')
-                                    if seriesname[ck1+1:ck2-1].strip().isdigit():
-                                        issuenumber = '%s %s' % (seriesname[ck1:].strip(), issuenumber)
-                                        seriesname = seriesname[:ck1 -1].strip()
-                                        issuenumber.strip()
-                                resultlist.append((issuenumber, seriesname.strip(), x[0]))
-
-                            if len(resultlist) > 500:
-                                # write it out every 5000 records.
-                                try:
-                                    logger.info('resultlist: %s' % (resultlist,))
-                                    self.dbmylar.executemany("UPDATE rssdb SET Issue_Number=?, ComicName=? WHERE rowid=?", (resultlist))
-                                    self.sql_closemylar()
-                                    # update the update_db so if it has to resume it doesn't from the beginning or wrong point ( last 5000th write ).
-                                    send_it = {'mode': dmode['mode'],
-                                               'version': self.db_version,
-                                               'status': 'incomplete',
-                                               'total': mylar.MAINTENANCE_DB_TOTAL,
-                                               'current': mylar.MAINTENANCE_DB_COUNT,
-                                               'last_run': helpers.utctimestamp()}
-                                    self.db_update_status(send_it)
-
-                                except Exception as e:
-                                    print('error: %s' % e)
-                                    return False
+                            try:
+                                if any(ext in x[1] for ext in ['yenc', '.pdf', '.rar', '.mp4', '.avi']):
+                                    logger.fdebug('[MAINTENANCE-MODE][DB-CONVERSION][JUNK-NAME] %s' % x[1])
+                                    delete_rows.append((x[0],))
+                                    continue
                                 else:
-                                    logger.info('reattaching')
-                                    self.sql_attachmylar()
-                                    resultlist = []
+                                    flc = filechecker.FileChecker(file=x[1])
+                                    filelist = flc.listFiles()
+                            except Exception as e:
+                                logger.fdebug('[MAINTENANCE-MODE][DB-CONVERSION][JUNK-NAME] %s' % x[1])
+                                delete_rows.append((x[0],))
+                                continue
+                            else:
+                                if all([filelist['series_name'] != '', filelist['series_name'] is not None]) and filelist['issue_number'] != '-':
+                                    issuenumber = filelist['issue_number']
+                                    seriesname = re.sub(r'[\u2014|\u2013|\u2e3a|\u2e3b]', '-', filelist['series_name']).strip()
+                                    if seriesname.endswith('-') and '#' in seriesname[-6:]:
+                                        ck1 = seriesname.rfind('#')
+                                        ck2 = seriesname.rfind('-')
+                                        if seriesname[ck1+1:ck2-1].strip().isdigit():
+                                            issuenumber = '%s %s' % (seriesname[ck1:].strip(), issuenumber)
+                                            seriesname = seriesname[:ck1 -1].strip()
+                                            issuenumber.strip()
+                                    resultlist.append((issuenumber, seriesname.strip(), x[0]))
+
+                                if len(resultlist) > 500:
+                                    # write it out every 5000 records.
+                                    try:
+                                        logger.fdebug('resultlist: %s' % (resultlist,))
+                                        self.dbmylar.executemany("UPDATE rssdb SET Issue_Number=?, ComicName=? WHERE rowid=?", (resultlist))
+                                        self.sql_closemylar()
+                                        # update the update_db so if it has to resume it doesn't from the beginning or wrong point ( last 5000th write ).
+                                        send_it = {'mode': dmode['mode'],
+                                                   'version': self.db_version,
+                                                   'status': 'incomplete',
+                                                   'total': mylar.MAINTENANCE_DB_TOTAL,
+                                                   'current': mylar.MAINTENANCE_DB_COUNT,
+                                                   'last_run': helpers.utctimestamp()}
+                                        self.db_update_status(send_it)
+
+                                    except Exception as e:
+                                        print('error: %s' % e)
+                                        return False
+                                    else:
+                                        logger.fdebug('reattaching')
+                                        self.sql_attachmylar()
+                                        resultlist = []
 
                         try:
                             if len(resultlist) > 0:
@@ -559,6 +573,26 @@ class Maintenance(object):
                                 print('error_sendit: %s' % e)
                             else:
                                 self.db_update_status(send_it)
+
+                            if delete_rows:
+                                # only do this on completion, or else the rowids will be different and it will mess up a rerun
+                                try:
+                                    self.sql_attachmylar()
+                                    print('[MAINTENANCE-MODE][DB-CONVERSION][CLEANUP] Removing %s invalid RSS entries from table...' % len(delete_rows))
+                                    self.dbmylar.executemany("DELETE FROM rssdb WHERE rowid=?", (delete_rows))
+                                    self.sql_closemylar()
+                                except Exception as e:
+                                    print('error: %s' % e)
+                                else:
+                                    self.sql_attachmylar()
+                                    print('[MAINTENANCE-MODE][DB-CONVERSION][CLEANUP] Cleaning up...')
+                                    self.dbmylar.execute("VACUUM");
+                            else:
+                                print('[MAINTENANCE-MODE][DB-CONVERSION][CLEANUP] Cleaning up...' % len(delete_rows))
+                                self.sql_attachmylar()
+                                self.dbmylar.execute("VACUUM");
+
+                            self.sql_closemylar()
 
                             #toggle back the logging level to what it was originally.
                             self.toggle_logging(level=prev_log_level)
