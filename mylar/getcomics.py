@@ -49,9 +49,9 @@ class GC(object):
 
         test_success = False
         if not os.path.exists(self.session_path):
-            logger.fdebug('[GC_Cookie_Creator] GetComics Session cookie does not exist. Attempting to create.')
 
             if any([mylar.CONFIG.ENABLE_FLARESOLVERR, flare_test is True]):
+                logger.fdebug('[GC_Cookie_Creator] GetComics Session cookie does not exist. Attempting to create.')
                 #get the coookies here for use down-below
                 get_cookies = self.session.post(
                               main_url,
@@ -74,27 +74,31 @@ class GC(object):
                            self.session.cookies.set(name=c['name'], value=c['value'])
                         test_success = True
             else:
-                get_cookies = self.session.get(
-                              main_url,
-                              verify=True,
-                              headers=self.headers,
-                              timeout=30,
-                              )
-                if get_cookies.status_code == 200:
-                    try:
-                        gc_cookie = get_cookies.cookies
-                        with open(self.session_path, 'w') as f:
-                            json.dump(gc_cookie, f)
-                    except Exception as e:
-                        logger.warn('[GC_Cookie_Saver] Unable to save cookie to file - will try to recreate later. Error: %s' % e)
-                        if os.path.isfile(self.session_path):
-                            os.remove(self.session_path)
-                    else:
-                        if gc_cookie is not None:
-                            logger.fdebug('[GC_Cookie_Saver] Successfully saved cookie to file.')
-                            for c in gc_cookie:
-                               self.session.cookies.set(name=c['name'], value=c['value'])
-                        test_success = True
+                # if flaresolverr isn't used and the cookies file doesn't already exist
+                #  - no need to store cookies since they're empty normally.
+                #  - if GC starts to send it with the headers, then we can enable this
+                pass
+                #get_cookies = self.session.get(
+                #              main_url,
+                #              verify=True,
+                #              headers=self.headers,
+                #              timeout=30,
+                #              )
+                #if get_cookies.status_code == 200:
+                #    try:
+                #        gc_cookie = get_cookies.cookies.get_dict()
+                #        with open(self.session_path, 'w') as f:
+                #            json.dump(gc_cookie, f)
+                #    except Exception as e:
+                #        logger.warn('[GC_Cookie_Saver] Unable to save cookie to file - will try to recreate later. Error: %s' % e)
+                #        if os.path.isfile(self.session_path):
+                #            os.remove(self.session_path)
+                #    else:
+                #        if gc_cookie is not None:
+                #            logger.fdebug('[GC_Cookie_Saver] Successfully saved cookie to file.')
+                #            for c in gc_cookie:
+                #               self.session.cookies.set(name=c['name'], value=c['value'])
+                #        test_success = True
 
         else:
             logger.fdebug('[GC_Cookie_Loader] GetComics Session cookie found. Attempting to load...')
@@ -104,7 +108,7 @@ class GC(object):
                     for c in gc_load:
                        self.session.cookies.set(name=c['name'], value=c['value'])
             except Exception as e:
-                logger.warn('[GC_Cookie_Loader] Unable to load cookie from file - will recreate. Error: %s' % e)
+                #logger.warn('[GC_Cookie_Loader] Unable to load cookie from file - will recreate. Error: %s' % e)
                 if os.path.isfile(self.session_path):
                     os.remove(self.session_path)
             else:
@@ -217,7 +221,7 @@ class GC(object):
                     if pagenumber != 1 and pagenumber != total_pages:
                         gc_url = '%s/page/%s' % (self.url, pagenumber)
                         logger.fdebug('parsing for page %s' % pagenumber)
-                    logger.fdebug('session cookies: %s' % (self.session.cookies,))
+                    #logger.fdebug('session cookies: %s' % (self.session.cookies,))
                     t = self.session.get(
                         gc_url + '/',
                         params={'s': queryline},
@@ -335,7 +339,7 @@ class GC(object):
         title = os.path.join(mylar.CONFIG.CACHE_DIR, 'getcomics-' + id)
         logger.fdebug('now loading info from local html to resolve via url: %s' % link)
 
-        logger.fdebug('session cookies: %s' % (self.session.cookies,))
+        #logger.fdebug('session cookies: %s' % (self.session.cookies,))
         t = self.session.get(
             link,
             verify=True,
@@ -759,7 +763,7 @@ class GC(object):
                     )
                     self.headers['Range'] = 'bytes=%d-' % resume
 
-                logger.fdebug('session cookies: %s' % (self.session.cookies,))
+                #logger.fdebug('session cookies: %s' % (self.session.cookies,))
                 t = self.session.get(
                     link,
                     verify=True,
@@ -786,7 +790,7 @@ class GC(object):
                     if 'run.php-urls' not in link:
                         link = re.sub('run.php-url=', 'run.php-urls', link)
                         link = re.sub('go.php-url=', 'run.php-urls', link)
-                        logger.fdebug('session cookies: %s' % (self.session.cookies,))
+                        #logger.fdebug('session cookies: %s' % (self.session.cookies,))
                         t = self.session.get(
                             link,
                             verify=True,
