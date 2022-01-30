@@ -944,6 +944,8 @@ class search_check(object):
                                     logger.fdebug('title_id: %s' % (entry['id'],))
                                     if 'details' in entry['id']:
                                         nzbid = search.generate_id(provider_stat, entry['id'])
+                                    else:
+                                        nzbid = search.generate_id(provider_stat, entry['link'])
                                 except Exception as e:
                                     nzbid = search.generate_id(provider_stat, entry['link'])
                             if all([manual is not True, alt_match is False]):
