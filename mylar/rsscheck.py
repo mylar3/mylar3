@@ -507,16 +507,28 @@ def nzbs(provider=None, forcerss=False):
     logger.fdebug('[RSS] You have enabled ' + str(providercount) + ' NZB RSS search providers.')
 
     if providercount > 0:
-        if mylar.CONFIG.EXPERIMENTAL == 1:
+        if mylar.CONFIG.EXPERIMENTAL is True:
             max_entries = "250" if forcerss else "50"
             params = {'sort': 'agedesc',
                       'max':   max_entries,
-                      'more':  '1'}
-            check = _parse_feed('experimental', 'https://nzbindex.nl/rss/alt.binaries.comics.dcp', True, params)
+                      'more':  '1',
+                      'q': None,
+                      'minage:': 0,
+                      'maxage': 0,
+                      'hidespam': 1,
+                      'hidepassword': 1,
+                      'minsize': 0,
+                      'maxsize': 0,
+                      'complete': 0,
+                      'hidecross': 0,
+                      'hasNFO': 0,
+                      'poster': None,
+                      'g[]': 85}
+            check = _parse_feed('experimental', 'https://nzbindex.nl/search/rss', True, params)
             if check == 'disable':
                 helpers.disable_provider(site)
 
-        if mylar.CONFIG.NZBSU == 1:
+        if mylar.CONFIG.NZBSU is True:
             num_items = "&num=100" if forcerss else ""  # default is 25
             params = {'t':        '7030',
                       'dl':        '1',
@@ -527,7 +539,7 @@ def nzbs(provider=None, forcerss=False):
             if check == 'disable':
                 helpers.disable_provider(site)
 
-        if mylar.CONFIG.DOGNZB == 1:
+        if mylar.CONFIG.DOGNZB is True:
             #default is 100
             params = {'cat':        '7030',
                       'o':          'xml',
@@ -580,33 +592,37 @@ def nzbs(provider=None, forcerss=False):
         for ft in feedthis:
             site = ft['site']
             logger.fdebug('[RSS] (' + site + ') now being updated...')
-
             for entry in ft['feed'].entries:
-
-                if site == 'dognzb':
-                    #because the rss of dog doesn't carry the enclosure item, we'll use the newznab size value
-                    size = 0
-                    if 'newznab' in entry and 'size' in entry['newznab']:
-                        size = entry['newznab']['size']
-                else:
-                    # experimental, nzb.su, newznab
-                    size = entry.enclosures[0]['length']
-
-                # Link
                 if site == 'experimental':
+                    size = entry.enclosures[0]['length']
                     link = entry.enclosures[0]['url']
+                    titlename = experimental_cleaner(entry.title_detail['value'])
+                    if titlename is None:
+                        logger.fdebug('[EXPERIMENTAL][RSS_FEED] Not adding to rss entries. Cannot properly parse :%s' % entry.title)
+                        continue
                 else:
+                    titlename = entry.title
+                    if site == 'dognzb':
+                        #because the rss of dog doesn't carry the enclosure item, we'll use the newznab size value
+                        size = 0
+                        if 'newznab' in entry and 'size' in entry['newznab']:
+                            size = entry['newznab']['size']
+                    else:
+                        # experimental, nzb.su, newznab
+                        size = entry.enclosures[0]['length']
+
+                    # Link
                     # dognzb, nzb.su, newznab
                     link = entry.link
 
-                   #Remove the API keys from the url to allow for possible api key changes
+                    #Remove the API keys from the url to allow for possible api key changes
                     if site == 'dognzb':
                         link = re.sub(mylar.CONFIG.DOGNZB_APIKEY, '', link).strip()
                     else:
                         link = link[:link.find('&i=')].strip()
 
                 feeddata.append({'Site': site,
-                                 'Title': entry.title,
+                                 'Title': titlename,
                                  'Link': link,
                                  'Pubdate': entry.updated,
                                  'Size': size})
@@ -619,6 +635,28 @@ def nzbs(provider=None, forcerss=False):
             rssdbupdate(feeddata, i, 'usenet')
 
     return
+
+def experimental_cleaner(rls):
+    except_list=['releases', 'gold line', 'distribution', '0-day', '0 day', '0day', 'o-day', '.jpg', '.pdf']
+    block_regex = r"\[\d{1,3}\/\d{1,3}\]"
+    splitTitle = rls.split("\"")
+    _digits = re.compile('\d')
+    subcnt = 0
+    filename = None
+    for subs in splitTitle:
+        if not (any(d in subs.lower() for d in except_list) or re.search(block_regex, subs)) and bool(_digits.search(subs)) is True:
+            p = re.compile(r'\d{4}\-(0?[1-9]|1[012])\-(0?[1-9]|[12][0-9]|3[01])*')
+            d = p.match(subs)
+            if d:
+                dtchk = d.group()
+                if any(['2019' in dtchk, '2020' in dtchk, '2021' in dtchk, '2022' in dtchk]) and subcnt == 0:
+                    subcnt += 1
+                    continue
+            filename = subs
+            break
+        subcnt+=1
+
+    return filename
 
 def rssdbupdate(feeddata, i, type):
     rsschktime = 15

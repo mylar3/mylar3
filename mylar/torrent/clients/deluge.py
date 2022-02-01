@@ -133,9 +133,9 @@ class TorrentClient(object):
                 else:
                     logger.info('Torrent not added yet, trying to add it now!')
                     try:
-                        torrent_id = self.client.call('core.add_torrent_file', str(os.path.basename(filepath)), base64.encodestring(torrentcontent), options)
+                        torrent_id = self.client.call('core.add_torrent_file', str(os.path.basename(filepath)), base64.encodebytes(torrentcontent), options)
                     except Exception as e:
-                        logger.debug('Torrent not added')
+                        logger.debug('[ERROR] Torrent not added. Error returned: %s' % (e,))
                         return False
             else:
                 try:

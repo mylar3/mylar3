@@ -598,15 +598,21 @@ class PostProcessor(object):
                     for wv in comicseries:
                         logger.info('Now checking: %s [%s]' % (wv['ComicName'], wv['ComicID']))
                         #do some extra checks in here to ignore these types:
+                        # check for valid issue number - if not, don't even bother checking it
+                        try:
+                            tmp_iss = helpers.issuedigits(fl['issue_number'])
+                        except Exception as e:
+                            logger.warn('Unable to determine issue number. This is a no-go, Captain [%s]' % (e,))
+
                         #check for Paused status /
                         #check for Ended status and 100% completion of issues.
                         if any([wv['Status'] == 'Paused', bool(wv['ForceContinuing']) is True]) or (wv['Have'] == wv['Total'] and not any(['Present' in wv['ComicPublished'], helpers.now()[:4] in wv['ComicPublished']])):
-                            dbcheck = myDB.selectone('SELECT Status FROM issues WHERE ComicID=? and Int_IssueNumber=?', [wv['ComicID'], helpers.issuedigits(fl['issue_number'])]).fetchone()
+                            dbcheck = myDB.selectone('SELECT Status FROM issues WHERE ComicID=? and Int_IssueNumber=?', [wv['ComicID'], tmp_iss]).fetchone()
                             if not dbcheck and mylar.CONFIG.ANNUALS_ON:
-                                dbcheck = myDB.selectone('SELECT Status FROM annuals WHERE ComicID=? and Int_IssueNumber=?', [wv['ComicID'], helpers.issuedigits(fl['issue_number'])]).fetchone()
+                                dbcheck = myDB.selectone('SELECT Status FROM annuals WHERE ComicID=? and Int_IssueNumber=?', [wv['ComicID'], tmp_iss]).fetchone()
                             if dbcheck:
                                 if any([dbcheck[0] == 'Wanted', dbcheck[0] == 'Snatched']):
-                                    logger.fdebug('Series is 100%s complete, but specific issue %s matched up to a %s status. Let\'s Go!' % ('%', fl['issue_number'], dbcheck[0]))
+                                    logger.fdebug('Series is 100%s complete, but specific issue %s matched up to a %s status. Let\'s Go!' % ('%', tmp_iss, dbcheck[0]))
                                 else:
                                     logger.fdebug('Series is 100%s complete, however status is not Wanted (or Snatche), but %s. Set to Wanted for this to post-process on the next run.' % ('%', dbcheck[0]))
                                     continue
