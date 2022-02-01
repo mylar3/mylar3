@@ -51,7 +51,7 @@ class search_check(object):
         #logger.fdebug('entries: %s' % (entries,))
         for entry in entries['entries']:
                 alt_match = False
-                logger.fdebug('entry: %s' % (entry,))
+                #logger.fdebug('entry: %s' % (entry,))
                 # brief match here against 32p since it returns the direct issue number
 
                 logger.fdebug("checking search result: %s" % entry['title'])
