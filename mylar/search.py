@@ -3128,6 +3128,10 @@ def searcher(
                     .strip(';')
                     .strip('"')
                 )
+                if 'filename*=UTF-8' in filen:
+                    filen = filen[:filen.find('filename*=UTF-8')].strip()
+                if filen.endswith('";'):
+                    filen = re.sub(r'\"\;', '', filen).strip()
                 logger.fdebug('filename within nzb: %s' % filen)
             except Exception:
                 pass

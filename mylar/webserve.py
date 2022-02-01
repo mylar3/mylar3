@@ -3385,16 +3385,16 @@ class WebInterface(object):
             mvcontroldict = {"IssueID": skippy['IssueID']}
             if skippy['type'] == 1:
                 skip_table = 'annuals'
-                issuesnumwant +=1
+                annsnumwant +=1
             else:
                 skip_table = 'issues'
-                annsnumwant +=1
+                issuesnumwant +=1
             myDB.upsert(skip_table, mvvalues, mvcontroldict)
             issuestowanted.append(skippy['issueid'])
-        if issuesnumwant > 0:
+        if (issuesnumwant + annsnumwant) > 0:
             num_line = '%s issues' % issuesnumwant
             if annsnumwant > 0:
-                num_line += ' and %s annauls' % annsnumwant
+                num_line += ' and %s annuals' % annsnumwant
             if fromupdate is None:
                 logger.info("Marking %s as Wanted" % num_line)
                 threading.Thread(target=search.searchIssueIDList, args=[issuestowanted]).start()
