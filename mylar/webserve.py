@@ -23,6 +23,7 @@ import cherrypy
 import requests
 import datetime
 from datetime import timedelta, date
+from collections import OrderedDict
 import re
 import json
 import copy
@@ -105,8 +106,60 @@ def serve_template(templatename, **kwargs):
         try:
             template = _hplookup.get_template(templatename)
             return template.render(http_root=mylar.CONFIG.HTTP_ROOT, interface=mylar.CONFIG.INTERFACE, icons=icons, gl_messages=mylar.GLOBAL_MESSAGES, sse_key=mylar.SSE_KEY, **kwargs)
-        except:
+        except Exception:
             return exceptions.html_error_template().render()
+
+
+class WebMaintenance(object):
+
+    auth = AuthController()
+
+    def default(self, attr='abc'):
+        raise cherrypy.HTTPRedirect("maintenance_mode")
+    default.exposed = True
+
+    def maintenance_mode(self):
+        return serve_template(templatename='maintenance_mode.html', title='Maintenance Mode!')
+    maintenance_mode.exposed = True
+
+    def check_ActiveMaintenance(self):
+        if mylar.MAINTENANCE_DB_COUNT >= mylar.MAINTENANCE_DB_TOTAL:
+            status = 'Completed!'
+            message = 'completed.'
+            updatetype = '.:[RSS table update]:.'
+            percent = 0
+        else:
+            updatetype = '.:[RSS table update]:.'
+            status = 'Updating'
+            message = 'Currently updating database'
+            secondary_msg = '( %s / %s )' % (mylar.MAINTENANCE_DB_COUNT, mylar.MAINTENANCE_DB_TOTAL)
+            m_math = int( (mylar.MAINTENANCE_DB_COUNT *100) / (mylar.MAINTENANCE_DB_TOTAL *100) * 100 )
+            percent = '%s%s' % (m_math, '%')
+        return json.dumps(
+                     {
+                         'status': status,
+                         'percent': percent,
+                         'message': message,
+                         'secondary_msg': secondary_msg,
+                         'updatetype': updatetype
+                     }
+        )
+    check_ActiveMaintenance.exposed = True
+
+    def restart(self):
+        logger.info('[RESTART] Now Restarting Mylar...')
+        mylar.SIGNAL = 'restart'
+        message = 'Restarting...'
+        return serve_template(templatename="shutdown.html", title="Restarting", message=message, timer=5)
+    restart.exposed = True
+
+    def shutdown(self):
+        logger.info('[SHUTDOWN] Now Shutting down Mylar...')
+        mylar.SIGNAL = 'shutdown'
+        message = 'Shutting Down...'
+        return serve_template(templatename="shutdown.html", title="Shutting Down", message=message, timer=5)
+    shutdown.exposed = True
+
 
 class WebInterface(object):
 
@@ -118,6 +171,19 @@ class WebInterface(object):
         else:
             raise cherrypy.HTTPRedirect("home")
     index.exposed=True
+
+    def check_ActiveMaintenance(self):
+        # this is just here to return 100% on completion so the reload can occur properly.
+        return json.dumps(
+                     {
+                           'status': 'Completed!',
+                           'percent': '100%',
+                           'message': 'RSS Update completed!',
+                           'secondary_msg': 'Please wait...</br>Disabling Maintenance mode',
+                           'updatetype': '.:[RSS table update]:.'
+                     }
+        )
+    check_ActiveMaintenance.exposed = True
 
     def home(self, **kwargs):
         if mylar.CONFIG.ALPHAINDEX == True:
@@ -802,7 +868,11 @@ class WebInterface(object):
                 results = mb.findComic(name, mode, issue=None)
             except TypeError:
                 logger.error('Unable to perform required search for : [name: ' + name + '][mode: ' + mode + ']')
-                return
+                return json.dumps({
+                    'iTotalDisplayRecords': 0,
+                    'iTotalRecords': 0,
+                    'aaData': [],
+                })
         else:
             results = []
             for rt in db_results:
@@ -1764,7 +1834,11 @@ class WebInterface(object):
                         logger.warn('Unable to remove directory as it does not exist in : ' + seriesdir)
                 else:
                     logger.warn('Unable to remove directory as it does not exist in : ' + seriesdir)
-            logger.info('Successful deletion of %s %s (%s) from your watchlist' % (ComicName, seriesvol, seriesyear))
+            if seriesvol is None:
+                dspline = '%s (%s)' % (ComicName, seriesyear)
+            else:
+                dspline = '%s %s (%s)' % (ComicName, seriesvol, seriesyear)
+            logger.info('Successful deletion of %s from your watchlist' % (dspline))
             helpers.ComicSort(sequence='update')
         raise cherrypy.HTTPRedirect("home")
     deleteSeries.exposed = True
@@ -1988,7 +2062,10 @@ class WebInterface(object):
                             date_added = helpers.today() #tier = "2nd"
                             tier1_cnt +=1
                         else:
-                            date_added = mylar.SEARCH_TIER_DATE #tier = "1st [%s]" % mi['DateAdded']
+                            dt = datetime.datetime.strptime(mylar.SEARCH_TIER_DATE, '%Y-%m-%d')
+                            dt-=datetime.timedelta(days=2)
+                            new_tier_date = datetime.datetime.strftime(dt, '%Y-%m-%d')
+                            date_added = new_tier_date #tier = "1st [%s]" % mi['DateAdded']
                             tier2_cnt +=1
                     except:
                         date_added = mylar.SEARCH_TIER_DATE #"1st [%s]" % mi['DateAdded']
@@ -3074,7 +3151,7 @@ class WebInterface(object):
             filters = json.loads(kwargs.get('filters'))
         except Exception as e:
             filters = []
-        logger.info('filters: %s' % (filters,))
+        #logger.fdebug('filters: %s' % (filters,))
 
         myDB = db.DBConnection()
         if sSortDir_0 == 'desc':
@@ -3234,9 +3311,9 @@ class WebInterface(object):
                 if matched is True:
                     filtered.append([ark['comicname'], ark['issuenumber'], ark['releasedate'], key, tier, ark['comicid'], ark['status'], ark['storyarc'], ark['storyarcid'], ark['issuearcid'], "oneoff"])
 
-        logger.info('[%s] one-off arcs: %s' % (len(arcs), arcs,))
+        #logger.fdebug('[%s] one-off arcs: %s' % (len(arcs), arcs,))
 
-        logger.info('sort_column: %s: sort_directioN: %s' % (iSortCol_0,sSortDir_0))
+        logger.fdebug('sort_column: %s: sort_directioN: %s' % (iSortCol_0,sSortDir_0))
         sortcolumn = 2 #'releasedate'
         if iSortCol_0 == '1':
             sortcolumn = 0 #'comicame'
@@ -3287,7 +3364,7 @@ class WebInterface(object):
         if missinglist:
             threading.Thread(target=search.searchIssueIDList, args=[missinglist]).start()
             logger.info('[SEARCH-FOR-MISSING] Queued up %s issues to seach for' % (len(missinglist)))
-            mylar.GLOBAL_MESSAGES = {'status': 'success', 'comicname': comicname, 'seriesyear': comicyear, 'comicid': ComicID, 'tables': None, 'message': 'Successfully queued up %s issues of %s (%s)to search for' % (len(missinglist), comicname, comicyear)}
+            mylar.GLOBAL_MESSAGES = {'status': 'success', 'comicname': comicname, 'seriesyear': comicyear, 'comicid': ComicID, 'tables': 'None', 'message': 'Successfully queued up %s issues of %s (%s)to search for' % (len(missinglist), comicname, comicyear)}
         else:
             logger.info('[SEARCH-FOR-MISSING] Nothing to queue up')
             mylar.GLOBAL_MESSAGES = {'status': 'success', 'comicname': None, 'seriesyear': None, 'comicid': ComicID, 'tables': 'None', 'message': 'Nothing to queue up'}
@@ -3297,23 +3374,34 @@ class WebInterface(object):
     def skipped2wanted(self, comicid, fromupdate=None):
         # change all issues for a given ComicID that are Skipped, into Wanted.
         issuestowanted = []
-        issuesnumwant = []
+        issuesnumwant = 0
+        annsnumwant = 0
+        mvvalues = {"Status": "Wanted"}
         myDB = db.DBConnection()
-        skipped2 = myDB.select("SELECT * from issues WHERE ComicID=? AND Status='Skipped'", [comicid])
+        skipped2 = myDB.select("SELECT issueid, 0 as type from issues WHERE ComicID=? AND Status='Skipped'", [comicid])
+        if mylar.CONFIG.ANNUALS_ON:
+            skipped2 += myDB.select("SELECT issueid, 1 as type from annuals WHERE ComicID=? AND Status='Skipped'", [comicid])
         for skippy in skipped2:
-            mvcontroldict = {"IssueID":    skippy['IssueID']}
-            mvvalues = {"Status":         "Wanted"}
-            myDB.upsert("issues", mvvalues, mvcontroldict)
-            issuestowanted.append(skippy['IssueID'])
-            issuesnumwant.append(skippy['Issue_Number'])
-        if len(issuestowanted) > 0:
+            mvcontroldict = {"IssueID": skippy['IssueID']}
+            if skippy['type'] == 1:
+                skip_table = 'annuals'
+                annsnumwant +=1
+            else:
+                skip_table = 'issues'
+                issuesnumwant +=1
+            myDB.upsert(skip_table, mvvalues, mvcontroldict)
+            issuestowanted.append(skippy['issueid'])
+        if (issuesnumwant + annsnumwant) > 0:
+            num_line = '%s issues' % issuesnumwant
+            if annsnumwant > 0:
+                num_line += ' and %s annuals' % annsnumwant
             if fromupdate is None:
-                logger.info("Marking issues: %s as Wanted" % issuesnumwant)
+                logger.info("Marking %s as Wanted" % num_line)
                 threading.Thread(target=search.searchIssueIDList, args=[issuestowanted]).start()
-                line_message = 'Successfully changed %s issues from Skipped 2 Wanted' % len(issuestowanted)
+                line_message = 'Successfully changed %s from Skipped 2 Wanted' % num_line
                 line_status = 'success'
             else:
-                logger.info('Marking issues: %s as Wanted' & issuesnumwant)
+                logger.info('Marking %s as Wanted' % num_line)
                 logger.info('These will be searched for on next Search Scan / Force Check')
                 return
         else:
@@ -3336,7 +3424,8 @@ class WebInterface(object):
 
     annualDelete.exposed = True
 
-    def ddl_requeue(self, mode, id=None):
+    def ddl_requeue(self, mode, id=None, issueid=None):
+        logger.info('id: %s / mode: %s / issueid: %s' % (id, mode, issueid))
         myDB = db.DBConnection()
         if mode == 'clear_queue':
             chk = myDB.selectone("SELECT count(*) AS count FROM ddl_info WHERE status = 'Queued'").fetchone()
@@ -3383,6 +3472,7 @@ class WebInterface(object):
                                      'size':     item['size'],
                                      'comicid':  item['comicid'],
                                      'issueid':  item['issueid'],
+                                     'site':     item['site'],
                                      'id':       item['id'],
                                      'resume':   resume})
 
@@ -3409,7 +3499,7 @@ class WebInterface(object):
 
         resultlist = 'There are currently no items waiting in the Direct Download (DDL) Queue for processing.'
         s_info = myDB.select("SELECT a.ComicName, a.ComicVersion, a.ComicID, a.ComicYear, b.Issue_Number, b.IssueID, c.size, c.status, c.id, c.updated_date, c.issues, c.year FROM comics as a INNER JOIN issues as b ON a.ComicID = b.ComicID INNER JOIN ddl_info as c ON b.IssueID = c.IssueID") # WHERE c.status != 'Downloading'")
-        o_info = myDB.select("Select a.ComicName, b.Issue_Number, a.IssueID, a.ComicID, c.size, c.status, c.id, c.updated_date, c.issues, c.year from oneoffhistory a join snatched b on a.issueid=b.issueid join ddl_info c on b.issueid=c.issueid where b.provider = 'ddl'")
+        o_info = myDB.select("Select a.ComicName, b.Issue_Number, a.IssueID, a.ComicID, c.size, c.status, c.id, c.updated_date, c.issues, c.year from oneoffhistory a join snatched b on a.issueid=b.issueid join ddl_info c on b.issueid=c.issueid where b.provider like 'DDL%'")
         if s_info:
             resultlist = []
             for si in s_info:
@@ -3480,7 +3570,7 @@ class WebInterface(object):
         myDB = db.DBConnection()
         resultlist = 'There are currently no items waiting in the Direct Download (DDL) Queue for processing.'
         s_info = myDB.select("SELECT a.ComicName, a.ComicVersion, a.ComicID, a.ComicYear, b.Issue_Number, b.IssueID, c.size, c.status, c.id, c.updated_date, c.issues, c.year FROM comics as a INNER JOIN issues as b ON a.ComicID = b.ComicID INNER JOIN ddl_info as c ON b.IssueID = c.IssueID") # WHERE c.status != 'Downloading'")
-        o_info = myDB.select("Select a.ComicName, b.Issue_Number, a.IssueID, a.ComicID, c.size, c.status, c.id, c.updated_date, c.issues, c.year from oneoffhistory a join snatched b on a.issueid=b.issueid join ddl_info c on b.issueid=c.issueid where b.provider = 'ddl'")
+        o_info = myDB.select("Select a.ComicName, b.Issue_Number, a.IssueID, a.ComicID, c.size, c.status, c.id, c.updated_date, c.issues, c.year from oneoffhistory a join snatched b on a.issueid=b.issueid join ddl_info c on b.issueid=c.issueid where b.provider like 'DDL%'")
         if s_info:
             resultlist = []
             for si in s_info:
@@ -3577,7 +3667,7 @@ class WebInterface(object):
             rows = filtered[iDisplayStart:(iDisplayStart + iDisplayLength)]
         else:
             rows = filtered
-        rows = [[row['comicid'], row['series'], row['size'], row['progress'], row['status'], row['updated_date'], row['queueid']] for row in rows]
+        rows = [[row['comicid'], row['series'], row['size'], row['progress'], row['status'], row['updated_date'], row['queueid'], row['issueid']] for row in rows]
         #rows = [{'comicid': row['comicid'], 'series': row['series'], 'size': row['size'], 'progress': row['progress'], 'status': row['status'], 'updated_date': row['updated_date']} for row in rows]
         #logger.info('rows: %s' % rows)
         return json.dumps({
@@ -4600,8 +4690,11 @@ class WebInterface(object):
 
     def addtoreadlist(self, IssueID):
         read = readinglist.Readinglist(IssueID=IssueID)
-        read.addtoreadlist()
-        return
+        chkreturn = read.addtoreadlist()
+        if chkreturn is not None:
+            return json.dumps({'status': chkreturn['status'], 'message': chkreturn['message']})
+        else:
+            return
         #raise cherrypy.HTTPRedirect("comicDetails?ComicID=%s" % readlist['ComicID'])
     addtoreadlist.exposed = True
 
@@ -5335,20 +5428,28 @@ class WebInterface(object):
         raise cherrypy.HTTPRedirect("logs")
     clearLogs.exposed = True
 
-    def toggleVerbose(self):
-        if mylar.LOG_LEVEL != 2:
-            mylar.LOG_LEVEL = 2
+    def toggleVerbose(self, level=None):
+        if level is None:
+            if mylar.LOG_LEVEL != 2:
+                mylar.LOG_LEVEL = 2
+            else:
+                mylar.LOG_LEVEL = 1
         else:
-            mylar.LOG_LEVEL = 1
+            mylar.LOG_LEVEL = level
+
         if logger.LOG_LANG.startswith('en'):
-            logger.initLogger(console=not mylar.QUIET, log_dir=mylar.CONFIG.LOG_DIR, max_logsize=mylar.CONFIG.MAX_LOGSIZE, max_logfiles=mylar.CONFIG.MAX_LOGFILES, loglevel=mylar.LOG_LEVEL)
+            if level == 0:
+                logger.initLogger(console=mylar.QUIET, log_dir=mylar.CONFIG.LOG_DIR, max_logsize=mylar.CONFIG.MAX_LOGSIZE, max_logfiles=mylar.CONFIG.MAX_LOGFILES, loglevel=level)
+            else:
+                logger.initLogger(console=not mylar.QUIET, log_dir=mylar.CONFIG.LOG_DIR, max_logsize=mylar.CONFIG.MAX_LOGSIZE, max_logfiles=mylar.CONFIG.MAX_LOGFILES, loglevel=mylar.LOG_LEVEL)
         else:
             logger.mylar_log.stopLogger()
             logger.mylar_log.initLogger(loglevel=mylar.LOG_LEVEL, log_dir=mylar.CONFIG.LOG_DIR, max_logsize=mylar.CONFIG.MAX_LOGSIZE, max_logfiles=mylar.CONFIG.MAX_LOGFILES)
-        #mylar.VERBOSE = not mylar.VERBOSE
-        #logger.initLogger(console=not mylar.QUIET,
-        #    log_dir=mylar.CONFIG.LOG_DIR, verbose=mylar.VERBOSE)
-        if mylar.LOG_LEVEL == 2:
+
+        if level is not None:
+            # this is for maintenance mode so that it returns without notice.
+            return
+        elif mylar.LOG_LEVEL == 2:
             logger.info("Verbose (DEBUG) logging is enabled")
             logger.debug("If you can read this message, debug logging is now working")
         else:
@@ -6357,6 +6458,7 @@ class WebInterface(object):
                     "newznab": helpers.checked(mylar.CONFIG.NEWZNAB),
                     "extra_newznabs": sorted(mylar.CONFIG.EXTRA_NEWZNABS, key=itemgetter(5), reverse=True),
                     "enable_ddl": helpers.checked(mylar.CONFIG.ENABLE_DDL),
+                    "enable_getcomics": helpers.checked(mylar.CONFIG.ENABLE_GETCOMICS),
                     "enable_rss": helpers.checked(mylar.CONFIG.ENABLE_RSS),
                     "rss_checkinterval": mylar.CONFIG.RSS_CHECKINTERVAL,
                     "rss_last": rss_sclast,
@@ -6808,7 +6910,8 @@ class WebInterface(object):
                            'lowercase_filenames', 'autowant_upcoming', 'autowant_all', 'comic_cover_local', 'cover_folder_local', 'series_metadata_local', 'alternate_latest_series_covers', 'cvinfo', 'snatchedtorrent_notify',
                            'prowl_enabled', 'prowl_onsnatch', 'pushover_enabled', 'pushover_onsnatch', 'pushover_image', 'boxcar_enabled',
                            'boxcar_onsnatch', 'pushbullet_enabled', 'pushbullet_onsnatch', 'telegram_enabled', 'telegram_onsnatch', 'telegram_image', 'discord_enabled', 'discord_onsnatch', 'slack_enabled', 'slack_onsnatch',
-                           'email_enabled', 'email_enc', 'email_ongrab', 'email_onpost', 'opds_enable', 'opds_authentication', 'opds_metainfo', 'opds_pagesize', 'enable_ddl', 'deluge_pause'] #enable_public
+                           'email_enabled', 'email_enc', 'email_ongrab', 'email_onpost', 'opds_enable', 'opds_authentication', 'opds_metainfo', 'opds_pagesize', 'enable_ddl',
+                           'enable_getcomics', 'deluge_pause'] #enable_public
 
         for checked_config in checked_configs:
             if checked_config not in kwargs:
@@ -7136,12 +7239,38 @@ class WebInterface(object):
 
     opds.exposed = True
 
-    def downloadthis(self, pathfile=None):
-        #pathfile should be escaped via the |u tag from within the html call already.
-        logger.fdebug('filepath to retrieve file from is : ' + pathfile)
-        from cherrypy.lib.static import serve_download
-        return serve_download(pathfile)
+    def downloadthis(self, issueid):
+        myDB = db.DBConnection()
+        issue = myDB.selectone('SELECT a.ComicLocation, b.* FROM comics a LEFT JOIN issues b ON a.comicid = b.comicid WHERE b.issueid=?', [issueid]).fetchone()
+        if issue:
+            secondary_folders = None
+            if mylar.CONFIG.MULTIPLE_DEST_DIRS:
+                try:
+                    if os.path.exists(os.path.join(mylar.CONFIG.MULTIPLE_DEST_DIRS, os.path.basename(issue['ComicLocation']))):
+                        secondary_folders = os.path.join(mylar.CONFIG.MULTIPLE_DEST_DIRS, os.path.basename(issue['ComicLocation']))
+                    else:
+                        # when loading a new series initially the publisher value might not be written out the db yet.
+                        # pass this all on the initial load if it's not  - it'll catch it when the page finishes loading.
+                        ff = mylar.filers.FileHandlers(ComicID=issue['ComicID'])
+                        secondary_folders = ff.secondary_folders(issue['ComicLocation'])
+                except Exception:
+                    pass
+        else:
+            return json.dumps({'status': 'failure', 'message': 'Unable to locate selected issue in database'})
 
+        pathfile = None
+        if all([issue['Location'] is not None, issue['ComicLocation'] is not None]):
+            if os.path.exists(os.path.join(issue['ComicLocation'], issue['Location'])):
+                pathfile = os.path.join(issue['ComicLocation'], issue['Location'])
+            elif secondary_folders is not None:
+                if os.path.exists(os.path.join(secondary_folders, issue['Location'])):
+                    pathfile = os.path.join(secondary_folders, issue['Location'])
+
+        if pathfile is None:
+            return json.dumps({'status': 'failure', 'message': 'Unable to find issue - you might want to ReCheck Files'})
+        else:
+            dspline = 'Now downloading issue #%s of %s' % (issue['Issue_Number'], issue['ComicName'])
+            return cherrypy.lib.static.serve_download( pathfile )
     downloadthis.exposed = True
 
     def IssueInfo(self, issueid): #filelocation, comicname=None, issue=None, date=None, title=None, issueid=None):
@@ -7985,8 +8114,10 @@ class WebInterface(object):
                                 'a_year':  None,
                                 'a_filename':  None,
                                 'a_size':  None,
-                                'a_id':  None})
+                                'a_id':  None,
+                                'a_issueid': None})
          else:
+             filelocation = None
              if active['filename'] is not None:
                  filelocation = os.path.join(mylar.CONFIG.DDL_LOCATION, active['filename'])
                  #logger.fdebug('checking file existance: %s' % filelocation)
@@ -8674,10 +8805,16 @@ class WebInterface(object):
         else:
             comicImage = "data:image/gif;base64,%s" % mylar.getimage.load_image(os.path.join(mylar.PROG_DIR, 'data', 'images', 'blank.gif'),263)
 
+        dir_exists = ''
+        if comlocation is not None:
+            if os.path.exists(comlocation):
+                dir_exists = 'false'
+            else:
+                dir_exists = 'true'
         #logger.info('comlocation: %s' % comlocation)
         #if all([location is not None, comlocation != location]):
         #    comlocation = location
         #    logger.fdebug('location preset from editor as : %s' % (comlocation))
-
-        return json.dumps({'status': 'success', 'image': comicImage, 'booktype': booktype, 'comicname': results['ComicName'], 'publisher': results['ComicPublisher'], 'comicyear': results['ComicYear'], 'issues': results['ComicIssues'], 'description': results['ComicDescription'], 'comlocation': comlocation})
+        logger.info('[%s] comlocation: %s' % (dir_exists,comlocation))
+        return json.dumps({'status': 'success', 'image': comicImage, 'booktype': booktype, 'comicname': results['ComicName'], 'publisher': results['ComicPublisher'], 'comicyear': results['ComicYear'], 'issues': results['ComicIssues'], 'description': results['ComicDescription'], 'comlocation': comlocation, 'dir_exists': dir_exists})
     editDetails.exposed = True

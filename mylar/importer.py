@@ -1632,7 +1632,7 @@ def annual_check(ComicName, SeriesYear, comicid, issuetype, issuechk, annualslis
 
         annualyear = SeriesYear  # no matter what, the year won't be less than this.
         logger.fdebug('[IMPORTER-ANNUAL] - Annual Year:' + str(annualyear))
-        sresults = mb.findComic(annComicName, mode, issue=None)
+        sresults = mb.findComic(annComicName, mode, issue=None, annual_check=True)
         if not sresults:
             return
 
@@ -1643,7 +1643,7 @@ def annual_check(ComicName, SeriesYear, comicid, issuetype, issuechk, annualslis
             num_res = 0
             while (num_res < len(sresults)):
                 sr = sresults[num_res]
-                #logger.fdebug("description:" + sr['description'])
+                #logger.fdebug('description:%s' % sr['description'])
                 for x in annual_types_ignore:
                     if x in sr['description'].lower():
                         test_id_position = sr['description'].find(comicid)
@@ -1743,7 +1743,7 @@ def annual_check(ComicName, SeriesYear, comicid, issuetype, issuechk, annualslis
 
         elif sresults is None or len(sresults) == 0:
             logger.fdebug('[IMPORTER-ANNUAL] - No results, removing the year from the agenda and re-querying.')
-            sresults = mb.findComic(annComicName, mode, issue=None)
+            sresults = mb.findComic(annComicName, mode, issue=None, annual_check=True)
             if not sresults:
                 return
             elif len(sresults) == 1:

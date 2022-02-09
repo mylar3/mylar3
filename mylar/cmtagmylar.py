@@ -15,7 +15,7 @@ import subprocess
 from subprocess import CalledProcessError, check_output
 import mylar
 
-from mylar import logger
+from mylar import logger, notifiers
 
 
 def run(dirName, nzbName=None, issueid=None, comversion=None, manual=None, filename=None, module=None, manualmeta=False, readingorder=None, agerating=None):
@@ -40,6 +40,7 @@ def run(dirName, nzbName=None, issueid=None, comversion=None, manual=None, filen
         filename = os.path.split(filename)[1]   # just the filename itself
     except:
         logger.warn('Unable to detect filename within directory - I am aborting the tagging. You best check things out.')
+        sendnotify("Error - Unable to detect filename within directory. Tagging aborted.", filename, module)
         return "fail"
 
     #make use of temporary file location in order to post-process this to ensure that things don't get hammered when converting
@@ -62,6 +63,7 @@ def run(dirName, nzbName=None, issueid=None, comversion=None, manual=None, filen
     except Exception as e:
         logger.warn('%s Unexpected Error: %s [%s]' % (module, sys.exc_info()[0], e))
         logger.warn(module + ' Unable to create temporary directory to perform meta-tagging. Processing without metatagging.')
+        sendnotify("Error - Unable to create temporary directory to perform meta-tagging. Processing without metatagging.", filename, module)
         tidyup(og_filepath, new_filepath, new_folder, manualmeta)
         return "fail"
 
@@ -220,21 +222,21 @@ def run(dirName, nzbName=None, issueid=None, comversion=None, manual=None, filen
             logger.fdebug('%s Enabling ComicTagger script with options: %s' %(module, re.sub(f_tagoptions[f_tagoptions.index(mylar.CONFIG.COMICVINE_API)], 'REDACTED', str(f_tagoptions))))
             # generate a safe command line string to execute the script and provide all the parameters
             script_cmdlog = re.sub(f_tagoptions[f_tagoptions.index(mylar.CONFIG.COMICVINE_API)], 'REDACTED', str(script_cmd))
-        
+
         logger.fdebug(module + ' Executing command: ' +str(script_cmdlog))
         logger.fdebug(module + ' Absolute path to script: ' +script_cmd[0])
         try:
             # use subprocess to run the command and capture output
-            p = subprocess.Popen(script_cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+            p = subprocess.Popen(script_cmd, stdout=subprocess.PIPE, text=True, stderr=subprocess.STDOUT)
             out, err = p.communicate()
             #logger.info(out)
             #logger.info(err)
-            if out is not None:
-                out = out.decode('utf-8')
-            if err is not None:
-                err = err.decode('utf-8')
+            #if out is not None:
+            #    out = out.decode('utf-8')
+            #if err is not None:
+            #    err = err.decode('utf-8')
             if initial_ctrun and 'exported successfully' in out:
-                logger.fdebug(module + '[COMIC-TAGGER] : ' +str(out))
+                logger.fdebug('%s[COMIC-TAGGER] : %s' % (module, out))
                 #Archive exported successfully to: X-Men v4 008 (2014) (Digital) (Nahga-Empire).cbz (Original deleted)
                 if 'Error deleting' in filepath:
                     tf1 = out.find('exported successfully to: ')
@@ -244,7 +246,7 @@ def run(dirName, nzbName=None, issueid=None, comversion=None, manual=None, filen
                     tmpfilename = re.sub('Archive exported successfully to: ', '', out.rstrip())
                 if mylar.CONFIG.FILE_OPTS == 'move':
                     tmpfilename = re.sub('\(Original deleted\)', '', tmpfilename).strip()
-                tmpf = tmpfilename #.decode('utf-8')
+                tmpf = tmpfilename
                 filepath = os.path.join(comicpath, tmpf)
                 if filename.lower() != tmpf.lower() and tmpf.endswith('(1).cbz'):
                     logger.fdebug('New filename [%s] is named incorrectly due to duplication during metatagging - Making sure it\'s named correctly [%s].' % (tmpf, filename))
@@ -256,19 +258,19 @@ def run(dirName, nzbName=None, issueid=None, comversion=None, manual=None, filen
                     except:
                         logger.warn('%s unable to rename file to accomodate metatagging cbz to the same filename' % module)
                 if not os.path.isfile(filepath):
-                    logger.fdebug(module + 'Trying utf-8 conversion.')
+                    logger.fdebug('%s Trying utf-8 conversion.' % module)
                     tmpf = tmpfilename.encode('utf-8')
                     filepath = os.path.join(comicpath, tmpf)
                     if not os.path.isfile(filepath):
-                        logger.fdebug(module + 'Trying latin-1 conversion.')
+                        logger.fdebug('%s Trying latin-1 conversion.' % module)
                         tmpf = tmpfilename.encode('Latin-1')
                         filepath = os.path.join(comicpath, tmpf)
 
-                logger.fdebug(module + '[COMIC-TAGGER][CBR-TO-CBZ] New filename: ' + filepath)
+                logger.fdebug('%s[COMIC-TAGGER][CBR-TO-CBZ] New filename: %s' % (module, filepath))
                 initial_ctrun = False
             elif initial_ctrun and 'Archive is not a RAR' in out:
                 logger.fdebug('%s Output: %s' % (module,out))
-                logger.warn(module + '[COMIC-TAGGER] file is not in a RAR format: ' + filename)
+                logger.warn('%s[COMIC-TAGGER] file is not in a RAR format: %s' % (module, filename))
                 initial_ctrun = False
             elif initial_ctrun:
                 initial_ctrun = False
@@ -277,27 +279,34 @@ def run(dirName, nzbName=None, issueid=None, comversion=None, manual=None, filen
                     tidyup(og_filepath, new_filepath, new_folder, manualmeta)
                     return 'corrupt'
                 else:
-                    logger.warn(module + '[COMIC-TAGGER][CBR-TO-CBZ] Failed to convert cbr to cbz - check permissions on folder : ' + mylar.CONFIG.CACHE_DIR + ' and/or the location where Mylar is trying to tag the files from.')
+                    logger.fdebug('out: %s' % (out,))
+                    logger.fdebug('filename: %s' % (filename,))
+                    cbz_message = 'Failed to convert cbr to cbz - check permissions on folder %s and/or the location where Mylar is trying to tag the files from.' % mylar.CONFIG.CACHE_DIR
+                    logger.warn('%s[COMIC-TAGGER][CBR-TO-CBZ]%s' % (module, cbz_message))
+                    sendnotify('Error - %s' % (cbz_message), filename, module)
                     tidyup(og_filepath, new_filepath, new_folder, manualmeta)
                     return 'fail'
             elif 'Cannot find' in out:
                 logger.fdebug('%s Output: %s' % (module,out))
-                logger.warn(module + '[COMIC-TAGGER] Unable to locate file: ' + filename)
+                logger.warn('%s[COMIC-TAGGER] Unable to locate file: %s' % (module, filename))
                 file_error = 'file not found||' + filename
                 return file_error
             elif 'not a comic archive!' in out:
                 logger.fdebug('%s Output: %s' % (module,out))
-                logger.warn(module + '[COMIC-TAGGER] Unable to locate file: ' + filename)
-                file_error = 'file not found||' + filename
+                logger.warn('%s[COMIC-TAGGER] Unable to locate file: %s' % (module, filename))
+                file_error = 'file not found||%s' % filename
                 return file_error
             else:
-                logger.info(module + '[COMIC-TAGGER] Successfully wrote ' + tagdisp + ' [' + filepath + ']')
+                logger.info('%s[COMIC-TAGGER] Successfully wrote %s [%s]' % (module, tagdisp, filepath))
                 i+=1
         except OSError as e:
-            logger.warn(module + '[COMIC-TAGGER] Unable to run comictagger with the options provided: ' + re.sub(f_tagoptions[f_tagoptions.index(mylar.CONFIG.COMICVINE_API)], 'REDACTED', str(script_cmd)))
+            logger.warn('%s[COMIC-TAGGER] Unable to run comictagger with the options provided: %s' % (module, re.sub(f_tagoptions[f_tagoptions.index(mylar.CONFIG.COMICVINE_API)], 'REDACTED', str(script_cmd))))
             tidyup(filepath, new_filepath, new_folder, manualmeta)
             return "fail"
-
+        except Exception as e:
+            logger.warn('%s[COMIC-TAGGER] Error : %s' % (module, e))
+            tidyup(filepath, new_filepath, new_folder, manualmeta)
+            return "fail"
         if mylar.CONFIG.CBR2CBZ_ONLY and initial_ctrun == False:
             break
 
@@ -317,3 +326,47 @@ def tidyup(filepath, new_filepath, new_folder, manualmeta):
             if all([os.path.exists(new_folder), os.path.isfile(filepath)]):
                 shutil.rmtree(new_folder)
 
+def sendnotify(message, filename, module):
+
+    prline = filename
+
+    prline2 = 'Mylar metatagging error: ' + message + ' File: ' + prline
+
+    try:
+        if mylar.CONFIG.PROWL_ENABLED:
+            pushmessage = prline
+            prowl = notifiers.PROWL()
+            prowl.notify(pushmessage, "Mylar metatagging error: ", module=module)
+
+        if mylar.CONFIG.PUSHOVER_ENABLED:
+            pushover = notifiers.PUSHOVER()
+            pushover.notify(prline, prline2, module=module)
+
+        if mylar.CONFIG.BOXCAR_ENABLED:
+            boxcar = notifiers.BOXCAR()
+            boxcar.notify(prline=prline, prline2=prline2, module=module)
+
+        if mylar.CONFIG.PUSHBULLET_ENABLED:
+            pushbullet = notifiers.PUSHBULLET()
+            pushbullet.notify(prline=prline, prline2=prline2, module=module)
+
+        if mylar.CONFIG.TELEGRAM_ENABLED:
+            telegram = notifiers.TELEGRAM()
+            telegram.notify(prline2)
+
+        if mylar.CONFIG.SLACK_ENABLED:
+            slack = notifiers.SLACK()
+            slack.notify("Mylar metatagging error: ", prline2, module=module)
+
+        if mylar.CONFIG.DISCORD_ENABLED:
+            discord = notifiers.DISCORD()
+            discord.notify(filename, message, module=module)
+
+        if mylar.CONFIG.EMAIL_ENABLED and mylar.CONFIG.EMAIL_ONPOST:
+            logger.info("Sending email notification")
+            email = notifiers.EMAIL()
+            email.notify(prline2, "Mylar metatagging error: ", module=module)
+    except Exception as e:
+        logger.warn('[NOTIFICATION] Unable to send notification: %s' % e)
+
+    return

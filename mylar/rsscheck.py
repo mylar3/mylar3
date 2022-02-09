@@ -29,7 +29,7 @@ from io import StringIO
 from pkg_resources import parse_version
 
 import mylar
-from mylar import db, logger, ftpsshup, helpers, auth32p, utorrent, helpers
+from mylar import db, logger, ftpsshup, helpers, auth32p, utorrent, helpers, filechecker
 from mylar.torrent.clients import transmission
 from mylar.torrent.clients import  deluge as deluge
 from mylar.torrent.clients import qbittorrent as qbittorrent
@@ -395,8 +395,9 @@ def ddl(forcerss=False):
     headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 6.1; WOW64; rv:40.0) Gecko/20100101 Firefox/40.1'}
     ddl_feed = 'https://getcomics.info/feed/'
     try:
-        r = requests.get(ddl_feed, verify=True, headers=headers)
+        r = requests.get(ddl_feed, verify=True, headers=headers, timeout=30)
     except Exception as e:
+        #need to handle timeouts / downtime here
         logger.warn('Error fetching RSS Feed Data from DDL: %s' % (e))
         return False
     else:
@@ -408,58 +409,59 @@ def ddl(forcerss=False):
                 logger.warn('[ERROR] Status code returned: %s' % r.status_code)
             return False
 
-        feedme = feedparser.parse(r.content)
-        results = []
-        for entry in feedme.entries:
-            soup = BeautifulSoup(entry.summary, 'html.parser')
-            orig_find = soup.find("p", {"style": "text-align: center;"})
-            i = 0
-            option_find = orig_find
-            while True: #i <= 10:
-                prev_option = option_find
-                option_find = option_find.findNext(text=True)
-                if 'Year' in option_find:
-                    year = option_find.findNext(text=True)
-                    year = re.sub('\|', '', year).strip()
-                else:
-                   if 'Size' in prev_option:
-                        size = option_find #.findNext(text=True)
-                        if '- MB' in size: size = '0 MB'
-                        possible_more = orig_find.next_sibling
-                        break
-            i+=1
+    feedme = feedparser.parse(r.content)
+    results = []
+    for entry in feedme.entries:
+        soup = BeautifulSoup(entry.summary, 'html.parser')
+        orig_find = soup.find("p", {"style": "text-align: center;"})
+        i = 0
+        option_find = orig_find
+        while True: #i <= 10:
+            prev_option = option_find
+            option_find = option_find.findNext(text=True)
+            if 'Year' in option_find:
+                year = option_find.findNext(text=True)
+                year = re.sub('\|', '', year).strip()
+            else:
+               if 'Size' in prev_option:
+                   size = option_find #.findNext(text=True)
+                   if '- MB' in size: size = '0 MB'
+                   possible_more = orig_find.next_sibling
+                   break
+        i+=1
 
-            link = entry.link
-            title = entry.title
-            updated = entry.updated
-            if updated.endswith('+0000'):
-                updated = updated[:-5].strip()
-            tmpid = entry.id
-            id = tmpid[tmpid.find('=')+1:]
-            if 'KB' in size:
-                szform = 'KB'
-                sz = 'K'
-            elif 'GB' in size:
-                szform = 'GB'
-                sz = 'G'
-            elif 'MB' in size:
-                szform = 'MB'
-                sz = 'M'
-            elif 'TB' in size:
-                szform = 'TB'
-                sz = 'T'
-            tsize = helpers.human2bytes(re.sub('[^0-9]', '', size).strip() + sz)
+        link = entry.link
+        title = entry.title
+        updated = entry.updated
+        if updated.endswith('+0000'):
+            updated = updated[:-5].strip()
+        tmpid = entry.id
+        id = tmpid[tmpid.find('=')+1:]
+        if 'KB' in size:
+            szform = 'KB'
+            sz = 'K'
+        elif 'GB' in size:
+            szform = 'GB'
+            sz = 'G'
+        elif 'MB' in size:
+            szform = 'MB'
+            sz = 'M'
+        elif 'TB' in size:
+            szform = 'TB'
+            sz = 'T'
+        tsize = helpers.human2bytes(re.sub('[^0-9]', '', size).strip() + sz)
 
-            #link can be referenced with the ?p=id url
-            results.append({'Title':   title,
-                            'Size':    tsize,
-                            'Link':    id,
-                            'Site':    'DDL',
-                            'Pubdate': updated})
+        #link can be referenced with the ?p=id url
+        results.append({'Title':   title,
+                        'Size':    tsize,
+                        'Link':    id,
+                        'Site':    'DDL(GetComics)',
+                        'Pubdate': updated})
 
-        if len(results) >0:
-            logger.info('[RSS][DDL] %s entries have been indexed and are now going to be stored for caching.' % len(results))
-            rssdbupdate(results, len(results), 'ddl')
+    logger.info('[DDL][RSS-RESULTS] %s' % (results,))
+    if len(results) >0:
+        logger.info('[RSS][DDL] %s entries have been indexed and are now going to be stored for caching.' % len(results))
+        rssdbupdate(results, len(results), 'ddl')
 
     return
 
@@ -505,16 +507,28 @@ def nzbs(provider=None, forcerss=False):
     logger.fdebug('[RSS] You have enabled ' + str(providercount) + ' NZB RSS search providers.')
 
     if providercount > 0:
-        if mylar.CONFIG.EXPERIMENTAL == 1:
+        if mylar.CONFIG.EXPERIMENTAL is True:
             max_entries = "250" if forcerss else "50"
             params = {'sort': 'agedesc',
                       'max':   max_entries,
-                      'more':  '1'}
-            check = _parse_feed('experimental', 'https://nzbindex.nl/rss/alt.binaries.comics.dcp', True, params)
+                      'more':  '1',
+                      'q': None,
+                      'minage:': 0,
+                      'maxage': 0,
+                      'hidespam': 1,
+                      'hidepassword': 1,
+                      'minsize': 0,
+                      'maxsize': 0,
+                      'complete': 0,
+                      'hidecross': 0,
+                      'hasNFO': 0,
+                      'poster': None,
+                      'g[]': 85}
+            check = _parse_feed('experimental', 'https://nzbindex.nl/search/rss', True, params)
             if check == 'disable':
                 helpers.disable_provider(site)
 
-        if mylar.CONFIG.NZBSU == 1:
+        if mylar.CONFIG.NZBSU is True:
             num_items = "&num=100" if forcerss else ""  # default is 25
             params = {'t':        '7030',
                       'dl':        '1',
@@ -525,7 +539,7 @@ def nzbs(provider=None, forcerss=False):
             if check == 'disable':
                 helpers.disable_provider(site)
 
-        if mylar.CONFIG.DOGNZB == 1:
+        if mylar.CONFIG.DOGNZB is True:
             #default is 100
             params = {'cat':        '7030',
                       'o':          'xml',
@@ -578,33 +592,37 @@ def nzbs(provider=None, forcerss=False):
         for ft in feedthis:
             site = ft['site']
             logger.fdebug('[RSS] (' + site + ') now being updated...')
-
             for entry in ft['feed'].entries:
-
-                if site == 'dognzb':
-                    #because the rss of dog doesn't carry the enclosure item, we'll use the newznab size value
-                    size = 0
-                    if 'newznab' in entry and 'size' in entry['newznab']:
-                        size = entry['newznab']['size']
-                else:
-                    # experimental, nzb.su, newznab
-                    size = entry.enclosures[0]['length']
-
-                # Link
                 if site == 'experimental':
+                    size = entry.enclosures[0]['length']
                     link = entry.enclosures[0]['url']
+                    titlename = experimental_cleaner(entry.title_detail['value'])
+                    if titlename is None:
+                        logger.fdebug('[EXPERIMENTAL][RSS_FEED] Not adding to rss entries. Cannot properly parse :%s' % entry.title)
+                        continue
                 else:
+                    titlename = entry.title
+                    if site == 'dognzb':
+                        #because the rss of dog doesn't carry the enclosure item, we'll use the newznab size value
+                        size = 0
+                        if 'newznab' in entry and 'size' in entry['newznab']:
+                            size = entry['newznab']['size']
+                    else:
+                        # experimental, nzb.su, newznab
+                        size = entry.enclosures[0]['length']
+
+                    # Link
                     # dognzb, nzb.su, newznab
                     link = entry.link
 
-                   #Remove the API keys from the url to allow for possible api key changes
+                    #Remove the API keys from the url to allow for possible api key changes
                     if site == 'dognzb':
                         link = re.sub(mylar.CONFIG.DOGNZB_APIKEY, '', link).strip()
                     else:
                         link = link[:link.find('&i=')].strip()
 
                 feeddata.append({'Site': site,
-                                 'Title': entry.title,
+                                 'Title': titlename,
                                  'Link': link,
                                  'Pubdate': entry.updated,
                                  'Size': size})
@@ -618,6 +636,28 @@ def nzbs(provider=None, forcerss=False):
 
     return
 
+def experimental_cleaner(rls):
+    except_list=['releases', 'gold line', 'distribution', '0-day', '0 day', '0day', 'o-day', '.jpg', '.pdf']
+    block_regex = r"\[\d{1,3}\/\d{1,3}\]"
+    splitTitle = rls.split("\"")
+    _digits = re.compile('\d')
+    subcnt = 0
+    filename = None
+    for subs in splitTitle:
+        if not (any(d in subs.lower() for d in except_list) or re.search(block_regex, subs)) and bool(_digits.search(subs)) is True:
+            p = re.compile(r'\d{4}\-(0?[1-9]|1[012])\-(0?[1-9]|[12][0-9]|3[01])*')
+            d = p.match(subs)
+            if d:
+                dtchk = d.group()
+                if any(['2019' in dtchk, '2020' in dtchk, '2021' in dtchk, '2022' in dtchk]) and subcnt == 0:
+                    subcnt += 1
+                    continue
+            filename = subs
+            break
+        subcnt+=1
+
+    return filename
+
 def rssdbupdate(feeddata, i, type):
     rsschktime = 15
     myDB = db.DBConnection()
@@ -630,19 +670,39 @@ def rssdbupdate(feeddata, i, type):
         if type == 'torrent':
             #we just store the torrent ID's now.
 
-            newVal = {"Link":      dataval['link'],
-                      "Pubdate":   dataval['pubdate'],
-                      "Site":      dataval['site'],
-                      "Size":      dataval['size']}
-            ctrlVal = {"Title":    dataval['title']}
+            newVal = {"Link": dataval['link'],
+                      "Pubdate": dataval['pubdate'],
+                      "Site": dataval['site'],
+                      "Size": dataval['size']}
+            ctrlVal = {"Title": dataval['title']}
+            tmp_title = dataval['title']
 
         else:
             newlink = dataval['Link']
-            newVal = {"Link":      newlink,
-                      "Pubdate":   dataval['Pubdate'],
-                      "Site":      dataval['Site'],
-                      "Size":      dataval['Size']}
-            ctrlVal = {"Title":    dataval['Title']}
+            newVal = {"Link": newlink,
+                      "Pubdate": dataval['Pubdate'],
+                      "Site": dataval['Site'],
+                      "Size": dataval['Size']}
+            ctrlVal = {"Title": dataval['Title']}
+            tmp_title = dataval['Title']
+
+        seriesname = None
+        issuenumber = None
+        flc = filechecker.FileChecker(file=tmp_title)
+        filelist = flc.listFiles()
+        if all([filelist['series_name'] != '', filelist['series_name'] is not None]) and filelist['issue_number'] != '-':
+            issuenumber = filelist['issue_number']
+            seriesname = re.sub(r'[\u2014|\u2013|\u2e3a|\u2e3b]', '-', filelist['series_name']).strip()
+            if seriesname.endswith('-') and '#' in seriesname[-6:]:
+                ck1 = seriesname.rfind('#')
+                ck2 = seriesname.rfind('-')
+                if seriesname[ck1+1:ck2-1].strip().isdigit():
+                    issuenumber = '%s %s' % (seriesname[ck1:].strip(), issuenumber)
+                    seriesname = seriesname[:ck1 -1].strip()
+                    issuenumber.strip()
+
+        newVal['ComicName'] = seriesname
+        newVal['Issue_Number'] = issuenumber
 
         myDB.upsert("rssdb", newVal, ctrlVal)
 
@@ -668,7 +728,7 @@ def ddl_dbsearch(seriesname, issue, comicid=None, nzbprov=None, oneoff=False):
     dsearch_removed = re.sub('\s+', ' ', dsearch_rem2)
     dsearch_seriesname = re.sub('[\'\!\@\#\$\%\:\-\;\/\\=\?\&\.\s\,]', '%', dsearch_removed)
     dsearch = '%' + dsearch_seriesname + '%'
-    dresults = myDB.select("SELECT * FROM rssdb WHERE Title like ? AND Site='DDL'", [dsearch])
+    dresults = myDB.select('SELECT * FROM rssdb WHERE ComicName like ? COLLATE NOCASE AND Site="DDL(GetComics)"', [dsearch])
     ddltheinfo = []
     ddlinfo = {}
     if not dresults:
@@ -682,9 +742,8 @@ def ddl_dbsearch(seriesname, issue, comicid=None, nzbprov=None, oneoff=False):
                           'site':    dl['Site'],
                           'length':  dl['Size']
                           })
-
+    logger.fdebug('[DDL][RSS][DB-QUERY] results: %s' % (ddltheinfo,))
     ddlinfo['entries'] = ddltheinfo
-
     return ddlinfo
 
 def torrentdbsearch(seriesname, issue, comicid=None, nzbprov=None, oneoff=False):
@@ -848,13 +907,16 @@ def torrentdbsearch(seriesname, issue, comicid=None, nzbprov=None, oneoff=False)
                           })
 
     torinfo['entries'] = tortheinfo
-
     return torinfo
 
-def nzbdbsearch(seriesname, issue, comicid=None, nzbprov=None, searchYear=None, ComicVersion=None, oneoff=False):
+def nzbdbsearch(seriesname, issue, comicid=None, nzbprov=None, searchYear=None, ComicVersion=None, oneoff=False, rsslist=None, provider_list=None):
+    extensions = ('cbr', 'cbz')
+    nzbtheinfo = []
+    nzbinfo = {}
+
     myDB = db.DBConnection()
     seriesname_alt = None
-    if any([comicid is None, comicid == 'None', oneoff is True]):
+    if any([comicid is None, comicid == 'None', oneoff is True ,rsslist is not None]):
         pass
     else:
         snm = myDB.selectone("SELECT * FROM comics WHERE comicid=?", [comicid]).fetchone()
@@ -865,104 +927,219 @@ def nzbdbsearch(seriesname, issue, comicid=None, nzbprov=None, searchYear=None, 
             seriesname = snm['ComicName']
             seriesname_alt = snm['AlternateSearch']
 
-    nsearch_seriesname = re.sub('[\'\!\@\#\$\%\:\;\/\\=\?\.\-\s]', '%', seriesname)
-    formatrem_seriesname = re.sub('[\'\!\@\#\$\%\:\;\/\\=\?\.]', '', seriesname)
-
-    nsearch = '%' + nsearch_seriesname + "%"
-
-    nresults = myDB.select("SELECT * FROM rssdb WHERE Title like ? AND Site=?", [nsearch, nzbprov])
-    if nresults is None:
-        logger.fdebug('nzb search returned no results for ' + seriesname)
-        if seriesname_alt is None:
-            logger.fdebug('no nzb Alternate name given. Aborting search.')
-            return "no results"
+    if rsslist is not None:
+        conn = mylar.sql_db()
+        cur = conn.cursor()
+        logger.info('cur returned. db attached.')
+        try:
+            # if the VariableTable doesn't exist yet, this will fail. Let's go.
+            cur.execute('DROP TABLE VariableTable')
+        except Exception:
+            pass
         else:
-            chkthealt = seriesname_alt.split('##')
-            if chkthealt == 0:
-                AS_Alternate = AlternateSearch
-            for calt in chkthealt:
-                AS_Alternate = re.sub('##', '', calt)
-                AS_Alternate = '%' + AS_Alternate + "%"
-                nresults += myDB.select("SELECT * FROM rssdb WHERE Title like ? AND Site=?", [AS_Alternate, nzbprov])
-            if nresults is None:
-                logger.fdebug('nzb alternate name search returned no results.')
+            logger.info('dropped previous rss dataset to ensure we have a clean slate.')
+        cur.execute("CREATE TABLE IF NOT EXISTS VariableTable (ComicName TEXT, SQLquery_name TEXT collate nocase, Issue_Number TEXT, ComicYear TEXT, SeriesYear TEXT, Publisher TEXT, IssueDate TEXT, StoreDate TEXT, IssueID TEXT NOT NULL UNIQUE, AlternateSearch TEXT collate nocase, UseFuzzy TEXT, ComicVersion TEXT, SARC TEXT, IssueArcID TEXT, searchmode TEXT, RSS TEXT, ComicID TEXT, ComicName_Filesafe TEXT, AllowPacks TEXT, OneOff INT, TorrentID_32P TEXT, DigitalDate TEXT, BookType TEXT, Ignore_Booktype TEXT)")
+        #logger.info('rsslist: %s' % (rsslist))
+
+        #curline = "INSERT INTO VariableTable (Variable) VALUES ({seq})".format(seq=','.join(['?'] *(len(rsslist))))
+        try:
+            cur.executemany("INSERT OR IGNORE INTO VariableTable (ComicName, SQLquery_name, Issue_Number, ComicYear, SeriesYear, Publisher, IssueDate, StoreDate, IssueID, AlternateSearch, UseFuzzy, ComicVersion, SARC, IssueArcID, searchmode, RSS, ComicID, ComicName_Filesafe, AllowPacks, OneOff, TorrentID_32P, DigitalDate, booktype, ignore_booktype) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)", rsslist)
+            #cur.executemany(curline, rsslist)
+            conn.commit()
+            cur.close()
+        except Exception as e:
+            logger.warn('error: %s' % e)
+            cur.close()
+        else:
+            logger.info('executed insert...now attempting to select')
+
+        tcnt = myDB.select("SELECT COUNT(*) as count FROM rssdb")
+        totalcnt = tcnt[0][0]
+        cnt = 0
+        for nzb in myDB.select("SELECT DISTINCT r.ComicName as RSS_ComicName, r.Issue_Number as RSS_IssueNumber, r.Title, r.Link, r.Pubdate, r.Size, r.Site, v.* FROM rssdb r join VariableTable v on r.Title like '%' || v.SQLQuery_name || '%' WHERE (r.ComicName like '%' || v.SQLQuery_name || '%' and v.SQLQuery_name is not NULL) AND v.Issue_Number = r.Issue_Number"):
+            cnt+=1
+            nzbTITLE = re.sub('&amp;', '&', nzb['Title']).strip()
+            nzbTITLE = re.sub('&#39;', '\'', nzbTITLE).strip()
+            #logger.info('tor[Title]: %s' % tor['Title'])
+            if mylar.CONFIG.PREFERRED_QUALITY == 1:
+                if 'cbr' not in nzbTITLE:
+                    #logger.fdebug('Quality restriction enforced [ cbr only ]. Rejecting result.')
+                    continue
+            elif mylar.CONFIG.PREFERRED_QUALITY == 2:
+                if 'cbz' not in nzbTITLE:
+                    #logger.fdebug('Quality restriction enforced [ cbz only ]. Rejecting result.')
+                    continue
+            i=0
+            if provider_list is not None:
+                if not any(nzb['Site'] in olist for olist in provider_list['prov_order']) or helpers.block_provider_check(nzb['Site']):
+                    continue
+
+            else:
+                if nzbprov is not None:
+                    if nzbprov != nzb['Site'] or not mylar.CONFIG.ENABLE_NEWZNABS:
+                        #logger.fdebug('this is a result from ' + str(tor['Site']) + ', not the site I am looking for of ' + str(nzbprov))
+                        continue
+
+            #0 holds the title/issue and format-type.
+            fmod = mylar.filechecker.FileChecker()
+            formatrem_seriesname = fmod.dynamic_replace(nzb['ComicName'])['mod_seriesname']
+            formatrem_nzbsplit = fmod.dynamic_replace(nzbTITLE)['mod_seriesname']
+            if formatrem_seriesname.lower() in formatrem_nzbsplit.lower(): # or any(x.lower() in formatrem_torsplit.lower() for x in AS_Alt):
+                #logger.fdebug('matched to : %s' % nzbTITLE)
+                #logger.fdebug('matched on series title: %s' % nzb['ComicName'])
+                titleend = formatrem_nzbsplit[len(formatrem_seriesname):]
+                titleend = re.sub('\-', '', titleend)   #remove the '-' which is unnecessary
+                #remove extensions
+                titleend = re.sub('cbr', '', titleend)
+                titleend = re.sub('cbz', '', titleend)
+                titleend = re.sub('none', '', titleend)
+                #logger.fdebug('titleend: ' + titleend)
+
+                sptitle = titleend.split()
+                extra = ''
+
+                issues = None
+                pack = False
+                if nzb['Site'] == 'DDL(GetComics)':
+                    # see if it's a pack type
+                    ddl_check = ddlrss_pack_detect(nzbTITLE, nzb['Link'])
+                    if ddl_check is not None:
+                        nzbTITLE = ddl_check['title']
+                        issues = ddl_check['issues']
+                        pack = ddl_check['pack']
+
+                nzbtheinfo.append({
+                              'title':   nzbTITLE, #cttitle,
+                              'link':    nzb['Link'],
+                              'pubdate': nzb['Pubdate'],
+                              'site':    nzb['Site'],
+                              'length':  nzb['Size'],
+                              'issues':  issues,
+                              'pack':    pack,
+                              'info':    {'ComicName': nzb['ComicName'],
+                                          'Issue_Number': nzb['Issue_Number'],
+                                          'ComicYear': nzb['ComicYear'],
+                                          'SeriesYear': nzb['SeriesYear'],
+                                          'Publisher': nzb['Publisher'],
+                                          'IssueDate': nzb['IssueDate'],
+                                          'StoreDate': nzb['StoreDate'],
+                                          'IssueID': nzb['IssueID'],
+                                          'AlternateSearch': nzb['AlternateSearch'],
+                                          'UseFuzzy': nzb['UseFuzzy'],
+                                          'ComicVersion': nzb['ComicVersion'],
+                                          'SARC': nzb['SARC'],
+                                          'IssueArcID': nzb['IssueARCID'],
+                                          'searchmode': nzb['searchmode'],
+                                          'RSS': nzb['RSS'],
+                                          'ComicID': nzb['ComicID'],
+                                          'ComicName_Filesafe': nzb['ComicName_Filesafe'],
+                                          'AllowPacks': bool(nzb['AllowPacks']),
+                                          'OneOff': bool(nzb['OneOff']),
+                                          'TorrentID_32P': nzb['TorrentID_32P'],
+                                          'DigitalDate': nzb['DigitalDate'],
+                                          'booktype': nzb['booktype'],
+                                          'ignore_booktype': bool(nzb['ignore_booktype'])},
+                              })
+        #logger.info('nzbinfo: %s' % nzbtheinfo)
+        logger.info('[RSS-QUERY] Searched through RSSDB looking for %s Wanted items in %s RSS entries. Rough matching to %s items.' % (len(rsslist), totalcnt, len(nzbtheinfo)))
+    else:
+        nsearch_seriesname = re.sub('[\'\!\@\#\$\%\:\;\/\\=\?\.\-\s]', '%', seriesname)
+        formatrem_seriesname = re.sub('[\'\!\@\#\$\%\:\;\/\\=\?\.]', '', seriesname)
+
+        nsearch = '%' + nsearch_seriesname + "%"
+
+        nresults = myDB.select("SELECT * FROM rssdb WHERE Title like ? AND Site=?", [nsearch, nzbprov])
+        if nresults is None:
+            logger.fdebug('nzb search returned no results for ' + seriesname)
+            if seriesname_alt is None:
+                logger.fdebug('no nzb Alternate name given. Aborting search.')
                 return "no results"
+            else:
+                chkthealt = seriesname_alt.split('##')
+                if chkthealt == 0:
+                    AS_Alternate = AlternateSearch
+                for calt in chkthealt:
+                    AS_Alternate = re.sub('##', '', calt)
+                    AS_Alternate = '%' + AS_Alternate + "%"
+                    nresults += myDB.select("SELECT * FROM rssdb WHERE Title like ? AND Site=?", [AS_Alternate, nzbprov])
+                if nresults is None:
+                    logger.fdebug('nzb alternate name search returned no results.')
+                    return "no results"
 
-    nzbtheinfo = []
-    nzbinfo = {}
+        nzbtheinfo = []
+        nzbinfo = {}
 
-    if nzbprov == 'experimental':
-        except_list=['releases', 'gold line', 'distribution', '0-day', '0 day']
+        if nzbprov == 'experimental':
+            except_list=['releases', 'gold line', 'distribution', '0-day', '0 day']
 
-        if ComicVersion:
-            ComVersChk = re.sub("[^0-9]", "", ComicVersion)
-            if ComVersChk == '':
-                ComVersChk = 0
+            if ComicVersion:
+                ComVersChk = re.sub("[^0-9]", "", ComicVersion)
+                if ComVersChk == '':
+                    ComVersChk = 0
+                else:
+                    ComVersChk = 0
             else:
                 ComVersChk = 0
-        else:
-            ComVersChk = 0
 
-        filetype = None
-        if mylar.CONFIG.PREFERRED_QUALITY == 1: filetype = 'cbr'
-        elif mylar.CONFIG.PREFERRED_QUALITY == 2: filetype = 'cbz'
+            filetype = None
+            if mylar.CONFIG.PREFERRED_QUALITY == 1: filetype = 'cbr'
+            elif mylar.CONFIG.PREFERRED_QUALITY == 2: filetype = 'cbz'
 
-        for results in nresults:
-            title = results['Title']
-            #logger.fdebug("titlesplit: " + str(title.split("\"")))
-            splitTitle = title.split("\"")
-            noYear = 'False'
-            _digits = re.compile('\d')
-            for subs in splitTitle:
-                #logger.fdebug(subs)
-                if len(subs) >= len(seriesname) and not any(d in subs.lower() for d in except_list) and bool(_digits.search(subs)) is True:
-                    if subs.lower().startswith('for'):
-                         # need to filter down alternate names in here at some point...
-                        if seriesname.lower().startswith('for'):
-                            pass
-                        else:
-                            #this is the crap we ignore. Continue
-                            logger.fdebug('this starts with FOR : ' + str(subs) + '. This is not present in the series - ignoring.')
-                            continue
-
-                    if ComVersChk == 0:
-                        noYear = 'False'
-
-                    if ComVersChk != 0 and searchYear not in subs:
-                        noYear = 'True'
-                        noYearline = subs
-
-                    if searchYear in subs and noYear == 'True':
-                        #this would occur on the next check in the line, if year exists and
-                        #the noYear check in the first check came back valid append it
-                        subs = noYearline + ' (' + searchYear + ')'
-                        noYear = 'False'
-
-                    if noYear == 'False':
-
-                        if filetype is not None:
-                            if filetype not in subs.lower():
+            for results in nresults:
+                title = results['Title']
+                #logger.fdebug("titlesplit: " + str(title.split("\"")))
+                splitTitle = title.split("\"")
+                noYear = 'False'
+                _digits = re.compile('\d')
+                for subs in splitTitle:
+                    #logger.fdebug(subs)
+                    if len(subs) >= len(seriesname) and not any(d in subs.lower() for d in except_list) and bool(_digits.search(subs)) is True:
+                        if subs.lower().startswith('for'):
+                             # need to filter down alternate names in here at some point...
+                            if seriesname.lower().startswith('for'):
+                                pass
+                            else:
+                                #this is the crap we ignore. Continue
+                                logger.fdebug('this starts with FOR : ' + str(subs) + '. This is not present in the series - ignoring.')
                                 continue
 
-                        nzbtheinfo.append({
-                                  'title':   subs,
-                                  'link':    re.sub('\/release\/', '/download/', results['Link']),
-                                  'pubdate': str(results['PubDate']),
-                                  'site':    str(results['Site']),
-                                  'length':  str(results['Size'])})
+                        if ComVersChk == 0:
+                            noYear = 'False'
 
-    else:
-        for nzb in nresults:
-            # no need to parse here, just compile and throw it back ....
-            nzbtheinfo.append({
-                             'title':   nzb['Title'],
-                             'link':    nzb['Link'],
-                             'pubdate': nzb['Pubdate'],
-                             'site':    nzb['Site'],
-                             'length':    nzb['Size']
-                             })
-            #logger.fdebug("entered info for " + nzb['Title'])
+                        if ComVersChk != 0 and searchYear not in subs:
+                            noYear = 'True'
+                            noYearline = subs
 
+                        if searchYear in subs and noYear == 'True':
+                            #this would occur on the next check in the line, if year exists and
+                            #the noYear check in the first check came back valid append it
+                            subs = noYearline + ' (' + searchYear + ')'
+                            noYear = 'False'
+
+                        if noYear == 'False':
+
+                            if filetype is not None:
+                                if filetype not in subs.lower():
+                                    continue
+
+                            nzbtheinfo.append({
+                                      'title':   subs,
+                                      'link':    re.sub('\/release\/', '/download/', results['Link']),
+                                      'pubdate': str(results['PubDate']),
+                                      'site':    str(results['Site']),
+                                      'length':  str(results['Size'])})
+
+        else:
+            for nzb in nresults:
+                # no need to parse here, just compile and throw it back ....
+                nzbtheinfo.append({
+                                 'title':   nzb['Title'],
+                                 'link':    nzb['Link'],
+                                 'pubdate': nzb['Pubdate'],
+                                 'site':    nzb['Site'],
+                                 'length':    nzb['Size']
+                                 })
+                #logger.fdebug("entered info for " + nzb['Title'])
 
     nzbinfo['entries'] = nzbtheinfo
     return nzbinfo
@@ -1317,3 +1494,69 @@ if __name__ == '__main__':
     #torrents(sys.argv[1])
     #torrentdbsearch(sys.argv[1], sys.argv[2], sys.argv[3])
     nzbs(provider=sys.argv[1])
+
+def ddlrss_pack_detect(title, link):
+    issues = None
+    pack = False
+    issfind_st = title.find('#')
+    issfind_en = title.find('-', issfind_st)
+    if issfind_en != -1:
+        if all([title[issfind_en + 1] == ' ', title[issfind_en + 2].isdigit()]):
+            iss_en = title.find(' ', issfind_en + 2)
+            if iss_en != -1:
+                 issues = title[issfind_st + 1 : iss_en]
+                 pack = True
+        if title[issfind_en + 1].isdigit():
+            iss_en = title.find(' ', issfind_en + 1)
+            if iss_en != -1:
+                issues = title[issfind_st + 1 : iss_en]
+                pack = True
+
+    # to handle packs that are denoted without a # sign being present.
+    # if there's a dash, check to see if both sides of the dash are numeric.
+    if pack is False and title.find('-') != -1:
+        issfind_en = title.find('-')
+        if all(
+            [
+                title[issfind_en + 1] == ' ',
+                title[issfind_en + 2].isdigit(),
+            ]
+        ) and all(
+            [
+                title[issfind_en -1] == ' ',
+            ]
+        ):
+            spaces = [m.start() for m in re.finditer(' ', title)]
+            dashfind = title.find('-')
+            space_beforedash = title.find(' ', dashfind - 1)
+            space_afterdash = title.find(' ', dashfind + 1)
+            if not title[space_afterdash+1].isdigit():
+                pass
+            else:
+                iss_end = title.find(' ', space_afterdash + 1)
+                if iss_end == -1:
+                    iss_end = len(title)
+                set_sp = None
+                for sp in spaces:
+                    if sp < space_beforedash:
+                        prior_sp = sp
+                    else:
+                        set_sp = prior_sp
+                        break
+
+                if title[set_sp:space_beforedash].strip().isdigit():
+                    issues = title[set_sp:iss_end].strip()
+                    pack = True
+
+    # if it's a pack - remove the issue-range and the possible issue years
+    # (cause it most likely will span) and pass thru as separate items
+    if pack is True:
+        title = re.sub(issues, '', title).strip()
+        # kill any brackets in the issue line here.
+        issues = re.sub(r'[\(\)\[\]]', '', issues).strip()
+        if title.endswith('#'):
+            title = title[:-1].strip()
+
+        return {'title': title, 'issues': issues, 'pack': pack, 'link': link}
+    else:
+        return

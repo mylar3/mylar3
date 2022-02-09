@@ -113,6 +113,7 @@ class FileHandlers(object):
         publisher = re.sub('!', '', self.comic['ComicPublisher']) # thanks Boom!
         publisher = helpers.filesafe(publisher)
 
+
         if booktype is not None:
             if self.comic['Corrected_Type'] is not None:
                 if self.comic['Corrected_Type'] != booktype:
@@ -133,10 +134,15 @@ class FileHandlers(object):
         else:
             chunk_folder_format = folder_format
 
-        if any([self.comic['ComicVersion'] is None, booktype != 'Print']):
+        if self.comic['ComicVersion'] is None:
             comicVol = 'None'
         else:
-            comicVol = self.comic['ComicVersion']
+            if booktype != 'Print':
+                comicVol = self.comic['ComicVersion']
+            else:
+                comicVol = self.comic['ComicVersion']
+            if comicVol is None:
+                comicVol = 'None'
 
         #if comversion is None, remove it so it doesn't populate with 'None'
         if comicVol == 'None':
@@ -160,6 +166,9 @@ class FileHandlers(object):
             chunk_folder_format = chunk_folder_format[:ccf+1] + chunk_folder_format[ccf+2:]
 
         chunk_folder_format = re.sub(r'\s+', ' ', chunk_folder_format)
+
+        # if the path contains // in linux it will incorrectly parse things out.
+        #logger.fdebug('newPath: %s' % re.sub('//', '/', chunk_folder_format).strip())
 
         #do work to generate folder path
         values = {'$Series':        series,

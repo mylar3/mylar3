@@ -1159,14 +1159,18 @@ def new_pullcheck(weeknumber, pullyear, comic1off_name=None, comic1off_id=None, 
 #                   if int(mylar.CURRENT_WEEKNUMBER) == int(weeknumber):
                     # here we add to upcoming table...
                     statusupdate = updater.upcoming_update(ComicID=comicid, ComicName=comicname, IssueNumber=week['issue'], IssueDate=ComicDate, forcecheck=forcecheck, weekinfo={'weeknumber':weeknumber,'year':pullyear}, releasecomicid=week['annuallink'])
-                    logger.fdebug('statusupdate: ' + str(statusupdate))
+                    logger.fdebug('statusupdate: %s' % statusupdate)
 
-                    if all([statusupdate is not None, statusupdate['Status'] != 'incorrect_match']):
-                        # here we add to comics.latest
-                        if mylar.CONFIG.ANNUALS_ON:
-                            updater.latest_update(ComicID=statusupdate['ComicID'], LatestIssue=week['issue'], LatestDate=ComicDate, ReleaseComicID=comicid)
-                        else:
-                            updater.latest_update(ComicID=comicid, LatestIssue=week['issue'], LatestDate=ComicDate)
+                    try:
+                        if statusupdate is not None:
+                            if statusupdate['Status'] != 'incorrect_match':
+                                # here we add to comics.latest
+                                if mylar.CONFIG.ANNUALS_ON:
+                                    updater.latest_update(ComicID=statusupdate['ComicID'], LatestIssue=week['issue'], LatestDate=ComicDate, ReleaseComicID=comicid)
+                                else:
+                                    updater.latest_update(ComicID=comicid, LatestIssue=week['issue'], LatestDate=ComicDate)
+                    except Exception as e:
+                        logger.warn('[Warning] %s' % e)
 
                     # here we update status of weekly table...
                     mismatched = False
@@ -1373,7 +1377,7 @@ def mass_publishers(publishers, weeknumber, year):
         for wt in watchlist:
             if wt['ComicID'] not in watchlibrary and wt['ComicID'] is not None:
                 if not {"comicid": wt['ComicID'], "comicname": wt['COMIC']} in mylar.ADD_LIST.queue:
-                    watch.append({"comicid": wt['ComicID'], "comicname": wt['COMIC']})
+                    watch.append({"comicid": wt['ComicID'], "comicname": wt['COMIC'], "seriesyear": wt['seriesyear']})
 
     if len(watch) > 0:
          logger.info('[SHIZZLE-WHIZZLE] Now queueing to mass add %s new series to your watchlist' % len(watch))

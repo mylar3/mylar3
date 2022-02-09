@@ -26,6 +26,7 @@ import mylar
 import subprocess
 import urllib.request, urllib.error, urllib.parse
 import sys
+import pathlib
 from xml.dom.minidom import parseString
 
 
@@ -509,26 +510,52 @@ class PostProcessor(object):
                     if not any(re.sub('[\|\s]', '', mod_seriesname).lower() == x for x in loopchk):
                         loopchk.append(re.sub('[\|\s]', '', mod_seriesname.lower()))
 
-                    if any([self.issueid is not None, self.comicid is not None]):
+                    if any([self.issueid is not None, self.comicid is not None]) and fl['issueid'] is None:
                         comicseries = myDB.select('SELECT * FROM comics WHERE ComicID=?', [self.comicid])
                     else:
                         if fl['issueid'] is not None:
                             logger.info('issueid detected in filename: %s' % fl['issueid'])
-                            csi = myDB.selectone('SELECT i.ComicID, i.IssueID, i.Issue_Number, c.ComicName FROM comics as c JOIN issues as i ON c.ComicID = i.ComicID WHERE i.IssueID=?', [fl['issueid']]).fetchone()
+                            csi = myDB.selectone('SELECT i.ComicID, i.IssueID, i.Issue_Number, c.ComicName, c.ComicYear, c.AgeRating FROM comics as c JOIN issues as i ON c.ComicID = i.ComicID WHERE i.IssueID=?', [fl['issueid']]).fetchone()
                             if csi is None:
-                                csi = myDB.selectone('SELECT i.ComicID as comicid, i.IssueID, i.Issue_Number, a.ReleaseComicName, c.ComicName FROM comics as c JOIN annuals as a ON c.ComicID = a.ComicID WHERE a.IssueID=? AND NOT a.Deleted', [fl['issueid']]).fetchone()
+                                csi = myDB.selectone('SELECT i.ComicID as comicid, i.IssueID, i.Issue_Number, a.ReleaseComicName, c.ComicName, c.ComicYear, c.AgeRating FROM comics as c JOIN annuals as a ON c.ComicID = a.ComicID WHERE a.IssueID=? AND NOT a.Deleted', [fl['issueid']]).fetchone()
                                 if csi is not None:
                                     annchk = 'yes'
                                 else:
                                     continue
                             else:
                                 annchk = 'no'
-                            if fl['sub']:
-                                logger.fdebug('%s[SUB: %s][CLOCATION: %s]' % (module, fl['sub'], fl['comiclocation']))
-                                clocation = os.path.join(fl['comiclocation'], fl['sub'], fl['comicfilename']) #helpers.conversion(fl['comicfilename']))
+
+                            if self.nzb_name == 'Manual Run':
+                                tname = str(pathlib.Path(fl['comicfilename']))
                             else:
-                                logger.fdebug('%s[CLOCATION] %s' % (module, fl['comiclocation']))
-                                clocation = os.path.join(fl['comiclocation'],fl['comicfilename']) #helpers.conversion(fl['comicfilename']))
+                                tname = str(pathlib.Path(fl['comiclocation']).name)
+                                tpath = fl['comiclocation']
+                            xyb = tname.find('[__')
+                            if xyb != -1:
+                                yyb = tname.find('__]', xyb)
+                                if yyb != -1:
+                                    rem_issueid = tname[xyb+3:yyb]
+                                    logger.fdebug('issueid: %s' % rem_issueid)
+                                    two_add = re.sub(r'\s+', '', tname[yyb+3:]).strip()
+                                    if any([two_add == '', two_add == ' ']):
+                                        nfilename = '%s' % tname[:xyb].strip()
+                                    else:
+                                        nfilename = '%s%s' % (tname[:xyb].strip(), two_add)
+                                    logger.fdebug('issueid information [%s] removed successfully: %s' % (rem_issueid, nfilename))
+
+                                if self.nzb_name == 'Manual Run':
+                                    if fl['sub'] is None:
+                                        tpath = os.path.join(self.nzb_folder, fl['comicfilename'])
+                                    else:
+                                        tpath = os.path.join(self.nzb_folder, fl['sub'], fl['comicfilename'])
+                                    cloct = pathlib.Path(tpath).with_name(nfilename)
+                                    clocation = str(pathlib.Path(tpath).rename(cloct))
+                                else:
+                                    cloct = pathlib.Path(tpath).with_name(nfilename)
+                                    clocation = str(pathlib.Path(tpath).rename(cloct))
+
+                                logger.fdebug('path with the issueid removed: %s' % clocation)
+
                             annualtype = None
                             if annchk == 'yes':
                                 if 'Annual' in csi['ReleaseComicName']:
@@ -546,7 +573,9 @@ class PostProcessor(object):
                                                 "IssueNumber":     csi['Issue_Number'],
                                                 "AnnualType":      annualtype,
                                                 "ComicName":       csi['ComicName'],
+                                                "AgeRating":       csi['AgeRating'],
                                                 "Series":          fl['series_name'],
+                                                "SeriesYear":      csi['ComicYear'],
                                                 "AltSeries":       fl['alt_series'],
                                                 "One-Off":         False,
                                                 "ForcedMatch":     True})
@@ -569,15 +598,21 @@ class PostProcessor(object):
                     for wv in comicseries:
                         logger.info('Now checking: %s [%s]' % (wv['ComicName'], wv['ComicID']))
                         #do some extra checks in here to ignore these types:
+                        # check for valid issue number - if not, don't even bother checking it
+                        try:
+                            tmp_iss = helpers.issuedigits(fl['issue_number'])
+                        except Exception as e:
+                            logger.warn('Unable to determine issue number. This is a no-go, Captain [%s]' % (e,))
+
                         #check for Paused status /
                         #check for Ended status and 100% completion of issues.
                         if any([wv['Status'] == 'Paused', bool(wv['ForceContinuing']) is True]) or (wv['Have'] == wv['Total'] and not any(['Present' in wv['ComicPublished'], helpers.now()[:4] in wv['ComicPublished']])):
-                            dbcheck = myDB.selectone('SELECT Status FROM issues WHERE ComicID=? and Int_IssueNumber=?', [wv['ComicID'], helpers.issuedigits(fl['issue_number'])]).fetchone()
+                            dbcheck = myDB.selectone('SELECT Status FROM issues WHERE ComicID=? and Int_IssueNumber=?', [wv['ComicID'], tmp_iss]).fetchone()
                             if not dbcheck and mylar.CONFIG.ANNUALS_ON:
-                                dbcheck = myDB.selectone('SELECT Status FROM annuals WHERE ComicID=? and Int_IssueNumber=?', [wv['ComicID'], helpers.issuedigits(fl['issue_number'])]).fetchone()
+                                dbcheck = myDB.selectone('SELECT Status FROM annuals WHERE ComicID=? and Int_IssueNumber=?', [wv['ComicID'], tmp_iss]).fetchone()
                             if dbcheck:
                                 if any([dbcheck[0] == 'Wanted', dbcheck[0] == 'Snatched']):
-                                    logger.fdebug('Series is 100%s complete, but specific issue %s matched up to a %s status. Let\'s Go!' % ('%', fl['issue_number'], dbcheck[0]))
+                                    logger.fdebug('Series is 100%s complete, but specific issue %s matched up to a %s status. Let\'s Go!' % ('%', tmp_iss, dbcheck[0]))
                                 else:
                                     logger.fdebug('Series is 100%s complete, however status is not Wanted (or Snatche), but %s. Set to Wanted for this to post-process on the next run.' % ('%', dbcheck[0]))
                                     continue
@@ -3130,7 +3165,8 @@ class PostProcessor(object):
             #    self.sendnotify(series, issueyear, dispiss, annchk, module)
             #    return self.queue.put(self.valreturn)
 
-            if any([all([mylar.CONFIG.PUSHOVER_IMAGE, mylar.CONFIG.PUSHOVER_ENABLED]), all([mylar.CONFIG.TELEGRAM_IMAGE, mylar.CONFIG.TELEGRAM_ENABLED]) ]):
+            # If using Pushover with image enabled, Telegram with image enabled, or Discord, extract the first image in the file for the notification
+            if any([all([mylar.CONFIG.PUSHOVER_IMAGE, mylar.CONFIG.PUSHOVER_ENABLED]), all([mylar.CONFIG.TELEGRAM_IMAGE, mylar.CONFIG.TELEGRAM_ENABLED]), all([mylar.CONFIG.DISCORD_ENABLED]) ]):
                 try:
                     get_cover = getimage.extract_image(dst, single=True, imquality='notif')
                     imageFile = get_cover['ComicImage']
@@ -3190,7 +3226,7 @@ class PostProcessor(object):
 
             if mylar.CONFIG.DISCORD_ENABLED:
                 discord = notifiers.DISCORD()
-                discord.notify("Download and Postprocessing completed", prline2, module=module)
+                discord.notify("Download and Postprocessing completed", prline2, module=module, imageFile=imageFile)
 
             if mylar.CONFIG.EMAIL_ENABLED and mylar.CONFIG.EMAIL_ONPOST:
                 logger.info("Sending email notification")

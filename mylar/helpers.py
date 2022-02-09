@@ -151,6 +151,14 @@ def bytes_to_mb(bytes):
     size = '%.1f MB' % mb
     return size
 
+def utc_date_to_local(run_time):
+    pr = (run_time - datetime.datetime.utcfromtimestamp(0)).total_seconds()
+    try:
+        run_it = datetime.datetime.fromtimestamp(int(pr))
+    except Exception as e:
+        run_it = datetime.datetime.fromtimestamp(pr)
+    return run_it
+
 def human_size(size_bytes):
     """
     format a size in bytes into a 'human' file size, e.g. bytes, KB, MB, GB, TB, PB
@@ -3186,8 +3194,9 @@ def ddl_downloader(queue):
                    'updated_date': datetime.datetime.now().strftime('%Y-%m-%d %H:%M')}
             myDB.upsert('ddl_info', val, ctrlval)
 
-            ddz = getcomics.GC()
-            ddzstat = ddz.downloadit(item['id'], item['link'], item['mainlink'], item['resume'])
+            if item['site'] == 'DDL(GetComics)':
+                ddz = getcomics.GC()
+                ddzstat = ddz.downloadit(item['id'], item['link'], item['mainlink'], item['resume'], item['issueid'])
 
             if ddzstat['success'] is True:
                 tdnow = datetime.datetime.now()
@@ -3607,7 +3616,7 @@ def date_conversion(originaldate):
     hours = (absdiff.days * 24 * 60 * 60 + absdiff.seconds) / 3600.0
     return hours
 
-def job_management(write=False, job=None, last_run_completed=None, current_run=None, status=None):
+def job_management(write=False, job=None, last_run_completed=None, current_run=None, status=None, failure=False):
         jobresults = []
 
         #import db
@@ -3793,7 +3802,12 @@ def job_management(write=False, job=None, last_run_completed=None, current_run=N
                                 jobstore = jbst
                                 break
                             elif job == 'Auto-Search' and 'search' in jb.lower():
-                                nextrun_stamp = utctimestamp() + (mylar.CONFIG.SEARCH_INTERVAL * 60)
+                                if failure is True:
+                                   logger.info('Previous job could not run due to other jobs. Scheduling Auto-Search for 10 minutes from now.')
+                                   s_interval = (10 * 60)
+                                else:
+                                   s_interval = mylar.CONFIG.SEARCH_INTERVAL * 60
+                                nextrun_stamp = utctimestamp() + s_interval
                                 jobstore = jbst
                                 break
                             elif job == 'RSS Feeds' and 'rss' in jb.lower():
@@ -3829,7 +3843,7 @@ def job_management(write=False, job=None, last_run_completed=None, current_run=N
                             nextrun_date = datetime.datetime.utcfromtimestamp(nextrun_stamp)
                             mylar.SCHED_RSS_LAST = last_run_completed
 
-                    logger.fdebug('ReScheduled job: %s to %s' % (job, nextrun_date))
+                    logger.fdebug('ReScheduled job: %s to %s' % (job, mylar.helpers.utc_date_to_local(nextrun_date)))
                     lastrun_comp = datetime.datetime.utcfromtimestamp(last_run_completed)
                     lastrun_comp = lastrun_comp.replace(microsecond=0)
                     #if it's completed, then update the last run time to the ending time of the job

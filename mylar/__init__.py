@@ -97,6 +97,9 @@ DBUPDATE_INTERVAL = 1440 # 24hrs
 DB_BACKFILL = False
 DBLOCK = False
 DB_FILE = None
+MAINTENANCE_UPDATE = []
+MAINTENANCE_DB_TOTAL = 0
+MAINTENANCE_DB_COUNT = 0
 UMASK = None
 WANTED_TAB_OFF = False
 PULLNEW = None
@@ -162,7 +165,6 @@ STATIC_COMICRN_VERSION = "1.01"
 STATIC_APC_VERSION = "2.04"
 ISSUE_EXCEPTIONS = ['AU', 'AI', 'INH', 'NOW', 'BEY', 'MU', 'HU', 'LR', 'A', 'B', 'C', 'X', 'O','SUMMER', 'SPRING', 'FALL', 'WINTER', 'PREVIEW', 'OMEGA', "DIRECTOR'S CUT", "(DC)"]
 SAB_PARAMS = None
-TMP_PROV = None
 EXT_IP = None
 PROVIDER_START_ID=0
 COMICINFO = ()
@@ -195,7 +197,8 @@ def initialize(config_file):
                PROG_DIR, DATA_DIR, CMTAGGER_PATH, DOWNLOAD_APIKEY, LOCAL_IP, STATIC_COMICRN_VERSION, STATIC_APC_VERSION, KEYS_32P, AUTHKEY_32P, FEED_32P, FEEDINFO_32P, \
                MONITOR_STATUS, SEARCH_STATUS, RSS_STATUS, WEEKLY_STATUS, VERSION_STATUS, UPDATER_STATUS, DBUPDATE_INTERVAL, DB_BACKFILL, LOG_LANG, LOG_CHARSET, APILOCK, SEARCHLOCK, DDL_LOCK, LOG_LEVEL, \
                SCHED_RSS_LAST, SCHED_WEEKLY_LAST, SCHED_MONITOR_LAST, SCHED_SEARCH_LAST, SCHED_VERSION_LAST, SCHED_DBUPDATE_LAST, COMICINFO, SEARCH_TIER_DATE, \
-               BACKENDSTATUS_CV, BACKENDSTATUS_WS, PROVIDER_STATUS, TMP_PROV, EXT_IP, ISSUE_EXCEPTIONS, PROVIDER_START_ID, GLOBAL_MESSAGES, CHECK_FOLDER_CACHE, FOLDER_CACHE, SESSION_ID
+               BACKENDSTATUS_CV, BACKENDSTATUS_WS, PROVIDER_STATUS, EXT_IP, ISSUE_EXCEPTIONS, PROVIDER_START_ID, GLOBAL_MESSAGES, CHECK_FOLDER_CACHE, FOLDER_CACHE, SESSION_ID, \
+               MAINTENANCE_UPDATE, MAINTENANCE_DB_COUNT, MAINTENANCE_DB_TOTAL
 
         cc = mylar.config.Config(config_file)
         CONFIG = cc.read(startup=True)
@@ -211,6 +214,20 @@ def initialize(config_file):
             dbcheck()
         except Exception as e:
             logger.error('Cannot connect to the database: %s' % e)
+        else:
+            cc.provider_sequence()
+
+            # quick check here to see if a previous db update failed.
+            chk = maintenance.Maintenance(mode='db update')
+            chk.check_failed_update()
+
+            # check to see if any db updates are required / new.
+            chk.db_update_check()
+
+        #set the flag here whether to start it up in maintenance mode or not.
+        #usually it will be based on if a field is present in the db or not.
+        if mylar.MAINTENANCE_UPDATE:
+            mylar.MAINTENANCE = True
 
         if MAINTENANCE is False:
             #try to get the local IP using socket. Get this on every startup so it's at least current for existing session.
@@ -324,16 +341,14 @@ def initialize(config_file):
             if PUBLISHER_IMPRINTS is not None:
                 logger.info('[IMPRINT_LOADS] Successfully loaded imprints for %s publishers' % (len(PUBLISHER_IMPRINTS['publishers'])))
 
+            logger.info('Remapping the sorting to allow for new additions.')
+            COMICSORT = helpers.ComicSort(sequence='startup')
+
         if CONFIG.LOCMOVE:
             helpers.updateComicLocation()
 
         # make sure the intLatestIssue field is populated with values...
-        helpers.latestissue_update()
-
-        #Ordering comics here
-        if mylar.MAINTENANCE is False:
-            logger.info('Remapping the sorting to allow for new additions.')
-            COMICSORT = helpers.ComicSort(sequence='startup')
+        # ??helpers.latestissue_update()
 
         # Store the original umask
         UMASK = os.umask(0)
@@ -439,7 +454,7 @@ def start():
                 else:
                     if SCHED_SEARCH_LAST is not None:
                         search_timestamp = float(SCHED_SEARCH_LAST)
-                        logger.fdebug('[AUTO-SEARCH] Search last run @ %s' % datetime.datetime.utcfromtimestamp(search_timestamp))
+                        logger.fdebug('[AUTO-SEARCH] Search last run @ %s' % helpers.utc_date_to_local(datetime.datetime.utcfromtimestamp(search_timestamp)))
                     else:
                         search_timestamp = helpers.utctimestamp() + (int(CONFIG.SEARCH_INTERVAL) *60)
 
@@ -449,7 +464,7 @@ def start():
                         SCHED.add_job(func=ss.run, id='search', name='Auto-Search', next_run_time=(datetime.datetime.utcnow() + timedelta(minutes=2)), trigger=IntervalTrigger(hours=0, minutes=CONFIG.SEARCH_INTERVAL, timezone='UTC'))
                     else:
                         search_diff = datetime.datetime.utcfromtimestamp(helpers.utctimestamp() + ((int(CONFIG.SEARCH_INTERVAL) * 60)  - (duration_diff*60)))
-                        logger.fdebug('[AUTO-SEARCH] Scheduling next run @ %s (every %s minutes)' % (search_diff, CONFIG.SEARCH_INTERVAL))
+                        logger.fdebug('[AUTO-SEARCH] Scheduling next run @ %s (every %s minutes)' % (helpers.utc_date_to_local(search_diff), CONFIG.SEARCH_INTERVAL))
                         SCHED.add_job(func=ss.run, id='search', name='Auto-Search', next_run_time=search_diff, trigger=IntervalTrigger(hours=0, minutes=CONFIG.SEARCH_INTERVAL, timezone='UTC'))
             else:
                 ss = searchit.CurrentSearcher()
@@ -504,7 +519,7 @@ def start():
                     SCHED.add_job(func=ws.run, id='weekly', name='Weekly Pullist', next_run_time=datetime.datetime.utcnow(), trigger=IntervalTrigger(hours=weektimer, minutes=0, timezone='UTC'))
                 else:
                     weekly_diff = datetime.datetime.utcfromtimestamp(weektimestamp + (weekly_interval - (duration_diff * 60)))
-                    logger.fdebug('[WEEKLY] Scheduling next run for @ %s every %s hours' % (weekly_diff, weektimer))
+                    logger.fdebug('[WEEKLY] Scheduling next run for @ %s every %s hours' % (helpers.utc_date_to_local(weekly_diff), weektimer))
                     SCHED.add_job(func=ws.run, id='weekly', name='Weekly Pullist', next_run_time=weekly_diff, trigger=IntervalTrigger(hours=weektimer, minutes=0, timezone='UTC'))
 
             #initiate startup rss feeds for torrents/nzbs here...
@@ -513,7 +528,7 @@ def start():
                 logger.info('[RSS-FEEDS] Initiating startup-RSS feed checks.')
                 if SCHED_RSS_LAST is not None:
                     rss_timestamp = float(SCHED_RSS_LAST)
-                    logger.info('[RSS-FEEDS] RSS last run @ %s' % datetime.datetime.utcfromtimestamp(rss_timestamp))
+                    logger.info('[RSS-FEEDS] RSS last run @ %s' % helpers.utc_date_to_local(datetime.datetime.utcfromtimestamp(rss_timestamp)))
                 else:
                     rss_timestamp = helpers.utctimestamp() + (int(CONFIG.RSS_CHECKINTERVAL) *60)
                 duration_diff = (helpers.utctimestamp() - rss_timestamp)/60
@@ -521,7 +536,7 @@ def start():
                     SCHED.add_job(func=rs.run, id='rss', name='RSS Feeds', args=[True], next_run_time=datetime.datetime.utcnow(), trigger=IntervalTrigger(hours=0, minutes=int(CONFIG.RSS_CHECKINTERVAL), timezone='UTC'))
                 else:
                     rss_diff = datetime.datetime.utcfromtimestamp(helpers.utctimestamp() + (int(CONFIG.RSS_CHECKINTERVAL) * 60) - (duration_diff * 60))
-                    logger.fdebug('[RSS-FEEDS] Scheduling next run for @ %s every %s minutes' % (rss_diff, CONFIG.RSS_CHECKINTERVAL))
+                    logger.fdebug('[RSS-FEEDS] Scheduling next run for @ %s every %s minutes' % (helpers.utc_date_to_local(rss_diff), CONFIG.RSS_CHECKINTERVAL))
                     SCHED.add_job(func=rs.run, id='rss', name='RSS Feeds', args=[True], next_run_time=rss_diff, trigger=IntervalTrigger(hours=0, minutes=int(CONFIG.RSS_CHECKINTERVAL), timezone='UTC'))
             else:
                  RSS_STATUS = 'Paused'
@@ -753,7 +768,7 @@ def dbcheck():
             logger.warn('Unable to update readinglist table to new storyarc table format.')
 
     c.execute('CREATE TABLE IF NOT EXISTS comics (ComicID TEXT UNIQUE, ComicName TEXT, ComicSortName TEXT, ComicYear TEXT, DateAdded TEXT, Status TEXT, IncludeExtras INTEGER, Have INTEGER, Total INTEGER, ComicImage TEXT, FirstImageSize INTEGER, ComicPublisher TEXT, PublisherImprint TEXT, ComicLocation TEXT, ComicPublished TEXT, NewPublish TEXT, LatestIssue TEXT, intLatestIssue INT, LatestDate TEXT, Description TEXT, DescriptionEdit TEXT, QUALalt_vers TEXT, QUALtype TEXT, QUALscanner TEXT, QUALquality TEXT, LastUpdated TEXT, AlternateSearch TEXT, UseFuzzy TEXT, ComicVersion TEXT, SortOrder INTEGER, DetailURL TEXT, ForceContinuing INTEGER, ComicName_Filesafe TEXT, AlternateFileName TEXT, ComicImageURL TEXT, ComicImageALTURL TEXT, DynamicComicName TEXT, AllowPacks TEXT, Type TEXT, Corrected_SeriesYear TEXT, Corrected_Type TEXT, TorrentID_32P TEXT, LatestIssueID TEXT, Collects CLOB, IgnoreType INTEGER, AgeRating TEXT, FilesUpdated TEXT, seriesjsonPresent INT, dirlocked INTEGER)')
-    c.execute('CREATE TABLE IF NOT EXISTS issues (IssueID TEXT, ComicName TEXT, IssueName TEXT, Issue_Number TEXT, DateAdded TEXT, Status TEXT, Type TEXT, ComicID TEXT, ArtworkURL Text, ReleaseDate TEXT, Location TEXT, IssueDate TEXT, DigitalDate TEXT, Int_IssueNumber INT, ComicSize TEXT, AltIssueNumber TEXT, IssueDate_Edit TEXT, ImageURL TEXT, ImageURL_ALT TEXT)')
+    c.execute('CREATE TABLE IF NOT EXISTS issues (IssueID TEXT, ComicName TEXT, IssueName TEXT, Issue_Number TEXT, DateAdded TEXT, Status TEXT, Type TEXT, ComicID TEXT, ArtworkURL Text, ReleaseDate TEXT, Location TEXT, IssueDate TEXT, DigitalDate TEXT, Int_IssueNumber INT, ComicSize TEXT, AltIssueNumber TEXT, IssueDate_Edit TEXT, ImageURL TEXT, ImageURL_ALT TEXT, forced_file INT)')
     c.execute('CREATE TABLE IF NOT EXISTS snatched (IssueID TEXT, ComicName TEXT, Issue_Number TEXT, Size INTEGER, DateAdded TEXT, Status TEXT, FolderName TEXT, ComicID TEXT, Provider TEXT, Hash TEXT, crc TEXT)')
     c.execute('CREATE TABLE IF NOT EXISTS upcoming (ComicName TEXT, IssueNumber TEXT, ComicID TEXT, IssueID TEXT, IssueDate TEXT, Status TEXT, DisplayComicName TEXT)')
     c.execute('CREATE TABLE IF NOT EXISTS nzblog (IssueID TEXT, NZBName TEXT, SARC TEXT, PROVIDER TEXT, ID TEXT, AltNZBName TEXT, OneOff TEXT)')
@@ -761,7 +776,7 @@ def dbcheck():
     c.execute('CREATE TABLE IF NOT EXISTS importresults (impID TEXT, ComicName TEXT, ComicYear TEXT, Status TEXT, ImportDate TEXT, ComicFilename TEXT, ComicLocation TEXT, WatchMatch TEXT, DisplayName TEXT, SRID TEXT, ComicID TEXT, IssueID TEXT, Volume TEXT, IssueNumber TEXT, DynamicName TEXT)')
     c.execute('CREATE TABLE IF NOT EXISTS readlist (IssueID TEXT, ComicName TEXT, Issue_Number TEXT, Status TEXT, DateAdded TEXT, Location TEXT, inCacheDir TEXT, SeriesYear TEXT, ComicID TEXT, StatusChange TEXT)')
     c.execute('CREATE TABLE IF NOT EXISTS annuals (IssueID TEXT, Issue_Number TEXT, IssueName TEXT, IssueDate TEXT, Status TEXT, ComicID TEXT, GCDComicID TEXT, Location TEXT, ComicSize TEXT, Int_IssueNumber INT, ComicName TEXT, ReleaseDate TEXT, DigitalDate TEXT, ReleaseComicID TEXT, ReleaseComicName TEXT, IssueDate_Edit TEXT, DateAdded TEXT, Deleted INT DEFAULT 0)')
-    c.execute('CREATE TABLE IF NOT EXISTS rssdb (Title TEXT UNIQUE, Link TEXT, Pubdate TEXT, Site TEXT, Size TEXT)')
+    c.execute('CREATE TABLE IF NOT EXISTS rssdb (Title TEXT UNIQUE, Link TEXT, Pubdate TEXT, Site TEXT, Size TEXT, Issue_Number TEXT, ComicName TEXT)')
     c.execute('CREATE TABLE IF NOT EXISTS futureupcoming (ComicName TEXT, IssueNumber TEXT, ComicID TEXT, IssueID TEXT, IssueDate TEXT, Publisher TEXT, Status TEXT, DisplayComicName TEXT, weeknumber TEXT, year TEXT)')
     c.execute('CREATE TABLE IF NOT EXISTS failed (ID TEXT, Status TEXT, ComicID TEXT, IssueID TEXT, Provider TEXT, ComicName TEXT, Issue_Number TEXT, NZBName TEXT, DateFailed TEXT)')
     c.execute('CREATE TABLE IF NOT EXISTS searchresults (SRID TEXT, results Numeric, Series TEXT, publisher TEXT, haveit TEXT, name TEXT, deck TEXT, url TEXT, description TEXT, comicid TEXT, comicimage TEXT, issues TEXT, comicyear TEXT, ogcname TEXT)')
@@ -770,10 +785,12 @@ def dbcheck():
     c.execute('CREATE TABLE IF NOT EXISTS jobhistory (JobName TEXT, prev_run_datetime timestamp, prev_run_timestamp REAL, next_run_datetime timestamp, next_run_timestamp REAL, last_run_completed TEXT, successful_completions TEXT, failed_completions TEXT, status TEXT, last_date timestamp)')
     c.execute('CREATE TABLE IF NOT EXISTS manualresults (provider TEXT, id TEXT, kind TEXT, comicname TEXT, volume TEXT, oneoff TEXT, fullprov TEXT, issuenumber TEXT, modcomicname TEXT, name TEXT, link TEXT, size TEXT, pack_numbers TEXT, pack_issuelist TEXT, comicyear TEXT, issuedate TEXT, tmpprov TEXT, pack TEXT, issueid TEXT, comicid TEXT, sarc TEXT, issuearcid TEXT)')
     c.execute('CREATE TABLE IF NOT EXISTS storyarcs(StoryArcID TEXT, ComicName TEXT, IssueNumber TEXT, SeriesYear TEXT, IssueYEAR TEXT, StoryArc TEXT, TotalIssues TEXT, Status TEXT, inCacheDir TEXT, Location TEXT, IssueArcID TEXT, ReadingOrder INT, IssueID TEXT, ComicID TEXT, ReleaseDate TEXT, IssueDate TEXT, Publisher TEXT, IssuePublisher TEXT, IssueName TEXT, CV_ArcID TEXT, Int_IssueNumber INT, DynamicComicName TEXT, Volume TEXT, Manual TEXT, DateAdded TEXT, DigitalDate TEXT, Type TEXT, Aliases TEXT, ArcImage TEXT)')
-    c.execute('CREATE TABLE IF NOT EXISTS ddl_info (ID TEXT UNIQUE, series TEXT, year TEXT, filename TEXT, size TEXT, issueid TEXT, comicid TEXT, link TEXT, status TEXT, remote_filesize TEXT, updated_date TEXT, mainlink TEXT, issues TEXT)')
+    c.execute('CREATE TABLE IF NOT EXISTS ddl_info (ID TEXT UNIQUE, series TEXT, year TEXT, filename TEXT, size TEXT, issueid TEXT, comicid TEXT, link TEXT, status TEXT, remote_filesize TEXT, updated_date TEXT, mainlink TEXT, issues TEXT, site TEXT, submit_date TEXT)')
     c.execute('CREATE TABLE IF NOT EXISTS exceptions_log(date TEXT UNIQUE, comicname TEXT, issuenumber TEXT, seriesyear TEXT, issueid TEXT, comicid TEXT, booktype TEXT, searchmode TEXT, error TEXT, error_text TEXT, filename TEXT, line_num TEXT, func_name TEXT, traceback TEXT)')
     c.execute('CREATE TABLE IF NOT EXISTS tmp_searches (query_id INTEGER, comicid INTEGER, comicname TEXT, publisher TEXT, publisherimprint TEXT, comicyear TEXT, issues TEXT, volume TEXT, deck TEXT, url TEXT, type TEXT, cvarcid TEXT, arclist TEXT, description TEXT, haveit TEXT, mode TEXT, searchtype TEXT, comicimage TEXT, thumbimage TEXT, PRIMARY KEY (query_id, comicid))')
     c.execute('CREATE TABLE IF NOT EXISTS notifs(session_id INT, date TEXT, event TEXT, comicid TEXT, comicname TEXT, issuenumber TEXT, seriesyear TEXT, status TEXT, message TEXT, PRIMARY KEY (session_id, date))')
+    c.execute('CREATE TABLE IF NOT EXISTS provider_searches(provider TEXT UNIQUE, type TEXT, lastrun INTEGER, active TEXT)')
+    c.execute('CREATE TABLE IF NOT EXISTS mylar_info(DatabaseVersion INTEGER PRIMARY KEY)')
     conn.commit
     c.close
 
@@ -786,6 +803,19 @@ def dbcheck():
     #c.execute('''PRAGMA journal_mode = WAL''')
 
     #add in the late players to the game....
+
+    # -- mylar info table --
+    try:
+        bdc = c.execute('SELECT DatabaseVersion from mylar_info')
+    except sqlite3.OperationalError:
+        c.execute('ALTER TABLE mylar_info ADD COLUMN DatabaseVersion INTEGER PRIMARY KEY')
+        c.execute("INSERT INTO mylar_info(DatabaseVersion) VALUES(0)")
+    else:
+        bc = bdc.fetchone()
+        if any([not bc, bc is None]):
+            #version is null - set the default version now.
+            c.execute("INSERT INTO mylar_info(DatabaseVersion) VALUES(0)")
+
     # -- Comics Table --
 
     try:
@@ -994,6 +1024,11 @@ def dbcheck():
         c.execute('SELECT DigitalDate from issues')
     except sqlite3.OperationalError:
         c.execute('ALTER TABLE issues ADD COLUMN DigitalDate TEXT')
+
+    try:
+        c.execute('SELECT forced_file from issues')
+    except sqlite3.OperationalError:
+        c.execute('ALTER TABLE issues ADD COLUMN forced_file INT')
 
     ## -- ImportResults Table --
 
@@ -1241,6 +1276,19 @@ def dbcheck():
     except sqlite3.OperationalError:
         c.execute('ALTER TABLE annuals ADD COLUMN Deleted INT DEFAULT 0')
 
+    ## -- rssdb Table --
+    #to_the_rss_update = False
+    #try:
+    #    c.execute('SELECT Issue_Number from rssdb')
+    #except sqlite3.OperationalError:
+    #    c.execute('ALTER TABLE rssdb ADD COLUMN Issue_Number TEXT')
+    #    to_the_rss_update = True
+
+    #try:
+    #    c.execute('SELECT ComicName from rssdb')
+    #except sqlite3.OperationalError:
+    #    c.execute('ALTER TABLE rssdb ADD COLUMN ComicName TEXT')
+
     ## -- Snatched Table --
 
     try:
@@ -1408,9 +1456,13 @@ def dbcheck():
     # so it can stagger the requests across an hr or more
     try:
         c.execute('SELECT last_date from jobhistory')
-    except sqlite3.OperationalError:
-        c.execute('ALTER TABLE jobhistory ADD COLUMN last_date timestamp')
-        mylar.DB_BACKFILL = True
+    except (sqlite3.OperationalError, Exception) as e:
+        try:
+            c.execute('ALTER TABLE jobhistory ADD COLUMN last_date timestamp')
+        except (sqlite3.OperationalError, Exception) as e:
+            mylar.DB_BACKFILL = False # table already exists but something about last_date is f'd
+        else:
+            mylar.DB_BACKFILL = True
     else:
         mylar.DB_BACKFILL = False
 
@@ -1434,6 +1486,16 @@ def dbcheck():
         c.execute('SELECT issues from ddl_info')
     except sqlite3.OperationalError:
         c.execute('ALTER TABLE ddl_info ADD COLUMN issues TEXT')
+
+    try:
+        c.execute('SELECT site from ddl_info')
+    except sqlite3.OperationalError:
+        c.execute('ALTER TABLE ddl_info ADD COLUMN site TEXT')
+
+    try:
+        c.execute('SELECT submit_date from ddl_info')
+    except sqlite3.OperationalError:
+        c.execute('ALTER TABLE ddl_info ADD COLUMN submit_date TEXT')
 
     #if it's prior to Wednesday, the issue counts will be inflated by one as the online db's everywhere
     #prepare for the next 'new' release of a series. It's caught in updater.py, so let's just store the
@@ -1477,18 +1539,29 @@ def dbcheck():
     except Exception:
         pass
 
-    job_listing = c.execute('SELECT * FROM jobhistory')
-    job_history = []
-    for jh in job_listing:
-        job_history.append(jh)
 
-    #logger.fdebug('job_history loaded: %s' % job_history)
+    #update tables here as necessary based on current version of mylar.
+    #this won't be written to the ini until a save of the config after load, but it should be oldconfig_version+1 on load
+    logger.info('[%s]oldconfig_version: %s' % (type(mylar.CONFIG.OLDCONFIG_VERSION), mylar.CONFIG.OLDCONFIG_VERSION))
+    if mylar.CONFIG.OLDCONFIG_VERSION is not None:
+        if int(mylar.CONFIG.OLDCONFIG_VERSION) < 12:
+            logger.info('now updating table data to ensure DDL is properly populated with correct data.')
+            c.execute("UPDATE snatched SET Provider = 'DDL(GetComics)' WHERE Provider = 'ddl'")
+            c.execute("UPDATE nzblog SET PROVIDER = 'DDL(GetComics)' WHERE PROVIDER = 'ddl'")
+            c.execute("UPDATE rssdb SET site = 'DDL(GetComics)' WHERE site = 'DDL'")
+            c.execute("UPDATE ddl_info SET site = 'DDL(GetComics)' WHERE site is NULL")
+
     conn.commit()
     c.close()
 
     if dynamic_upgrade is True:
         logger.info('Updating db to include some important changes.')
         helpers.upgrade_dynamic()
+
+    #if to_the_rss_update is True:
+    #    mylar.MAINTENANCE = True
+    #    mylar.MAINTENANCE_DB_TOTAL = 1 # set this to 1 to kick it.
+
 
 def halt():
     global _INITIALIZED, started
@@ -1546,6 +1619,6 @@ def shutdown(restart=False, update=False, maintenance=False):
                 if all([x != 'maintenance', x != '-u']):
                     popen_list += x
         logger.info('Restarting Mylar with ' + str(popen_list))
-        subprocess.Popen(popen_list, cwd=os.getcwd())
+        os.execv(sys.executable, popen_list)
 
     os._exit(0)
