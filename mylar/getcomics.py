@@ -860,21 +860,34 @@ class GC(object):
                         )
                         return {"success": False, "filename": filename, "path": None}
 
-                path = os.path.join(mylar.CONFIG.DDL_LOCATION, filename)
+                dst_path = os.path.join(mylar.CONFIG.DDL_LOCATION, filename)
 
                 # if t.headers.get('content-encoding') == 'gzip':
                 #    buf = StringIO(t.content)
                 #    f = gzip.GzipFile(fileobj=buf)
 
                 if resume is not None:
-                    with open(path, 'ab') as f:
+                    with open(dst_path, 'ab') as f:
                         for chunk in t.iter_content(chunk_size=1024):
                             if chunk:
                                 f.write(chunk)
                                 f.flush()
 
                 else:
-                    with open(path, 'wb') as f:
+                    if os.path.exists(dst_path):
+                        logger.fdebug('%s already exists - resume not enabled - let us hammer thine')
+                        try:
+                            os.remove(dst_path)
+                        except Exception as e:
+                            file, ext = os.path.splitext(filename)
+                            filename = '%s.1%s' % (file, ext)
+                            dst_path = os.path.join(mylar.CONFIG.DDL_LOCATION, filename)
+                            logger.warn(
+                                '[ERROR: %s] Unable to remove already existing file.'
+                                ' Creating tmp file @%s so it can download.' % (e, filename)
+                            )
+
+                    with open(dst_path, 'wb') as f:
                         for chunk in t.iter_content(chunk_size=1024):
                             if chunk:
                                 f.write(chunk)
@@ -887,8 +900,8 @@ class GC(object):
 
         else:
             mylar.DDL_LOCK = False
-            if os.path.isfile(path):
-                if path.endswith('.zip'):
+            if os.path.isfile(dst_path):
+                if dst_path.endswith('.zip'):
                     new_path = os.path.join(
                         mylar.CONFIG.DDL_LOCATION, re.sub('.zip', '', filename).strip()
                     )
@@ -897,7 +910,7 @@ class GC(object):
                         ' Unzipping into new modified path location: %s' % new_path
                     )
                     try:
-                        zip_f = zipfile.ZipFile(path, 'r')
+                        zip_f = zipfile.ZipFile(dst_path, 'r')
                         zip_f.extractall(new_path)
                         zip_f.close()
                     except Exception as e:
@@ -907,15 +920,15 @@ class GC(object):
                         return {"success": False, "filename": filename, "path": None}
                     else:
                         try:
-                            os.remove(path)
+                            os.remove(dst_path)
                         except Exception as e:
                             logger.warn(
                                 '[ERROR: %s] Unable to remove zip file from %s after'
-                                ' extraction.' % (e, path)
+                                ' extraction.' % (e, dst_path)
                             )
                         filename = None
                 else:
-                    new_path = path
+                    new_path = dst_path
                 return {"success": True, "filename": filename, "path": new_path}
 
     def issue_list(self, pack):

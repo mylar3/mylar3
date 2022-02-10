@@ -143,7 +143,7 @@ class FailedProcessor(object):
             nzbname = nzbiss['NZBName']
 
         if all([self.id == nzbiss['ID'], self.prov == nzbiss['PROVIDER']]):
-            logger.info('ID %s for provider %s already exists as a Failed item. Continuing the search...')
+            logger.info('ID %s for provider %s already exists as a Failed item. Continuing the search...' % (nzbiss['ID'], nzbiss['Provider']))
             return
 
         if self.prov is None:
