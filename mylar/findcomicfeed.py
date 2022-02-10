@@ -41,11 +41,9 @@ def Startit(searchName, searchIssue, searchYear, ComicVersion, IssDateFix, bookt
 
     tmpsearchIssue = searchIssue
 
-    if any([booktype == 'One-Shot', booktype == 'TPB']):
-            tmpsearchIssue = '1'
-            loop = 4
-    elif searchIssue is None:
-        loop = 1
+    if any([booktype == 'One-Shot', booktype == 'TPB', booktype =='HC', booktype =='GN', searchIssue is None]):
+        tmpsearchIssue = '1'
+        loop = 4
     elif len(searchIssue) == 1:
         loop = 3
     elif len(searchIssue) == 2:
