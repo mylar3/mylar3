@@ -549,10 +549,10 @@ class PostProcessor(object):
                                     else:
                                         tpath = os.path.join(self.nzb_folder, fl['sub'], fl['comicfilename'])
                                     cloct = pathlib.Path(tpath).with_name(nfilename)
-                                    clocation = str(pathlib.Path(tpath).rename(cloct))
+                                    clocation = str(pathlib.Path(tpath).replace(cloct))
                                 else:
                                     cloct = pathlib.Path(tpath).with_name(nfilename)
-                                    clocation = str(pathlib.Path(tpath).rename(cloct))
+                                    clocation = str(pathlib.Path(tpath).replace(cloct))
 
                                 logger.fdebug('path with the issueid removed: %s' % clocation)
 
