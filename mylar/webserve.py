@@ -3073,7 +3073,7 @@ class WebInterface(object):
                                         'comicname': arc['ComicName'],
                                         'status': arc['Status'],
                                         'dateadded': arc['DateAdded']}
-        logger.info('# arcs: %s' % (len(arcs)))
+        #logger.fdebug('# arcs: %s' % (len(arcs)))
         isCounts = {}
         isCounts[1] = 0   #1 wanted
         isCounts[2] = 0   #2 snatched
@@ -3259,7 +3259,7 @@ class WebInterface(object):
                 try:
                     filtered.append([row['ComicName'], row['Issue_Number'], row['ReleaseDate'], row['IssueID'], tier, row['ComicID'], row['Status'], storyarc, storyarcid, issuearcid, watcharc])
                 except Exception as e:
-                    logger.warn('danger Wil Robinson: %s' % (e,))
+                    #logger.warn('danger Wil Robinson: %s' % (e,))
                     filtered.append([row['ComicName'], row['Issue_Number'], row['ReleaseDate'], row['IssueID'], tier, row['ComicID'], row['Status'], None, None, None, watcharc])
 
         if mylar.CONFIG.UPCOMING_STORYARCS is True:
@@ -3313,7 +3313,7 @@ class WebInterface(object):
 
         #logger.fdebug('[%s] one-off arcs: %s' % (len(arcs), arcs,))
 
-        logger.fdebug('sort_column: %s: sort_directioN: %s' % (iSortCol_0,sSortDir_0))
+        #logger.fdebug('sort_column: %s: sort_directioN: %s' % (iSortCol_0,sSortDir_0))
         sortcolumn = 2 #'releasedate'
         if iSortCol_0 == '1':
             sortcolumn = 0 #'comicame'
@@ -3800,7 +3800,6 @@ class WebInterface(object):
                      'imp_seriesfolders': helpers.checked(mylar.CONFIG.IMP_SERIESFOLDERS)}
 
         mylarRoot = mylar.CONFIG.DESTINATION_DIR
-        from . import db
         myDB = db.DBConnection()
         jobresults = myDB.select('SELECT DISTINCT * FROM jobhistory')
         if jobresults is not None:
@@ -3823,44 +3822,35 @@ class WebInterface(object):
                 else:
                     next_run = None
                 if 'rss' in jb['JobName'].lower():
-                    #if mylar.CONFIG.ENABLE_RSS is False:
-                    #    mylar.RSS_STATUS = 'Paused'
-                    #elif jb['Status'] == 'Paused' and mylar.CONFIG.ENABLE_RSS is True:
-                    #    mylar.RSS_STATUS = 'Waiting'
+                    #logger.fdebug('rss - job update. RSS_STATUS: %s / db: %s' % (mylar.RSS_STATUS, jb['Status']))
                     status = mylar.RSS_STATUS
                     interval = str(mylar.CONFIG.RSS_CHECKINTERVAL) + ' mins'
-                if 'weekly' in jb['JobName'].lower():
+                elif 'weekly' in jb['JobName'].lower():
+                    #logger.fdebug('weekly - job update. WEEKLY_STATUS: %s / db: %s' % (mylar.WEEKLY_STATUS, jb['Status']))
                     status = mylar.WEEKLY_STATUS
                     if mylar.CONFIG.ALT_PULL == 2: interval = '4 hrs'
                     else: interval = '24 hrs'
-                if 'search' in jb['JobName'].lower():
-                    #if mylar.CONFIG.NZB_STARTUP_SEARCH is False and jb['Status'] != 'Running':
-                    #    mylar.SEARCH_STATUS = 'Waiting'
-                    #elif jb['Status'] == 'Paused' and mylar.CONFIG.NZB_STARTUP_SEARCH is True:
-                    #    mylar.SEARCH_STATUS = 'Waiting'
+                elif 'search' in jb['JobName'].lower():
+                    #logger.fdebug('search - job update. SEARCH_STATUS: %s / db: %s' % (mylar.SEARCH_STATUS, jb['Status']))
                     status = mylar.SEARCH_STATUS
                     interval = str(mylar.CONFIG.SEARCH_INTERVAL) + ' mins'
-                if 'updater' in jb['JobName'].lower():
+                elif 'updater' in jb['JobName'].lower():
+                    #logger.fdebug('updater - job update. UPDATER_STATUS: %s / db: %s' % (mylar.UPDATER_STATUS, jb['Status']))
                     status = mylar.UPDATER_STATUS
                     interval = str(int(mylar.DBUPDATE_INTERVAL)) + ' mins'
-                if 'folder' in jb['JobName'].lower():
-                    #if mylar.CONFIG.ENABLE_CHECK_FOLDER is False:
-                    #    mylar.MONITOR_STATUS = 'Paused'
-                    #elif jb['Status'] == 'Paused' and mylar.CONFIG.ENABLE_CHECK_FOLDER is True:
-                    #    mylar.MONITOR_STATUS = 'Waiting'
+                elif 'folder' in jb['JobName'].lower():
+                    #logger.fdebug('monitor - job update. MONITOR_STATUS: %s / db: %s' % (mylar.MONITOR_STATUS, jb['Status']))
                     status = mylar.MONITOR_STATUS
                     interval = str(mylar.CONFIG.DOWNLOAD_SCAN_INTERVAL) + ' mins'
-                if 'version' in jb['JobName'].lower():
-                    #if mylar.CONFIG.CHECK_GITHUB is False:
-                    #    mylar.VERSION_STATUS = 'Paused'
-                    #elif jb['Status'] == 'Paused' and mylar.CONFIG.CHECK_GITHUB is True:
-                    #    mylar.VERSION_STATUS = 'Waiting'
+                elif 'version' in jb['JobName'].lower():
+                    #logger.fdebug('version - job update. VERSION_STATUS: %s / db: %s' % (mylar.VERSION_STATUS, jb['Status']))
                     status = mylar.VERSION_STATUS
                     interval = str(mylar.CONFIG.CHECK_GITHUB_INTERVAL) + ' mins'
 
-                #if status != jb['Status'] and not('rss' in jb['JobName'].lower()):
-                #    status = jb['Status']
-
+                if prev_run is None:
+                    prev_run = '-----'
+                if any([next_run is None, status == 'Paused']):
+                    next_run = '-----'
                 tmp.append({'prev_run_datetime':  prev_run,
                             'next_run_datetime': next_run,
                             'interval': interval,
@@ -3871,14 +3861,14 @@ class WebInterface(object):
     manage.exposed = True
 
     def jobmanage(self, job, mode):
-        logger.info('%s : %s' % (job, mode))
+        #logger.fdebug('%s : %s' % (job, mode))
         jobid = None
         job_id_map = {'DB Updater': 'dbupdater', 'Auto-Search': 'search', 'RSS Feeds': 'rss', 'Weekly Pullist': 'weekly', 'Check Version': 'version', 'Folder Monitor': 'monitor'}
         for k,v in job_id_map.items():
             if k == job:
                 jobid = v
                 break
-        logger.info('jobid: %s' % jobid)
+        #logger.fdebug('jobid: %s' % jobid)
         if jobid is not None:
             myDB = db.DBConnection()
             if mode == 'pause':
@@ -3891,8 +3881,19 @@ class WebInterface(object):
                 val = {'Status': 'Paused'}
                 if jobid == 'rss':
                     mylar.CONFIG.ENABLE_RSS = False
+                    mylar.RSS_STATUS = 'Paused'
                 elif jobid == 'monitor':
                     mylar.CONFIG.ENABLE_CHECK_FOLDER = False
+                    mylar.MONITOR_STATUS = 'Paused'
+                elif jobid == 'version':
+                    mylar.CONFIG.CHECK_GITHUB = False
+                    mylar.VERSION_STATUS = 'Paused'
+                elif jobid == 'updater':
+                    mylar.UPDATER_STATUS = 'Paused'
+                elif jobid == 'search':
+                    mylar.SEARCH_STATUS = 'Paused'
+                elif jobid == 'weekly':
+                    mylar.WEEKLY_STATUS = 'Paused'
                 myDB.upsert('jobhistory', val, ctrl)
             elif mode == 'resume':
                 try:
@@ -3905,10 +3906,21 @@ class WebInterface(object):
                 myDB.upsert('jobhistory', val, ctrl)
                 if jobid == 'rss':
                     mylar.CONFIG.ENABLE_RSS = True
+                    mylar.RSS_STATUS = 'Waiting'
                 elif jobid == 'monitor':
                     mylar.CONFIG.ENABLE_CHECK_FOLDER = True
+                    mylar.MONITOR_STATUS = 'Waiting'
+                elif jobid == 'version':
+                    mylar.CONFIG.CHECK_GITHUB = True
+                    mylar.VERSION_STATUS = 'Waiting'
+                elif jobid == 'updater':
+                    mylar.UPDATER_STATUS = 'Waiting'
+                elif jobid == 'search':
+                    mylar.SEARCH_STATUS = 'Waiting'
+                elif jobid == 'weekly':
+                    mylar.WEEKLY_STATUS = 'Waiting'
 
-            helpers.job_management()
+            helpers.job_management(write=True)
         else:
             logger.warn('%s cannot be matched against any scheduled jobs - maybe you should restart?' % job)
     jobmanage.exposed = True

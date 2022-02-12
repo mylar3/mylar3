@@ -84,7 +84,7 @@ class Api(object):
                     else:
                         data = '\nevent: addbyid\ndata: {\ndata: "status": "' + results['status'] + '",\ndata: "comicid": "' + results['comicid']+ '",\ndata: "message": "' + results['message'] + '",\ndata: "tables": "' + results['tables'] + '",\ndata: "comicname": "' + results['comicname'] + '",\ndata: "seriesyear": "' + results['seriesyear'] + '"\ndata: }\n\n'
                 except Exception as e:
-                    logger.warn('error: %s' % e)
+                    #logger.warn('error: %s' % e)
                     data = '\nevent: addbyid\ndata: {\ndata: "status": "' + results['status'] + '",\ndata: "comicid": "' + results['comicid']+ '",\ndata: "message": "' + results['message'] + '",\ndata: "tables": "' + results['tables'] + '"\ndata: }\n\n'
             elif results['event'] == 'scheduler_message':
                 try:

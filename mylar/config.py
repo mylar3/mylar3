@@ -8,7 +8,6 @@ import glob
 import json
 import codecs
 import shutil
-import threading
 import re
 import configparser
 import mylar

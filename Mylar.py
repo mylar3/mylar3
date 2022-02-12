@@ -279,7 +279,7 @@ def main():
             logger.info('[AUTO-BACKUP] Successful backup of %s files [%s]' % (len(successes), successes))
 
     # Rename the main thread
-    threading.currentThread().name = "MAIN"
+    threading.current_thread().name = "MAIN"
 
     if mylar.DAEMON:
         mylar.daemonize()

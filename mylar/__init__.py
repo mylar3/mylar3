@@ -87,6 +87,12 @@ RSS_STATUS = 'Waiting'
 WEEKLY_STATUS = 'Waiting'
 VERSION_STATUS = 'Waiting'
 UPDATER_STATUS = 'Waiting'
+RSS_SCHEDULER = None
+WEEKLY_SCHEDULER = None
+MONITOR_SCHEDULER = None
+SEARCH_SCHEDULER = None
+VERSION_SCHEDULER = None
+UPDATER_SCHEDULER = None
 SCHED_RSS_LAST = None
 SCHED_WEEKLY_LAST = None
 SCHED_MONITOR_LAST = None
@@ -359,7 +365,7 @@ def initialize(config_file):
 
 def daemonize():
 
-    if threading.activeCount() != 1:
+    if threading.active_count() != 1:
         logger.warn('There are %r active threads. Daemonizing may cause \
                         strange behavior.' % threading.enumerate())
 
@@ -429,28 +435,67 @@ def start():
 
         if _INITIALIZED:
 
+            #scheduler jobs - add them all in a paused state initially
+            UPDATER_SCHEDULER = SCHED.add_job(func=updater.watchlist_updater, id='dbupdater', next_run_time=datetime.datetime.utcnow(), name='DB Updater', args=[None,True], trigger=IntervalTrigger(hours=0, minutes=DBUPDATE_INTERVAL, timezone='UTC'))
+            UPDATER_SCHEDULER.pause()
+
+            ss = searchit.CurrentSearcher()
+            SEARCH_SCHEDULER = SCHED.add_job(func=ss.run, id='search', next_run_time=datetime.datetime.utcnow(), name='Auto-Search', trigger=IntervalTrigger(hours=0, minutes=CONFIG.SEARCH_INTERVAL, timezone='UTC'))
+            SEARCH_SCHEDULER.pause()
+
+            ws = weeklypullit.Weekly()
+            WEEKLY_SCHEDULER = SCHED.add_job(func=ws.run, id='weekly', name='Weekly Pullist', next_run_time=datetime.datetime.utcnow(), trigger=IntervalTrigger(hours=4, minutes=0, timezone='UTC'))
+            WEEKLY_SCHEDULER.pause()
+
+            rs = rsscheckit.tehMain()
+            RSS_SCHEDULER = SCHED.add_job(func=rs.run, id='rss', name='RSS Feeds', args=[True], next_run_time=datetime.datetime.utcnow(), trigger=IntervalTrigger(hours=0, minutes=int(CONFIG.RSS_CHECKINTERVAL), timezone='UTC'))
+            RSS_SCHEDULER.pause()
+
+            vs = versioncheckit.CheckVersion()
+            VERSION_SCHEDULER = SCHED.add_job(func=vs.run, id='version', name='Check Version', trigger=IntervalTrigger(hours=0, minutes=CONFIG.CHECK_GITHUB_INTERVAL, timezone='UTC'))
+            VERSION_SCHEDULER.pause()
+
+            fm = PostProcessor.FolderCheck()
+            FOLDER_SCHEDULER = SCHED.add_job(func=fm.run, id='monitor', name='Folder Monitor', trigger=IntervalTrigger(hours=0, minutes=int(CONFIG.DOWNLOAD_SCAN_INTERVAL), timezone='UTC'))
+            FOLDER_SCHEDULER.pause()
+
             #load up the previous runs from the job sql table so we know stuff...
-            monitors = helpers.job_management()
-            SCHED_WEEKLY_LAST = monitors['weekly']
-            SCHED_SEARCH_LAST = monitors['search']
-            SCHED_UPDATER_LAST = monitors['dbupdater']
-            SCHED_MONITOR_LAST = monitors['monitor']
-            SCHED_VERSION_LAST = monitors['version']
-            SCHED_RSS_LAST = monitors['rss']
+            monitors = helpers.job_management(startup=True)
+
+            #logger.fdebug('monitors: %s' % (monitors,))
+
+            SCHED_WEEKLY_LAST = monitors['weekly']['last']
+            SCHED_SEARCH_LAST = monitors['search']['last']
+            SCHED_UPDATER_LAST = monitors['updater']['last']
+            SCHED_MONITOR_LAST = monitors['monitor']['last']
+            SCHED_VERSION_LAST = monitors['version']['last']
+            SCHED_RSS_LAST = monitors['rss']['last']
 
             # Start our scheduled background tasks
             if UPDATER_STATUS != 'Paused':
                 # we want to run the db updater on every startup regardless of last run
                 # this will ensure we get better coverage, and if nothing has updated it
                 # will just return to the normal dbupdater_interval duration.
-                SCHED.add_job(func=updater.watchlist_updater, id='dbupdater', next_run_time=datetime.datetime.utcnow(), name='DB Updater', args=[None,True], trigger=IntervalTrigger(hours=0, minutes=DBUPDATE_INTERVAL, timezone='UTC'))
-                logger.info('[DB UPDATER] DB Updater scheduled to run immediately.')
+                if SCHED_UPDATER_LAST is not None:
+                    updater_timestamp = float(SCHED_UPDATER_LAST)
+                    logger.fdebug('[DB UPDATER] Updater last run @ %s' % helpers.utc_date_to_local(datetime.datetime.utcfromtimestamp(updater_timestamp)))
+                else:
+                    updater_timestamp = helpers.utctimestamp() + (int(DBUPDATE_INTERVAL) *60)
+
+                updater_diff = (helpers.utctimestamp() - updater_timestamp)/60
+                if updater_diff >= int(DBUPDATE_INTERVAL):
+                    logger.fdebug('[DB UPDATER] DB Updater scheduled to run immediately.')
+                    UPDATER_SCHEDULER.modify(next_run_time=(datetime.datetime.utcnow()))
+                else:
+                    updater_diff = datetime.datetime.utcfromtimestamp(helpers.utctimestamp() + ((int(DBUPDATE_INTERVAL) * 60)  - (updater_diff*60)))
+                    logger.fdebug('[DB UPDATER] Scheduling next run @ %s (every %s minutes)' % (helpers.utc_date_to_local(updater_diff), DBUPDATE_INTERVAL))
+                    UPDATER_SCHEDULER.modify(next_run_time=updater_diff)
 
             #let's do a run at the Wanted issues here (on startup) if enabled.
             if SEARCH_STATUS != 'Paused':
-                ss = searchit.CurrentSearcher()
                 if CONFIG.NZB_STARTUP_SEARCH:
-                    SCHED.add_job(func=ss.run, id='search', next_run_time=datetime.datetime.utcnow(), name='Auto-Search', trigger=IntervalTrigger(hours=0, minutes=CONFIG.SEARCH_INTERVAL, timezone='UTC'))
+                    # now + 2 minute startup delay
+                    SEARCH_SCHEDULER.modify(next_run_time=(datetime.datetime.utcnow() + timedelta(minutes=2)))
                 else:
                     if SCHED_SEARCH_LAST is not None:
                         search_timestamp = float(SCHED_SEARCH_LAST)
@@ -461,14 +506,11 @@ def start():
                     duration_diff = (helpers.utctimestamp() - search_timestamp)/60
                     if duration_diff >= int(CONFIG.SEARCH_INTERVAL):
                         logger.fdebug('[AUTO-SEARCH]Auto-Search set to an initial delay of 2 minutes before initialization as it has been %s minutes since the last run' % duration_diff)
-                        SCHED.add_job(func=ss.run, id='search', name='Auto-Search', next_run_time=(datetime.datetime.utcnow() + timedelta(minutes=2)), trigger=IntervalTrigger(hours=0, minutes=CONFIG.SEARCH_INTERVAL, timezone='UTC'))
+                        SEARCH_SCHEDULER.modify(next_run_time=(datetime.datetime.utcnow() + timedelta(minutes=2)))
                     else:
                         search_diff = datetime.datetime.utcfromtimestamp(helpers.utctimestamp() + ((int(CONFIG.SEARCH_INTERVAL) * 60)  - (duration_diff*60)))
                         logger.fdebug('[AUTO-SEARCH] Scheduling next run @ %s (every %s minutes)' % (helpers.utc_date_to_local(search_diff), CONFIG.SEARCH_INTERVAL))
-                        SCHED.add_job(func=ss.run, id='search', name='Auto-Search', next_run_time=search_diff, trigger=IntervalTrigger(hours=0, minutes=CONFIG.SEARCH_INTERVAL, timezone='UTC'))
-            else:
-                ss = searchit.CurrentSearcher()
-                SCHED.add_job(func=ss.run, id='search', name='Auto-Search', next_run_time=None, trigger=IntervalTrigger(hours=0, minutes=CONFIG.SEARCH_INTERVAL, timezone='UTC'))
+                        SEARCH_SCHEDULER.modify(next_run_time=search_diff)
 
             #thread queue control..
             queue_schedule('search_queue', 'start')
@@ -510,21 +552,19 @@ def start():
             else:
                 weekly_timestamp = weektimestamp + weekly_interval
 
-            ws = weeklypullit.Weekly()
             duration_diff = (weektimestamp - weekly_timestamp)/60
 
             if WEEKLY_STATUS != 'Paused':
                 if abs(duration_diff) >= weekly_interval/60:
                     logger.info('[WEEKLY] Weekly Pull-Update initializing immediately as it has been %s hours since the last run' % abs(duration_diff/60))
-                    SCHED.add_job(func=ws.run, id='weekly', name='Weekly Pullist', next_run_time=datetime.datetime.utcnow(), trigger=IntervalTrigger(hours=weektimer, minutes=0, timezone='UTC'))
+                    WEEKLY_SCHEDULER.modify(next_run_time=datetime.datetime.utcnow())
                 else:
                     weekly_diff = datetime.datetime.utcfromtimestamp(weektimestamp + (weekly_interval - (duration_diff * 60)))
                     logger.fdebug('[WEEKLY] Scheduling next run for @ %s every %s hours' % (helpers.utc_date_to_local(weekly_diff), weektimer))
-                    SCHED.add_job(func=ws.run, id='weekly', name='Weekly Pullist', next_run_time=weekly_diff, trigger=IntervalTrigger(hours=weektimer, minutes=0, timezone='UTC'))
+                    WEEKLY_SCHEDULER.modify(next_run_time=weekly_diff)
 
             #initiate startup rss feeds for torrents/nzbs here...
-            rs = rsscheckit.tehMain()
-            if CONFIG.ENABLE_RSS is True:
+            if RSS_STATUS != 'Paused':
                 logger.info('[RSS-FEEDS] Initiating startup-RSS feed checks.')
                 if SCHED_RSS_LAST is not None:
                     rss_timestamp = float(SCHED_RSS_LAST)
@@ -533,32 +573,22 @@ def start():
                     rss_timestamp = helpers.utctimestamp() + (int(CONFIG.RSS_CHECKINTERVAL) *60)
                 duration_diff = (helpers.utctimestamp() - rss_timestamp)/60
                 if duration_diff >= int(CONFIG.RSS_CHECKINTERVAL):
-                    SCHED.add_job(func=rs.run, id='rss', name='RSS Feeds', args=[True], next_run_time=datetime.datetime.utcnow(), trigger=IntervalTrigger(hours=0, minutes=int(CONFIG.RSS_CHECKINTERVAL), timezone='UTC'))
+                    RSS_SCHEDULER.modify(next_run_time=datetime.datetime.utcnow())
                 else:
                     rss_diff = datetime.datetime.utcfromtimestamp(helpers.utctimestamp() + (int(CONFIG.RSS_CHECKINTERVAL) * 60) - (duration_diff * 60))
                     logger.fdebug('[RSS-FEEDS] Scheduling next run for @ %s every %s minutes' % (helpers.utc_date_to_local(rss_diff), CONFIG.RSS_CHECKINTERVAL))
-                    SCHED.add_job(func=rs.run, id='rss', name='RSS Feeds', args=[True], next_run_time=rss_diff, trigger=IntervalTrigger(hours=0, minutes=int(CONFIG.RSS_CHECKINTERVAL), timezone='UTC'))
-            else:
-                 RSS_STATUS = 'Paused'
-            #    SCHED.add_job(func=rs.run, id='rss', name='RSS Feeds', args=[True], trigger=IntervalTrigger(hours=0, minutes=int(CONFIG.RSS_CHECKINTERVAL), timezone='UTC'))
-            #    SCHED.pause_job('rss')
+                    RSS_SCHEDULER.modify(next_run_time=rss_diff)
 
-            if CONFIG.CHECK_GITHUB:
-                vs = versioncheckit.CheckVersion()
-                SCHED.add_job(func=vs.run, id='version', name='Check Version', trigger=IntervalTrigger(hours=0, minutes=CONFIG.CHECK_GITHUB_INTERVAL, timezone='UTC'))
-            else:
-                VERSION_STATUS = 'Paused'
+            if VERSION_STATUS != 'Paused':
+                VERSION_SCHEDULER.resume()
 
             ##run checkFolder every X minutes (basically Manual Run Post-Processing)
-            if CONFIG.ENABLE_CHECK_FOLDER:
+            if MONITOR_STATUS != 'Paused':
                 if CONFIG.DOWNLOAD_SCAN_INTERVAL >0:
                     logger.info('[FOLDER MONITOR] Enabling folder monitor for : ' + str(CONFIG.CHECK_FOLDER) + ' every ' + str(CONFIG.DOWNLOAD_SCAN_INTERVAL) + ' minutes.')
-                    fm = PostProcessor.FolderCheck()
-                    SCHED.add_job(func=fm.run, id='monitor', name='Folder Monitor', trigger=IntervalTrigger(hours=0, minutes=int(CONFIG.DOWNLOAD_SCAN_INTERVAL), timezone='UTC'))
+                    FOLDER_SCHEDULER.resume()
                 else:
                     logger.error('[FOLDER MONITOR] You need to specify a monitoring time for the check folder option to work')
-            else:
-                MONITOR_STATUS = 'Paused'
 
             logger.info('Firing up the Background Schedulers now....')
             try:
@@ -579,7 +609,7 @@ def queue_schedule(queuetype, mode):
     if mode == 'start':
         if queuetype == 'snatched_queue':
             try:
-                if mylar.SNPOOL.isAlive() is True:
+                if mylar.SNPOOL.is_alive() is True:
                     return
             except Exception as e:
                 pass
@@ -591,7 +621,7 @@ def queue_schedule(queuetype, mode):
 
         elif queuetype == 'nzb_queue':
             try:
-                if mylar.NZBPOOL.isAlive() is True:
+                if mylar.NZBPOOL.is_alive() is True:
                     return
             except Exception as e:
                 pass
@@ -609,7 +639,7 @@ def queue_schedule(queuetype, mode):
 
         elif queuetype == 'search_queue':
             try:
-                if mylar.SEARCHPOOL.isAlive() is True:
+                if mylar.SEARCHPOOL.is_alive() is True:
                     return
             except Exception as e:
                 pass
@@ -620,7 +650,7 @@ def queue_schedule(queuetype, mode):
             logger.info('[SEARCH-QUEUE] Successfully started the Search Queuer...')
         elif queuetype == 'pp_queue':
             try:
-                if mylar.PPPOOL.isAlive() is True:
+                if mylar.PPPOOL.is_alive() is True:
                     return
             except Exception as e:
                 pass
@@ -632,7 +662,7 @@ def queue_schedule(queuetype, mode):
 
         elif queuetype == 'ddl_queue':
             try:
-                if mylar.DDLPOOL.isAlive() is True:
+                if mylar.DDLPOOL.is_alive() is True:
                     return
             except Exception as e:
                 pass
@@ -645,7 +675,7 @@ def queue_schedule(queuetype, mode):
     else:
         if (queuetype == 'nzb_queue') or mode == 'shutdown':
             try:
-                if mylar.NZBPOOL.isAlive() is False:
+                if mylar.NZBPOOL.is_alive() is False:
                     return
                 elif all([mode!= 'shutdown', mylar.CONFIG.POST_PROCESSING is True]) and ( all([mylar.CONFIG.NZB_DOWNLOADER == 0, mylar.CONFIG.SAB_CLIENT_POST_PROCESSING is True]) or all([mylar.CONFIG.NZB_DOWNLOADER == 1, mylar.CONFIG.NZBGET_CLIENT_POST_PROCESSING is True]) ):
                     return
@@ -667,7 +697,7 @@ def queue_schedule(queuetype, mode):
 
         if (queuetype == 'snatched_queue') or mode == 'shutdown':
             try:
-                if mylar.SNPOOL.isAlive() is False:
+                if mylar.SNPOOL.is_alive() is False:
                     return
                 elif all([mode != 'shutdown', mylar.CONFIG.ENABLE_TORRENTS is True, mylar.CONFIG.AUTO_SNATCH is True, OS_DETECT != 'Windows']) and any([mylar.CONFIG.TORRENT_DOWNLOADER == 2, mylar.CONFIG.TORRENT_DOWNLOADER == 4]):
                     return
@@ -689,7 +719,7 @@ def queue_schedule(queuetype, mode):
 
         if (queuetype == 'search_queue') or mode == 'shutdown':
             try:
-                if mylar.SEARCHPOOL.isAlive() is False:
+                if mylar.SEARCHPOOL.is_alive() is False:
                     return
             except Exception as e:
                 return
@@ -708,7 +738,7 @@ def queue_schedule(queuetype, mode):
 
         if (queuetype == 'pp_queue') or mode == 'shutdown':
             try:
-                if mylar.PPPOOL.isAlive() is False:
+                if mylar.PPPOOL.is_alive() is False:
                     return
                 elif all([mylar.CONFIG.POST_PROCESSING is True, mode != 'shutdown']):
                     return
@@ -729,7 +759,7 @@ def queue_schedule(queuetype, mode):
 
         if (queuetype == 'ddl_queue') or mode == 'shutdown':
             try:
-                if mylar.DDLPOOL.isAlive() is False:
+                if mylar.DDLPOOL.is_alive() is False:
                     return
                 elif all([mylar.CONFIG.ENABLE_DDL is True, mode != 'shutdown']):
                     return

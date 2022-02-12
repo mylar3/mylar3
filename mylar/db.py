@@ -48,7 +48,7 @@ class WriteOnly:
         #this should be in it's own thread somewhere, constantly polling the queue and sending them to the writer.
         logger.fdebug('worker started.')
         while True:
-            thisthread = threading.currentThread().name
+            thisthread = threading.current_thread().name
             if not mylarQueue.empty():
     # Rename the main thread
                 logger.fdebug('[' + str(thisthread) + '] queue is not empty yet...')
@@ -162,7 +162,7 @@ class DBConnection:
 
 
     def upsert(self, tableName, valueDict, keyDict):
-        thisthread = threading.currentThread().name
+        thisthread = threading.current_thread().name
 
         changesBefore = self.connection.total_changes
 
