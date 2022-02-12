@@ -8830,3 +8830,28 @@ class WebInterface(object):
         logger.info('[%s] comlocation: %s' % (dir_exists,comlocation))
         return json.dumps({'status': 'success', 'image': comicImage, 'booktype': booktype, 'comicname': results['ComicName'], 'publisher': results['ComicPublisher'], 'comicyear': results['ComicYear'], 'issues': results['ComicIssues'], 'description': results['ComicDescription'], 'comlocation': comlocation, 'dir_exists': dir_exists})
     editDetails.exposed = True
+
+    def addMissingSeriesFromArc(self, storyarcid):
+        watchlibrary = helpers.listLibrary()
+        watch = []
+        storyarcname = None
+
+        myDB = db.DBConnection()
+        arcs = myDB.select('Select ComicID, ComicName, SeriesYear, StoryArc FROM storyarcs WHERE storyarcid=? GROUP BY ComicID', [storyarcid])
+
+        for ac in arcs:
+            if storyarcname is None and ac['StoryArc'] is not None:
+                storyarcname = ac['StoryArc']
+
+            if not ac['ComicID'] in watchlibrary:
+                if not {"comicid": ac['ComicID'], "comicname": ac['ComicName']} in mylar.ADD_LIST.queue:
+                    watch.append({"comicid": ac['ComicID'], "comicname": ac['ComicName'], "seriesyear": ac['SeriesYear']})
+
+        if len(watch) > 0:
+            logger.info('[SHIZZLE-WHIZZLE] Now queueing to add %s series into your watchlist from the %s Arc' % (len(watch), storyarcname))
+            try:
+                importer.importer_thread(watch)
+            except Exception:
+                pass
+
+    addMissingSeriesFromArc.exposed = True

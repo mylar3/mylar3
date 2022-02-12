@@ -1809,7 +1809,7 @@ def image_it(comicid, latestissueid, comlocation, ComicImage):
 
 def importer_thread(serieslist):
     # importer thread to queue up series to be added to the watchlist
-    # serieslist = [{'comicid': '2828991', 'series': 'Some Comic'}]
+    # serieslist = [{'comicid': '2828991', 'series': 'Some Comic', 'seriesyear': 1999}]
 
     if type(serieslist) != list:
         serieslist  = [(serieslist)]
