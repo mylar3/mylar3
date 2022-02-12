@@ -251,7 +251,7 @@ def main():
     #    raise SystemExit('FATAL ERROR')
 
     if mylar.MAINTENANCE is False:
-        filechecker.validateAndCreateDirectory(mylar.DATA_DIR, True)
+        filechecker.validateAndCreateDirectory(mylar.DATA_DIR, True, dmode='DATA')
 
         # Make sure the DATA_DIR is writeable
         if not os.access(mylar.DATA_DIR, os.W_OK):

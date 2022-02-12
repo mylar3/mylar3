@@ -560,35 +560,6 @@ class Config(object):
     def read(self, startup=False):
         self.config_vals()
 
-        if any([self.CONFIG_VERSION == 0, self.CONFIG_VERSION < self.newconfig]):
-            if not self.BACKUP_LOCATION:
-                # this is needed here since the configuration hasn't run to check the location value yet.
-                self.BACKUP_LOCATION = os.path.join(mylar.DATA_DIR, 'backup')
-
-            backupinfo = {'location': self.BACKUP_LOCATION,
-                          'config_version': self.CONFIG_VERSION,
-                          'backup_retention': self.BACKUP_RETENTION}
-            cc = maintenance.Maintenance('backup')
-            bcheck = cc.backup_files(cfg=True, dbs=False, backupinfo=backupinfo)
-
-            if self.CONFIG_VERSION < 12:
-                print('Attempting to update configuration..')
-                #8-torznab multiple entries merged into extra_torznabs value
-                #9-remote rtorrent ssl option
-                #10-encryption of all keys/passwords.
-                #11-provider ids
-                #12-ddl seperation into multiple providers, new keys, update tables
-                self.config_update()
-            setattr(self, 'OLDCONFIG_VERSION', str(self.CONFIG_VERSION))
-            #config.set('General', 'OLDCONFIG_VERSION', str(self.CONFIG_VERSION))
-            setattr(self, 'CONFIG_VERSION', self.newconfig)
-            config.set('General', 'CONFIG_VERSION', str(self.newconfig))
-            self.writeconfig(startup=startup)
-        else:
-            if self.OLDCONFIG_VERSION != self.CONFIG_VERSION:
-                setattr(self, 'OLDCONFIG_VERSION', str(self.CONFIG_VERSION))
-                #config.set('General', 'OLDCONFIG_VERSION', str(self.CONFIG_VERSION))
-
         if startup is True:
             if self.LOG_DIR is None:
                 self.LOG_DIR = os.path.join(mylar.DATA_DIR, 'logs')
@@ -616,6 +587,33 @@ class Config(object):
                 logger.initLogger(console=not mylar.QUIET, log_dir=self.LOG_DIR, max_logsize=self.MAX_LOGSIZE, max_logfiles=self.MAX_LOGFILES, loglevel=log_level)
             else:
                 logger.mylar_log.initLogger(loglevel=log_level, log_dir=self.LOG_DIR, max_logsize=self.MAX_LOGSIZE, max_logfiles=self.MAX_LOGFILES)
+
+        if any([self.CONFIG_VERSION == 0, self.CONFIG_VERSION < self.newconfig]):
+            if not self.BACKUP_LOCATION:
+                # this is needed here since the configuration hasn't run to check the location value yet.
+                self.BACKUP_LOCATION = os.path.join(mylar.DATA_DIR, 'backup')
+
+            backupinfo = {'location': self.BACKUP_LOCATION,
+                          'config_version': self.CONFIG_VERSION,
+                          'backup_retention': self.BACKUP_RETENTION}
+            cc = maintenance.Maintenance('backup')
+            bcheck = cc.backup_files(cfg=True, dbs=False, backupinfo=backupinfo)
+
+            if self.CONFIG_VERSION < 12:
+                print('Attempting to update configuration..')
+                #8-torznab multiple entries merged into extra_torznabs value
+                #9-remote rtorrent ssl option
+                #10-encryption of all keys/passwords.
+                #11-provider ids
+                #12-ddl seperation into multiple providers, new keys, update tables
+                self.config_update()
+            setattr(self, 'OLDCONFIG_VERSION', str(self.CONFIG_VERSION))
+            setattr(self, 'CONFIG_VERSION', self.newconfig)
+            config.set('General', 'CONFIG_VERSION', str(self.newconfig))
+            self.writeconfig(startup=startup)
+        else:
+            if self.OLDCONFIG_VERSION != self.CONFIG_VERSION:
+                setattr(self, 'OLDCONFIG_VERSION', str(self.CONFIG_VERSION))
 
         extra_newznabs, extra_torznabs = self.get_extras()
         setattr(self, 'EXTRA_NEWZNABS', extra_newznabs)
