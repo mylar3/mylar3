@@ -87,6 +87,7 @@ RSS_STATUS = 'Waiting'
 WEEKLY_STATUS = 'Waiting'
 VERSION_STATUS = 'Waiting'
 UPDATER_STATUS = 'Waiting'
+FORCE_STATUS = {}
 RSS_SCHEDULER = None
 WEEKLY_SCHEDULER = None
 MONITOR_SCHEDULER = None
@@ -201,7 +202,8 @@ def initialize(config_file):
                DDLPOOL, NZBPOOL, SNPOOL, PPPOOL, SEARCHPOOL, RETURN_THE_NZBQUEUE, MASS_ADD, ADD_LIST, MASS_REFRESH, REFRESH_QUEUE, SSE_KEY, \
                USE_SABNZBD, USE_NZBGET, USE_BLACKHOLE, USE_RTORRENT, USE_UTORRENT, USE_QBITTORRENT, USE_DELUGE, USE_TRANSMISSION, USE_WATCHDIR, SAB_PARAMS, PUBLISHER_IMPRINTS, \
                PROG_DIR, DATA_DIR, CMTAGGER_PATH, DOWNLOAD_APIKEY, LOCAL_IP, STATIC_COMICRN_VERSION, STATIC_APC_VERSION, KEYS_32P, AUTHKEY_32P, FEED_32P, FEEDINFO_32P, \
-               MONITOR_STATUS, SEARCH_STATUS, RSS_STATUS, WEEKLY_STATUS, VERSION_STATUS, UPDATER_STATUS, DBUPDATE_INTERVAL, DB_BACKFILL, LOG_LANG, LOG_CHARSET, APILOCK, SEARCHLOCK, DDL_LOCK, LOG_LEVEL, \
+               MONITOR_STATUS, SEARCH_STATUS, RSS_STATUS, WEEKLY_STATUS, VERSION_STATUS, UPDATER_STATUS, FORCE_STATUS, DBUPDATE_INTERVAL, DB_BACKFILL, LOG_LANG, LOG_CHARSET, APILOCK, SEARCHLOCK, DDL_LOCK, LOG_LEVEL, \
+               MONITOR_SCHEDULER, SEARCH_SCHEDULER, RSS_SCHEDULER, WEEKLY_SCHEDULER, VERSION_SCHEDULER, UPDATER_SCHEDULER, \
                SCHED_RSS_LAST, SCHED_WEEKLY_LAST, SCHED_MONITOR_LAST, SCHED_SEARCH_LAST, SCHED_VERSION_LAST, SCHED_DBUPDATE_LAST, COMICINFO, SEARCH_TIER_DATE, \
                BACKENDSTATUS_CV, BACKENDSTATUS_WS, PROVIDER_STATUS, EXT_IP, ISSUE_EXCEPTIONS, PROVIDER_START_ID, GLOBAL_MESSAGES, CHECK_FOLDER_CACHE, FOLDER_CACHE, SESSION_ID, \
                MAINTENANCE_UPDATE, MAINTENANCE_DB_COUNT, MAINTENANCE_DB_TOTAL
@@ -456,8 +458,8 @@ def start():
             VERSION_SCHEDULER.pause()
 
             fm = PostProcessor.FolderCheck()
-            FOLDER_SCHEDULER = SCHED.add_job(func=fm.run, id='monitor', name='Folder Monitor', trigger=IntervalTrigger(hours=0, minutes=int(CONFIG.DOWNLOAD_SCAN_INTERVAL), timezone='UTC'))
-            FOLDER_SCHEDULER.pause()
+            MONITOR_SCHEDULER = SCHED.add_job(func=fm.run, id='monitor', name='Folder Monitor', trigger=IntervalTrigger(hours=0, minutes=int(CONFIG.DOWNLOAD_SCAN_INTERVAL), timezone='UTC'))
+            MONITOR_SCHEDULER.pause()
 
             #load up the previous runs from the job sql table so we know stuff...
             monitors = helpers.job_management(startup=True)
@@ -584,13 +586,19 @@ def start():
 
             ##run checkFolder every X minutes (basically Manual Run Post-Processing)
             if MONITOR_STATUS != 'Paused':
-                if CONFIG.DOWNLOAD_SCAN_INTERVAL >0:
-                    logger.info('[FOLDER MONITOR] Enabling folder monitor for : ' + str(CONFIG.CHECK_FOLDER) + ' every ' + str(CONFIG.DOWNLOAD_SCAN_INTERVAL) + ' minutes.')
-                    FOLDER_SCHEDULER.resume()
+                if CONFIG.CHECK_FOLDER is not None:
+                    if CONFIG.DOWNLOAD_SCAN_INTERVAL >0:
+                        logger.info('[FOLDER MONITOR] Enabling folder monitor for : ' + str(CONFIG.CHECK_FOLDER) + ' every ' + str(CONFIG.DOWNLOAD_SCAN_INTERVAL) + ' minutes.')
+                        MONITOR_SCHEDULER.resume()
+                    else:
+                        logger.error('[FOLDER MONITOR] You need to specify a monitoring time for the check folder option to work')
+                        MONITOR_SCHEDULER.pause()
                 else:
-                    logger.error('[FOLDER MONITOR] You need to specify a monitoring time for the check folder option to work')
+                    logger.error('[FOLDER MONITOR] You need to specify a location in order to use the Folder Monitor. Disabling Folder Monitor')
+                    MONITOR_SCHEDULER.pause()
 
             logger.info('Firing up the Background Schedulers now....')
+
             try:
                 SCHED.start()
                 #update the job db here
