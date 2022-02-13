@@ -30,5 +30,5 @@ class CurrentSearcher():
         mylar.SEARCH_STATUS = 'Running'
         mylar.search.searchforissue()
         helpers.job_management(write=True, job='Auto-Search', last_run_completed=helpers.utctimestamp(), status='Waiting')
-        mylar.SEARCH_STATUS = 'Waiting'
+        #mylar.SEARCH_STATUS = 'Waiting'
         #mylar.SCHED_SEARCH_LAST = helpers.now()

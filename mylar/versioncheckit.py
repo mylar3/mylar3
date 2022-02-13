@@ -29,4 +29,3 @@ class CheckVersion():
         mylar.VERSION_STATUS = 'Running'
         versioncheck.checkGithub()
         helpers.job_management(write=True, job='Check Version', last_run_completed=helpers.utctimestamp(), status='Waiting')
-        mylar.VERSION_STATUS = 'Waiting'

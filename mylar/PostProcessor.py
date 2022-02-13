@@ -29,7 +29,6 @@ import sys
 import pathlib
 from xml.dom.minidom import parseString
 
-
 from mylar import logger, db, helpers, updater, notifiers, filechecker, weeklypull, getimage
 
 class PostProcessor(object):
@@ -3252,11 +3251,16 @@ class FolderCheck():
             return
         #monitor a selected folder for 'snatched' files that haven't been processed
         #junk the queue as it's not needed for folder monitoring, but needed for post-processing to run without error.
-        helpers.job_management(write=True, job='Folder Monitor', current_run=helpers.utctimestamp(), status='Running')
-        mylar.MONITOR_STATUS = 'Running'
-        logger.info('%s Checking folder %s for newly snatched downloads' % (self.module, mylar.CONFIG.CHECK_FOLDER))
-        PostProcess = PostProcessor('Manual Run', mylar.CONFIG.CHECK_FOLDER, queue=self.queue)
-        result = PostProcess.Process()
-        logger.info('%s Finished checking for newly snatched downloads' % self.module)
-        helpers.job_management(write=True, job='Folder Monitor', last_run_completed=helpers.utctimestamp(), status='Waiting')
-        mylar.MONITOR_STATUS = 'Waiting'
+        if mylar.CONFIG.CHECK_FOLDER is None:
+            logger.warn('%s Unable to initialise folder monitor properly - you need to specify a folder to monitor first' % self.module)
+            mylar.SCHED.pause_job('monitor')
+            mylar.MONITOR_STATUS = 'Paused'
+            helpers.job_management(write=True)
+        else:
+            helpers.job_management(write=True, job='Folder Monitor', current_run=helpers.utctimestamp(), status='Running')
+            mylar.MONITOR_STATUS = 'Running'
+            logger.info('%s Checking folder %s for newly snatched downloads' % (self.module, mylar.CONFIG.CHECK_FOLDER))
+            PostProcess = PostProcessor('Manual Run', mylar.CONFIG.CHECK_FOLDER, queue=self.queue)
+            result = PostProcess.Process()
+            logger.info('%s Finished checking for newly snatched downloads' % self.module)
+            helpers.job_management(write=True, job='Folder Monitor', last_run_completed=helpers.utctimestamp(), status='Waiting')

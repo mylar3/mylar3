@@ -3646,6 +3646,8 @@ def job_management(write=False, job=None, last_run_completed=None, current_run=N
                 if jstatus is None:
                     if mylar.CONFIG.ENABLE_RSS:
                         jstatus = 'Waiting'
+                if any([jstatus == 'Waiting', jstatus == 'Running']) and mylar.CONFIG.ENABLE_RSS is False:
+                    jstatus = 'Paused'
                 mylar.RSS_STATUS = jstatus
             elif 'weekly' in ji['JobName'].lower():
                 if mylar.SCHED_WEEKLY_LAST is None:
@@ -3660,14 +3662,18 @@ def job_management(write=False, job=None, last_run_completed=None, current_run=N
                 if jstatus is None:
                     if mylar.CONFIG.CHECK_GITHUB:
                         jstatus = 'Waiting'
+                if any([jstatus == 'Waiting', jstatus == 'Running']) and mylar.CONFIG.CHECK_GITHUB is False:
+                    jstatus = 'Paused'
                 mylar.VERSION_STATUS = jstatus
             elif 'monitor' in ji['JobName'].lower():
                 # db value isn't used in startup as config option controls status
                 if mylar.SCHED_MONITOR_LAST is None:
                     mylar.SCHED_MONITOR_LAST = ji['prev_run_timestamp']
                 if jstatus is None:
-                    if mylar.CONFIG.FOLDER_MONITOR:
+                    if mylar.CONFIG.CHECK_FOLDER:
                         jstatus = 'Waiting'
+                if any([jstatus == 'Waiting', jstatus == 'Running']) and mylar.CONFIG.CHECK_FOLDER is False:
+                    jstatus = 'Paused'
                 mylar.MONITOR_STATUS = jstatus
 
         return {'weekly': {'last': mylar.SCHED_WEEKLY_LAST, 'status': mylar.WEEKLY_STATUS},
@@ -3682,6 +3688,8 @@ def job_management(write=False, job=None, last_run_completed=None, current_run=N
         jobinfo = str(jb)
         jobname = jobinfo[:jobinfo.find('(')-1].strip()
         jobstatus = jobinfo[jobinfo.find('],')+2:len(jobinfo)-1].strip()
+        next_the_run = False
+
         #logger.info('[%s] ==> %s' % (jobname, jobstatus))
 
         #jobstatus will be either paused / next run - running jobs have to be
@@ -3690,6 +3698,9 @@ def job_management(write=False, job=None, last_run_completed=None, current_run=N
             prev_run_timestamp = mylar.SCHED_DBUPDATE_LAST
             if 'next run' in jobstatus:
                 mylar.UPDATER_STATUS = 'Waiting'
+                if any(ky == 'updater' for ky, vl in mylar.FORCE_STATUS.items()):
+                    mylar.UPDATER_STATUS = mylar.FORCE_STATUS['updater']
+                    next_the_run = True
             else:
                 mylar.UPDATER_STATUS = 'Paused'
             sched_status = mylar.UPDATER_STATUS
@@ -3697,6 +3708,9 @@ def job_management(write=False, job=None, last_run_completed=None, current_run=N
             prev_run_timestamp = mylar.SCHED_SEARCH_LAST
             if 'next run' in jobstatus:
                 mylar.SEARCH_STATUS = 'Waiting'
+                if any(ky == 'search' for ky, vl in mylar.FORCE_STATUS.items()):
+                    mylar.SEARCH_STATUS = mylar.FORCE_STATUS['search']
+                    next_the_run = True
             else:
                 mylar.SEARCH_STATUS = 'Paused'
             sched_status = mylar.SEARCH_STATUS
@@ -3704,6 +3718,9 @@ def job_management(write=False, job=None, last_run_completed=None, current_run=N
             prev_run_timestamp = mylar.SCHED_RSS_LAST
             if 'next run' in jobstatus:
                 mylar.RSS_STATUS = 'Waiting'
+                if any(ky == 'rss' for ky, vl in mylar.FORCE_STATUS.items()):
+                    mylar.RSS_STATUS = mylar.FORCE_STATUS['rss']
+                    next_the_run = True
             else:
                 mylar.RSS_STATUS = 'Paused'
             sched_status = mylar.RSS_STATUS
@@ -3711,6 +3728,9 @@ def job_management(write=False, job=None, last_run_completed=None, current_run=N
             prev_run_timestamp = mylar.SCHED_WEEKLY_LAST
             if 'next run' in jobstatus:
                 mylar.WEEKLY_STATUS = 'Waiting'
+                if any(ky == 'weekly' for ky, vl in mylar.FORCE_STATUS.items()):
+                    mylar.WEEKLY_STATUS = mylar.FORCE_STATUS['weekly']
+                    next_the_run = True
             else:
                 mylar.WEEKLY_STATUS = 'Paused'
             sched_status = mylar.WEEKLY_STATUS
@@ -3718,6 +3738,9 @@ def job_management(write=False, job=None, last_run_completed=None, current_run=N
             prev_run_timestamp = mylar.SCHED_VERSION_LAST
             if 'next run' in jobstatus:
                 mylar.VERSION_STATUS = 'Waiting'
+                if any(ky == 'version' for ky, vl in mylar.FORCE_STATUS.items()):
+                    mylar.VERSION_STATUS = mylar.FORCE_STATUS['version']
+                    next_the_run = True
             else:
                 mylar.VERSION_STATUS = 'Paused'
             sched_status = mylar.VERSION_STATUS
@@ -3725,6 +3748,9 @@ def job_management(write=False, job=None, last_run_completed=None, current_run=N
             prev_run_timestamp = mylar.SCHED_MONITOR_LAST
             if 'next run' in jobstatus:
                 mylar.MONITOR_STATUS = 'Waiting'
+                if any(ky == 'monitor' for ky, vl in mylar.FORCE_STATUS.items()):
+                    mylar.MONITOR_STATUS = mylar.FORCE_STATUS['monitor']
+                    next_the_run = True
             else:
                 mylar.MONITOR_STATUS = 'Paused'
             sched_status = mylar.MONITOR_STATUS
@@ -3736,8 +3762,11 @@ def job_management(write=False, job=None, last_run_completed=None, current_run=N
         except:
             jobtime = None
         else:
-            jtime = float(calendar.timegm(datetime.datetime.strptime(jobtimetmp[:-1], '%Y-%m-%d %H:%M:%S %Z').timetuple()))
-            jobtime = datetime.datetime.utcfromtimestamp(jtime)
+            if next_the_run is False:
+                jtime = float(calendar.timegm(datetime.datetime.strptime(jobtimetmp[:-1], '%Y-%m-%d %H:%M:%S %Z').timetuple()))
+                jobtime = datetime.datetime.utcfromtimestamp(jtime)
+            else:
+                jobtime = None
 
         if prev_run_timestamp is not None:
             prev_run_time_utc = datetime.datetime.utcfromtimestamp(float(prev_run_timestamp))
@@ -3783,66 +3812,112 @@ def job_management(write=False, job=None, last_run_completed=None, current_run=N
             elif last_run_completed is not None:
                 if any([job == 'DB Updater', job == 'Auto-Search', job == 'RSS Feeds', job == 'Weekly Pullist', job == 'Check Version', job == 'Folder Monitor']):
                     jobstore = None
+                    nextrun_stamp = None
+                    nextrun_date = None
                     for jbst in mylar.SCHED.get_jobs():
                         jb = str(jbst)
                         if 'Status Updater' in jb.lower():
                            continue
                         elif job == 'DB Updater' and 'update' in jb.lower():
-                            if mylar.DB_BACKFILL is True:
-                                #if backfilling, set it for every 15 mins
-                                nextrun_stamp = utctimestamp() + (mylar.CONFIG.BACKFILL_TIMESPAN * 60)
-                                logger.fdebug(
-                                    '[BACKFILL-UPDATER] Will fire off every %s'
-                                    ' minutes until backlog is decimated.'
-                                    % (mylar.CONFIG.BACKFILL_TIMESPAN)
-                                )
+                            if any(ky == 'updater' for ky, vl in mylar.FORCE_STATUS.items()):
+                                mylar.UPDATER_STATUS = mylar.FORCE_STATUS['updater']
+                                mylar.FORCE_STATUS.pop('updater')
+
+                            if mylar.UPDATER_STATUS != 'Paused':
+                                if mylar.DB_BACKFILL is True:
+                                    #if backfilling, set it for every 15 mins
+                                    nextrun_stamp = utctimestamp() + (mylar.CONFIG.BACKFILL_TIMESPAN * 60)
+                                    logger.fdebug(
+                                        '[BACKFILL-UPDATER] Will fire off every %s'
+                                        ' minutes until backlog is decimated.'
+                                        % (mylar.CONFIG.BACKFILL_TIMESPAN)
+                                    )
+                                else:
+                                    nextrun_stamp = utctimestamp() + (int(mylar.DBUPDATE_INTERVAL) * 60)
                             else:
-                                nextrun_stamp = utctimestamp() + (int(mylar.DBUPDATE_INTERVAL) * 60)
+                                mylar.SCHED.pause_job('dbupdater')
                             jobstore = jbst
                             break
                         elif job == 'Auto-Search' and 'search' in jb.lower():
-                            if failure is True:
-                               logger.info('Previous job could not run due to other jobs. Scheduling Auto-Search for 10 minutes from now.')
-                               s_interval = (10 * 60)
+                            if any(ky == 'search' for ky, vl in mylar.FORCE_STATUS.items()):
+                                mylar.SEARCH_STATUS = mylar.FORCE_STATUS['search']
+                                mylar.FORCE_STATUS.pop('search')
+
+                            if mylar.SEARCH_STATUS != 'Paused':
+                                if failure is True:
+                                   logger.info('Previous job could not run due to other jobs. Scheduling Auto-Search for 10 minutes from now.')
+                                   s_interval = (10 * 60)
+                                else:
+                                   s_interval = mylar.CONFIG.SEARCH_INTERVAL * 60
+                                nextrun_stamp = utctimestamp() + s_interval
                             else:
-                               s_interval = mylar.CONFIG.SEARCH_INTERVAL * 60
-                            nextrun_stamp = utctimestamp() + s_interval
+                                mylar.SCHED.pause_job('search')
                             jobstore = jbst
                             break
                         elif job == 'RSS Feeds' and 'rss' in jb.lower():
-                            nextrun_stamp = utctimestamp() + (int(mylar.CONFIG.RSS_CHECKINTERVAL) * 60)
+                            if any(ky == 'rss' for ky, vl in mylar.FORCE_STATUS.items()):
+                                mylar.RSS_STATUS = mylar.FORCE_STATUS['rss']
+                                mylar.FORCE_STATUS.pop('rss')
+
+                            if mylar.RSS_STATUS != 'Paused':
+                                nextrun_stamp = utctimestamp() + (int(mylar.CONFIG.RSS_CHECKINTERVAL) * 60)
+                            else:
+                                mylar.SCHED.pause_job('rss')
                             mylar.SCHED_RSS_LAST = last_run_completed
                             jobstore = jbst
                             break
                         elif job == 'Weekly Pullist' and 'weekly' in jb.lower():
-                            if mylar.CONFIG.ALT_PULL == 2:
-                                wkt = 4
+                            if any(ky == 'weekly' for ky, vl in mylar.FORCE_STATUS.items()):
+                                mylar.WEEKLY_STATUS = mylar.FORCE_STATUS['weekly']
+                                mylar.FORCE_STATUS.pop('weekly')
+
+                            if mylar.WEEKLY_STATUS != 'Paused':
+                                if mylar.CONFIG.ALT_PULL == 2:
+                                   wkt = 4
+                                else:
+                                    wkt = 24
+                                nextrun_stamp = utctimestamp() + (wkt * 60 * 60)
                             else:
-                                wkt = 24
-                            nextrun_stamp = utctimestamp() + (wkt * 60 * 60)
+                                mylar.SCHED.pause_job('weekly')
                             mylar.SCHED_WEEKLY_LAST = last_run_completed
                             jobstore = jbst
                             break
                         elif job == 'Check Version' and 'version' in jb.lower():
-                            nextrun_stamp = utctimestamp() + (mylar.CONFIG.CHECK_GITHUB_INTERVAL * 60)
+                            if any(ky == 'version' for ky, vl in mylar.FORCE_STATUS.items()):
+                                mylar.VERSION_STATUS = mylar.FORCE_STATUS['version']
+                                mylar.FORCE_STATUS.pop('version')
+
+                            if mylar.VERSION_STATUS != 'Paused':
+                                nextrun_stamp = utctimestamp() + (mylar.CONFIG.CHECK_GITHUB_INTERVAL * 60)
+                            else:
+                                mylar.SCHED.pause_job('version')
                             jobstore = jbst
                             break
                         elif job == 'Folder Monitor' and 'monitor' in jb.lower():
-                            nextrun_stamp = utctimestamp() + (int(mylar.CONFIG.DOWNLOAD_SCAN_INTERVAL) * 60)
+                            if any(ky == 'monitor' for ky, vl in mylar.FORCE_STATUS.items()):
+                                mylar.MONITOR_STATUS = mylar.FORCE_STATUS['monitor']
+                                mylar.FORCE_STATUS.pop('monitor')
+
+                            if mylar.MONITOR_STATUS != 'Paused':
+                                nextrun_stamp = utctimestamp() + (int(mylar.CONFIG.DOWNLOAD_SCAN_INTERVAL) * 60)
+                            else:
+                                mylar.SCHED.pause_job('monitor')
                             jobstore = jbst
                             break
 
                     if jobstore is not None:
-                        nextrun_date = datetime.datetime.utcfromtimestamp(nextrun_stamp)
-                        jobstore.modify(next_run_time=nextrun_date)
-                        nextrun_date = nextrun_date.replace(microsecond=0)
+                        if nextrun_stamp is not None:
+                            nextrun_date = datetime.datetime.utcfromtimestamp(nextrun_stamp)
+                            jobstore.modify(next_run_time=nextrun_date)
+                            nextrun_date = nextrun_date.replace(microsecond=0)
                     else:
                         # if the rss is enabled after startup, we have to re-set it up...
                         nextrun_stamp = utctimestamp() + (int(mylar.CONFIG.RSS_CHECKINTERVAL) * 60)
                         nextrun_date = datetime.datetime.utcfromtimestamp(nextrun_stamp)
                         mylar.SCHED_RSS_LAST = last_run_completed
 
-                logger.fdebug('ReScheduled job: %s to %s' % (job, mylar.helpers.utc_date_to_local(nextrun_date)))
+                if nextrun_date is not None:
+                    logger.fdebug('ReScheduled job: %s to %s' % (job, mylar.helpers.utc_date_to_local(nextrun_date)))
                 lastrun_comp = datetime.datetime.utcfromtimestamp(last_run_completed)
                 lastrun_comp = lastrun_comp.replace(microsecond=0)
                 #if it's completed, then update the last run time to the ending time of the job
