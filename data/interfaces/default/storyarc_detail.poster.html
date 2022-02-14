@@ -16,7 +16,7 @@
                         <a id="menu_link_refresh" onclick="doAjaxCall('SearchArcIssues?StoryArcID=${storyarcid}',$(this),'table')" data-success="Now searching for Missing StoryArc Issues">Search for Missing</a>
                         <a id="menu_link_refresh" onclick="doAjaxCall('ArcWatchlist?StoryArcID=${storyarcid}',$(this),'table')" data-success="Now searching for matches on Watchlist">Search for Watchlist matches</a>
                         %if cvarcid:
-                            <a id="menu_link_refresh" onclick="doAjaxCall('addStoryArc_thread?arcid=${storyarcid}&cvarcid=${cvarcid}&storyarcname=${storyarcname}&arcrefresh=True',$(this),'table')" data-success="Refreshed Story Arc">Refresh Story Arc</a>
+                            <a id="menu_link_refresh" onclick="doAjaxCall('addStoryArc_thread?arcid=${storyarcid}&cvarcid=${cvarcid}&storyarcname=${storyarcname| u}&arcrefresh=True',$(this),'table')" data-success="Refreshed Story Arc">Refresh Story Arc</a>
                         %endif
 		</div>
          <h1 class="clearfix"><a href="storyarc_main"><img src="${icons['ReadingList-icon']}" height="26" width="26" align="left" alt="Story Arc Management"/></a></h1>
@@ -79,7 +79,7 @@
                          <input type="checkbox" style="vertical-align: middle; margin: 3px; margin-top: -1px;" name="copy2arcdir" id="copy2arcdir" value="1" ${checked(mylar.CONFIG.COPY2ARCDIR)} disabled/><label>Copy watchlisted issues to ${carcdir} Directory</label>
                      </div>
                        <input type="hidden" name="StoryArcID" value="${storyarcid}">
-                       <input type="hidden" name="StoryArcName" value="${storyarcname}">
+                       <input type="hidden" name="StoryArcName" value="${storyarcname| u}">
                      <div style="display:inline;position:relative;top:0px;">
                        &nbsp;
 <!--
@@ -97,7 +97,7 @@
                                <input style="display:inline;float:right;" type="text" title="enter full url where image resides" placeholder="full URL where image resides" onfocus="if(this.value==this.defaultValue) this.value='';" name="url" size="25">
                                <input style="display:inline;float:right;" type="image" src="images/download_icon.png" height="20" width="20" alt="submit"></br>
                                <input type="hidden" name="storyarcid" value="${storyarcid}">
-                               <input type="hidden" name="storyarcname" value="${storyarcname}">
+                               <input type="hidden" name="storyarcname" value="${storyarcname| u}">
                           %if storyarcbanner is not None:
                              <p style="display:inline;float:right;">
                              <input type="hidden" name="height" id="height" value="" />
