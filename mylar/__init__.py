@@ -180,6 +180,7 @@ FOLDER_CACHE = None
 GLOBAL_MESSAGES = None
 SSE_KEY = None
 SESSION_ID = None
+UPDATE_VALUE = {}
 SCHED = BackgroundScheduler({
                              'apscheduler.executors.default': {
                                  'class':  'apscheduler.executors.pool:ThreadPoolExecutor',
@@ -206,7 +207,7 @@ def initialize(config_file):
                MONITOR_SCHEDULER, SEARCH_SCHEDULER, RSS_SCHEDULER, WEEKLY_SCHEDULER, VERSION_SCHEDULER, UPDATER_SCHEDULER, \
                SCHED_RSS_LAST, SCHED_WEEKLY_LAST, SCHED_MONITOR_LAST, SCHED_SEARCH_LAST, SCHED_VERSION_LAST, SCHED_DBUPDATE_LAST, COMICINFO, SEARCH_TIER_DATE, \
                BACKENDSTATUS_CV, BACKENDSTATUS_WS, PROVIDER_STATUS, EXT_IP, ISSUE_EXCEPTIONS, PROVIDER_START_ID, GLOBAL_MESSAGES, CHECK_FOLDER_CACHE, FOLDER_CACHE, SESSION_ID, \
-               MAINTENANCE_UPDATE, MAINTENANCE_DB_COUNT, MAINTENANCE_DB_TOTAL
+               MAINTENANCE_UPDATE, MAINTENANCE_DB_COUNT, MAINTENANCE_DB_TOTAL, UPDATE_VALUE
 
         cc = mylar.config.Config(config_file)
         CONFIG = cc.read(startup=True)
@@ -827,7 +828,7 @@ def dbcheck():
     c.execute('CREATE TABLE IF NOT EXISTS exceptions_log(date TEXT UNIQUE, comicname TEXT, issuenumber TEXT, seriesyear TEXT, issueid TEXT, comicid TEXT, booktype TEXT, searchmode TEXT, error TEXT, error_text TEXT, filename TEXT, line_num TEXT, func_name TEXT, traceback TEXT)')
     c.execute('CREATE TABLE IF NOT EXISTS tmp_searches (query_id INTEGER, comicid INTEGER, comicname TEXT, publisher TEXT, publisherimprint TEXT, comicyear TEXT, issues TEXT, volume TEXT, deck TEXT, url TEXT, type TEXT, cvarcid TEXT, arclist TEXT, description TEXT, haveit TEXT, mode TEXT, searchtype TEXT, comicimage TEXT, thumbimage TEXT, PRIMARY KEY (query_id, comicid))')
     c.execute('CREATE TABLE IF NOT EXISTS notifs(session_id INT, date TEXT, event TEXT, comicid TEXT, comicname TEXT, issuenumber TEXT, seriesyear TEXT, status TEXT, message TEXT, PRIMARY KEY (session_id, date))')
-    c.execute('CREATE TABLE IF NOT EXISTS provider_searches(provider TEXT UNIQUE, type TEXT, lastrun INTEGER, active TEXT)')
+    c.execute('CREATE TABLE IF NOT EXISTS provider_searches(id INTEGER UNIQUE, provider TEXT UNIQUE, type TEXT, lastrun INTEGER, active TEXT, hits INTEGER DEFAULT 0)')
     c.execute('CREATE TABLE IF NOT EXISTS mylar_info(DatabaseVersion INTEGER PRIMARY KEY)')
     conn.commit
     c.close
@@ -1534,6 +1535,17 @@ def dbcheck():
         c.execute('SELECT submit_date from ddl_info')
     except sqlite3.OperationalError:
         c.execute('ALTER TABLE ddl_info ADD COLUMN submit_date TEXT')
+
+    ## -- provider_searches Table --
+    try:
+        c.execute('SELECT id from provider_searches')
+    except sqlite3.OperationalError:
+        c.execute('ALTER TABLE provider_searches ADD COLUMN id INTEGER')
+
+    try:
+        c.execute('SELECT hits from provider_searches')
+    except sqlite3.OperationalError:
+        c.execute('ALTER TABLE provider_searches ADD COLUMN hits INTEGER DEFAULT 0')
 
     #if it's prior to Wednesday, the issue counts will be inflated by one as the online db's everywhere
     #prepare for the next 'new' release of a series. It's caught in updater.py, so let's just store the

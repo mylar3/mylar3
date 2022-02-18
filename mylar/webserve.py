@@ -98,14 +98,14 @@ def serve_template(templatename, **kwargs):
     _hplookup = TemplateLookup(directories=[template_dir])
     try:
         template = _hplookup.get_template(templatename)
-        return template.render(http_root=mylar.CONFIG.HTTP_ROOT, interface=mylar.CONFIG.INTERFACE, icons=icons, gl_messages=mylar.GLOBAL_MESSAGES, sse_key=mylar.SSE_KEY, **kwargs)
+        return template.render(http_root=mylar.CONFIG.HTTP_ROOT, interface=mylar.CONFIG.INTERFACE, icons=icons, gl_messages=mylar.GLOBAL_MESSAGES, sse_key=mylar.SSE_KEY, pre_update=mylar.UPDATE_VALUE, **kwargs)
     except Exception as e:
         #default to base in case the html hasn't been changed in new interface.
         template_dir = os.path.join(str(interface_dir), 'default')
         _hplookup = TemplateLookup(directories=[template_dir])
         try:
             template = _hplookup.get_template(templatename)
-            return template.render(http_root=mylar.CONFIG.HTTP_ROOT, interface=mylar.CONFIG.INTERFACE, icons=icons, gl_messages=mylar.GLOBAL_MESSAGES, sse_key=mylar.SSE_KEY, **kwargs)
+            return template.render(http_root=mylar.CONFIG.HTTP_ROOT, interface=mylar.CONFIG.INTERFACE, icons=icons, gl_messages=mylar.GLOBAL_MESSAGES, sse_key=mylar.SSE_KEY, pre_update=mylar.UPDATE_VALUE, **kwargs)
         except Exception:
             return exceptions.html_error_template().render()
 
@@ -339,14 +339,15 @@ class WebInterface(object):
                                 run_them_down = True
                                 break
                             for root,dir,files in os.walk(rootpaths):
-                                if rootpaths == ''.join(dir):
-                                    direc = None
-                                else:
-                                    direc = ''.join(dir)
-                                    if os.stat(os.path.join(root, direc))[stat.ST_MTIME] > filesupdated.timestamp():
-                                        logger.info('detected sub-directory changes in %s - running them down' % direc)
-                                        run_them_down = True
-                                        break
+                                for dr in dir:
+                                    if rootpaths == ''.join(dr):
+                                        direc = None
+                                    else:
+                                        direc = ''.join(dr)
+                                        if os.stat(os.path.join(root, direc))[stat.ST_MTIME] > filesupdated.timestamp():
+                                            logger.info('detected sub-directory changes in %s - running them down' % direc)
+                                            run_them_down = True
+                                            break
                                 for file in files:
                                     if run_them_down is True:
                                         break
@@ -2700,9 +2701,7 @@ class WebInterface(object):
                                      "DisplayComicName": aw['DisplayComicName']})
         weeklyresults = []
         wantedcount = 0
-
         weekinfo = helpers.weekly_info(week, year, current)
-
         popit = myDB.select("SELECT * FROM sqlite_master WHERE name='weekly' and type='table'")
         if popit:
             w_results = myDB.select("SELECT * from weekly WHERE weeknumber=? AND year=?", [int(weekinfo['weeknumber']),weekinfo['year']])
@@ -2732,7 +2731,7 @@ class WebInterface(object):
             for weekly in w_results:
                 xfound = False
                 tmp_status = weekly['Status']
-                if weekly['ComicID'] in watchlibrary and tmp_status != 'Mismatched':
+                if weekly['ComicID'] in watchlibrary and all([tmp_status != 'Mismatched', tmp_status != 'Incomplete']):
                     haveit = watchlibrary[weekly['ComicID']]['comicid']
 
                     if weekinfo['weeknumber']:
@@ -2740,7 +2739,6 @@ class WebInterface(object):
                             tmp_status = 'Paused'
                         elif (week is None or all([week is not None, int(week) >= int(weekinfo['weeknumber'])])) and all([mylar.CONFIG.AUTOWANT_UPCOMING, tmp_status == 'Skipped']):
                             tmp_status = 'Wanted'
-
                     for x in issueLibrary:
                         if weekly['IssueID'] == x['IssueID'] and tmp_status != 'Paused':
                             xfound = True
@@ -2759,9 +2757,9 @@ class WebInterface(object):
                 if all([weekly['ComicID'] is not None, weekly['ComicID'] != '', haveit == 'No']) or haveit == 'OneOff':
                     linkit = 'http://comicvine.gamespot.com/volume/4050-' + str(weekly['ComicID'])
                 else:
-                    if all([weekly['Status'] == 'Mismatched', haveit == 'No', weekly['IssueID'] is not None]):
+                    if any([weekly['Status'] == 'Mismatched', weekly['Status'] == 'Incomplete']) and all([haveit == 'No', weekly['IssueID'] is not None]):
                         linkit = 'http://comicvine.gamespot.com/volume/4000-' + str(weekly['IssueID'])
-                    elif all([weekly['Status'] == 'Mismatched', haveit == 'Yes', weekly['ComicID'] is not None]):
+                    elif any([weekly['Status'] == 'Mismatched', weekly['Status'] == 'Incomplete']) and all([haveit == 'Yes', weekly['ComicID'] is not None]):
                         linkit = 'http://comicvine.gamespot.com/volume/4050-' + str(weekly['ComicID'])
                     else:
                     #setting it here will force it to set the link to the right comicid regardless of annuals or not
@@ -2982,7 +2980,7 @@ class WebInterface(object):
                     return threading.Thread(target=weeklypull.pullit, args=[forcecheck]).start()
 
                 if int(upc['weeknumber']) == int(weeknumber) and int(upc['year']) == int(weekyear):
-                    if all([upc['Status'] == 'Wanted', upc['IssueID'] is None]):
+                    if all([upc['Status'] == 'Wanted', upc['IssueID'] is None]) or all([upc['Status'] == 'Incomplete', upc['IssueID'] is not None]):
                         upcoming_count +=1
                         upcoming.append({"ComicName":    upc['Comic'],
                                          "IssueNumber":  upc['Issue'],
@@ -2994,7 +2992,7 @@ class WebInterface(object):
                                          "DynamicName":  upc['DynamicName']})
 
                 else:
-                    if int(upc['weeknumber']) > int(weeknumber) and upc['Status'] == 'Wanted':
+                    if int(upc['weeknumber']) > int(weeknumber) and any([upc['Status'] == 'Wanted', upc['Status'] == 'Incomplete']):
                         futureupcoming_count +=1
                         futureupcoming.append({"ComicName":    upc['Comic'],
                                                "IssueNumber":  upc['Issue'],
@@ -3037,16 +3035,29 @@ class WebInterface(object):
                 logger.fdebug('[DELETE] - ' + mvup['ComicName'] + ' issue #: ' + str(mvup['IssueNumber']))
                 deleteit = myDB.action("DELETE from upcoming WHERE ComicName=? AND IssueNumber=?", [mvup['ComicName'], mvup['IssueNumber']])
 
+        mism = myDB.select("SELECT * FROM Weekly WHERE Status='Mismatched' OR Status='Incomplete'")
+        mismatched = []
+        for mm in mism:
+            mismatched.append({'comicname': mm['Comic'],
+                               'issuenumber': mm['Issue'],
+                               'comicid': mm['ComicID'],
+                               'status': mm['Status'],
+                               'releasedate': mm['ShipDate'],
+                               'weekinfo': '%s-%s' % (mm['year'], mm['weeknumber'])})
+        logger.info('mismatched: %s' % (mismatched,))
+
         return {'upcoming': upcoming,
                 'futureupcoming': futureupcoming,
                 'future_nodata_upcoming': future_nodata_upcoming,
                 'futureupcoming_count':futureupcoming_count,
-                'upcoming_count': upcoming_count}
+                'upcoming_count': upcoming_count,
+                'mismatched_count': len(mismatched),
+                'mismatched': mismatched}
     fly_me_to_the_moon.exposed = True
 
     def upcoming(self):
         upcomingdata = self.fly_me_to_the_moon()
-        return serve_template(templatename="upcoming.html", title="Upcoming", upcoming=upcomingdata['upcoming'], upcoming_count=upcomingdata['upcoming_count'], future_nodata_upcoming=upcomingdata['future_nodata_upcoming'])
+        return serve_template(templatename="upcoming.html", title="Upcoming", upcoming=upcomingdata['upcoming'], upcoming_count=upcomingdata['upcoming_count'], future_nodata_upcoming=upcomingdata['future_nodata_upcoming'], mismatched=upcomingdata['mismatched'])
     upcoming.exposed = True
 
     def update_upcoming_filters(self):
@@ -3828,8 +3839,10 @@ class WebInterface(object):
                 elif 'weekly' in jb['JobName'].lower():
                     #logger.fdebug('weekly - job update. WEEKLY_STATUS: %s / db: %s' % (mylar.WEEKLY_STATUS, jb['Status']))
                     status = mylar.WEEKLY_STATUS
-                    if mylar.CONFIG.ALT_PULL == 2: interval = '4 hrs'
-                    else: interval = '24 hrs'
+                    if mylar.CONFIG.ALT_PULL == 2:
+                        interval = '4 hrs'
+                    else:
+                        interval = '24 hrs'
                 elif 'search' in jb['JobName'].lower():
                     #logger.fdebug('search - job update. SEARCH_STATUS: %s / db: %s' % (mylar.SEARCH_STATUS, jb['Status']))
                     status = mylar.SEARCH_STATUS
@@ -3851,6 +3864,7 @@ class WebInterface(object):
                     prev_run = '-----'
                 if any([next_run is None, status == 'Paused']):
                     next_run = '-----'
+
                 tmp.append({'prev_run_datetime':  prev_run,
                             'next_run_datetime': next_run,
                             'interval': interval,
@@ -4175,7 +4189,7 @@ class WebInterface(object):
                     self.group_metatag(ComicID=cid['ComicID'], threaded=True)
                     cnt+=1
                 logger.info('[MASS BATCH][METATAGGING-FILES] I have completed metatagging files for ' + str(len(ComicID)) + ' series.')
-                mylar.GLOBAL_MESSAGES = {'status': 'success', 'comicid': comicinfo['ComicID'], 'tables': 'both', 'message': 'Finished complete series (re)tagging of %s of %s (%s)' % (issueline, comicinfo['ComicName'], comicinfo['ComicYear'])}
+                mylar.GLOBAL_MESSAGES = {'status': 'success', 'comicid': None, 'tables': 'both', 'message': 'Finished complete series (re)tagging of %s of %s (%s)' % (issueline, comicinfo['ComicName'], comicinfo['ComicYear'])}
         else:
             myDB = db.DBConnection()
             cline = myDB.selectone("SELECT ComicName, ComicYear FROM comics WHERE ComicID=?", [ComicID]).fetchone()
@@ -4187,8 +4201,7 @@ class WebInterface(object):
 
     def checkGithub(self):
         from mylar import versioncheck
-        versioncheck.checkGithub()
-        raise cherrypy.HTTPRedirect("home")
+        cc_json = versioncheck.checkGithub()
     checkGithub.exposed = True
 
     def history(self):
@@ -6302,9 +6315,10 @@ class WebInterface(object):
         interface_list = [name for name in os.listdir(interface_dir) if os.path.isdir(os.path.join(interface_dir, name))]
 #----
 # to be implemented in the future.
+        br_hist = 'This would be a nice place to see revision history...'
         if mylar.INSTALL_TYPE == 'git':
             try:
-                branch_history, err = mylar.versioncheck.runGit('log --encoding=UTF-8 --pretty=format:"%h - %cr - %an - %s" -n 5')
+                branch_history = mylar.versioncheck.runGit('log --encoding=UTF-8 --pretty=format:"%h - %cr - %an - %s" -n 5')
                 #here we pass the branch_history to the pretty_git module to break it down
                 if branch_history:
                     br_hist = self.pretty_git(branch_history)
@@ -6312,13 +6326,9 @@ class WebInterface(object):
                         br_hist = "" + br_hist.decode('utf-8')
                     except:
                         br_hist = br_hist
-                else:
-                    br_hist = err
             except Exception as e:
                 logger.fdebug('[ERROR] Unable to retrieve git revision history for some reason: %s' % e)
                 br_hist = 'This would be a nice place to see revision history...'
-        else:
-            br_hist = 'This would be a nice place to see revision history...'
 #----
         myDB = db.DBConnection()
         CCOMICS = myDB.select("SELECT COUNT(*) FROM comics")
@@ -6386,6 +6396,7 @@ class WebInterface(object):
                     "http_host": mylar.CONFIG.HTTP_HOST,
                     "http_user": mylar.CONFIG.HTTP_USERNAME,
                     "http_port": mylar.CONFIG.HTTP_PORT,
+                    "http_root": mylar.CONFIG.HTTP_ROOT,
                     "http_pass": mylar.CONFIG.HTTP_PASSWORD,
                     "enable_https": helpers.checked(mylar.CONFIG.ENABLE_HTTPS),
                     "https_cert": mylar.CONFIG.HTTPS_CERT,
@@ -6613,6 +6624,7 @@ class WebInterface(object):
                     "branch_history" : br_hist,
                     "log_dir": mylar.CONFIG.LOG_DIR,
                     "opds_enable": helpers.checked(mylar.CONFIG.OPDS_ENABLE),
+                    "opds_endpoint": mylar.CONFIG.OPDS_ENDPOINT,
                     "opds_authentication": helpers.checked(mylar.CONFIG.OPDS_AUTHENTICATION),
                     "opds_username": mylar.CONFIG.OPDS_USERNAME,
                     "opds_password": mylar.CONFIG.OPDS_PASSWORD,
@@ -7543,6 +7555,11 @@ class WebInterface(object):
                             if len(file_check) > 0:
                                 filename = str(file_check[0])
                                 dirName = str(Path(filename).parent.absolute())
+
+            if not os.path.exists(filename):
+                logger.warn('%s %s does not exist in the given location. Cannot metatag this filename due to this.' % (module, filename))
+                mylar.GLOBAL_MESSAGES = {'status': 'failure', 'comicname': None, 'seriesyear': None, 'comicid': comicid, 'tables': 'both', 'message': 'Unable to locate corresponding filename: %s' % filename}
+                return
 
             comicid = issuedata['ComicID']
             seriesyear = issuedata['ComicYear']

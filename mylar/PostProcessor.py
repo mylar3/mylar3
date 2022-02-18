@@ -13,8 +13,6 @@
 #  You should have received a copy of the GNU General Public License
 #  along with Mylar.  If not, see <http://www.gnu.org/licenses/>.
 
-
-
 import os
 import shutil
 import datetime
@@ -516,7 +514,7 @@ class PostProcessor(object):
                             logger.info('issueid detected in filename: %s' % fl['issueid'])
                             csi = myDB.selectone('SELECT i.ComicID, i.IssueID, i.Issue_Number, c.ComicName, c.ComicYear, c.AgeRating FROM comics as c JOIN issues as i ON c.ComicID = i.ComicID WHERE i.IssueID=?', [fl['issueid']]).fetchone()
                             if csi is None:
-                                csi = myDB.selectone('SELECT i.ComicID as comicid, i.IssueID, i.Issue_Number, a.ReleaseComicName, c.ComicName, c.ComicYear, c.AgeRating FROM comics as c JOIN annuals as a ON c.ComicID = a.ComicID WHERE a.IssueID=? AND NOT a.Deleted', [fl['issueid']]).fetchone()
+                                csi = myDB.selectone('SELECT a.ComicID as comicid, a.IssueID, a.Issue_Number, a.ReleaseComicName, c.ComicName, c.ComicYear, c.AgeRating FROM comics as c JOIN annuals as a ON c.ComicID = a.ComicID WHERE a.IssueID=? AND NOT a.Deleted', [fl['issueid']]).fetchone()
                                 if csi is not None:
                                     annchk = 'yes'
                                 else:
@@ -1984,9 +1982,14 @@ class PostProcessor(object):
                 m_event = None
                 if self.failed_files == 0:
                     if all([self.comicid is not None, self.issueid is None]):
-                        logger.info('%s post-processing of pack completed for %s issues.' % (module, i))
-                        global_line = 'Successfully post-processed pack for %s issues' % (i)
-                    if self.issueid is not None:
+                        try:
+                            logger.info('%s post-processing of pack completed for %s issues of %s (%s).' % (module, i, dspcname, dspcyear))
+                            global_line = 'Successfully post-processed pack for %s issues of %s (%s)' % (i, dspcname, dspcyear)
+                        except Exception:
+                            logger.info('%s post-processing of pack completed for %s issues.' % (module, i))
+                            global_line = 'Successfully post-processed pack for %s issues.' % (i)
+
+                    elif self.issueid is not None:
                         if ml['AnnualType'] is not None:
                             logger.info('%s direct post-processing of issue completed for %s %s #%s.' % (module, ml['ComicName'], ml['AnnualType'], ml['IssueNumber']))
                             global_line = 'Successfully post-processed</br> %s %s %s' % (ml['ComicName'], ml['AnnualType'], ml['IssueNumber'])

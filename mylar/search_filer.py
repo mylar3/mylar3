@@ -1,3 +1,18 @@
+# -*- coding: utf-8 -*-
+# This file is part of Mylar.
+#
+# Mylar is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# Mylar is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with Mylar.  If not, see <http://www.gnu.org/licenses/>.
 
 import re
 import email.utils
@@ -628,12 +643,12 @@ class search_check(object):
                 if yearmatch is False:
                     continue
 
-                annualize = "false"
+                annualize = False
                 if 'annual' in ComicName.lower():
                     logger.fdebug(
                         "IssueID of : %s This is an annual...let's adjust." % IssueID
                     )
-                    annualize = "true"
+                    annualize = True
 
                 F_ComicVersion = None
 
@@ -670,7 +685,7 @@ class search_check(object):
 
                     # here's the catch, sometimes annuals get posted as the Pub Year
                     # instead of the Series they belong to (V2012 vs V2013)
-                    if annualize == "true" and int(ComicYear) == int(F_ComicVersion):
+                    if annualize is True and int(ComicYear) == int(F_ComicVersion):
                         logger.fdebug(
                             "We matched on versions for annuals %s" % fndcomicversion
                         )
@@ -920,6 +935,7 @@ class search_check(object):
                             ))
                             or all([cmloopit == 4, findcomiciss is None, pc_in is None])
                             or all([cmloopit == 4, findcomiciss is None, pc_in == 1])
+                            or all([cmloopit == 4, findcomiciss == 1, pc_in is None])
                         ):
                             nowrite = False
                             logger.info('[nzbprov:%s] provider_stat: %s' % (nzbprov, provider_stat,))

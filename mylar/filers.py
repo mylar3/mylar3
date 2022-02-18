@@ -70,7 +70,7 @@ class FileHandlers(object):
 
     def folder_create(self, booktype=None, update_loc=None, secondary=None, imprint=None):
         # dictionary needs to passed called comic with
-        #  {'ComicPublisher', 'CorrectedType, 'Type', 'ComicYear', 'ComicName', 'ComicVersion'}
+        #  {'ComicPublisher', 'Corrected_Type, 'Type', 'ComicYear', 'ComicName', 'ComicVersion'}
         # or pass in comicid value from __init__
 
         # setup default location here
@@ -320,6 +320,56 @@ class FileHandlers(object):
             return {'comlocation': comlocation,
                     'subpath':     bb_tuple,
                     'com_parentdir': com_parentdir}
+
+    def series_folder_collision_detection(self, comlocation, comicid, booktype, comicyear, volume):
+        myDB = db.DBConnection()
+        chk = myDB.select('SELECT * FROM comics WHERE ComicLocation LIKE "%'+comlocation+'%" AND ComicID !=?', [comicid])
+
+        tryit = None
+        if chk:
+            for ck in chk:
+                comloc = ck['ComicLocation']
+                if comloc == comlocation:
+                    logger.info('[SERIES_FOLDER_COLLISION_DETECTION] %s already exists for %s (%s).' % (ck['ComicLocation'], ck['ComicName'], ck['ComicYear']))
+                    tmp_ff = os.path.basename(mylar.CONFIG.FOLDER_FORMAT)
+                    if ck['ComicYear'] != comicyear:
+                        volumeyear = True
+                    else:
+                        volumeyear = False
+                    if '$Type' not in tmp_ff and booktype != ck['Type']:
+                        logger.fdebug('[SERIES_FOLDER_COLLISION_DETECTION] Trying to rename using BookType declaration.')
+                        new_format = '%s [%s]' % (tmp_ff, '$Type')
+                    elif '$Volume' not in tmp_ff:
+                        logger.fdebug('[SERIES_FOLDER_COLLISION_DETECTION] Trying to rename using Volume declaration.')
+                        volume_choice = '$VolumeY'
+                        #use volume instead of ck['ComicVersion'] since volume has already had changes applied in other module
+                        if volumeyear is False:
+                            if volume is None:
+                                volume_choice = '$VolumeY'
+                            else:
+                                volume_choice = '$VolumeN'
+                        t_name = tmp_ff.find('$Series')
+                        if t_name != -1:
+                            new_format = '%s %s %s' % (tmp_ff[:t_name+len('$Series'):], volume_choice, tmp_ff[t_name+len('$Series')+1:])
+
+                    self.comic = {'ComicPublisher': ck['ComicPublisher'],
+                                  'PublisherImprint': ck['PublisherImprint'],
+                                  'Corrected_Type': ck['Corrected_Type'],
+                                  'Type': booktype,
+                                  'ComicYear': comicyear,
+                                  'ComicName': ck['ComicName'],
+                                  'ComicLocation': ck['ComicLocation'],
+                                  'ComicVersion': volume}
+
+                    update_loc = {'temppath': mylar.CONFIG.DESTINATION_DIR,
+                                  'tempff': True,
+                                  'tempformat': new_format,
+                                  'comicid': ck['ComicID']}
+                    tryit = self.folder_create(update_loc=update_loc)
+                    break
+
+        logger.fdebug('tryit_response: %s' % (tryit,))
+        return tryit
 
     def rename_file(self, ofilename, issue=None, annualize=None, arc=False, file_format=None): #comicname, issue, comicyear=None, issueid=None)
             comicid = self.comicid   # it's coming in unicoded...
