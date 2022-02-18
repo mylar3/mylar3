@@ -96,6 +96,11 @@ class Api(object):
                     data = '\nevent: shutdown\ndata: {\ndata: "status": "' + results['status'] + '",\ndata: "message": "' + results['message'] + '"\ndata: }\n\n'
                 except Exception:
                     data = '\nevent: shutdown\ndata: {\ndata: "status": "' + results['status'] + '",\ndata: "message": "' + results['message'] + '"\ndata: }\n\n'
+            elif results['event'] == 'check_update':
+                try:
+                    data = '\nevent: check_update\ndata: {\ndata: "status": "' + results['status'] + '",\ndata: "current_version": "' + results['current_version'] + '",\ndata: "latest_version": "' + results['latest_version'] + '",\ndata: "commits_behind": "' + results['commits_behind'] + '",\ndata: "docker": "' + results['docker'] + '",\ndata: "message": "' + results['message'] + '"\ndata: }\n\n'
+                except Exception as e:
+                    data = '\nevent: check_update\ndata: {\ndata: "status": "' + results['status'] + '",\ndata: "message": "' + results['message'] + '"\ndata: }\n\n'
             else:
                 try:
                     data = '\ndata: {\ndata: "status": "' + results['status'] + '",\ndata: "comicid": "' + results['comicid']+ '",\ndata: "message": "' + results['message'] + '",\ndata: "tables": "' + results['tables'] + '",\ndata: "comicname": "' + results['comicname'] + '",\ndata: "seriesyear": "' + results['seriesyear'] + '"\ndata: }\n\n'
@@ -1100,6 +1105,8 @@ class Api(object):
 
             if event is not None and event == 'shutdown':
                 the_message = {'status': mylar.GLOBAL_MESSAGES['status'], 'event': event, 'message': mylar.GLOBAL_MESSAGES['message']}
+            elif event is not None and event == 'check_update':
+                the_message = {'status': mylar.GLOBAL_MESSAGES['status'], 'event': event, 'current_version': mylar.GLOBAL_MESSAGES['current_version'], 'latest_version': mylar.GLOBAL_MESSAGES['latest_version'], 'commits_behind': str(mylar.GLOBAL_MESSAGES['commits_behind']), 'docker': mylar.GLOBAL_MESSAGES['docker'], 'message': mylar.GLOBAL_MESSAGES['message']}
             else:
                 the_message = {'status': mylar.GLOBAL_MESSAGES['status'], 'event': event, 'comicid': mylar.GLOBAL_MESSAGES['comicid'], 'tables': mylar.GLOBAL_MESSAGES['tables'], 'message': mylar.GLOBAL_MESSAGES['message']}
                 try:
@@ -1111,7 +1118,13 @@ class Api(object):
             if mylar.GLOBAL_MESSAGES['status'] != 'mid-message-event':
                 myDB = db.DBConnection()
                 tmp_message = dict(the_message, **{'session_id': mylar.SESSION_ID})
-                tmp_message.pop('tables')
+                if event != 'check_update':
+                    tmp_message.pop('tables')
+                else:
+                    tmp_message.pop('current_version')
+                    tmp_message.pop('latest_version')
+                    tmp_message.pop('commits_behind')
+                    tmp_message.pop('docker')
                 the_tmp_message = tmp_message.pop('message')
                 the_real_message = re.sub(r'\r\n|\n|</br>', '', the_tmp_message)
                 tmp_message = dict(tmp_message, **{'message': the_real_message})

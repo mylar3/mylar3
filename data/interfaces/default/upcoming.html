@@ -71,6 +71,7 @@
                 <ul>
                         <li><a href="#tabs-1">This Week's Upcoming (${upcoming_count})</a></li>
                         <li><a href="#tabs-2">Future Auto-Wants</a></li>
+                        <li><a href="#tabs-3">Incomplete / Mismatched CV</a></li>
                 </ul>
 
         <div id="tabs-1">
@@ -139,6 +140,36 @@
                </tbody>
                </table>
             </div>
+        </div>
+        <div id="tabs-3">
+          <div class="table_wrapper">
+            <table class="display_no_select" id="upcoming_table">
+                %if mismatched:
+                    <thead>
+                            <tr>
+                                    <th id="comicname">Comic</th>
+                                    <th id="issuenumber">Issue</th>
+                                    <th id="reldate">Release Date</th>
+                                    <th id="status">Status</th>
+                                    <th id="weekinfo">Pull-list</th>
+                            </tr>
+                    </thead>
+                    <tbody>
+                    %for mis in mismatched:
+                            <tr class="gradeZ">
+                                    <td id="comicname"><a href="comicDetails?ComicID=${mis['comicid']}">${mis['comicname']}</a></td>
+                                    <td id="issuenumber">${mis['issuenumber']}</td>
+                                    <td id="reldate">${mis['releasedate']}</td>
+                                    <td id="status">${mis['status']}</td>
+                                    <td id="weekinfo">${mis['weekinfo']}</td>
+                            </tr>
+                    %endfor
+                %else:
+                  <tr><td align="center" width="100%"> no mismatched data</td></tr>
+                %endif
+               </tbody>
+            </table>
+          </div>
         </div>
 
 </%def>

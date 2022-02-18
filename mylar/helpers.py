@@ -4284,8 +4284,8 @@ def publisherImages(publisher):
     elif publisher == 'Aardvark':
         comicpublisher = {'publisher_image':       'images/publisherlogos/logo-aardvark.png',
                           'publisher_image_alt':   'Aardvark',
-                          'publisher_imageH':      '100',
-                          'publisher_imageW':      '100'}
+                          'publisher_imageH':      '90',
+                          'publisher_imageW':      '106'}
     elif publisher == 'Abstract Studio':
         comicpublisher = {'publisher_image':       'images/publisherlogos/logo-abstract.png',
                           'publisher_image_alt':   'Abstract Studio',

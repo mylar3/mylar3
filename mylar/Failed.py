@@ -144,7 +144,6 @@ class FailedProcessor(object):
 
         if all([self.id == nzbiss['ID'], self.prov == nzbiss['PROVIDER']]):
             logger.info('ID %s for provider %s already exists as a Failed item. Continuing the search...' % (nzbiss['ID'], nzbiss['Provider']))
-            return
 
         if self.prov is None:
            # find the provider.
@@ -160,9 +159,9 @@ class FailedProcessor(object):
         if 'annual' in nzbname.lower():
             logger.info(module + ' Annual detected.')
             annchk = "yes"
-            issuenzb = myDB.selectone("SELECT * from annuals WHERE IssueID=? AND ComicName NOT NULL", [issueid]).fetchone()
+            issuenzb = myDB.selectone("SELECT a.ComicYear, b.* from comics as a left join annuals as b on a.ComicID=b.ComicID WHERE b.IssueID=? AND b.ComicName NOT NULL", [issueid]).fetchone()
         else:
-            issuenzb = myDB.selectone("SELECT * from issues WHERE IssueID=? AND ComicName NOT NULL", [issueid]).fetchone()
+            issuenzb = myDB.selectone("SELECT a.ComicYear, b.* from comics as a left join issues as b on a.ComicID=b.ComicID WHERE b.IssueID=? AND b.ComicName NOT NULL", [issueid]).fetchone()
 
         if issuenzb is not None:
             logger.info(module + ' issuenzb found.')
@@ -221,7 +220,9 @@ class FailedProcessor(object):
         self._log('Successfully marked as Failed.')
 
         if mylar.CONFIG.FAILED_AUTO:
+            failed_msg = '%s (%s) #%s failed to download. Retrying the search but ignoring the bad result.' % (issuenzb['ComicName'], issuenzb['ComicYear'], issuenzb['Issue_Number'])
             logger.info(module + ' Sending back to search to see if we can find something that will not fail.')
+            mylar.GLOBAL_MESSAGES = {'status': 'failure', 'comicname': issuenzb['ComicName'], 'seriesyear': issuenzb['ComicYear'], 'comicid': comicid, 'tables': 'tables', 'message': failed_msg}
             self._log('Sending back to search to see if we can find something better that will not fail.')
             self.valreturn.append({"self.log":    self.log,
                                    "mode":        'retry',
@@ -233,6 +234,8 @@ class FailedProcessor(object):
 
             return self.queue.put(self.valreturn)
         else:
+            failed_msg = '%s (%s) #%s failed to download.' % (issuenzb['ComicName'], issuenzb['ComicYear'], issuenzb['Issue_Number'])
+            mylar.GLOBAL_MESSAGES = {'status': 'failure', 'comicname': issuenzb['ComicName'], 'seriesyear': issuenzb['ComicYear'], 'comicid': comicid, 'tables': 'tables', 'message': failed_msg}
             logger.info(module + ' Stopping search here as automatic handling of failed downloads is not enabled *hint*')
             self._log('Stopping search here as automatic handling of failed downloads is not enabled *hint*')
             self.valreturn.append({"self.log": self.log,

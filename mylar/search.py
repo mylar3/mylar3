@@ -597,7 +597,7 @@ def search_init(
                 logger.info('attempting to set %s to not being the active provider.'% (list(current_prov.keys())[0]))
                 if findit['lastrun'] != 0:
                    logger.info('setting last run to: %s' % (findit['lastrun']))
-                   last_run_check(write={''.join(current_prov.keys()): {'active': False, 'lastrun': findit['lastrun'], 'type': current_prov[list(current_prov.keys())[0]]['type']}})
+                   last_run_check(write={''.join(current_prov.keys()): {'active': False, 'lastrun': findit['lastrun'], 'type': current_prov[list(current_prov.keys())[0]]['type'], 'hits': current_prov[list(current_prov.keys())[0]]['hits']}})
                    #current_prov[list(current_prov.keys())[0]]['lastrun'] = findit['lastrun']
                 current_prov[list(current_prov.keys())[0]]['active'] = False
                 logger.info('setting took. Current provider is: %s' % (current_prov,))
@@ -1066,7 +1066,7 @@ def NZB_SEARCH(
                          'year':      comyear}
                 b = getcomics.GC(query=fline, provider_stat=provider_stat)
                 verified_matches = b.search(is_info=is_info)
-            logger.info('bb returned from %s: %s' % (nzbprov, verified_matches))
+            #logger.fdebug('bb returned from %s: %s' % (nzbprov, verified_matches))
 
         elif RSS == "yes":
             if 'DDL(GetComics)' in nzbprov:
@@ -1304,7 +1304,7 @@ def NZB_SEARCH(
                         break
                     is_info['foundc']['lastrun'] = time.time()
                     logger.info('setting lastrun for %s to %s' % (is_info['foundc']['provider'], time.ctime(is_info['foundc']['lastrun'])))
-                    last_run_check(write={str(nzbprov): {'active': provider_stat['active'], 'lastrun': is_info['foundc']['lastrun'], 'type': provider_stat['type']}})
+                    last_run_check(write={str(nzbprov): {'active': provider_stat['active'], 'lastrun': is_info['foundc']['lastrun'], 'type': provider_stat['type'], 'hits': provider_stat['hits']+1}})
                     try:
                         if str(r.status_code) != '200':
                             logger.warn(
@@ -1384,8 +1384,8 @@ def NZB_SEARCH(
                     sfs = search_filer.search_check()
                     verified_matches = sfs.checker(bb, is_info)
                 is_info['foundc']['lastrun'] = time.time()
-                logger.info('setting lastrun for %s to %s' % (is_info['foundc']['provider'], time.ctime(is_info['foundc']['lastrun'])))
-                last_run_check(write={str(nzbprov): {'active': provider_stat['active'], 'lastrun': is_info['foundc']['lastrun'], 'type': provider_stat['type']}})
+                logger.fdebug('setting lastrun for %s to %s' % (is_info['foundc']['provider'], time.ctime(is_info['foundc']['lastrun'])))
+                last_run_check(write={str(nzbprov): {'active': provider_stat['active'], 'lastrun': is_info['foundc']['lastrun'], 'type': provider_stat['type'], 'hits': provider_stat['hits']+1}})
 
         if verified_matches != "no results":
             verification(verified_matches, is_info)
@@ -1413,7 +1413,7 @@ def verification(verified_matches, is_info):
     if verified_matches != "no results":
         for verified in verified_matches:
             # we need to make sure we index the correct match
-            logger.info('verified: %s' % (verified,))
+            #logger.fdebug('verified: %s' % (verified,))
             if verified['downloadit']:
                 try:
                     if verified['chkit']:
@@ -4136,19 +4136,21 @@ def last_run_check(write=None, check=None, provider=None):
                    if provider == ck['provider']:
                        chk[ck['provider']] = {'type': ck['type'],
                                               'lastrun': ck['lastrun'],
-                                              'active': ck['active']}
+                                              'active': ck['active'],
+                                              'hits': ck['hits']}
                        break
            else:
                for ck in checkout:
                    chk[ck['provider']] = {'type': ck['type'],
                                           'lastrun': ck['lastrun'],
-                                          'active': ck['active']}
+                                          'active': ck['active'],
+                                          'hits': ck['hits']}
         return chk
     else:
         #logger.fdebug('write: %s' % (write,))
         writekey = list(write.keys())[0]
         writevals = write[writekey]
-        vals = {'active': writevals['active'], 'lastrun': writevals['lastrun'], 'type': writevals['type']}
+        vals = {'active': writevals['active'], 'lastrun': writevals['lastrun'], 'type': writevals['type'], 'hits': writevals['hits']}
         ctrls = {'provider': writekey}
         #logger.fdebug('writing: keys - %s: vals - %s' % (vals, ctrls))
         writeout = myDB.upsert("provider_searches", vals, ctrls)

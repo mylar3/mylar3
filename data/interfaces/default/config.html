@@ -161,13 +161,13 @@
             		<fieldset>
             			<legend>Basic</legend>
 	            		<div class="row">
-	            		 	<label>HTTP Host</label>
-	            		   <input type="text" name="http_host" value="${config['http_host']}" size="30">
-	            		   <small>e.g. localhost or 0.0.0.0</small>
+                                    <label>HTTP Host</label>
+                                    <input type="text" name="http_host" id="http_host" value="${config['http_host']}" size="30">
+                                    <small>e.g. localhost or 0.0.0.0</small>
 	            		</div> 
                                 <div class="row">
                                     <label>HTTP Port</label>
-                                    <input type="text" name="http_port" value="${config['http_port']}" size="10">
+                                    <input type="text" name="http_port" id="http_port" value="${config['http_port']}" size="10">
                                 <div>
 	            		<div class="row">
                                     <div class="row checkbox">
@@ -289,14 +289,19 @@
                                 </div>
                          </fieldset>
                         <fieldset>
-                                <legend>OPDS</legend>
+                                <legend>OPDS</legend><span id="opds_url" style="position:relative;top:-35px;right:20px;float:right;display:hidden;margin-bottom:-25px;"></span>
                                 <div class="row">
                                     <div class="row_checkbox">
                                         <input id="opds_enable" type="checkbox" name="opds_enable" value="1" ${config['opds_enable']} /><label>Enable OPDS</label>
                                     </div>
                                     <div id="opdsoptions">
                                         <div class="row_checkbox">
-                                            <small>Access the OPDS server at http://mylarhost/opds/ - keep in mind your scheme (http or https), your hostname, port, and any http_root you may have set. </small></br> 
+                                            <small></br> - keep in mind your scheme (http or https), and hostname/IP you may have set.
+                                            </br>   (Accessing mylar thru a reverse proxy will also change the url to access mylar.)</small></br>
+                                            <div class="row">
+                                                  <label>OPDS endpoint</label>
+                                                  <input type="text" value="${config['opds_endpoint']}" name="opds_endpoint" id="opds_endpoint" size="20" onkeyup="updateopds_url()" />
+                                            </div>
                                             <div class="row">
                                                   <label>OPDS Page Size</label>
                                                   <input type="text" name="opds_pagesize" value="${config['opds_pagesize']}" size="10">
@@ -1773,6 +1778,45 @@
             }
         }
 
+        function updateopds_url(){
+            var root = "${http_root}";
+            var host = document.getElementById("http_host").value;
+            var port = document.getElementById("http_port").value;
+            var endpoint = document.getElementById("opds_endpoint").value;
+            var protocol = document.getElementById("enable_https").checked;
+            if (protocol){
+                prot = 'https://';
+            } else {
+                prot = 'http://';
+            }
+            if (host.includes('0.0.0.0')){
+                host.replace('0.0.0.0', '{mylar IP}');
+            }
+            if (root == '/'){
+                rootlvl = root;
+            } else {
+                if (!root.startsWith('/')){
+                    root = '/' + root;
+                }
+                if (root.endsWith('/')){
+                    rootlvl = root;
+                } else {
+                    rootlvl = root + '/';
+                }
+            }
+            if (endpoint.startsWith('/')){
+                endpoint = rootlvl + endpoint.substring(1);
+            }
+            if (endpoint.endsWith('/')){
+                endpoint = rootlvl + endpoint.slice(0, -1);
+            } else {
+                endpoint = rootlvl + endpoint;
+            }
+            the_line = prot+host+':'+port+endpoint;
+            document.getElementById("opds_url").style.display = 'block';
+            document.getElementById("opds_url").innerHTML = the_line;
+        }
+
         </script>
 	<script>
 	function initThisPage() 
@@ -1801,20 +1845,24 @@
                 if ($("#opds_enable").is(":checked"))
                         {
                                 $("#opdsoptions").show();
+                                updateopds_url();
                         }
                         else
                         {
                                 $("#opdsoptions").hide();
+                                document.getElementById("opds_url").style.display = 'none';
                         }
 
                 $("#opds_enable").click(function(){
                         if ($("#opds_enable").is(":checked"))
                         {
                                 $("#opdsoptions").slideDown();
+                                updateopds_url();
                         }
                         else
                         {
                                 $("#opdsoptions").slideUp();
+                                document.getElementById("opds_url").style.display = 'none';
                         }
                 });
 

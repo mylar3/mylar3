@@ -790,7 +790,7 @@ def pullitcheck(comic1off_name=None, comic1off_id=None, forcecheck=None, futurep
                                         continue
 
                                     validcheck = checkthis(altvalues[0]['issuedate'], altvalues[0]['status'], usedate)
-                                    if validcheck == False:
+                                    if validcheck is False:
                                         if date_downloaded is None:
                                             continue
                                 if chktype == 'series':
@@ -807,7 +807,7 @@ def pullitcheck(comic1off_name=None, comic1off_id=None, forcecheck=None, futurep
                                 logger.fdebug('status:' + str(datevalues[0]['status']))
                                 datestatus = datevalues[0]['status']
                                 validcheck = checkthis(datevalues[0]['issuedate'], datestatus, usedate)
-                                if validcheck == True:
+                                if validcheck is True:
                                     if datestatus != 'Downloaded' and datestatus != 'Archived':
                                         pass
                                     else:
@@ -922,6 +922,7 @@ def new_pullcheck(weeknumber, pullyear, comic1off_name=None, comic1off_id=None, 
                               "LatestDate":         weekly['LatestDate'],
                               "LatestIssue":        weekly['LatestIssue'],
                               "BookType":           weekly['Type'],
+                              "LastUpdated":        weekly['LastUpdated'],
                               "ForceContinuing":    weekly['ForceContinuing'],
                               "AlternateSearch":    weekly['AlternateSearch'],
                               "DynamicName":        weekly['DynamicComicName']})
@@ -998,6 +999,7 @@ def new_pullcheck(weeknumber, pullyear, comic1off_name=None, comic1off_id=None, 
                                        'Booktype':        watch['BookType'],
                                        'latestIssue':     watch['LatestIssue'],
                                        'DynamicName':     watch['DynamicName'],
+                                       'LastUpdated':     watch['LastUpdated'],
                                        'AnnDynamicName':  annDyn,
                                        'AlternateNames':  altnames,
                                        'AnnualIDs':       annual_ids})
@@ -1024,6 +1026,7 @@ def new_pullcheck(weeknumber, pullyear, comic1off_name=None, comic1off_id=None, 
                 idmatch = None
                 annualidmatch = None
                 namematch = None
+                incomp_cv = False
                 if week is None:
                     break
                 idmatch = [x for x in weeklylist if week['comicid'] is not None and int(x['ComicID']) == int(week['comicid'])]
@@ -1047,10 +1050,12 @@ def new_pullcheck(weeknumber, pullyear, comic1off_name=None, comic1off_id=None, 
                         comicname = idmatch[0]['ComicName'].strip()
                         latestiss = idmatch[0]['latestIssue'].strip()
                         comicid = idmatch[0]['ComicID'].strip()
+                        lastupdated = idmatch[0]['LastUpdated']
                         logger.fdebug('[WEEKLY-PULL-ID] Series Match to ID --- ' + comicname + ' [' + comicid + ']')
                     elif annualidmatch:
                         comicname = week['ComicName']
                         latestiss = annualidmatch[0]['latestIssue'].strip()
+                        lastupdated = annualidmatch[0]['LastUpdated']
                         try:
                            # if x['annuals'] is none cause CV hasn't updated yet, we need to take  the week['annualllink'] value and refresh.
                             t_comicid = annualidmatch[0]['AnnualIDs'][0]['ComicID'].strip()
@@ -1080,6 +1085,7 @@ def new_pullcheck(weeknumber, pullyear, comic1off_name=None, comic1off_id=None, 
                         #if it's a name metch, it means that CV hasn't been populated yet with the necessary data
                         #do a quick issue check to see if the next issue number is in sequence and not a #1, or like #900
                         latestiss = namematch[0]['latestIssue'].strip()
+                        lastupdated = namematch[0]['LastUpdated']
                         try:
                             diff = int(week['Issue']) - int(latestiss)
                         except ValueError as e:
@@ -1117,7 +1123,7 @@ def new_pullcheck(weeknumber, pullyear, comic1off_name=None, comic1off_id=None, 
 
                         usedate = re.sub("[^0-9]", "", ComicDate).strip()
                         if datevalues == 'no results':
-                            if week['issue'].isdigit() == False and '.' not in week['issue']:
+                            if week['issue'].isdigit() is False and '.' not in week['issue']:
                                 altissuenum = re.sub("[^0-9]", "", week['issue'])  # carry this through to get added to db later if matches
                                 logger.fdebug('altissuenum is: ' + str(altissuenum))
                                 altvalues = loaditup(comicname, comicid, altissuenum, chktype)
@@ -1126,7 +1132,9 @@ def new_pullcheck(weeknumber, pullyear, comic1off_name=None, comic1off_id=None, 
                                     continue
 
                                 validcheck = checkthis(altvalues[0]['issuedate'], altvalues[0]['status'], usedate)
-                                if validcheck == False:
+                                if altvalues[0]['issuedate'] == '00000000':
+                                    incomp_cv = True
+                                if validcheck is False:
                                     if date_downloaded is None:
                                         continue
                             if chktype == 'series':
@@ -1142,7 +1150,9 @@ def new_pullcheck(weeknumber, pullyear, comic1off_name=None, comic1off_id=None, 
                             logger.fdebug('status:' + str(datevalues[0]['status']))
                             datestatus = datevalues[0]['status']
                             validcheck = checkthis(datevalues[0]['issuedate'], datestatus, usedate)
-                            if validcheck == True:
+                            if datevalues[0]['issuedate'] == '00000000':
+                                incomp_cv = True
+                            if validcheck is True:
                                 if datestatus != 'Downloaded' and datestatus != 'Archived':
                                     pass
                                 else:
@@ -1241,7 +1251,10 @@ def new_pullcheck(weeknumber, pullyear, comic1off_name=None, comic1off_id=None, 
                             newValue['IssueID'] = issueid
                         if comicid is not None:
                             newValue['ComicID'] = comicid
-                        newValue['Status'] = 'Mismatched'
+                        if incomp_cv is True:
+                            newValue['Status'] = 'Incomplete'
+                        else:
+                            newValue['Status'] = 'Mismatched'
                     else:
                         if mylar.CONFIG.AUTOWANT_UPCOMING:
                             newValue['Status'] = 'Wanted'
@@ -1282,9 +1295,21 @@ def new_pullcheck(weeknumber, pullyear, comic1off_name=None, comic1off_id=None, 
 
                                 #refresh series.
                                 if anncid is None:
-                                    cchk = mylar.importer.updateissuedata(comicid, comicname, calledfrom='weeklycheck')
+                                    watch = {"r_mode": "updateissuedata", "comicid": comicid, "comicname": comicname, "seriesyear": seriesyear, "calledfrom": "weeklycheck", "serieslast_updated": lastupdated}
                                 else:
-                                    cchk = mylar.importer.manualAnnual(anncid, comicname, seriesyear, comicid, forceadd=True)
+                                    watch = {"r_mode": "manualannual", "manual_comicid": anncid, "comicname": comicname, "seriesyear": seriesyear, "comicid": comicid, "forceadd": True, "serieslast_updated": lastupdated}
+
+                                if not {"comicid": watch['comicid'], "comicname": comicname} in mylar.REFRESH_QUEUE.queue:
+                                    logger.info('[SHIZZLE-WHIZZLE] Now queueing to refresh : %s (%s)' % (comicname, seriesyear))
+                                    try:
+                                        importer.refresh_thread(watch)
+                                    except Exception:
+                                        pass
+
+                                #if anncid is None:
+                                #    cchk = mylar.importer.updateissuedata(comicid, comicname, calledfrom='weeklycheck', serieslast_updated=lastupdated)
+                                #else:
+                                #    cchk = mylar.importer.manualAnnual(anncid, comicname, seriesyear, comicid, forceadd=True, serieslast_updated=lastupdated)
 
                             else:
                                 logger.fdebug('annual issue exists in db already: ' + str(issueid))
@@ -1453,15 +1478,21 @@ def checkthis(datecheck, datestatus, usedate):
     logger.fdebug('Using a compare date (usedate) of ' + str(usedate))
     logger.fdebug('Status of ' + str(datestatus))
 
-    #give an allowance of 10 days to datecheck for late publishs (+1.5 weeks)
-    if int(datecheck) + 10 >= int(usedate):
-        logger.fdebug('Store Date falls within acceptable range - series MATCH')
+    if datecheck == '00000000':
+        logger.fdebug('Issue date retrieved as : ' + str(datecheck) + '. This is unpopulated data on CV, which normally means it\'s a new issue and is awaiting data population')
         valid_check = True
-    elif int(datecheck) < int(usedate):
-        if datecheck == '00000000':
-            logger.fdebug('Issue date retrieved as : ' + str(datecheck) + '. This is unpopulated data on CV, which normally means it\'s a new issue and is awaiting data population.')
+    else:
+        dc = datetime.datetime.strptime(datecheck, '%Y%m%d')
+        ud = datetime.datetime.strptime(usedate, '%Y%m%d')
+
+        dc_var_st = dc - datetime.timedelta(days = 7)
+        dc_var_end = dc + datetime.timedelta(days = 7)
+
+        #give an allowance of 10 days to datecheck for late publishs (+1.5 weeks)
+        if dc_var_st <= ud <= dc_var_end:
+            logger.fdebug('Store Date falls within acceptable range - series MATCH')
             valid_check = True
-        else:
+        else: #if int(datecheck) < int(usedate):
             logger.fdebug('The issue date of issue was on ' + str(datecheck) + ' which is prior to ' + str(usedate))
             valid_check = False
 

@@ -51,14 +51,14 @@ class OPDS(object):
         self.kwargs = None
         self.data = None
         if mylar.CONFIG.HTTP_ROOT is None:
-            self.opdsroot = '/opds'
+            self.opdsroot = '/' + mylar.CONFIG.OPDS_ENDPOINT
         elif mylar.CONFIG.HTTP_ROOT.endswith('/'):
-            self.opdsroot = mylar.CONFIG.HTTP_ROOT + 'opds'
+            self.opdsroot = mylar.CONFIG.HTTP_ROOT + '/' + mylar.CONFIG.OPDS_ENDPOINT
         else:
             if mylar.CONFIG.HTTP_ROOT != '/':
-                self.opdsroot = mylar.CONFIG.HTTP_ROOT + '/opds'
+                self.opdsroot = mylar.CONFIG.HTTP_ROOT + '/' + mylar.CONFIG.OPDS_ENDPOINT
             else:
-                self.opdsroot = mylar.CONFIG.HTTP_ROOT + 'opds'
+                self.opdsroot = '/' + mylar.CONFIG.OPDS_ENDPOINT
 
     def checkParams(self, *args, **kwargs):
 
