@@ -212,10 +212,16 @@ class GC(object):
                             splits.pop(1)
                             queryline = ' '.join(splits) % (self.query['comicname'])
                         else:
-                            if sf.find(r'/%s') > 0:
-                                queryline = sf % (self.query['comicname'], sf_issue)
-                            else:
+                            sf_count = len([m.start() for m in re.finditer('(?=%s)', sf)])
+                            if sf_count == 0:
+                                # this is the injected search format above that's already replaced values
                                 queryline = sf
+                            elif sf_count == 2:
+                                queryline = sf % (self.query['comicname'], sf_issue)
+                            elif sf_count == 3:
+                                queryline = sf % (self.query['comicname'], sf_issue, self.query['year'])
+                            else:
+                                queryline = sf % (self.query['comicname'])
 
                 logger.fdebug('[DDL-QUERY] Query set to: %s' % queryline)
                 pause_the_search = mylar.CONFIG.DDL_QUERY_DELAY #mylar.search.check_the_search_delay()
@@ -892,7 +898,7 @@ class GC(object):
 
                 else:
                     if os.path.exists(dst_path):
-                        logger.fdebug('%s already exists - resume not enabled - let us hammer thine')
+                        logger.fdebug('%s already exists - resume not enabled - let us hammer thine' % dst_path)
                         try:
                             os.remove(dst_path)
                         except Exception as e:
