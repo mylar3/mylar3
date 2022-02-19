@@ -1869,7 +1869,7 @@ class WebInterface(object):
             watch.append({"comicid": ComicID, "comicname": chkdb['ComicName'], "seriesyear": chkdb['ComicYear']})
 
         if len(watch) > 0:
-            logger.info('[SHIZZLE-WHIZZLE] Now queueing to refresh %s %s' % (chkdb['ComicName'], chkdb['ComicYear']))
+            logger.info('[SHIZZLE-WHIZZLE] Now queueing to refresh %s (%s)' % (chkdb['ComicName'], chkdb['ComicYear']))
             try:
                 importer.refresh_thread(watch)
             except Exception:

@@ -472,7 +472,7 @@ class FileChecker(object):
         ignore_mod_position = -1
         if year_check:
             ignore_mod_position = self.char_file_position(modfilename, year_check[0], modfilename.index(year_check[0]))
-            logger.info('[%s] year_check: %s' % (ignore_mod_position,year_check,))
+            #logger.fdebug('[%s] year_check: %s' % (ignore_mod_position,year_check,))
 
         for sf in split_file:
             current_pos +=1
