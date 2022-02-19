@@ -1015,7 +1015,7 @@ def new_pullcheck(weeknumber, pullyear, comic1off_name=None, comic1off_id=None, 
         if not comic1off_id:
             logger.fdebug("[WALKSOFTLY] You are watching for: " + str(len(weeklylist)) + " comics")
 
-        weekly = myDB.select('SELECT * from(SELECT a.comicid,IFNULL(a.Comic, b.ComicName) as ComicName,a.rowid,a.issue,a.issueid,NULL as ComicPublisher,a.weeknumber,a.shipdate,a.dynamicname,a.annuallink,a.format FROM weekly as a INNER JOIN annuals as b ON b.releasecomicid = a.comicid WHERE weeknumber = ? AND year = ? UNION SELECT a.comicid,IFNULL(a.Comic, c.ComicName) as ComicName,a.rowid,a.issue,a.issueid,c.ComicPublisher,a.weeknumber,a.shipdate,a.dynamicname,a.annuallink,a.format FROM weekly as a INNER JOIN comics as c ON c.comicid = a.comicid OR c.DynamicComicName = a.dynamicname OR a.annuallink = c.comicid WHERE weeknumber = ? AND year = ?  ) GROUP BY dynamicname', [int(weeknumber),pullyear,int(weeknumber),pullyear])
+        weekly = myDB.select('SELECT * from(SELECT a.comicid,IFNULL(a.Comic, b.ComicName) as ComicName,NULL as SeriesYear,a.rowid,a.issue,a.issueid,NULL as ComicPublisher,a.weeknumber,a.shipdate,a.dynamicname,a.annuallink,a.format FROM weekly as a INNER JOIN annuals as b ON b.releasecomicid = a.comicid WHERE weeknumber = ? AND year = ? UNION SELECT a.comicid,IFNULL(a.Comic, c.ComicName) as ComicName,c.ComicYear as SeriesYear,a.rowid,a.issue,a.issueid,c.ComicPublisher,a.weeknumber,a.shipdate,a.dynamicname,a.annuallink,a.format FROM weekly as a INNER JOIN comics as c ON c.comicid = a.comicid OR c.DynamicComicName = a.dynamicname OR a.annuallink = c.comicid WHERE weeknumber = ? AND year = ?  ) GROUP BY dynamicname', [int(weeknumber),pullyear,int(weeknumber),pullyear])
         if mylar.CONFIG.ANNUALS_ON is True:
             #Need to loop over the weekly section and check the name of the title against the ComicName in the annuals table
             # this is to pick up new #1 annuals that don't exist in the db yet, and won't until a refresh of the series happens.
@@ -1273,6 +1273,7 @@ def new_pullcheck(weeknumber, pullyear, comic1off_name=None, comic1off_id=None, 
                         else:
                             isschk = myDB.selectone('SELECT * FROM issues where IssueID=?', [issueid]).fetchone()
 
+
                         if isschk is None:
                             isschk = myDB.selectone('SELECT * FROM annuals where IssueID=? AND NOT Deleted', [issueid]).fetchone()
                             if isschk is None:
@@ -1281,7 +1282,7 @@ def new_pullcheck(weeknumber, pullyear, comic1off_name=None, comic1off_id=None, 
                                     comicid = release_the_id
                                 logger.fdebug('[WEEKLY-PULL] Forcing a refresh of the series to ensure it is current [' + str(comicid) +'].')
                                 anncid = None
-                                seriesyear = None
+                                seriesyear = week['SeriesYear']
                                 try:
                                     logger.fdebug('week[comicid]: %s' % week['comicid'])
                                     logger.fdebug('week[comicid]: %s' % annualidmatch[0]['AnnualIDs'][0]['ComicID'])
