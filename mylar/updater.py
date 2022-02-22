@@ -2183,7 +2183,7 @@ def watchlist_updater(calledfrom=None, sched=False):
         #to_check.extend(prev_failed_updates)
     else:
         logger.info(
-            '[BACKFILL-UPDATE] No updates to watchlisted items checked against %s items'
+            '[BACKFILL-UPDATE] No previous failures on updates detected (checked against %s items)'
             % (cntr)
         )
 
