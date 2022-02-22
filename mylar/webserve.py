@@ -3947,22 +3947,22 @@ class WebInterface(object):
                 if any([jobid == 'rss', jobid == 'weekly', jobid =='search', jobid == 'version', jobid == 'updater', jobid == 'monitor']):
                     if jobid == 'rss':
                         mylar.FORCE_STATUS['rss'] = mylar.RSS_STATUS
-                        mylar.RSS_STATUS = 'Running'
+                        #mylar.RSS_STATUS = 'Running'
                     elif jobid == 'weekly':
                         mylar.FORCE_STATUS['weekly'] = mylar.WEEKLY_STATUS
-                        mylar.WEEKLY_STATUS = 'Running'
+                        #mylar.WEEKLY_STATUS = 'Running'
                     elif jobid == 'search':
                         mylar.FORCE_STATUS['search'] = mylar.SEARCH_STATUS
-                        mylar.SEARCH_STATUS = 'Running'
+                        #mylar.SEARCH_STATUS = 'Running'
                     elif jobid == 'version':
                         mylar.FORCE_STATUS['version'] = mylar.VERSION_STATUS
-                        mylar.VERSION_STATUS = 'Running'
+                        #mylar.VERSION_STATUS = 'Running'
                     elif jobid == 'updater':
                         mylar.FORCE_STATUS['updater'] = mylar.UPDATER_STATUS
-                        mylar.UPDATER_STATUS = 'Running'
+                        #mylar.UPDATER_STATUS = 'Running'
                     elif jobid == 'monitor':
                         mylar.FORCE_STATUS['monitor'] = mylar.MONITOR_STATUS
-                        mylar.MONITOR_STATUS = 'Running'
+                        #mylar.MONITOR_STATUS = 'Running'
                     jb.modify(next_run_time=datetime.datetime.utcnow())
                     break
     schedulerForceCheck.exposed = True
@@ -4477,7 +4477,7 @@ class WebInterface(object):
            #                else:
            #                    #for actual banner width (ie. 960x280)
            #                    storyarcbanner += 'H' + str(bannerheight)
-            logger.info('storyarcbanner: %s' % (storyarcbanner,))
+            #logger.fdebug('storyarcbanner: %s' % (storyarcbanner,))
             if filepath is not None:
                 fname = os.path.basename(filepath)
                 if any(['H' in fname, 'W' in fname]):
