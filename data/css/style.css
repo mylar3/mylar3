@@ -160,20 +160,6 @@ table#log_table th#timestamp { text-align: left; min-width: 150px; }
 table#log_table th#level { text-align: left; min-width: 60px; }
 table#log_table th#message { text-align: left; min-width: 500px; }
 
-table#upcoming_table th#albumart { text-align: center; min-width: 50px; }
-table#upcoming_table th#albumname { text-align: center; min-width: 200px; }
-table#upcoming_table th#artistname { text-align: center; min-width: 150px; }
-table#upcoming_table th#reldate { text-align: center; min-width: 100px; }
-table#upcoming_table th#type { text-align: center; min-width: 75px; }
-
-table#upcoming_table td#select { vertical-align: middle; text-align: center; }
-table#upcoming_table td#albumart { vertical-align: middle; text-align: center; min-width: 50px; }
-table#upcoming_table td#albumname { vertical-align: middle; text-align: center; min-width: 200px; }
-table#upcoming_table td#artistname { vertical-align: middle; text-align: center; min-width: 150px; }
-table#upcoming_table td#reldate { vertical-align: middle; text-align: center; min-width: 100px; }
-table#upcoming_table td#type { vertical-align: middle; text-align: center; min-width: 75px; }
-table#upcoming_table td#status { vertical-align: middle; text-align: center; }
-
 table#searchresults_table th#name { text-align: left; min-width: 500px; }
 table#searchresults_table th#comicyear { text-align: center; min-width: 50px; }
 table#searchresults_table th#issues { text-align: center; min-width: 50px; }
