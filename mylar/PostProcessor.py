@@ -720,7 +720,7 @@ class PostProcessor(object):
                                 if any([dbcheck[0] == 'Wanted', dbcheck[0] == 'Snatched']):
                                     logger.fdebug('Series is 100%s complete, but specific issue %s matched up to a %s status. Let\'s Go!' % ('%', tmp_iss, dbcheck[0]))
                                 else:
-                                    logger.fdebug('Series is 100%s complete, however status is not Wanted (or Snatche), but %s. Set to Wanted for this to post-process on the next run.' % ('%', dbcheck[0]))
+                                    logger.fdebug('Series is 100%s complete, however status is not Wanted (or Snatched), but %s. Set to Wanted for this to post-process on the next run.' % ('%', dbcheck[0]))
                                     continue
                             else:
                                 logger.warn('%s [%s] is either Paused or in an Ended status with 100%s completion. Ignoring for match.' % (wv['ComicName'], wv['ComicYear'], '%'))
