@@ -39,10 +39,11 @@ import errno
 import sys
 import re
 import time
+import pathlib
 import urllib.request
 import urllib.error
 import urllib.parse
-from urllib.parse import urljoin
+from urllib.parse import unquote, urlparse, urljoin
 import email.utils
 import datetime
 import shutil
@@ -850,16 +851,16 @@ def NZB_SEARCH(
 
     if RSS == "yes":
         if provider_stat['type'] == 'newznab':
-            tmpprov = '%s (%s) [RSS]' % (name_newznab, nzbprov)
+            tmpprov = '%s (%s) [RSS]' % (name_newznab, provider_stat['type'])
         elif provider_stat['type'] == 'torznab':
-            tmpprov = '%s (%s) [RSS]' % (name_torznab, nzbprov)
+            tmpprov = '%s (%s) [RSS]' % (name_torznab, provider_stat['type'])
         else:
             tmpprov = '%s [RSS]' % nzbprov
     else:
-        if 'newznab' in nzbprov:
-            tmpprov = '%s (%s)' % (name_newznab, nzbprov)
-        elif 'torznab' in nzbprov:
-            tmpprov = '%s (%s)' % (name_torznab, nzbprov)
+        if provider_stat['type'] == 'newznab':
+            tmpprov = '%s (%s)' % (name_newznab, provider_stat['type'])
+        elif provider_stat['type'] == 'torznab':
+            tmpprov = '%s (%s)' % (name_torznab, provider_stat['type'])
         else:
             tmpprov = nzbprov
     if cmloopit == 4:
@@ -1186,7 +1187,7 @@ def NZB_SEARCH(
                     # on the URL
                     if (
                         mylar.CONFIG.USENET_RETENTION is not None
-                        and nzbprov != 'torznab'
+                        and provider_stat['type'] != 'torznab'
                     ):
                         findurl = (
                             findurl + "&maxage=" + str(mylar.CONFIG.USENET_RETENTION)
@@ -1197,7 +1198,7 @@ def NZB_SEARCH(
                     # bypass for local newznabs
                     # remove the protocol string (http/https)
                     localbypass = False
-                    if nzbprov == 'newznab':
+                    if provider_stat['type'] == 'newznab':
                         if host_newznab_fix.startswith('http'):
                             hnc = host_newznab_fix.replace('http://', '')
                         elif host_newznab_fix.startswith('https'):
@@ -2989,10 +2990,7 @@ def searcher(
 
     if link and all(
         [
-            nzbprov != 'WWT',
-            nzbprov != 'DEM',
-            nzbprov != '32P',
-            nzbprov != 'torznab',
+            provider_stat['type'] != 'torznab',
             'DDL' not in nzbprov,
         ]
     ):
@@ -3244,7 +3242,7 @@ def searcher(
         sent_to = "is downloading it directly via %s" % nzbprov
 
     elif mylar.USE_BLACKHOLE and all(
-        [nzbprov != '32P', nzbprov != 'WWT', nzbprov != 'DEM', nzbprov != 'torznab']
+        [nzbprov != '32P', nzbprov != 'WWT', nzbprov != 'DEM', provider_stat['type'] != 'torznab']
     ):
         logger.fdebug('Using blackhole directory at : %s' % mylar.CONFIG.BLACKHOLE_DIR)
         if os.path.exists(mylar.CONFIG.BLACKHOLE_DIR):
@@ -3309,7 +3307,7 @@ def searcher(
 
     # torrents (32P & DEM)
     elif any(
-        [nzbprov == '32P', nzbprov == 'WWT', nzbprov == 'DEM', nzbprov == 'torznab']
+        [nzbprov == '32P', nzbprov == 'WWT', nzbprov == 'DEM', provider_stat['type'] == 'torznab']
     ):
         logger.fdebug('ComicName: %s' % ComicName)
         logger.fdebug('link: %s' % link)
@@ -4049,15 +4047,15 @@ def IssueTitleCheck(
             return vals
     return
 
-def generate_id(nzbprov, link):
-    #logger.fdebug('[%s] generate_id - link: %s' % (nzbprov, link))
+def generate_id(nzbprov, link, comicname):
+    #logger.fdebug('[type:%s][%s] generate_id - link: %s' % (type(nzbprov), nzbprov, link))
     if type(nzbprov) != str:
         # provider_stat is being passed in - use the type field to get the basics.
         nzbprov = nzbprov['type']
         logger.fdebug('nzbprov setting to : %s' % nzbprov)
     if nzbprov == 'experimental':
         # id is located after the /download/ portion
-        url_parts = urllib.parse.urlparse(link)
+        url_parts = urlparse(link)
         path_parts = url_parts[2].rpartition('/')
         nzbtempid = path_parts[0].rpartition('/')
         nzblen = len(nzbtempid)
@@ -4070,19 +4068,19 @@ def generate_id(nzbprov, link):
             nzbid = link
         else:
             # for users that already have the cache in place.
-            url_parts = urllib.parse.urlparse(link)
+            url_parts = urlparse(link)
             path_parts = url_parts[2].rpartition('/')
             nzbtempid = path_parts[2]
             nzbid = re.sub('.torrent', '', nzbtempid).rstrip()
     elif nzbprov == 'nzb.su':
         nzbid = os.path.splitext(link)[0].rsplit('/', 1)[1]
     elif nzbprov == 'dognzb':
-        url_parts = urllib.parse.urlparse(link)
+        url_parts = urlparse(link)
         path_parts = url_parts[2].rpartition('/')
         nzbid = path_parts[0].rsplit('/', 1)[1]
     elif 'newznab' in nzbprov:
         # if in format of http://newznab/getnzb/<id>.nzb&i=1&r=apikey
-        tmpid = urllib.parse.urlparse(link)[
+        tmpid = urlparse(link)[
             4
         ]  # param 4 is the query string from the url.
         if 'searchresultid' in tmpid:
@@ -4104,12 +4102,26 @@ def generate_id(nzbprov, link):
                 findend = tmpid.find('apikey=', findend)
                 nzbid = tmpid[findend + 1 :].strip()
             if '&id' not in tmpid or nzbid == '':
-                tmpid = urllib.parse.urlparse(link)[2]
+                tmpid = urlparse(link)[2]
                 nzbid = tmpid.rsplit('/', 1)[1]
     elif nzbprov == 'torznab':
-        idtmp = urllib.parse.urlparse(link)[4]
-        idpos = idtmp.find('&')
-        nzbid = re.sub('id=', '', idtmp[:idpos]).strip()
+        idtmp = urlparse(link)[4]
+        if idtmp == '':
+            idtmp = pathlib.PurePosixPath(unquote(urlparse(link).path))
+            for im in idtmp.parts:
+                if all(
+                    [
+                         comicname.lower() not in im.lower(),
+                         im != '/',
+                         '.cbz' not in im.lower(),
+                         '.cbr' not in im.lower(),
+                    ]
+                ):
+                    nzbid = im
+                    break
+        else:
+            idpos = idtmp.find('&')
+            nzbid = re.sub('id=', '', idtmp[:idpos]).strip()
     return nzbid
 
 def check_time(last_run):
