@@ -784,7 +784,7 @@ class search_check(object):
                         if 'getcomics' in entry['link']:
                             nzbid = entry['id']
                     else:
-                        nzbid = search.generate_id(provider_stat, entry['link'])
+                        nzbid = search.generate_id(provider_stat, entry['link'], ComicName)
                     if all([manual is not True, alt_match is False]):
                         downloadit = True
                     else:
@@ -940,7 +940,7 @@ class search_check(object):
                             nowrite = False
                             logger.info('[nzbprov:%s] provider_stat: %s' % (nzbprov, provider_stat,))
                             if nzbprov == 'torznab' or provider_stat['type'] == 'torznab':
-                                nzbid = search.generate_id(provider_stat, entry['id'])
+                                nzbid = search.generate_id(provider_stat, entry['id'], ComicName)
                             elif 'DDL' in nzbprov:
                                 if 'GetComics' in nzbprov:
                                     if RSS == "yes":
@@ -959,11 +959,11 @@ class search_check(object):
                                 try:
                                     logger.fdebug('title_id: %s' % (entry['id'],))
                                     if 'details' in entry['id']:
-                                        nzbid = search.generate_id(provider_stat, entry['id'])
+                                        nzbid = search.generate_id(provider_stat, entry['id'], ComicName)
                                     else:
-                                        nzbid = search.generate_id(provider_stat, entry['link'])
+                                        nzbid = search.generate_id(provider_stat, entry['link'], ComicName)
                                 except Exception as e:
-                                    nzbid = search.generate_id(provider_stat, entry['link'])
+                                    nzbid = search.generate_id(provider_stat, entry['link'], ComicName)
                             if all([manual is not True, alt_match is False]):
                                 downloadit = True
                             else:
