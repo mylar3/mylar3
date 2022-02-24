@@ -51,7 +51,7 @@
                                 <th id="select"><input type="checkbox" name="select_all" value="1" id="wanted-select-all" class="checkbox" /></th>
 				<th id="comicname">Comic</th>
 				<th id="issuenumber">#</th>
-				<th id="reldate">Rls Date</th>
+				<th id="reldate">Release Date</th>
 				<th id="status">Status</th>
                                 <th id="tier">SearchTier</th>
 			</tr>
@@ -71,7 +71,7 @@
                 <ul>
                         <li><a href="#tabs-1">This Week's Upcoming (${upcoming_count})</a></li>
                         <li><a href="#tabs-2">Future Auto-Wants</a></li>
-                        <li><a href="#tabs-3">Incomplete / Mismatched CV</a></li>
+                        <li><a href="#tabs-3">Incomplete / Mismatched CV (${mismatched_count})</a></li>
                 </ul>
 
         <div id="tabs-1">
@@ -101,13 +101,14 @@
                </tbody>
             </table>
           </div>
+          <center><small>Issues listed here are not on CV yet <a href="https://github.com/mylar3/mylar3/wiki/Where-Mylar-gets-the-metadata-from" target="_new">(read more)</a></small></center>
         </div>
         <div id="tabs-2">
            <a name="upcoming_nodata"></a>
            <a id="menu_link_edit" href="future_check">Force Check Availability</a>
            <div style="float:right;text-align:right;font-size:20px;font-weight:bold;" title="manually add issue to auto-want list">+</div>
            <div class="table_wrapper">
-                <table class="display_no_select" id="upcoming_table">
+                <table class="display_no_select" id="upcoming_nodata_table">
                 %if future_nodata_upcoming:
                     <thead>
                         <tr>
@@ -143,35 +144,41 @@
         </div>
         <div id="tabs-3">
           <div class="table_wrapper">
-            <table class="display_no_select" id="upcoming_table">
+            <table class="display_no_select" id="mismatched_table">
                 %if mismatched:
                     <thead>
                             <tr>
                                     <th id="comicname">Comic</th>
                                     <th id="issuenumber">Issue</th>
-                                    <th id="reldate">Release Date</th>
-                                    <th id="status">Status</th>
+                                    <th id="misinfo">Reason for Mismatch (CV - Pull)</th>
                                     <th id="weekinfo">Pull-list</th>
                             </tr>
                     </thead>
                     <tbody>
                     %for mis in mismatched:
-                            <tr class="gradeZ">
+                            <%
+                               if mis['status'] == 'Mismatched':
+                                   grade = "Z"
+                               else:
+                                   grade = "Y"
+                            %>
+                            <tr class="grade${grade}">
                                     <td id="comicname"><a href="comicDetails?ComicID=${mis['comicid']}">${mis['comicname']}</a></td>
                                     <td id="issuenumber">${mis['issuenumber']}</td>
-                                    <td id="reldate">${mis['releasedate']}</td>
-                                    <td id="status">${mis['status']}</td>
-                                    <td id="weekinfo">${mis['weekinfo']}</td>
+                                    <td id="misinfo">${mis['mismatch_type']}</td>
+                                    <td id="weekinfo"><a href="pullist?week=${mis['pullweek']}&year=${mis['pullyear']}#${mis['comicname']}_${mis['issuenumber']}">${mis['pullyear']}-${mis['pullweek']}</a></td>
                             </tr>
                     %endfor
+                    </tbody>
                 %else:
-                  <tr><td align="center" width="100%"> no mismatched data</td></tr>
+                  <tr><td align="center" width="100%">No mismatched data</td></tr>
                 %endif
-               </tbody>
             </table>
           </div>
+          <center><small>Mismatches can possibly indicate: the dates are incorrect btwn CV & Mylar, an incorrect volume, or an incorrect booktype</br>
+          A <b>Recreate Pullist</b> for the given week (click in column) may correct stale dates</small></center>
         </div>
-
+      </div>
 </%def>
 
 <%def name="headIncludes()">

@@ -1983,10 +1983,7 @@
                 $('#annual_table').DataTable().draw(false);
             });
 
-            if ("${default_dates}" != document.getElementById("display_the_date").innerHTML){
-                document.getElementById("display_the_date").innerHTML = "${default_dates}";
-                display_date(null);
-            }
+            display_date(null);
 
             title_loading();
 

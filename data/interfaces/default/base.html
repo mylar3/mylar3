@@ -280,21 +280,21 @@
                 if (data.commmits_behind < 0){
                     if (data.docker == 'true'){
                         up_mess = 'You are running an unknown version of Mylar3. <a href="#" onclick="'+cck+'">Close</a>';
-                        up_linemess = '<span style="color:white;">Unknown version</span>';
+                        up_linemess = '<span class="version_display">Unknown version</span>';
                     } else {
                         up_mess = 'You are running an unknown version of Mylar3. <a href="update">Update</a> or <a href="#" onclick="'+cck+'">Close</a>';
-                        up_linemess = '<a href="#" onclick="update_mylar()" title="You are running an Unknown version. Click to update" style="color:white;"/>Unknown version</a>';
+                        up_linemess = '<a href="#" onclick="update_mylar()" title="You are running an Unknown version. Click to update" class="version_display"/>Unknown version</a>';
                     }
                 } else if (data.current_version != data.latest_version && dc_behind > 0){
                     if (data.docker == 'true'){
                         up_mess = 'A <a href="https://github.com/mylar3/mylar3/compare/'+data.current_version+'...'+data.latest_version+'" target="_blank"> newer version</a> is availble. You are '+dc_behind+' commits behind. <a href="#" onclick="'+cck+'">Close</a>';
-                        up_linemess = '<span style="color:white;">'+dc_behind+' commits behind</span>';
+                        up_linemess = '<span class="version_display">'+dc_behind+' commits behind</span>';
                     } else {
                         up_mess = 'A <a href="https://github.com/mylar3/mylar3/compare/'+data.current_version+'...'+data.latest_version+'" target="_blank"> newer version</a> is availble. You are '+dc_behind+' commits behind. <a href="update">Update</a> or <a href="#" onclick="'+cck+'">Close</a>';
-                        up_linemess = '<a href="#" onclick="location.href=\'update\';" title="Update now" style="color:white;">'+dc_behind+' commits behind</a>';
+                        up_linemess = '<a href="#" onclick="location.href=\'update\';" title="Update now" class="version_display">'+dc_behind+' commits behind</a>';
                     }
                 } else if (data.current_version == data.latest_version && dc_behind === 0){
-                    up_linemess = '<span style="color:white;">No updates available</span>';
+                    up_linemess = '<span class="version_display">No updates available</span>';
                     uptodate = true;
                 } else {
                     up_linemess = '???'
@@ -661,7 +661,7 @@
         function check_the_update(){
             var updateval = JSON.parse('${pre_update}');
             if (updateval['update_value'] === 0){
-                up_linemess = '<span color="white;">No updates available</span>';
+                up_linemess = '<span class="version_display">No updates available</span>';
                 var startTime = new Date().getTime();
                 var interval = setInterval(function(){
                     if (new Date().getTime() - startTime > 60000){
@@ -672,15 +672,15 @@
                 }, 2000);
             } else if (updateval['update_value'] > 0){
                 if (updateval['docker'] == 'true'){
-                    up_linemess = '<a href="#" title="you must manually update your docker" style="color:white;">'+updateval['update_value']+' commits behind</a>';
+                    up_linemess = '<a href="#" title="you must manually update your docker" class="version_display">'+updateval['update_value']+' commits behind</a>';
                 } else {
-                    up_linemess = '<a href="#" onclick="location.href=\'update\';" title="Update now" style="color:white;">'+updateval['update_value']+' commits behind</a>';
+                    up_linemess = '<a href="#" onclick="location.href=\'update\';" title="Update now" class="version_display">'+updateval['update_value']+' commits behind</a>';
                 }
             } else if (updateval['update_value'] == -1){
                 if (updateval['docker'] == 'true'){
-                    up_linemess = '<a href="#" title="You are running an Unknown version" style="color:white;">Unknown version</a>';
+                    up_linemess = '<a href="#" title="You are running an Unknown version" class="version_display">Unknown version</a>';
                 } else {
-                    up_linemess = '<a href="#" onclick="update_mylar()" title="You are running an Unknown version" style="color:white;">Unknown version</a>';
+                    up_linemess = '<a href="#" onclick="update_mylar()" title="You are running an Unknown version" class="version_display">Unknown version</a>';
                 }
             } else {
                 up_linemess = '<a href="#" onclick="check_the_hub()"><span class="ui-icon ui-icon-refresh"></span><span id="version_line">Check for new version</span></a>';

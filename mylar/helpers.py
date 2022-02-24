@@ -4037,7 +4037,7 @@ def sizeof_fmt(num, suffix='B'):
         num /= 1024.0
     return "%.1f%s%s" % (num, 'Yi', suffix)
 
-def getImage(comicid, url, issueid=None, thumbnail_path=None):
+def getImage(comicid, url, issueid=None, thumbnail_path=None, apicall=False):
 
     if thumbnail_path is None:
         if os.path.exists(mylar.CONFIG.CACHE_DIR):
@@ -4046,10 +4046,12 @@ def getImage(comicid, url, issueid=None, thumbnail_path=None):
             #let's make the dir.
             try:
                 os.makedirs(str(mylar.CONFIG.CACHE_DIR))
-                logger.info('Cache Directory successfully created at: %s' % mylar.CONFIG.CACHE_DIR)
+                if apicall is False:
+                    logger.info('Cache Directory successfully created at: %s' % mylar.CONFIG.CACHE_DIR)
 
             except OSError:
-                logger.error('Could not create cache dir. Check permissions of cache dir: %s' % mylar.CONFIG.CACHE_DIR)
+                if apicall is False:
+                    logger.error('Could not create cache dir. Check permissions of cache dir: %s' % mylar.CONFIG.CACHE_DIR)
 
         coverfile = os.path.join(mylar.CONFIG.CACHE_DIR,  str(comicid) + '.jpg')
     else:
@@ -4063,35 +4065,25 @@ def getImage(comicid, url, issueid=None, thumbnail_path=None):
     else:
         time.sleep(mylar.CONFIG.CVAPI_RATE)
 
-    logger.info('Attempting to retrieve the comic image for series')
+    if apicall is False:
+        logger.info('Attempting to retrieve the comic image for series')
     try:
         r = requests.get(url, params=None, stream=True, verify=mylar.CONFIG.CV_VERIFY, headers=mylar.CV_HEADERS)
     except Exception as e:
-        logger.warn('[ERROR: %s] Unable to download image from CV URL link: %s' % (e, url))
+        if apicall is False:
+            logger.warn('[ERROR: %s] Unable to download image from CV URL link: %s' % (e, url))
         coversize = 0
         statuscode = '400'
     else:
         statuscode = str(r.status_code)
-        logger.fdebug('comic image retrieval status code: %s' % statuscode)
+        if apicall is False:
+            logger.fdebug('comic image retrieval status code: %s' % statuscode)
 
         if statuscode != '200':
-            logger.warn('Unable to download image from CV URL link: %s [Status Code returned: %s]' % (url, statuscode))
+            if apicall is False:
+                logger.warn('Unable to download image from CV URL link: %s [Status Code returned: %s]' % (url, statuscode))
             coversize = 0
         else:
-            #if r.headers.get('Content-Encoding') == 'gzip':
-            #    buf = StringIO(r.content)
-            #    f = gzip.GzipFile(fileobj=buf)
-
-            #remote_filesize = int(r.headers['Content-length'])
-            #logger.info('remote_filesize: %s' % remote_filesize)
-            #if os.path.isfile(coverfile):
-            #    #get the filesize of the existing cover
-            #    statinfo = os.stat(coverfile)
-            #    coversize = statinfo.st_size
-            #else:
-            #    coversize = 0
-
-            #if coversize != remote_filesize or coversize == 0:
             with open(coverfile, 'wb') as f:
                 for chunk in r.iter_content(chunk_size=1024):
                     if chunk: # filter out keep-alive new chunks
@@ -4107,13 +4099,17 @@ def getImage(comicid, url, issueid=None, thumbnail_path=None):
     if any([int(coversize) < 10000, statuscode != '200']) and thumbnail_path is None:
         try:
             if statuscode != '200':
-                logger.info('Trying to grab an alternate cover due to problems trying to retrieve the main cover image.')
+                if apicall is False:
+                    logger.info('Trying to grab an alternate cover due to problems trying to retrieve the main cover image.')
             else:
-                logger.info('Image size invalid [%s bytes] - trying to get alternate cover image.' % coversize)
+                if apicall is False:
+                    logger.info('Image size invalid [%s bytes] - trying to get alternate cover image.' % coversize)
         except Exception as e:
-            logger.info('Image size invalid [%s bytes] - trying to get alternate cover image.' % coversize)
+            if apicall is False:
+                logger.info('Image size invalid [%s bytes] - trying to get alternate cover image.' % coversize)
 
-        logger.fdebug('invalid image link is here: %s' % url)
+        if apicall is False:
+            logger.fdebug('invalid image link is here: %s' % url)
 
         if os.path.exists(coverfile):
             os.remove(coverfile)

@@ -540,9 +540,9 @@ class WebInterface(object):
             i+=1
 
         if mylar.CONFIG.DEFAULT_DATES == 'store_date':
-            default_dates = 'Show Cover Date'
-        else:
             default_dates = 'Show Store Date'
+        else:
+            default_dates = 'Show Cover Date'
 
         comicConfig = {
                     "fuzzy_year0":                    helpers.radio(int(usethefuzzy), 0),
@@ -3035,15 +3035,30 @@ class WebInterface(object):
                 logger.fdebug('[DELETE] - ' + mvup['ComicName'] + ' issue #: ' + str(mvup['IssueNumber']))
                 deleteit = myDB.action("DELETE from upcoming WHERE ComicName=? AND IssueNumber=?", [mvup['ComicName'], mvup['IssueNumber']])
 
-        mism = myDB.select("SELECT * FROM Weekly WHERE Status='Mismatched' OR Status='Incomplete'")
+        mism = myDB.select("SELECT c.Type as BookType, c.ComicYear, c.ComicVersion, a.IssueDate, a.ReleaseDate, b.* FROM Comics as c LEFT JOIN Issues as a ON a.Comicid=c.ComicID INNER JOIN Weekly as b ON a.IssueID=b.IssueID WHERE b.Status='Mismatched' OR b.Status='Incomplete'")
         mismatched = []
         for mm in mism:
+            mismatch_type = None
+            if mm['Status'] == 'Mismatched':
+                if mm['ShipDate'] != mm['IssueDate']:
+                   mismatch_type = 'Incorrect Dates (%s - %s)' % (mm['IssueDate'], mm['ShipDate'])
+                elif mm['Booktype'] != mm['Format']:
+                    if all([mm['Booktype'] is not None, mm['Format'] is not None]):
+                        mismatch_type = 'Incorrect BookTypes (%s - %s)' % (mm['BookType'], mm['Format'])
+                if mismatch_type is None:
+                     if mm['ComicYear'] != mm['SeriesYear']:
+                        mismatch_type = 'Wrong BookType (%s - %s)' % (mm['ComicYear'], mm['SeriesYear'])
+                     elif mm['ComicVersion'] != mm['Volume']:
+                        mismatch_type = 'Wrong Volume (%s - %s)' % (mm['ComicVersion'], mm['Volume'])
+
             mismatched.append({'comicname': mm['Comic'],
                                'issuenumber': mm['Issue'],
                                'comicid': mm['ComicID'],
                                'status': mm['Status'],
                                'releasedate': mm['ShipDate'],
-                               'weekinfo': '%s-%s' % (mm['year'], mm['weeknumber'])})
+                               'mismatch_type': mismatch_type,
+                               'pullyear': mm['year'],
+                               'pullweek': mm['weeknumber']})
         logger.info('mismatched: %s' % (mismatched,))
 
         return {'upcoming': upcoming,
@@ -3057,7 +3072,7 @@ class WebInterface(object):
 
     def upcoming(self):
         upcomingdata = self.fly_me_to_the_moon()
-        return serve_template(templatename="upcoming.html", title="Upcoming", upcoming=upcomingdata['upcoming'], upcoming_count=upcomingdata['upcoming_count'], future_nodata_upcoming=upcomingdata['future_nodata_upcoming'], mismatched=upcomingdata['mismatched'])
+        return serve_template(templatename="upcoming.html", title="Upcoming", upcoming=upcomingdata['upcoming'], upcoming_count=upcomingdata['upcoming_count'], future_nodata_upcoming=upcomingdata['future_nodata_upcoming'], mismatched=upcomingdata['mismatched'], mismatched_count=upcomingdata['mismatched_count'])
     upcoming.exposed = True
 
     def update_upcoming_filters(self):
