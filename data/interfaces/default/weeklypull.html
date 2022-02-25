@@ -171,7 +171,11 @@
                                         %if weekly['AUTOWANT']:
              	                             <td class="status">Auto-Want</td>
                                         %else:
-              	                            <td class="status">${weekly['STATUS']}</td>
+                                            %if weekly['STATUS'] == 'Mismatched':
+                                                <td class="status"><a href="upcoming#tabs-3" title="View mismatch reason">${weekly['STATUS']}</a></td>
+                                            %else:
+                                                <td class="status">${weekly['STATUS']}</td>
+                                            %endif
                                         %endif
                                         <td class="options">
                                         %if weekly['HAVEIT'] == 'OneOff':

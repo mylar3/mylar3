@@ -2164,7 +2164,8 @@ def watchlist_updater(calledfrom=None, sched=False):
                    library[x['comicid']['id']]['lastupdated'] < calendar.timegm(tm.utctimetuple()),
                ]
             ):
-                if x['comicid']['id'] not in to_check:
+                x_check = [ yy for yy in to_check if yy['comicid'] == x['comicid']['id'] ]
+                if not x_check:
                     to_check.append({'comicid': x['comicid']['id'],
                                      'comicname': library[x['comicid']['id']]['comicname'],
                                      'seriesyear': library[x['comicid']['id']]['seriesyear']})

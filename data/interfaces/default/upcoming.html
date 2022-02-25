@@ -104,7 +104,6 @@
           <center><small>Issues listed here are not on CV yet <a href="https://github.com/mylar3/mylar3/wiki/Where-Mylar-gets-the-metadata-from" target="_new">(read more)</a></small></center>
         </div>
         <div id="tabs-2">
-           <a name="upcoming_nodata"></a>
            <a id="menu_link_edit" href="future_check">Force Check Availability</a>
            <div style="float:right;text-align:right;font-size:20px;font-weight:bold;" title="manually add issue to auto-want list">+</div>
            <div class="table_wrapper">
@@ -123,7 +122,7 @@
                     %for f_nodata in future_nodata_upcoming:
                             <tr class="gradeZ">
                                     <td id="delcolumn">
-                                    <a href="upcoming#upcoming_nodata" title="Delete series from auto-Want list" onclick="doAjaxCall('removeautowant?comicname=${f_nodata['ComicName'] |u}&release=${f_nodata['IssueDate']}',$(this),'table')" data-success="${f_nodata['ComicName']} has been removed from the auto-want list"><img src="images/skipped_icon.png" height="25" width="25" class="highqual" /></a>
+                                    <a href="upcoming#tabs-2" title="Delete series from auto-Want list" onclick="doAjaxCall('removeautowant?comicname=${f_nodata['ComicName'] |u}&release=${f_nodata['IssueDate']}',$(this),'table')" data-success="${f_nodata['ComicName']} has been removed from the auto-want list"><img src="images/skipped_icon.png" height="25" width="25" class="highqual" /></a>
                                     </td>
                                     %if f_nodata['ComicID'] is not None:
                                         <td id="comicname"><a href="comicDetails?ComicID=${f_nodata['ComicID']}">${f_nodata['ComicName']}</a></td>
