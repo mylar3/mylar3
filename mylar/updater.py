@@ -2199,7 +2199,7 @@ def watchlist_updater(calledfrom=None, sched=False):
     if len(watch) > 0:
         logger.info('[SHIZZLE-WHIZZLE] Now queueing to refresh %s series' % (len(watch)))
         try:
-            importer.refresh_thread(watch)
+            mylar.importer.refresh_thread(watch)
         except Exception:
             pass
 
