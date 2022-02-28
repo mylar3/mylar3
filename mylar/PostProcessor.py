@@ -582,11 +582,13 @@ class PostProcessor(object):
                                             try:
                                                 cloct = pathlib.Path(tpath).with_name(nfilename)
                                                 clocation = str(pathlib.Path(tpath).replace(cloct))
-                                            except Exception as e:
+                                                if clocation is None:
+                                                    raise ValueError('clocation returned None value')
+                                            except (ValueError, Exception) as err:
                                                 try:
                                                     tt = str(pathlib.Path(tpath))
                                                     clocation = str(pathlib.Path(tpath).with_name(nfilename))
-                                                    helpers.file_ops(tt, clocation)
+                                                    os.replace(tt, clocation)
                                                 except Exception as e:
                                                     logger.warn('[%s] Skipping this file due to path conversion error [path: %s]/[name: %s]' % (e, tpath, tname))
                                                     path_failure = True
@@ -602,14 +604,16 @@ class PostProcessor(object):
                                                 logger.fdebug('cloct: %s' % (str(cloct)))
                                                 clocation = str(pathlib.Path(tpath).joinpath(tname).replace(cloct))
                                                 logger.fdebug('clocation: %s' % (clocation))
-                                            except Exception as e:
-                                                logger.fdebug('[%s]error converting/copying path via pathlib - reverting to old method' % (e,))
+                                                if clocation is None:
+                                                    raise ValueError('clocation returned None value')
+                                            except (ValueError, Exception) as err:
+                                                logger.fdebug('[%s]error converting/copying path via pathlib - reverting to old method' % (err,))
                                                 try:
                                                     tt = str(pathlib.Path(tpath).joinpath(tname))
                                                     logger.fdebug('tt: %s' % (tt))
                                                     clocation = str(pathlib.Path(tpath).joinpath(tname).with_name(nfilename))
                                                     logger.fdebug('clocation: %s' % (clocation))
-                                                    helpers.file_ops(tt, clocation)
+                                                    os.replace(tt, clocation)
                                                 except Exception as e:
                                                     logger.warn('[%s] Skipping this file due to path conversion error [path: %s]/[name: %s]' % (e, tpath, tname))
                                                     path_failure = True
@@ -626,14 +630,16 @@ class PostProcessor(object):
                                                             logger.fdebug('cloct: %s' % (str(cloct)))
                                                             clocation = str(pathlib.Path(tpath).replace(cloct))
                                                             logger.fdebug('clocation: %s' % (clocation))
-                                                        except Exception as e:
-                                                            logger.fdebug('[%s]error converting/copying path via pathlib - reverting to old method' % (e,))
+                                                            if clocation is None:
+                                                                raise ValueError('clocation returned None value')
+                                                        except (ValueError, Exception) as err:
+                                                            logger.fdebug('[%s]error converting/copying path via pathlib - reverting to old method' % (err,))
                                                             try:
                                                                 tt = str(pathlib.Path(tpath).joinpath(tname))
                                                                 logger.fdebug('tt: %s' % (tt))
                                                                 clocation = str(pathlib.Path(tpath).joinpath(tname).with_name(nfilename))
                                                                 logger.fdebug('clocation: %s' % (clocation))
-                                                                helpers.file_ops(tt, clocation)
+                                                                os.replace(tt, clocation)
                                                             except Exception as e:
                                                                 logger.warn('[%s] Skipping this file due to path conversion error [path: %s]/[name: %s]' % (e, tpath, tname))
                                                                 path_failure = True
