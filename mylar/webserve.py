@@ -30,6 +30,7 @@ import copy
 import stat
 import ntpath
 from pathlib import Path
+from pkg_resources import parse_version
 
 from mako.template import Template
 from mako.lookup import TemplateLookup
@@ -6406,6 +6407,11 @@ class WebInterface(object):
         else:
             rss_sclast = datetime.datetime.fromtimestamp(mylar.SCHED_RSS_LAST).replace(microsecond=0)
 
+        py_check_pass = True
+        chk_py_version = platform.python_version()
+        if parse_version(chk_py_version) < parse_version(mylar.MINIMUM_PY_VERSION):
+            py_check_pass = False
+
         config = {
                     "comicvine_api": mylar.CONFIG.COMICVINE_API,
                     "http_host": mylar.CONFIG.HTTP_HOST,
@@ -6630,7 +6636,8 @@ class WebInterface(object):
                     "br_version": mylar.CURRENT_VERSION,
                     "br_version_name": mylar.CURRENT_VERSION_NAME,
                     "br_release_name": mylar.CURRENT_RELEASE_NAME,
-                    "py_version": platform.python_version(),
+                    "py_version": chk_py_version,
+                    "py_check_pass": py_check_pass,
                     "data_dir": mylar.DATA_DIR,
                     "prog_dir": mylar.PROG_DIR,
                     "cache_dir": mylar.CONFIG.CACHE_DIR,
