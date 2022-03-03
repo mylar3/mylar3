@@ -71,7 +71,8 @@
                        <div>
                             <br/>
                             <legend>MYLAR PROGRAM OPTIONS</legend>
-                            <label><strong>Python Version :</strong> ${config['py_version']}</label></br>
+                            <span id="py_check" class="py_checker"></span>
+                            <span id="py_vers"><label><strong>Python Version :</strong> ${config['py_version']}</label></span></br>
                             <label><strong>Language :</strong> ${config['lang']}</label></br></br>
                             <label><strong>Mylar Data Directory :</strong>  ${config['data_dir']}</label></br>
                             <label><strong>Mylar Program Directory :</strong> ${config['prog_dir']}</label></br>
@@ -2889,6 +2890,12 @@
                     });
                     $('#ajaxMsg').addClass('success').fadeIn().delay(3000).fadeOut();
                 });
+
+                if ("${config['py_check_pass']}" == "False"){
+                    document.getElementById("py_vers").classList.add("py_vers");
+                    document.getElementById("py_check").innerHTML = '<center>Minimum python ${mylar.MINIMUM_PY_VERSION}</br>requirement not met</center>';
+                    document.getElementById("py_check").title = 'Minimum python required is ${mylar.MINIMUM_PY_VERSION}';
+                }
 
 		$(function() {
 			$( "#tabs" ).tabs();

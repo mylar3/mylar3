@@ -2508,3 +2508,14 @@ img.mylarload.lastbad {
 .version_display {
   color: white;
 }
+.py_checker {
+  position:relative;
+  top:-10px;
+  float:right;
+  color: #E9FE3A;
+  font-size: 115%;
+  font-weight: bold;
+}
+.py_vers {
+  color: #EE3232;
+}
