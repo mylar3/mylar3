@@ -1083,22 +1083,22 @@ def NZB_SEARCH(
                     newddl = []
                     for bdb in bb['entries']:
                         ddl_checkpack = rsscheck.ddlrss_pack_detect(bdb['title'], bdb['link'])
-                        logger.fdebug('ddl_checkback: %s' % (ddl_checkpack,))
+                        #logger.fdebug('ddl_checkback: %s' % (ddl_checkpack,))
                         if ddl_checkpack is not None:
                             for dd in bb['entries']:
-                                if dd['link'] == bdb['link']:
+                                if dd['link'] == ddl_checkpack['link']:
                                     newddl.append({'title': dd['title'],
                                                    'link': dd['link'],
                                                    'pubdate': dd['pubdate'],
                                                    'site': dd['site'],
                                                    'length': dd['length'],
-                                                   'issues': dd['issues'],
-                                                   'pack': dd['pack']})
+                                                   'issues': ddl_checkpack['issues'],
+                                                   'pack': ddl_checkpack['pack']})
                                 else:
                                     newddl.append(dd)
                     if len(newddl) > 0:
-                        bb = newddl
-                        logger.fdebug('final ddlcheckback: %s' % (bb,))
+                        bb['entries'] = newddl
+                        #logger.fdebug('final ddlcheckback: %s' % (bb,))
             else:
                 logger.fdebug(
                     'Sending request to RSS for %s : %s (%s)'
