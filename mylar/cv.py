@@ -350,7 +350,7 @@ def GetComicInfo(comicid, dom, safechk=None, series=False):
             if dom.getElementsByTagName('name')[n].parentNode.nodeName == 'results':
                 try:
                     comic['ComicName'] = dom.getElementsByTagName('name')[n].firstChild.wholeText
-                    comic['ComicName'] = comic['ComicName'].rstrip()
+                    comic['ComicName'] = comic['ComicName'].strip()
                 except:
                     logger.error('There was a problem retrieving the given data from ComicVine. Ensure that www.comicvine.com is accessible AND that you have provided your OWN ComicVine API key.')
                     return
@@ -850,6 +850,7 @@ def GetIssuesInfo(comicid, dom, arcid=None):
                 while (tot < totnames):
                     if subtrack.getElementsByTagName('name')[tot].parentNode.nodeName == 'volume':
                         tempissue['ComicName'] = subtrack.getElementsByTagName('name')[tot].firstChild.wholeText
+                        tempissue['ComicName'] = tempissue['ComicName'].strip()
                     elif subtrack.getElementsByTagName('name')[tot].parentNode.nodeName == 'issue':
                         try:
                             tempissue['Issue_Name'] = subtrack.getElementsByTagName('name')[tot].firstChild.wholeText
@@ -1013,6 +1014,7 @@ def GetSeriesYears(dom):
             while (namesc < totnames):
                 if dm.getElementsByTagName('name')[namesc].parentNode.nodeName == 'volume':
                     tempseries['Series'] = dm.getElementsByTagName('name')[namesc].firstChild.wholeText
+                    tempseries['Series'] = tempseries['Series'].strip()
                 elif dm.getElementsByTagName('name')[namesc].parentNode.nodeName == 'publisher':
                     tempseries['Publisher'] = dm.getElementsByTagName('name')[namesc].firstChild.wholeText
                 namesc+=1
@@ -1405,6 +1407,7 @@ def GetImportList(results):
             while (tot < totnames):
                 if implist.getElementsByTagName('name')[tot].parentNode.nodeName == 'volume':
                     tempseries['ComicName'] = implist.getElementsByTagName('name')[tot].firstChild.wholeText
+                    tempseries['ComicName'] = tempseries['ComicName'].strip()
                 elif implist.getElementsByTagName('name')[tot].parentNode.nodeName == 'issue':
                     try:
                         tempseries['Issue_Name'] = implist.getElementsByTagName('name')[tot].firstChild.wholeText
