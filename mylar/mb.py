@@ -83,6 +83,7 @@ def pullsearch(comicapi, comicquery, offset, search_type):
             logger.error('ComicVine has banned this server\'s IP address because it exceeded the API rate limit.')
         else:
             logger.warn('[WARNING] ComicVine is not responding correctly at the moment. This is usually due to some problems on their end. If you re-try things again in a few moments, it might work properly.')
+            mylar.BACKENDSTATUS_CV = 'down'
         return
     except Exception as e:
         logger.warn('[ERROR] Error returned from CV: %s' % e)

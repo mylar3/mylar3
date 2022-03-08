@@ -4347,9 +4347,15 @@ def publisherImages(publisher):
                           'publisher_image_alt':   'AWA Studios',
                           'publisher_imageH':      '75',
                           'publisher_imageW':      '125'}
-    else:
-        comicpublisher = {'publisher_image':       None,
-                          'publisher_image_alt':   'Nope',
+    elif publisher == 'Bongo':
+        comicpublisher = {'publisher_image':       'images/publisherlogos/logo-bongo.png',
+                          'publisher_image_alt':   'Bongo',
+                          'publisher_imageH':      '79',
+                          'publisher_imageW':      '125'}
+
+    if comicpublisher is None:
+        comicpublisher = {'publisher_image':       'images/publisherlogos/logo-blank_publisher.png',
+                          'publisher_image_alt':   None,
                           'publisher_imageH':      '0',
                           'publisher_imageW':      '0'}
 
