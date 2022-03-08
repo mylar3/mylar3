@@ -867,9 +867,9 @@ class WebInterface(object):
         db_results = myDB.select(queryline, [query])
         if not db_results:
             try:
-                results = mb.findComic(name, mode, issue=None)
-            except TypeError:
-                logger.error('Unable to perform required search for : [name: ' + name + '][mode: ' + mode + ']')
+                results = mb.findComic(query, None, issue=None)
+            except Exception:
+                logger.error('Unable to perform required search for : [name: ' + query + ']')
                 return json.dumps({
                     'iTotalDisplayRecords': 0,
                     'iTotalRecords': 0,
