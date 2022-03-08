@@ -2366,7 +2366,7 @@ figure.item{
 }
 .watermark {
   position: absolute;
-  color: lightgray;
+  color: darkgray;
   opacity: 0.15;
   font-size: 1.5em;
   width: 100%;
