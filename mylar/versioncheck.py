@@ -438,17 +438,22 @@ def versionload():
 
     logger.info('Version information: %s [%s]' % (mylar.CONFIG.GIT_BRANCH, mylar.CURRENT_VERSION))
 
+    mylar.LATEST_VERSION = mylar.CURRENT_VERSION
+
     if mylar.CONFIG.CHECK_GITHUB_ON_STARTUP and mylar.INSTALL_TYPE != 'docker':
         myDB = db.DBConnection()
         chk_last = myDB.selectone("SELECT prev_run_timestamp from jobhistory where JobName='Check Version'").fetchone()
+        prev_run = False
         if chk_last:
-            rd = datetime.datetime.utcfromtimestamp(chk_last['prev_run_timestamp'])
-            rd_mins = rd + datetime.timedelta(seconds = 900)
-            rd_now = datetime.datetime.utcfromtimestamp(time.time())
-            if calendar.timegm(rd_mins.utctimetuple()) > calendar.timegm(rd_now.utctimetuple()):
-                logger.info('[CHECK_GITHUB] Version check ran  < 15 minutes ago. Not running.')
-                mylar.LATEST_VERSION = mylar.CURRENT_VERSION
-            else:
+            if chk_last['prev_run_timestamp'] is not None:
+                rd = datetime.datetime.utcfromtimestamp(chk_last['prev_run_timestamp'])
+                rd_mins = rd + datetime.timedelta(seconds = 900)
+                rd_now = datetime.datetime.utcfromtimestamp(time.time())
+                if calendar.timegm(rd_mins.utctimetuple()) > calendar.timegm(rd_now.utctimetuple()):
+                    prev_run = True
+                    logger.info('[CHECK_GITHUB] Version check ran  < 15 minutes ago. Not running.')
+
+            if prev_run is False:
                 try:
                     ac = mylar.versioncheckit.CheckVersion()
                     cc = ac.run(scheduled_job=False)
@@ -458,8 +463,6 @@ def versionload():
                         mylar.LATEST_VERSION = cc['current_version']
                     except Exception:
                         mylar.LATEST_VERSION = mylar.CURRENT_VERSION
-    else:
-        mylar.LATEST_VERSION = mylar.CURRENT_VERSION
 
     if mylar.CONFIG.AUTO_UPDATE:
         if mylar.CURRENT_VERSION != mylar.LATEST_VERSION and mylar.INSTALL_TYPE != 'win' and mylar.COMMITS_BEHIND > 0:
