@@ -422,11 +422,11 @@ table.display tr.even.gradeT {
 }
 
 table.display tr.odd.gradeF {
-        background-color: #FF5858;
+        background-color: #9C1616;
 }
 
 table.display tr.even.gradeF {
-        background-color: #FF5858;
+        background-color: #9C1616;
 }
 
 table.display tr.odd.gradeY {
@@ -576,11 +576,11 @@ table.display_no_select tr.even.gradeT {
 }
 
 table.display_no_select tr.odd.gradeF {
-        background-color: #FF5858;
+        background-color: #9C1616;
 }
 
 table.display_no_select tr.even.gradeF {
-        background-color: #FF5858;
+        background-color: #9C1616;
 }
 
 table.display_no_select tr.odd.gradeY {

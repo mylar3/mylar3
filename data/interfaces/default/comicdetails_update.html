@@ -1648,13 +1648,13 @@
                                    displayline += '<a id="queueit" name="queueit" title="Mark issue as Wanted" href="#"><img src="images/wanted_icon.png" height="25" width="25" style="margin:2px 1px 3px 3px;" /></a>';
                                    displayline += '<a id="retryit" name="retryit" title="Retry the same download again" href="#"><img src="images/retry_icon.png" height="25" width="25" style="margin:2px 1px 3px 3px;" /></a>';
                                    displayline += '<a id="unqueueit" name="queueit" title="Mark issue as Skipped" href="#"><img src="images/skipped_icon.png" height="25" width="25" style="margin:2px 1px 3px 3px;" /></a>';
-                                   displayline += '<a id="failit" name="failit" title="Mark issue as Failed" href="#"><img src="images/failed.png" height="25" width="25" style="margin:2px 1px 3px 3px;" /></a>';
+                                   displayline += '<a id="failit" name="failit" title="Mark issue as Failed" href="#"><img src="images/failed.png" class="highqual" height="25" width="25" style="margin:2px 1px 3px 3px;" /></a>';
                                } else if (full[3] == 'Archived'){
                                    displayline += '<a id="queueit" name="queueit" title="Mark issue as Wanted" href="#"><img src="images/wanted_icon.png" height="25" width="25" style="margin:2px 1px 3px 3px;" /></a>';
                                    displayline += '<a id="unqueueit" name="queueit" title="Mark issue as Skipped" href="#"><img src="images/skipped_icon.png" height="25" width="25" style="margin:2px 1px 3px 3px;" /></a>';
                                } else if (full[3] == 'Downloaded'){
                                    displayline += '<a id="unqueueit" name="queueit" title="Mark issue as Skipped" href="#"><img src="images/skipped_icon.png" height="25" width="25" style="margin:2px 1px 3px 3px;" /></a>';
-                                   displayline += '<a id="failit" name="failit" title="Mark issue as Failed" href="#"><img src="images/failed.png" height="25" width="25" style="margin:2px 1px 3px 3px;" /></a>';
+                                   displayline += '<a id="failit" name="failit" title="Mark issue as Failed" href="#"><img src="images/failed.png" class="highqual" height="25" width="25" style="margin:2px 1px 3px 3px;" /></a>';
                                    if (full[5]){
                                         if (full[5].toLowerCase().indexOf('.cbz') >=0){
                                             issueimg = '<img src="images/issueinfo_blue.png" height="25" width="25" title="View CBZ Issue Details" class="highqual" style="margin:2px 1px 3px 3px;" />';
@@ -1869,10 +1869,10 @@
                                    displayline += '<a id="aqueueit" name="aqueueit" title="Mark issue as Wanted" href="#"><img src="images/wanted_icon.png" height="25" width="25" style="margin:2px 1px 3px 3px;" /></a>';
                                    displayline += '<a id="aretryit" name="aretryit" title="Retry the same download again" href="#"><img src="images/retry_icon.png" height="25" width="25" style="margin:2px 1px 3px 3px;" /></a>';
                                    displayline += '<a id="aunqueueit" name="aqueueit" title="Mark issue as Skipped" href="#"><img src="images/skipped_icon.png" height="25" width="25" style="margin:2px 1px 3px 3px;" /></a>';
-                                   displayline += '<a id="afailit" name="afailit" title="Mark issue as Failed" href="#"><img src="images/failed.png" height="25" width="25" style="margin:2px 1px 3px 3px;" /></a>';
+                                   displayline += '<a id="afailit" name="afailit" title="Mark issue as Failed" href="#"><img src="images/failed.png" class="highqual" height="25" width="25" style="margin:2px 1px 3px 3px;" /></a>';
                                } else if (full[3] == 'Downloaded'){
                                    displayline += '<a id="aunqueueit" name="aqueueit" title="Mark issue as Skipped" href="#"><img src="images/skipped_icon.png" height="25" width="25" style="margin:2px 1px 3px 3px;" /></a>';
-                                   displayline += '<a id="afailit" name="afailit" title="Mark issue as Failed" href="#"><img src="images/failed.png" height="25" width="25" style="margin:2px 1px 3px 3px;" /></a>';
+                                   displayline += '<a id="afailit" name="afailit" title="Mark issue as Failed" href="#"><img src="images/failed.png" class="highqual" height="25" width="25" style="margin:2px 1px 3px 3px;" /></a>';
                                    if (full[5]){
                                         if (full[5].toLowerCase().indexOf('.cbz') >=0){
                                             issueimg = '<img src="images/issueinfo_blue.png" height="25" width="25" title="View CBZ Issue Details" class="highqual" style="margin:2px 1px 3px 3px;" />';
@@ -1983,10 +1983,7 @@
                 $('#annual_table').DataTable().draw(false);
             });
 
-            if ("${default_dates}" != document.getElementById("display_the_date").innerHTML){
-                document.getElementById("display_the_date").innerHTML = "${default_dates}";
-                display_date(null);
-            }
+            display_date(null);
 
             title_loading();
 

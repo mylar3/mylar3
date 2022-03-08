@@ -13,13 +13,24 @@
 #  You should have received a copy of the GNU General Public License
 #  along with Mylar.  If not, see <http://www.gnu.org/licenses/>.
 
-import platform, subprocess, re, os, urllib.request, urllib.error, urllib.parse, tarfile
-
-import mylar
-from mylar import logger
-
+import platform
+import subprocess
+import re
+import os
+import urllib.request
+import urllib.error
+import urllib.parse
+import tarfile
+import datetime
+import time
+import calendar
 import requests
 import re
+import json
+import feedparser
+
+import mylar
+from mylar import logger, db
 
 def runGit(args):
 
@@ -33,7 +44,7 @@ def runGit(args):
         git_locations.append('/usr/local/git/bin/git')
 
 
-    output = err = None
+    output = None
 
     for cur_git in git_locations:
         gitworked = False
@@ -64,9 +75,10 @@ def runGit(args):
             output = None
             gitworked = False
         elif gitworked:
+            output = output.stdout
             break
 
-    return (output.stdout, output.stderr)
+    return output
 
 def getVersion():
     current_version = None
@@ -83,50 +95,51 @@ def getVersion():
     elif os.path.isdir(os.path.join(mylar.PROG_DIR, '.git')):
 
         mylar.INSTALL_TYPE = 'git'
-        output, err = runGit('describe --exact-match --tags 2> %s && git rev-parse HEAD --abbrev-ref HEAD' % os.devnull)
+        output = runGit('describe --exact-match --tags 2> %s && git rev-parse HEAD --abbrev-ref HEAD' % os.devnull)
         #output, err = runGit('rev-parse HEAD --abbrev-ref HEAD')
 
         if not output:
-            output, err = runGit('describe --exact-match --tags 2> %s || git rev-parse HEAD --abbrev-ref HEAD' % os.devnull)
+            output = runGit('describe --exact-match --tags 2> %s || git rev-parse HEAD --abbrev-ref HEAD' % os.devnull)
             if not output:
                 logger.error('Couldn\'t find latest installed version.')
                 cur_commit_hash = None
-
+                cur_branch = mylar.CONFIG.GIT_BRANCH
         #branch_history, err = runGit("log --oneline --pretty=format:'%h - %ar - %s' -n 5")
         #bh = []
         #print ("branch_history: " + branch_history)
         #bh.append(branch_history.split('\n'))
         #print ("bh1: " + bh[0])
 
-        opp = output.find('\n')
-        cur_commit_hash = output[:opp]
-        cur_branch = output[opp:output.find('\n', opp+1)].strip()
+        if output is not None:
+            opp = output.find('\n')
+            cur_commit_hash = output[:opp]
+            cur_branch = output[opp:output.find('\n', opp+1)].strip()
 
-        if cur_commit_hash.startswith('v') and mylar.CONFIG.CHECK_GITHUB_ON_STARTUP is True:
-            url2 = 'https://api.github.com/repos/%s/mylar3/tags' % (mylar.CONFIG.GIT_USER)
-            try:
-                response = requests.get(url2, verify=True, auth=mylar.CONFIG.GIT_TOKEN)
-                git = response.json()
-            except Exception as e:
-                logger.warn('[ERROR] %s' % e)
-                pass
-            else:
-                if git[0]['name'] is not None:
-                    for x in git:
-                        if x['name'] == output[:opp]:
-                            current_version_name = x['name']
-                            cur_commit_hash = x['commit']['sha']
-                            break
-                    logger.info('version_name: %s' % current_version_name)
-                    url3 = 'https://api.github.com/repos/%s/mylar3/releases/tags/%s' % (mylar.CONFIG.GIT_USER, current_version_name)
-                    logger.info('url3: %s' % url3)
-                    try:
-                        repochk = requests.get(url3, verify=True, auth=mylar.CONFIG.GIT_TOKEN)
-                        repo_resp = repochk.json()
-                        logger.info('repo_resp: %s' % repo_resp)
-                        current_release_name = repo_resp['name']
-                    except Exception as e:
-                        pass
+            if cur_commit_hash.startswith('v') and mylar.CONFIG.CHECK_GITHUB_ON_STARTUP is True:
+                url2 = 'https://api.github.com/repos/%s/mylar3/tags' % (mylar.CONFIG.GIT_USER)
+                try:
+                    response = requests.get(url2, verify=True, auth=mylar.CONFIG.GIT_TOKEN)
+                    git = response.json()
+                except Exception as e:
+                    logger.warn('[ERROR] %s' % e)
+                    pass
+                else:
+                    if git[0]['name'] is not None:
+                        for x in git:
+                            if x['name'] == output[:opp]:
+                                current_version_name = x['name']
+                                cur_commit_hash = x['commit']['sha']
+                                break
+                        logger.info('version_name: %s' % current_version_name)
+                        url3 = 'https://api.github.com/repos/%s/mylar3/releases/tags/%s' % (mylar.CONFIG.GIT_USER, current_version_name)
+                        #logger.fdebug('url3: %s' % url3)
+                        try:
+                            repochk = requests.get(url3, verify=True, auth=mylar.CONFIG.GIT_TOKEN)
+                            repo_resp = repochk.json()
+                            #logger.fdebug('repo_resp: %s' % repo_resp)
+                            current_release_name = repo_resp['name']
+                        except Exception as e:
+                            pass
 
         logger.info('cur_commit_hash: %s' % cur_commit_hash)
         logger.info('cur_branch: %s' % cur_branch)
@@ -142,7 +155,7 @@ def getVersion():
             branch = None
         else:
             branch = None
-            branch_name, err = runGit('branch --contains %s' % cur_commit_hash)
+            branch_name = runGit('branch --contains %s' % cur_commit_hash)
             if not branch_name:
                 logger.warn('Could not retrieve branch name [%s] from git. Defaulting to Master.' % branch)
                 branch = 'master'
@@ -176,23 +189,23 @@ def getVersion():
         #current_version = None
         branch = None
 
+        version_file = os.path.join(mylar.PROG_DIR, '.LAST_RELEASE')
         if current_version is None:
             try:
-                version_file = os.path.join(mylar.PROG_DIR, '.LAST_RELEASE')
-
                 if not os.path.isfile(version_file):
                     current_version = None
                 else:
                     cnt = 0
                     with open(version_file, 'r') as f:
                         for i in f.readlines():
+                            logger.info('i: %s' % (i))
                             tmp = i.split()
                             if cnt == 0:
                                 if i.find('>') != -1:
                                     i_clean = i[i.find('>')+1:]
                                     if ',' in i_clean:
                                         find_clean = i_clean.find(',')
-                                        mrclean = i_clean[:find_clean]
+                                        mrclean = i_clean[:find_clean].strip()
                                     else:
                                         mrclean = re.sub('[\)\(\>]', '', i_clean).strip()
                                     branch = mrclean
@@ -202,14 +215,23 @@ def getVersion():
                                     mrclean = re.sub('tag: ', '', re.sub('[\(\)]', '', i[i_clean:])).strip()
                                     current_version_name = mrclean
                                     logger.info('[LAST_RELEASE] Version: %s' % current_version_name)
+                                elif i[1] == '(':
+                                    branch = re.sub('[\(\)]', '', i).strip()
+                                    logger.info('[LAST_RELEASE] Branch: %s' % branch)
                             elif cnt == 1:
                                 current_version = i.strip()
                                 logger.info('[LAST_RELEASE] Commit: %s' % ''.join(current_version))
+                            elif cnt == 2:
+                                current_release_name = i.strip()
+                                logger.info('[LAST_RELEASE] Release Name: %s' % ''.join(current_release_name))
                             cnt+=1
+
             except Exception as e:
                 logger.error('error: %s' % e)
 
-        if current_version_name is not None and mylar.CONFIG.CHECK_GITHUB_ON_STARTUP is True:
+        if current_version_name is not None and current_release_name is None and branch == 'master':
+            # only master has tags - so if not master, no need to check at all.
+            # and mylar.CONFIG.CHECK_GITHUB_ON_STARTUP is True:
             url2 = 'https://api.github.com/repos/%s/mylar3/releases/tags/%s' % (mylar.CONFIG.GIT_USER, current_version_name)
             try:
                 response = requests.get(url2, verify=True, auth=mylar.CONFIG.GIT_TOKEN)
@@ -217,8 +239,13 @@ def getVersion():
                 current_release_name = git['name']
             except Exception as e:
                 pass
+            else:
+                if os.path.isfile(version_file):
+                    #write the name to the .LAST_RELEASE so we don't have to poll for it
+                    logger.fdebug('this would have been written to the .LAST_RELEASE file: %s' % (current_release_name))
+                    with open(version_file, 'a') as wf:
+                        wf.write('%s' % current_release_name)
 
-        logger.info('Current Release Name: %s' % current_release_name)
         if current_version:
             if mylar.CONFIG.GIT_BRANCH:
                 logger.info('Branch detected & set to : ' + mylar.CONFIG.GIT_BRANCH)
@@ -250,6 +277,12 @@ def checkGithub(current_version=None):
     if current_version is None:
         current_version = mylar.CURRENT_VERSION
 
+
+    if mylar.INSTALL_TYPE == 'docker':
+        itype = 'true'
+    else:
+        itype = 'false'
+
     # Get the latest commit available from github
     url = 'https://api.github.com/repos/%s/mylar3/commits/%s' % (mylar.CONFIG.GIT_USER, mylar.CONFIG.GIT_BRANCH)
     try:
@@ -257,37 +290,51 @@ def checkGithub(current_version=None):
         git = response.json()
         mylar.LATEST_VERSION = git['sha']
     except Exception as e:
-            logger.warn('[ERROR] Could not get the latest commit from github: %s' % e)
-            mylar.COMMITS_BEHIND = 0
-            return mylar.CURRENT_VERSION
-
-    # See how many commits behind we are
-    if current_version is not None:
-        logger.fdebug('Comparing currently installed version [%s] with latest github version [%s]' % (current_version, mylar.LATEST_VERSION))
-        url = 'https://api.github.com/repos/%s/mylar3/compare/%s...%s' % (mylar.CONFIG.GIT_USER, current_version, mylar.LATEST_VERSION)
-
-        try:
-            response = requests.get(url, verify=True, auth=mylar.CONFIG.GIT_TOKEN)
-            git = response.json()
-            mylar.COMMITS_BEHIND = git['total_commits']
-        except Exception as e:
-            logger.warn('[ERROR] Could not get commits behind from github: %s' % e)
-            mylar.COMMITS_BEHIND = 0
-            return mylar.CURRENT_VERSION
-
-        if mylar.COMMITS_BEHIND >= 1:
-            logger.info('New version is available. You are %s commits behind' % mylar.COMMITS_BEHIND)
-            if mylar.CONFIG.AUTO_UPDATE is True:
-                mylar.SIGNAL = 'update'
-        elif mylar.COMMITS_BEHIND == 0:
-            logger.info('Mylar is up to date')
-        elif mylar.COMMITS_BEHIND == -1:
-            logger.info('You are running an unknown version of Mylar. Run the updater to identify your version')
-
+        if 'sha' in str(e):
+            le_message = 'Updater will only work with the mylar3 repo branches'
+        else:
+            le_message = 'Could not get latest commit from github'
+        logger.warn('[ERROR] %s . Error returned: %s' % (le_message, e))
+        mylar.COMMITS_BEHIND = 0
+        rtnline = {'status': 'failure', 'current_version': mylar.CURRENT_VERSION, 'latest_version': mylar.CURRENT_VERSION, 'commits_behind': mylar.COMMITS_BEHIND, 'message': le_message}
+        mylar.UPDATE_VALUE = json.dumps({'update_value': None, 'docker': itype})
     else:
-        logger.info('You are running an unknown version of Mylar. Run the updater to identify your version')
+        # See how many commits behind we are
+        if current_version is not None:
+            logger.fdebug('Comparing currently installed version [%s] with latest github version [%s]' % (current_version, mylar.LATEST_VERSION))
+            url = 'https://api.github.com/repos/%s/mylar3/compare/%s...%s' % (mylar.CONFIG.GIT_USER, current_version, mylar.LATEST_VERSION)
 
-    return mylar.LATEST_VERSION
+            try:
+                response = requests.get(url, verify=True, auth=mylar.CONFIG.GIT_TOKEN)
+                git = response.json()
+                mylar.COMMITS_BEHIND = git['total_commits']
+            except Exception as e:
+                logger.warn('[ERROR] Could not get commits behind from github: %s' % e)
+                mylar.COMMITS_BEHIND = 0
+                rtnline = {'status': 'failure', 'current_version': mylar.CURRENT_VERSION, 'latest_version': mylar.CURRENT_VERSION, 'commits_behind': mylar.COMMITS_BEHIND, 'message': 'Could not get #of commits behind from github'}
+                mylar.UPDATE_VALUE = json.dumps({'update_value': None, 'docker': itype})
+            else:
+                if mylar.COMMITS_BEHIND >= 1:
+                    chk_message = 'New version is available. You are %s commits behind' % mylar.COMMITS_BEHIND
+                    if mylar.CONFIG.AUTO_UPDATE is True:
+                        mylar.SIGNAL = 'update'
+                elif mylar.COMMITS_BEHIND == 0:
+                    chk_message = 'Mylar is up to date'
+                elif mylar.COMMITS_BEHIND == -1:
+                    chk_message = 'You are running an unknown version of Mylar. Run the updater to identify your version'
+                logger.info('[CHECK_GITHUB] %s' % chk_message)
+                rtnline = {'status': 'success', 'current_version': mylar.CURRENT_VERSION, 'latest_version': mylar.LATEST_VERSION, 'commits_behind': mylar.COMMITS_BEHIND, 'message': chk_message}
+                mylar.UPDATE_VALUE = json.dumps({'update_value': mylar.COMMITS_BEHIND, 'docker': itype})
+        else:
+            chk_message = 'You are running an unknown version of Mylar. Run the updater to identify your version'
+            logger.info('[CHECK_GITHUB] %s' % chk_message)
+            rtnline = {'status': 'failure', 'current_version': mylar.CURRENT_VERSION, 'latest_version': mylar.CURRENT_VERSION, 'commits_behind': -1, 'message': chk_message}
+            mylar.UPDATE_VALUE = json.dumps({'update_value': -1, 'docker': itype})
+
+    #return mylar.LATEST_VERSION
+    rtnline = dict(rtnline, **{'event': 'check_update', 'docker': itype})
+    mylar.GLOBAL_MESSAGES = rtnline
+    return rtnline
 
 def update():
 
@@ -298,7 +345,7 @@ def update():
 
     elif mylar.INSTALL_TYPE == 'git':
 
-        output, err = runGit('pull origin ' + mylar.CONFIG.GIT_BRANCH)
+        output = runGit('pull origin ' + mylar.CONFIG.GIT_BRANCH)
 
         if output is None:
             logger.error('Couldn\'t download latest version')
@@ -317,7 +364,6 @@ def update():
         logger.info('Docker updates via it\'s own mechanics. Updating docker via Mylar GUI not supported at this time.')
 
     else:
-
         tar_download_url = 'https://github.com/%s/mylar/tarball/%s' % (mylar.CONFIG.GIT_USER, mylar.CONFIG.GIT_BRANCH)
         update_dir = os.path.join(mylar.PROG_DIR, 'update')
 
@@ -393,10 +439,25 @@ def versionload():
     logger.info('Version information: %s [%s]' % (mylar.CONFIG.GIT_BRANCH, mylar.CURRENT_VERSION))
 
     if mylar.CONFIG.CHECK_GITHUB_ON_STARTUP and mylar.INSTALL_TYPE != 'docker':
-        try:
-            mylar.LATEST_VERSION = checkGithub() #(CURRENT_VERSION)
-        except:
-            mylar.LATEST_VERSION = mylar.CURRENT_VERSION
+        myDB = db.DBConnection()
+        chk_last = myDB.selectone("SELECT prev_run_timestamp from jobhistory where JobName='Check Version'").fetchone()
+        if chk_last:
+            rd = datetime.datetime.utcfromtimestamp(chk_last['prev_run_timestamp'])
+            rd_mins = rd + datetime.timedelta(seconds = 900)
+            rd_now = datetime.datetime.utcfromtimestamp(time.time())
+            if calendar.timegm(rd_mins.utctimetuple()) > calendar.timegm(rd_now.utctimetuple()):
+                logger.info('[CHECK_GITHUB] Version check ran  < 15 minutes ago. Not running.')
+                mylar.LATEST_VERSION = mylar.CURRENT_VERSION
+            else:
+                try:
+                    ac = mylar.versioncheckit.CheckVersion()
+                    cc = ac.run(scheduled_job=False)
+                    mylar.LATEST_VERSION = cc['latest_version']
+                except Exception:
+                    try:
+                        mylar.LATEST_VERSION = cc['current_version']
+                    except Exception:
+                        mylar.LATEST_VERSION = mylar.CURRENT_VERSION
     else:
         mylar.LATEST_VERSION = mylar.CURRENT_VERSION
 

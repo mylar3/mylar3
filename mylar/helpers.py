@@ -3616,179 +3616,214 @@ def date_conversion(originaldate):
     hours = (absdiff.days * 24 * 60 * 60 + absdiff.seconds) / 3600.0
     return hours
 
-def job_management(write=False, job=None, last_run_completed=None, current_run=None, status=None, failure=False):
-        jobresults = []
+def job_management(write=False, job=None, last_run_completed=None, current_run=None, status=None, failure=False, startup=False):
+    jobresults = []
 
-        #import db
-        myDB = db.DBConnection()
+    myDB = db.DBConnection()
+    if startup is True:
+        # on startup - db status will over-ride any settings to ensure persistent state
+        job_info = myDB.select('SELECT DISTINCT(JobName), status, prev_run_timestamp FROM jobhistory')
+        for ji in job_info:
+            jstatus = ji['status']
+            if any([jstatus is None, jstatus == 'Running']):
+                jstatus = 'Waiting'
+            if 'update' in ji['JobName'].lower():
+                if mylar.SCHED_DBUPDATE_LAST is None:
+                    mylar.SCHED_DBUPDATE_LAST = ji['prev_run_timestamp']
+                if jstatus is None:
+                    jstatus = 'Waiting'
+                mylar.UPDATER_STATUS = jstatus
+            elif 'search' in ji['JobName'].lower():
+                if mylar.SCHED_SEARCH_LAST is None:
+                    mylar.SCHED_SEARCH_LAST = ji['prev_run_timestamp']
+                if jstatus is None:
+                    jstatus = 'Waiting'
+                mylar.SEARCH_STATUS = jstatus
+            elif 'rss' in ji['JobName'].lower():
+                # db value isn't used in startup as config option controls status
+                if mylar.SCHED_RSS_LAST is None:
+                    mylar.SCHED_RSS_LAST = ji['prev_run_timestamp']
+                if jstatus is None:
+                    if mylar.CONFIG.ENABLE_RSS:
+                        jstatus = 'Waiting'
+                if any([jstatus == 'Waiting', jstatus == 'Running']) and mylar.CONFIG.ENABLE_RSS is False:
+                    jstatus = 'Paused'
+                mylar.RSS_STATUS = jstatus
+            elif 'weekly' in ji['JobName'].lower():
+                if mylar.SCHED_WEEKLY_LAST is None:
+                    mylar.SCHED_WEEKLY_LAST = ji['prev_run_timestamp']
+                if jstatus is None:
+                    jstatus = 'Waiting'
+                mylar.WEEKLY_STATUS = jstatus
+            elif 'version' in ji['JobName'].lower():
+                # db value isn't used in startup as config option controls status
+                if mylar.SCHED_VERSION_LAST is None:
+                    mylar.SCHED_VERSION_LAST = ji['prev_run_timestamp']
+                if jstatus is None:
+                    if mylar.CONFIG.CHECK_GITHUB:
+                        jstatus = 'Waiting'
+                if any([jstatus == 'Waiting', jstatus == 'Running']) and mylar.CONFIG.CHECK_GITHUB is False:
+                    jstatus = 'Paused'
+                mylar.VERSION_STATUS = jstatus
+            elif 'monitor' in ji['JobName'].lower():
+                # db value isn't used in startup as config option controls status
+                if mylar.SCHED_MONITOR_LAST is None:
+                    mylar.SCHED_MONITOR_LAST = ji['prev_run_timestamp']
+                if jstatus is None:
+                    if mylar.CONFIG.CHECK_FOLDER:
+                        jstatus = 'Waiting'
+                if any([jstatus == 'Waiting', jstatus == 'Running']) and mylar.CONFIG.CHECK_FOLDER is False:
+                    jstatus = 'Paused'
+                mylar.MONITOR_STATUS = jstatus
 
-        if job is None:
-            dbupdate_newstatus = 'Waiting'
-            dbupdate_nextrun = None
-            if mylar.CONFIG.ENABLE_RSS is True:
-                rss_newstatus = 'Waiting'
+        return {'weekly': {'last': mylar.SCHED_WEEKLY_LAST, 'status': mylar.WEEKLY_STATUS},
+                'monitor': {'last': mylar.SCHED_MONITOR_LAST, 'status': mylar.MONITOR_STATUS},
+                'search': {'last': mylar.SCHED_SEARCH_LAST, 'status': mylar.SEARCH_STATUS},
+                'updater': {'last': mylar.SCHED_DBUPDATE_LAST, 'status': mylar.UPDATER_STATUS},
+                'version': {'last': mylar.SCHED_VERSION_LAST, 'status': mylar.VERSION_STATUS},
+                'rss': {'last': mylar.SCHED_RSS_LAST, 'status': mylar.RSS_STATUS},
+               }
+
+    for jb in mylar.SCHED.get_jobs():
+        jobinfo = str(jb)
+        jobname = jobinfo[:jobinfo.find('(')-1].strip()
+        jobstatus = jobinfo[jobinfo.find('],')+2:len(jobinfo)-1].strip()
+        next_the_run = False
+
+        #logger.info('[%s] ==> %s' % (jobname, jobstatus))
+
+        #jobstatus will be either paused / next run - running jobs have to be
+        #identified farther below
+        if jobname == 'DB Updater':
+            prev_run_timestamp = mylar.SCHED_DBUPDATE_LAST
+            if 'next run' in jobstatus:
+                mylar.UPDATER_STATUS = 'Waiting'
+                if any(ky == 'updater' for ky, vl in mylar.FORCE_STATUS.items()):
+                    mylar.UPDATER_STATUS = mylar.FORCE_STATUS['updater']
+                    next_the_run = True
             else:
-                rss_newstatus = 'Paused'
-            rss_nextrun = None
-            weekly_newstatus = 'Waiting'
-            weekly_nextrun = None
-            search_newstatus = 'Waiting'
-            search_nextrun = None
-            if mylar.CONFIG.CHECK_GITHUB is True:
-               version_newstatus = 'Waiting'
+                mylar.UPDATER_STATUS = 'Paused'
+            sched_status = mylar.UPDATER_STATUS
+        elif jobname == 'Auto-Search':
+            prev_run_timestamp = mylar.SCHED_SEARCH_LAST
+            if 'next run' in jobstatus:
+                mylar.SEARCH_STATUS = 'Waiting'
+                if any(ky == 'search' for ky, vl in mylar.FORCE_STATUS.items()):
+                    mylar.SEARCH_STATUS = mylar.FORCE_STATUS['search']
+                    next_the_run = True
             else:
-               version_newstatus = 'Paused'
-            version_nextrun = None
-            if mylar.CONFIG.ENABLE_CHECK_FOLDER is True:
-                monitor_newstatus = 'Waiting'
+                mylar.SEARCH_STATUS = 'Paused'
+            sched_status = mylar.SEARCH_STATUS
+        elif jobname == 'RSS Feeds':
+            prev_run_timestamp = mylar.SCHED_RSS_LAST
+            if 'next run' in jobstatus:
+                mylar.RSS_STATUS = 'Waiting'
+                if any(ky == 'rss' for ky, vl in mylar.FORCE_STATUS.items()):
+                    mylar.RSS_STATUS = mylar.FORCE_STATUS['rss']
+                    next_the_run = True
             else:
-                monitor_newstatus = 'Paused'
-            monitor_nextrun = None
-
-            job_info = myDB.select('SELECT DISTINCT * FROM jobhistory')
-            #set default values if nothing has been ran yet
-            for ji in job_info:
-                if 'update' in ji['JobName'].lower():
-                    if mylar.SCHED_DBUPDATE_LAST is None:
-                        mylar.SCHED_DBUPDATE_LAST = ji['prev_run_timestamp']
-                    dbupdate_newstatus = ji['status']
-                    #mylar.UPDATER_STATUS = dbupdate_newstatus
-                    dbupdate_nextrun = ji['next_run_timestamp']
-                elif 'search' in ji['JobName'].lower():
-                    if mylar.SCHED_SEARCH_LAST is None:
-                        mylar.SCHED_SEARCH_LAST = ji['prev_run_timestamp']
-                    search_newstatus = ji['status']
-                    mylar.SEARCH_STATUS = search_newstatus
-                    search_nextrun = ji['next_run_timestamp']
-                elif 'rss' in ji['JobName'].lower():
-                    if mylar.SCHED_RSS_LAST is None:
-                        mylar.SCHED_RSS_LAST = ji['prev_run_timestamp']
-                    rss_newstatus = ji['status']
-                    #mylar.RSS_STATUS = rss_newstatus
-                    rss_nextrun = ji['next_run_timestamp']
-                elif 'weekly' in ji['JobName'].lower():
-                    if mylar.SCHED_WEEKLY_LAST is None:
-                        mylar.SCHED_WEEKLY_LAST = ji['prev_run_timestamp']
-                    weekly_newstatus = ji['status']
-                    #mylar.WEEKLY_STATUS = weekly_newstatus
-                    weekly_nextrun = ji['next_run_timestamp']
-                elif 'version' in ji['JobName'].lower():
-                    if mylar.SCHED_VERSION_LAST is None:
-                        mylar.SCHED_VERSION_LAST = ji['prev_run_timestamp']
-                    version_newstatus = ji['status']
-                    #mylar.VERSION_STATUS = version_newstatus
-                    version_nextrun = ji['next_run_timestamp']
-                elif 'monitor' in ji['JobName'].lower():
-                    if mylar.SCHED_MONITOR_LAST is None:
-                        mylar.SCHED_MONITOR_LAST = ji['prev_run_timestamp']
-                    monitor_newstatus = ji['status']
-                    #mylar.MONITOR_STATUS = monitor_newstatus
-                    monitor_nextrun = ji['next_run_timestamp']
-
-            monitors = {'weekly': mylar.SCHED_WEEKLY_LAST,
-                        'monitor': mylar.SCHED_MONITOR_LAST,
-                        'search': mylar.SCHED_SEARCH_LAST,
-                        'dbupdater': mylar.SCHED_DBUPDATE_LAST,
-                        'version': mylar.SCHED_VERSION_LAST,
-                        'rss': mylar.SCHED_RSS_LAST}
-
-            #this is for initial startup
-            for jb in mylar.SCHED.get_jobs():
-                #logger.fdebug('jb: %s' % jb)
-                jobinfo = str(jb)
-                if 'Status Updater' in jobinfo.lower():
-                    continue
-                elif 'update' in jobinfo.lower():
-                    prev_run_timestamp = mylar.SCHED_DBUPDATE_LAST
-                    newstatus = mylar.UPDATER_STATUS
-                    #newstatus = dbupdate_newstatus
-                    #mylar.UPDATER_STATUS = newstatus
-                elif 'search' in jobinfo.lower():
-                    prev_run_timestamp = mylar.SCHED_SEARCH_LAST
-                    newstatus = mylar.SEARCH_STATUS
-                    #newstatus = search_newstatus
-                    #mylar.SEARCH_STATUS = newstatus
-                elif 'rss' in jobinfo.lower():
-                    prev_run_timestamp = mylar.SCHED_RSS_LAST
-                    newstatus = mylar.RSS_STATUS
-                    #newstatus = rss_newstatus
-                    #mylar.RSS_STATUS = newstatus
-                elif 'weekly' in jobinfo.lower():
-                    prev_run_timestamp = mylar.SCHED_WEEKLY_LAST
-                    newstatus = mylar.WEEKLY_STATUS
-                    #newstatus = weekly_newstatus
-                    #mylar.WEEKLY_STATUS = newstatus
-                elif 'version' in jobinfo.lower():
-                    prev_run_timestamp = mylar.SCHED_VERSION_LAST
-                    newstatus = mylar.VERSION_STATUS
-                    #newstatus = version_newstatus
-                    #mylar.VERSION_STATUS = newstatus
-                elif 'monitor' in jobinfo.lower():
-                    prev_run_timestamp = mylar.SCHED_MONITOR_LAST
-                    newstatus = mylar.MONITOR_STATUS
-                    #newstatus = monitor_newstatus
-                    #mylar.MONITOR_STATUS = newstatus
-
-                jobname = jobinfo[:jobinfo.find('(')-1].strip()
-                #logger.fdebug('jobinfo: %s' % jobinfo)
-                try:
-                    jobtimetmp = jobinfo.split('at: ')[1].split('.')[0].strip()
-                except:
-                    continue
-                #logger.fdebug('jobtimetmp: %s' % jobtimetmp)
-                jobtime = float(calendar.timegm(datetime.datetime.strptime(jobtimetmp[:-1], '%Y-%m-%d %H:%M:%S %Z').timetuple()))
-                #logger.fdebug('jobtime: %s' % jobtime)
-
-                if prev_run_timestamp is not None:
-                    prev_run_time_utc = datetime.datetime.utcfromtimestamp(float(prev_run_timestamp))
-                    prev_run_time_utc = prev_run_time_utc.replace(microsecond=0)
-                else:
-                    prev_run_time_utc = None
-                #logger.fdebug('prev_run_time: %s' % prev_run_timestamp)
-                #logger.fdebug('prev_run_time type: %s' % type(prev_run_timestamp))
-                jobresults.append({'jobname': jobname,
-                                   'next_run_datetime': datetime.datetime.utcfromtimestamp(jobtime),
-                                   'prev_run_datetime': prev_run_time_utc,
-                                   'next_run_timestamp': jobtime,
-                                   'prev_run_timestamp': prev_run_timestamp,
-                                   'status': newstatus})
-
-        if not write:
-            if len(jobresults) == 0:
-                return monitors
+                mylar.RSS_STATUS = 'Paused'
+            sched_status = mylar.RSS_STATUS
+        elif jobname == 'Weekly Pullist':
+            prev_run_timestamp = mylar.SCHED_WEEKLY_LAST
+            if 'next run' in jobstatus:
+                mylar.WEEKLY_STATUS = 'Waiting'
+                if any(ky == 'weekly' for ky, vl in mylar.FORCE_STATUS.items()):
+                    mylar.WEEKLY_STATUS = mylar.FORCE_STATUS['weekly']
+                    next_the_run = True
             else:
-                return jobresults
+                mylar.WEEKLY_STATUS = 'Paused'
+            sched_status = mylar.WEEKLY_STATUS
+        elif jobname == 'Check Version':
+            prev_run_timestamp = mylar.SCHED_VERSION_LAST
+            if 'next run' in jobstatus:
+                mylar.VERSION_STATUS = 'Waiting'
+                if any(ky == 'version' for ky, vl in mylar.FORCE_STATUS.items()):
+                    mylar.VERSION_STATUS = mylar.FORCE_STATUS['version']
+                    next_the_run = True
+            else:
+                mylar.VERSION_STATUS = 'Paused'
+            sched_status = mylar.VERSION_STATUS
+        elif jobname == 'Folder Monitor':
+            prev_run_timestamp = mylar.SCHED_MONITOR_LAST
+            if 'next run' in jobstatus:
+                mylar.MONITOR_STATUS = 'Waiting'
+                if any(ky == 'monitor' for ky, vl in mylar.FORCE_STATUS.items()):
+                    mylar.MONITOR_STATUS = mylar.FORCE_STATUS['monitor']
+                    next_the_run = True
+            else:
+                mylar.MONITOR_STATUS = 'Paused'
+            sched_status = mylar.MONITOR_STATUS
+
+        #jobname = jobinfo[:jobinfo.find('(')-1].strip()
+        #logger.fdebug('jobinfo: %s' % jobinfo)
+        try:
+            jobtimetmp = jobinfo.split('at: ')[1].split('.')[0].strip()
+        except:
+            jobtime = None
         else:
-            if job is None:
-                for x in jobresults:
-                    updateCtrl = {'JobName':  x['jobname']}
-                    updateVals = {'next_run_timestamp': x['next_run_timestamp'],
-                                  'prev_run_timestamp': x['prev_run_timestamp'],
-                                  'next_run_datetime': x['next_run_datetime'],
-                                  'prev_run_datetime': x['prev_run_datetime'],
-                                  'status': x['status']}
-
-                    myDB.upsert('jobhistory', updateVals, updateCtrl)
+            if next_the_run is False:
+                jtime = float(calendar.timegm(datetime.datetime.strptime(jobtimetmp[:-1], '%Y-%m-%d %H:%M:%S %Z').timetuple()))
+                jobtime = datetime.datetime.utcfromtimestamp(jtime)
             else:
-                #logger.fdebug('Updating info - job: %s' % job)
-                #logger.fdebug('Updating info - last run: %s' % last_run_completed)
-                #logger.fdebug('Updating info - status: %s' % status)
-                updateCtrl = {'JobName':  job}
-                if current_run is not None:
-                    pr_datetime = datetime.datetime.utcfromtimestamp(current_run)
-                    pr_datetime = pr_datetime.replace(microsecond=0)
-                    updateVals = {'prev_run_timestamp': current_run,
-                                  'prev_run_datetime': pr_datetime,
-                                  'status':  status}
-                    #logger.info('updateVals: %s' % updateVals)
-                elif last_run_completed is not None:
-                    if any([job == 'DB Updater', job == 'Auto-Search', job == 'RSS Feeds', job == 'Weekly Pullist', job == 'Check Version', job == 'Folder Monitor']):
-                        jobstore = None
-                        for jbst in mylar.SCHED.get_jobs():
-                            jb = str(jbst)
-                            if 'Status Updater' in jb.lower():
-                               continue
-                            elif job == 'DB Updater' and 'update' in jb.lower():
+                jobtime = None
+
+        if prev_run_timestamp is not None:
+            prev_run_time_utc = datetime.datetime.utcfromtimestamp(float(prev_run_timestamp))
+            prev_run_time_utc = prev_run_time_utc.replace(microsecond=0)
+        else:
+            prev_run_time_utc = None
+
+        jobresults.append({'jobname': jobname,
+                           'next_run_datetime': jobtime,
+                           'prev_run_datetime': prev_run_time_utc,
+                           'next_run_timestamp': jobtime,
+                           'prev_run_timestamp': prev_run_timestamp,
+                           'status': sched_status})
+
+    if not write:
+        if len(jobresults) == 0:
+            return monitors
+        else:
+            return jobresults
+    else:
+        if job is None:
+            for x in jobresults:
+                updateCtrl = {'JobName':  x['jobname']}
+                updateVals = {'next_run_timestamp': x['next_run_timestamp'],
+                              'prev_run_timestamp': x['prev_run_timestamp'],
+                              'next_run_datetime': x['next_run_datetime'],
+                              'prev_run_datetime': x['prev_run_datetime'],
+                              'status': x['status']}
+
+                myDB.upsert('jobhistory', updateVals, updateCtrl)
+        else:
+            #logger.fdebug('Updating info - job: %s' % job)
+            #logger.fdebug('Updating info - last run: %s' % last_run_completed)
+            #logger.fdebug('Updating info - status: %s' % status)
+            updateCtrl = {'JobName':  job}
+            if current_run is not None:
+                pr_datetime = datetime.datetime.utcfromtimestamp(current_run)
+                pr_datetime = pr_datetime.replace(microsecond=0)
+                updateVals = {'prev_run_timestamp': current_run,
+                              'prev_run_datetime': pr_datetime,
+                              'status':  status}
+                #logger.info('updateVals: %s' % updateVals)
+            elif last_run_completed is not None:
+                if any([job == 'DB Updater', job == 'Auto-Search', job == 'RSS Feeds', job == 'Weekly Pullist', job == 'Check Version', job == 'Folder Monitor']):
+                    jobstore = None
+                    nextrun_stamp = None
+                    nextrun_date = None
+                    for jbst in mylar.SCHED.get_jobs():
+                        jb = str(jbst)
+                        if 'Status Updater' in jb.lower():
+                           continue
+                        elif job == 'DB Updater' and 'update' in jb.lower():
+                            if any(ky == 'updater' for ky, vl in mylar.FORCE_STATUS.items()):
+                                mylar.UPDATER_STATUS = mylar.FORCE_STATUS['updater']
+                                mylar.FORCE_STATUS.pop('updater')
+
+                            if mylar.UPDATER_STATUS != 'Paused':
                                 if mylar.DB_BACKFILL is True:
                                     #if backfilling, set it for every 15 mins
                                     nextrun_stamp = utctimestamp() + (mylar.CONFIG.BACKFILL_TIMESPAN * 60)
@@ -3799,64 +3834,102 @@ def job_management(write=False, job=None, last_run_completed=None, current_run=N
                                     )
                                 else:
                                     nextrun_stamp = utctimestamp() + (int(mylar.DBUPDATE_INTERVAL) * 60)
-                                jobstore = jbst
-                                break
-                            elif job == 'Auto-Search' and 'search' in jb.lower():
+                            else:
+                                mylar.SCHED.pause_job('dbupdater')
+                            jobstore = jbst
+                            break
+                        elif job == 'Auto-Search' and 'search' in jb.lower():
+                            if any(ky == 'search' for ky, vl in mylar.FORCE_STATUS.items()):
+                                mylar.SEARCH_STATUS = mylar.FORCE_STATUS['search']
+                                mylar.FORCE_STATUS.pop('search')
+
+                            if mylar.SEARCH_STATUS != 'Paused':
                                 if failure is True:
                                    logger.info('Previous job could not run due to other jobs. Scheduling Auto-Search for 10 minutes from now.')
                                    s_interval = (10 * 60)
                                 else:
                                    s_interval = mylar.CONFIG.SEARCH_INTERVAL * 60
                                 nextrun_stamp = utctimestamp() + s_interval
-                                jobstore = jbst
-                                break
-                            elif job == 'RSS Feeds' and 'rss' in jb.lower():
+                            else:
+                                mylar.SCHED.pause_job('search')
+                            jobstore = jbst
+                            break
+                        elif job == 'RSS Feeds' and 'rss' in jb.lower():
+                            if any(ky == 'rss' for ky, vl in mylar.FORCE_STATUS.items()):
+                                mylar.RSS_STATUS = mylar.FORCE_STATUS['rss']
+                                mylar.FORCE_STATUS.pop('rss')
+
+                            if mylar.RSS_STATUS != 'Paused':
                                 nextrun_stamp = utctimestamp() + (int(mylar.CONFIG.RSS_CHECKINTERVAL) * 60)
-                                mylar.SCHED_RSS_LAST = last_run_completed
-                                jobstore = jbst
-                                break
-                            elif job == 'Weekly Pullist' and 'weekly' in jb.lower():
+                            else:
+                                mylar.SCHED.pause_job('rss')
+                            mylar.SCHED_RSS_LAST = last_run_completed
+                            jobstore = jbst
+                            break
+                        elif job == 'Weekly Pullist' and 'weekly' in jb.lower():
+                            if any(ky == 'weekly' for ky, vl in mylar.FORCE_STATUS.items()):
+                                mylar.WEEKLY_STATUS = mylar.FORCE_STATUS['weekly']
+                                mylar.FORCE_STATUS.pop('weekly')
+
+                            if mylar.WEEKLY_STATUS != 'Paused':
                                 if mylar.CONFIG.ALT_PULL == 2:
-                                    wkt = 4
+                                   wkt = 4
                                 else:
                                     wkt = 24
                                 nextrun_stamp = utctimestamp() + (wkt * 60 * 60)
-                                mylar.SCHED_WEEKLY_LAST = last_run_completed
-                                jobstore = jbst
-                                break
-                            elif job == 'Check Version' and 'version' in jb.lower():
-                                nextrun_stamp = utctimestamp() + (mylar.CONFIG.CHECK_GITHUB_INTERVAL * 60)
-                                jobstore = jbst
-                                break
-                            elif job == 'Folder Monitor' and 'monitor' in jb.lower():
-                                nextrun_stamp = utctimestamp() + (int(mylar.CONFIG.DOWNLOAD_SCAN_INTERVAL) * 60)
-                                jobstore = jbst
-                                break
+                            else:
+                                mylar.SCHED.pause_job('weekly')
+                            mylar.SCHED_WEEKLY_LAST = last_run_completed
+                            jobstore = jbst
+                            break
+                        elif job == 'Check Version' and 'version' in jb.lower():
+                            if any(ky == 'version' for ky, vl in mylar.FORCE_STATUS.items()):
+                                mylar.VERSION_STATUS = mylar.FORCE_STATUS['version']
+                                mylar.FORCE_STATUS.pop('version')
 
-                        if jobstore is not None:
+                            if mylar.VERSION_STATUS != 'Paused':
+                                nextrun_stamp = utctimestamp() + (mylar.CONFIG.CHECK_GITHUB_INTERVAL * 60)
+                            else:
+                                mylar.SCHED.pause_job('version')
+                            jobstore = jbst
+                            break
+                        elif job == 'Folder Monitor' and 'monitor' in jb.lower():
+                            if any(ky == 'monitor' for ky, vl in mylar.FORCE_STATUS.items()):
+                                mylar.MONITOR_STATUS = mylar.FORCE_STATUS['monitor']
+                                mylar.FORCE_STATUS.pop('monitor')
+
+                            if mylar.MONITOR_STATUS != 'Paused':
+                                nextrun_stamp = utctimestamp() + (int(mylar.CONFIG.DOWNLOAD_SCAN_INTERVAL) * 60)
+                            else:
+                                mylar.SCHED.pause_job('monitor')
+                            jobstore = jbst
+                            break
+
+                    if jobstore is not None:
+                        if nextrun_stamp is not None:
                             nextrun_date = datetime.datetime.utcfromtimestamp(nextrun_stamp)
                             jobstore.modify(next_run_time=nextrun_date)
                             nextrun_date = nextrun_date.replace(microsecond=0)
-                        else:
-                            # if the rss is enabled after startup, we have to re-set it up...
-                            nextrun_stamp = utctimestamp() + (int(mylar.CONFIG.RSS_CHECKINTERVAL) * 60)
-                            nextrun_date = datetime.datetime.utcfromtimestamp(nextrun_stamp)
-                            mylar.SCHED_RSS_LAST = last_run_completed
+                    else:
+                        # if the rss is enabled after startup, we have to re-set it up...
+                        nextrun_stamp = utctimestamp() + (int(mylar.CONFIG.RSS_CHECKINTERVAL) * 60)
+                        nextrun_date = datetime.datetime.utcfromtimestamp(nextrun_stamp)
+                        mylar.SCHED_RSS_LAST = last_run_completed
 
+                if nextrun_date is not None:
                     logger.fdebug('ReScheduled job: %s to %s' % (job, mylar.helpers.utc_date_to_local(nextrun_date)))
-                    lastrun_comp = datetime.datetime.utcfromtimestamp(last_run_completed)
-                    lastrun_comp = lastrun_comp.replace(microsecond=0)
-                    #if it's completed, then update the last run time to the ending time of the job
-                    updateVals = {'prev_run_timestamp':   last_run_completed,
-                                  'prev_run_datetime':    lastrun_comp,
-                                  'last_run_completed':   'True',
-                                  'next_run_timestamp':   nextrun_stamp,
-                                  'next_run_datetime':    nextrun_date,
-                                  'status':               status}
+                lastrun_comp = datetime.datetime.utcfromtimestamp(last_run_completed)
+                lastrun_comp = lastrun_comp.replace(microsecond=0)
+                #if it's completed, then update the last run time to the ending time of the job
+                updateVals = {'prev_run_timestamp':   last_run_completed,
+                              'prev_run_datetime':    lastrun_comp,
+                              'last_run_completed':   'True',
+                              'next_run_timestamp':   nextrun_stamp,
+                              'next_run_datetime':    nextrun_date,
+                              'status':               status}
 
-                #logger.fdebug('Job update for %s: %s' % (updateCtrl, updateVals))
-                myDB.upsert('jobhistory', updateVals, updateCtrl)
-
+            logger.fdebug('Job update for %s: %s' % (updateCtrl, updateVals))
+            myDB.upsert('jobhistory', updateVals, updateCtrl)
 
 def stupidchk():
     #import db
@@ -3964,7 +4037,7 @@ def sizeof_fmt(num, suffix='B'):
         num /= 1024.0
     return "%.1f%s%s" % (num, 'Yi', suffix)
 
-def getImage(comicid, url, issueid=None, thumbnail_path=None):
+def getImage(comicid, url, issueid=None, thumbnail_path=None, apicall=False):
 
     if thumbnail_path is None:
         if os.path.exists(mylar.CONFIG.CACHE_DIR):
@@ -3973,10 +4046,12 @@ def getImage(comicid, url, issueid=None, thumbnail_path=None):
             #let's make the dir.
             try:
                 os.makedirs(str(mylar.CONFIG.CACHE_DIR))
-                logger.info('Cache Directory successfully created at: %s' % mylar.CONFIG.CACHE_DIR)
+                if apicall is False:
+                    logger.info('Cache Directory successfully created at: %s' % mylar.CONFIG.CACHE_DIR)
 
             except OSError:
-                logger.error('Could not create cache dir. Check permissions of cache dir: %s' % mylar.CONFIG.CACHE_DIR)
+                if apicall is False:
+                    logger.error('Could not create cache dir. Check permissions of cache dir: %s' % mylar.CONFIG.CACHE_DIR)
 
         coverfile = os.path.join(mylar.CONFIG.CACHE_DIR,  str(comicid) + '.jpg')
     else:
@@ -3990,35 +4065,25 @@ def getImage(comicid, url, issueid=None, thumbnail_path=None):
     else:
         time.sleep(mylar.CONFIG.CVAPI_RATE)
 
-    logger.info('Attempting to retrieve the comic image for series')
+    if apicall is False:
+        logger.info('Attempting to retrieve the comic image for series')
     try:
         r = requests.get(url, params=None, stream=True, verify=mylar.CONFIG.CV_VERIFY, headers=mylar.CV_HEADERS)
     except Exception as e:
-        logger.warn('[ERROR: %s] Unable to download image from CV URL link: %s' % (e, url))
+        if apicall is False:
+            logger.warn('[ERROR: %s] Unable to download image from CV URL link: %s' % (e, url))
         coversize = 0
         statuscode = '400'
     else:
         statuscode = str(r.status_code)
-        logger.fdebug('comic image retrieval status code: %s' % statuscode)
+        if apicall is False:
+            logger.fdebug('comic image retrieval status code: %s' % statuscode)
 
         if statuscode != '200':
-            logger.warn('Unable to download image from CV URL link: %s [Status Code returned: %s]' % (url, statuscode))
+            if apicall is False:
+                logger.warn('Unable to download image from CV URL link: %s [Status Code returned: %s]' % (url, statuscode))
             coversize = 0
         else:
-            #if r.headers.get('Content-Encoding') == 'gzip':
-            #    buf = StringIO(r.content)
-            #    f = gzip.GzipFile(fileobj=buf)
-
-            #remote_filesize = int(r.headers['Content-length'])
-            #logger.info('remote_filesize: %s' % remote_filesize)
-            #if os.path.isfile(coverfile):
-            #    #get the filesize of the existing cover
-            #    statinfo = os.stat(coverfile)
-            #    coversize = statinfo.st_size
-            #else:
-            #    coversize = 0
-
-            #if coversize != remote_filesize or coversize == 0:
             with open(coverfile, 'wb') as f:
                 for chunk in r.iter_content(chunk_size=1024):
                     if chunk: # filter out keep-alive new chunks
@@ -4034,13 +4099,17 @@ def getImage(comicid, url, issueid=None, thumbnail_path=None):
     if any([int(coversize) < 10000, statuscode != '200']) and thumbnail_path is None:
         try:
             if statuscode != '200':
-                logger.info('Trying to grab an alternate cover due to problems trying to retrieve the main cover image.')
+                if apicall is False:
+                    logger.info('Trying to grab an alternate cover due to problems trying to retrieve the main cover image.')
             else:
-                logger.info('Image size invalid [%s bytes] - trying to get alternate cover image.' % coversize)
+                if apicall is False:
+                    logger.info('Image size invalid [%s bytes] - trying to get alternate cover image.' % coversize)
         except Exception as e:
-            logger.info('Image size invalid [%s bytes] - trying to get alternate cover image.' % coversize)
+            if apicall is False:
+                logger.info('Image size invalid [%s bytes] - trying to get alternate cover image.' % coversize)
 
-        logger.fdebug('invalid image link is here: %s' % url)
+        if apicall is False:
+            logger.fdebug('invalid image link is here: %s' % url)
 
         if os.path.exists(coverfile):
             os.remove(coverfile)
@@ -4211,8 +4280,8 @@ def publisherImages(publisher):
     elif publisher == 'Aardvark':
         comicpublisher = {'publisher_image':       'images/publisherlogos/logo-aardvark.png',
                           'publisher_image_alt':   'Aardvark',
-                          'publisher_imageH':      '100',
-                          'publisher_imageW':      '100'}
+                          'publisher_imageH':      '90',
+                          'publisher_imageW':      '106'}
     elif publisher == 'Abstract Studio':
         comicpublisher = {'publisher_image':       'images/publisherlogos/logo-abstract.png',
                           'publisher_image_alt':   'Abstract Studio',

@@ -29,6 +29,7 @@ import requests
 import zipfile
 import json
 import mylar
+from operator import itemgetter
 from mylar import db, logger, helpers, search_filer
 
 class GC(object):
@@ -174,6 +175,12 @@ class GC(object):
                 else:
                     self.search_format.insert(0, self.query['comicname'])
                     logger.debug('setting no issue number query to be first due to no issue number')
+
+            if mylar.CONFIG.PACK_PRIORITY:
+                #t_sf = self.search_format.pop(len(self.search_format)-1) #pop the last search query ('%s %s')
+                #add it in 1st so that packs will get searched for (hopefully first)
+                self.search_format.insert(0, '%s %s' % (self.query['comicname'], self.query['year']))
+
             for sf in self.search_format:
                 resultset = []
                 verified_matches = []
@@ -199,13 +206,22 @@ class GC(object):
                         else:
                             queryline = sf % (self.query['comicname'], sf_issue, self.query['year'])
                     else:
-                        #logger.fdebug('[%s] self.search_format: %s' % (len(self.search_format), self.search_format))
+                        #logger.fdebug('[%s] self.search_format: %s' % (len(self.search_format), sf))
                         if len(self.search_format) == 5 and sf == self.search_format[4]:
                             splits = sf.split(' ')
                             splits.pop(1)
                             queryline = ' '.join(splits) % (self.query['comicname'])
                         else:
-                            queryline = sf % (self.query['comicname'], sf_issue)
+                            sf_count = len([m.start() for m in re.finditer('(?=%s)', sf)])
+                            if sf_count == 0:
+                                # this is the injected search format above that's already replaced values
+                                queryline = sf
+                            elif sf_count == 2:
+                                queryline = sf % (self.query['comicname'], sf_issue)
+                            elif sf_count == 3:
+                                queryline = sf % (self.query['comicname'], sf_issue, self.query['year'])
+                            else:
+                                queryline = sf % (self.query['comicname'])
 
                 logger.fdebug('[DDL-QUERY] Query set to: %s' % queryline)
                 pause_the_search = mylar.CONFIG.DDL_QUERY_DELAY #mylar.search.check_the_search_delay()
@@ -232,7 +248,7 @@ class GC(object):
                     )
 
                     write_time = time.time()
-                    mylar.search.last_run_check(write={'DDL(GetComics)': {'active': True, 'lastrun': write_time, 'type': 'DDL'}})
+                    mylar.search.last_run_check(write={'DDL(GetComics)': {'active': True, 'lastrun': write_time, 'type': 'DDL', 'hits': self.provider_stat['hits']+1}})
                     self.provider_stat['lastrun'] = write_time
 
                     with open(self.local_filename, 'wb') as f:
@@ -329,9 +345,12 @@ class GC(object):
 
             return 'no results'
         else:
-            #results['entries'] = resultset
-            return verified_matches
-            #return results
+            if mylar.CONFIG.PACK_PRIORITY is True:
+                #logger.fdebug('[PACK_PRIORITY:True] %s' % (sorted(verified_matches, key=itemgetter('pack'), reverse=True)))
+                return sorted(verified_matches, key=itemgetter('pack'), reverse=True)
+            else:
+                #logger.fdebug('[PACK_PRIORITY:False] %s' % (sorted(verified_matches, key=itemgetter('pack'), reverse=False)))
+                return sorted(verified_matches, key=itemgetter('pack'), reverse=False)
 
     def loadsite(self, id, link):
         self.cookie_receipt()
@@ -438,11 +457,15 @@ class GC(object):
             # if it's a pack - remove the issue-range and the possible issue years
             # (cause it most likely will span) and pass thru as separate items
             if pack is True:
+                f_iss = title.find('#')
+                if f_iss != -1:
+                    title = '%s%s'.strip() % (title[:f_iss-1], title[f_iss+1:])
                 title = re.sub(issues, '', title).strip()
                 # kill any brackets in the issue line here.
                 issues = re.sub(r'[\(\)\[\]]', '', issues).strip()
                 if title.endswith('#'):
                     title = title[:-1].strip()
+                title += '#1'  # we add this dummy value back in so the parser won't choke as we have the issue range stored already
             else:
                 if any(
                     [
@@ -464,7 +487,7 @@ class GC(object):
                     if 'Year' in option_find:
                         year = option_find.findNext(text=True)
                         year = re.sub(r'\|', '', year).strip()
-                        if pack is True and '-' in year:
+                        if pack is True:
                             title = re.sub(r'\(' + year + r'\)', '', title).strip()
                     else:
                         size = option_find.findNext(text=True)
@@ -860,21 +883,34 @@ class GC(object):
                         )
                         return {"success": False, "filename": filename, "path": None}
 
-                path = os.path.join(mylar.CONFIG.DDL_LOCATION, filename)
+                dst_path = os.path.join(mylar.CONFIG.DDL_LOCATION, filename)
 
                 # if t.headers.get('content-encoding') == 'gzip':
                 #    buf = StringIO(t.content)
                 #    f = gzip.GzipFile(fileobj=buf)
 
                 if resume is not None:
-                    with open(path, 'ab') as f:
+                    with open(dst_path, 'ab') as f:
                         for chunk in t.iter_content(chunk_size=1024):
                             if chunk:
                                 f.write(chunk)
                                 f.flush()
 
                 else:
-                    with open(path, 'wb') as f:
+                    if os.path.exists(dst_path):
+                        logger.fdebug('%s already exists - resume not enabled - let us hammer thine' % dst_path)
+                        try:
+                            os.remove(dst_path)
+                        except Exception as e:
+                            file, ext = os.path.splitext(filename)
+                            filename = '%s.1%s' % (file, ext)
+                            dst_path = os.path.join(mylar.CONFIG.DDL_LOCATION, filename)
+                            logger.warn(
+                                '[ERROR: %s] Unable to remove already existing file.'
+                                ' Creating tmp file @%s so it can download.' % (e, filename)
+                            )
+
+                    with open(dst_path, 'wb') as f:
                         for chunk in t.iter_content(chunk_size=1024):
                             if chunk:
                                 f.write(chunk)
@@ -887,8 +923,8 @@ class GC(object):
 
         else:
             mylar.DDL_LOCK = False
-            if os.path.isfile(path):
-                if path.endswith('.zip'):
+            if os.path.isfile(dst_path):
+                if dst_path.endswith('.zip'):
                     new_path = os.path.join(
                         mylar.CONFIG.DDL_LOCATION, re.sub('.zip', '', filename).strip()
                     )
@@ -897,7 +933,7 @@ class GC(object):
                         ' Unzipping into new modified path location: %s' % new_path
                     )
                     try:
-                        zip_f = zipfile.ZipFile(path, 'r')
+                        zip_f = zipfile.ZipFile(dst_path, 'r')
                         zip_f.extractall(new_path)
                         zip_f.close()
                     except Exception as e:
@@ -907,15 +943,15 @@ class GC(object):
                         return {"success": False, "filename": filename, "path": None}
                     else:
                         try:
-                            os.remove(path)
+                            os.remove(dst_path)
                         except Exception as e:
                             logger.warn(
                                 '[ERROR: %s] Unable to remove zip file from %s after'
-                                ' extraction.' % (e, path)
+                                ' extraction.' % (e, dst_path)
                             )
                         filename = None
                 else:
-                    new_path = path
+                    new_path = dst_path
                 return {"success": True, "filename": filename, "path": new_path}
 
     def issue_list(self, pack):

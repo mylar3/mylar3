@@ -84,7 +84,7 @@
                                     comictype = None
 
                                 if comictype is not None:
-                                    comicline += '  [%s]' % (comictype)
+                                    comicline = '%s [%s]' % (comicline, comictype)
 
 			%>
 			<tr class="grade${grade}">

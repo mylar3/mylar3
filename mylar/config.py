@@ -1,3 +1,18 @@
+#  This file is part of Mylar.
+#
+#  Mylar is free software: you can redistribute it and/or modify
+#  it under the terms of the GNU General Public License as published by
+#  the Free Software Foundation, either version 3 of the License, or
+#  (at your option) any later version.
+#
+#  Mylar is distributed in the hope that it will be useful,
+#  but WITHOUT ANY WARRANTY; without even the implied warranty of
+#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#  GNU General Public License for more details.
+#
+#  You should have received a copy of the GNU General Public License
+#  along with Mylar.  If not, see <http://www.gnu.org/licenses/>.
+
 import itertools
 from collections import OrderedDict
 from operator import itemgetter
@@ -8,7 +23,6 @@ import glob
 import json
 import codecs
 import shutil
-import threading
 import re
 import configparser
 import mylar
@@ -331,6 +345,7 @@ _CONFIG_DEFINITIONS = OrderedDict({
     'ENABLE_DDL': (bool, 'DDL', False),
     'ENABLE_GETCOMICS': (bool, 'DDL', False),
     'ALLOW_PACKS': (bool, 'DDL', False),
+    'PACK_PRIORITY': (bool, 'DDL', False),
     'DDL_QUERY_DELAY': (int, 'DDL', 15),
     'DDL_LOCATION': (str, 'DDL', None),
     'DDL_AUTORESUME': (bool, 'DDL', True),
@@ -404,6 +419,7 @@ _CONFIG_DEFINITIONS = OrderedDict({
 
     'OPDS_ENABLE': (bool, 'OPDS', False),
     'OPDS_AUTHENTICATION': (bool, 'OPDS', False),
+    'OPDS_ENDPOINT': (str, 'OPDS', 'opds'),
     'OPDS_USERNAME': (str, 'OPDS', None),
     'OPDS_PASSWORD': (str, 'OPDS', None),
     'OPDS_METAINFO': (bool, 'OPDS', False),
@@ -561,35 +577,6 @@ class Config(object):
     def read(self, startup=False):
         self.config_vals()
 
-        if any([self.CONFIG_VERSION == 0, self.CONFIG_VERSION < self.newconfig]):
-            if not self.BACKUP_LOCATION:
-                # this is needed here since the configuration hasn't run to check the location value yet.
-                self.BACKUP_LOCATION = os.path.join(mylar.DATA_DIR, 'backup')
-
-            backupinfo = {'location': self.BACKUP_LOCATION,
-                          'config_version': self.CONFIG_VERSION,
-                          'backup_retention': self.BACKUP_RETENTION}
-            cc = maintenance.Maintenance('backup')
-            bcheck = cc.backup_files(cfg=True, dbs=False, backupinfo=backupinfo)
-
-            if self.CONFIG_VERSION < 12:
-                print('Attempting to update configuration..')
-                #8-torznab multiple entries merged into extra_torznabs value
-                #9-remote rtorrent ssl option
-                #10-encryption of all keys/passwords.
-                #11-provider ids
-                #12-ddl seperation into multiple providers, new keys, update tables
-                self.config_update()
-            setattr(self, 'OLDCONFIG_VERSION', str(self.CONFIG_VERSION))
-            #config.set('General', 'OLDCONFIG_VERSION', str(self.CONFIG_VERSION))
-            setattr(self, 'CONFIG_VERSION', self.newconfig)
-            config.set('General', 'CONFIG_VERSION', str(self.newconfig))
-            self.writeconfig(startup=startup)
-        else:
-            if self.OLDCONFIG_VERSION != self.CONFIG_VERSION:
-                setattr(self, 'OLDCONFIG_VERSION', str(self.CONFIG_VERSION))
-                #config.set('General', 'OLDCONFIG_VERSION', str(self.CONFIG_VERSION))
-
         if startup is True:
             if self.LOG_DIR is None:
                 self.LOG_DIR = os.path.join(mylar.DATA_DIR, 'logs')
@@ -617,6 +604,33 @@ class Config(object):
                 logger.initLogger(console=not mylar.QUIET, log_dir=self.LOG_DIR, max_logsize=self.MAX_LOGSIZE, max_logfiles=self.MAX_LOGFILES, loglevel=log_level)
             else:
                 logger.mylar_log.initLogger(loglevel=log_level, log_dir=self.LOG_DIR, max_logsize=self.MAX_LOGSIZE, max_logfiles=self.MAX_LOGFILES)
+
+        if any([self.CONFIG_VERSION == 0, self.CONFIG_VERSION < self.newconfig]):
+            if not self.BACKUP_LOCATION:
+                # this is needed here since the configuration hasn't run to check the location value yet.
+                self.BACKUP_LOCATION = os.path.join(mylar.DATA_DIR, 'backup')
+
+            backupinfo = {'location': self.BACKUP_LOCATION,
+                          'config_version': self.CONFIG_VERSION,
+                          'backup_retention': self.BACKUP_RETENTION}
+            cc = maintenance.Maintenance('backup')
+            bcheck = cc.backup_files(cfg=True, dbs=False, backupinfo=backupinfo)
+
+            if self.CONFIG_VERSION < 12:
+                print('Attempting to update configuration..')
+                #8-torznab multiple entries merged into extra_torznabs value
+                #9-remote rtorrent ssl option
+                #10-encryption of all keys/passwords.
+                #11-provider ids
+                #12-ddl seperation into multiple providers, new keys, update tables
+                self.config_update()
+            setattr(self, 'OLDCONFIG_VERSION', str(self.CONFIG_VERSION))
+            setattr(self, 'CONFIG_VERSION', self.newconfig)
+            config.set('General', 'CONFIG_VERSION', str(self.newconfig))
+            self.writeconfig(startup=startup)
+        else:
+            if self.OLDCONFIG_VERSION != self.CONFIG_VERSION:
+                setattr(self, 'OLDCONFIG_VERSION', str(self.CONFIG_VERSION))
 
         extra_newznabs, extra_torznabs = self.get_extras()
         setattr(self, 'EXTRA_NEWZNABS', extra_newznabs)
@@ -1157,6 +1171,16 @@ class Config(object):
 
         logger.info('[PROBLEM_DATES] Problem dates loaded: %s' % (self.PROBLEM_DATES,))
 
+        #default opds endpoint check
+        if any([self.OPDS_ENDPOINT is None, len(self.OPDS_ENDPOINT) == 0]):
+            self.OPDS_ENDPOINT = 'opds'
+        else:
+            if self.OPDS_ENDPOINT.startswith('/'):
+                self.OPDS_ENDPOINT = self.OPDS_ENDPOINT[1:]
+            elif self.OPDS_ENDPOINT.endswith('/'):
+                self.OPDS_ENDPOINT = self.OPDS_ENDPOINT[:-1]
+            config.set('OPDS', 'opds_endpoint', self.OPDS_ENDPOINT.strip())
+
         #comictagger - force to use included version if option is enabled.
         import comictaggerlib.ctversion as ctversion
         logger.info('[COMICTAGGER] Version detected: %s' % ctversion.version)
@@ -1634,38 +1658,78 @@ class Config(object):
        myDB = db.DBConnection()
        chk = myDB.select("SELECT * FROM provider_searches")
        p_list = {}
+       write = False
        if chk:
            for ck in chk:
-               p_list[ck['provider']] = {'active': ck['active'], 'lastrun': ck['lastrun'], 'type': ck['type']}
+               ck_hits = ck['hits']
+               if ck_hits is None:
+                   ck_hits = 0
+               t_id = ck['id']
+               #logger.fdebug('[%s] t_id: %s' % (ck['provider'], t_id))
+               if any([t_id == 0, t_id is None]):
+                   # id of 0 means it hasn't been assigned - so we need to assign it before we build out the dict
+                   if 'DDL(GetComics)' in ck['provider']:
+                       t_id = 200
+                   elif any(['experimental' in ck['provider'], 'Experimental' in ck['provider']]):
+                       t_id = 101
+                   elif 'dog' in ck['provider']:
+                       t_id = 102
+                   elif any(['nzb.su' in ck['provider'], 'nzbsu' in ck['provider']]):
+                       t_id = 103
+                   else:
+                       nnf = False
+                       if self.EXTRA_NEWZNABS:
+                           for n in self.EXTRA_NEWZNABS:
+                               if n[0] == ck['provider']:
+                                   t_id = n[6]
+                                   nnf = True
+                                   break
+                       if nnf is False and self.EXTRA_TORZNABS:
+                           for n in self.EXTRA_TORZNABS:
+                               if n[0] == ck['provider']:
+                                   t_id = n[6]
+                                   nnf = True
+                                   break
 
+                   t_ctrl = {'provider': ck['provider']}
+                   t_vals = {'id': t_id, 'active': ck['active'], 'lastrun': ck['lastrun'], 'type': ck['type'], 'hits': ck_hits}
+                   writeout = myDB.upsert("provider_searches", t_vals, t_ctrl)
+               p_list[ck['provider']] = {'id': t_id, 'active': ck['active'], 'lastrun': ck['lastrun'], 'type': ck['type'], 'hits': ck_hits}
+
+       #logger.fdebug('p_list: %s' % (p_list,))
        for k, v in self.PROVIDER_ORDER.items():
-           write = False
            if not any(p.lower() == v.lower() for p, pv in p_list.items()):
                write = True
-               logger.info('%s was not found in search db. Writing it..' % v)
-               if 'DDL' in v:
+               #logger.fdebug('%s was not found in search db. Writing it..' % v)
+               if 'DDL(GetComics)' in v:
                    t_type = 'DDL'
+                   t_id = 200
                elif any(['experimental' in v, 'Experimental' in v]):
                    t_type = 'experimental'
+                   t_id = 101
                elif 'dog' in v:
                    t_type = 'dognzb'
+                   t_id = 102
                elif any(['nzb.su' in v, 'nzbsu' in v]):
                    t_type = 'nzb.su'
+                   t_id = 103
                else:
                    nnf = False
                    if self.EXTRA_NEWZNABS:
                        for n in self.EXTRA_NEWZNABS:
                            if n[0] == v:
                                t_type = 'newznab'
+                               t_id = n[6]
                                nnf = True
                                break
                    if nnf is False and self.EXTRA_TORZNABS:
                        for n in self.EXTRA_TORZNABS:
                            if n[0] == v:
                                t_type = 'torznab'
+                               t_id = n[6]
                                nnf = True
                                break
-               vals = {'active': False, 'lastrun': 0, 'type': t_type}
+               vals = {'id': t_id, 'active': False, 'lastrun': 0, 'type': t_type, 'hits': 0}
            else:
                try:
                    tprov = [p_list[x] for x, y in p_list.items() if x.lower() == v.lower()][0]
@@ -1675,7 +1739,7 @@ class Config(object):
                if tprov:
                    if any(['nzb.su' in v, 'nzbsu' in v]) and tprov['type'] != 'nzb.su':
                        # needed to ensure the type is set properly for this provider
-                       vals = {'active': tprov['active'], 'lastrun': tprov['lastrun'], 'type': 'nzb.su'}
+                       vals = {'id': tprov['id'], 'active': tprov['active'], 'lastrun': tprov['lastrun'], 'type': 'nzb.su', 'hits': tprov['hits']}
                        write = True
 
            if write is True:

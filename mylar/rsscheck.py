@@ -526,7 +526,7 @@ def nzbs(provider=None, forcerss=False):
                       'g[]': 85}
             check = _parse_feed('experimental', 'https://nzbindex.nl/search/rss', True, params)
             if check == 'disable':
-                helpers.disable_provider(site)
+                helpers.disable_provider('experimental')
 
         if mylar.CONFIG.NZBSU is True:
             num_items = "&num=100" if forcerss else ""  # default is 25

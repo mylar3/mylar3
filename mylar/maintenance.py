@@ -588,7 +588,7 @@ class Maintenance(object):
                                     print('[MAINTENANCE-MODE][DB-CONVERSION][CLEANUP] Cleaning up...')
                                     self.dbmylar.execute("VACUUM");
                             else:
-                                print('[MAINTENANCE-MODE][DB-CONVERSION][CLEANUP] Cleaning up...' % len(delete_rows))
+                                print('[MAINTENANCE-MODE][DB-CONVERSION][CLEANUP] Cleaning up...')
                                 self.sql_attachmylar()
                                 self.dbmylar.execute("VACUUM");
 

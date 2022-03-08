@@ -12,12 +12,11 @@
                         %if mylar.CONFIG.TAB_ENABLE:
   			    <a id="menu_link_delete" onclick="doAjaxCall('syncfiles',$(this),'table')" data-success="Successfully sent issues to your device">Sync</a>
                         %endif
-			<a id="menu_link_delete" href="#">Remove Read</a>
-			<a id="menu_link_delete" href="#">Clear File Cache</a>
+                        <a id="menu_link_refresh" href="#" title="Add series that are in this arc, but not currently on your watchlist into your watchlist" onclick="doAjaxCall('addMissingSeriesFromArc?storyarcid=${storyarcid}',$(this),'table')" data-success="Submitted adding missing series for ${storyarcname}">Add Unwatched Series to Watchlist</a>
                         <a id="menu_link_refresh" onclick="doAjaxCall('SearchArcIssues?StoryArcID=${storyarcid}',$(this),'table')" data-success="Now searching for Missing StoryArc Issues">Search for Missing</a>
                         <a id="menu_link_refresh" onclick="doAjaxCall('ArcWatchlist?StoryArcID=${storyarcid}',$(this),'table')" data-success="Now searching for matches on Watchlist & Rechecking files">Search for Watchlist matches/Recheck Files</a>
                         %if cvarcid:
-                            <a id="menu_link_refresh" onclick="doAjaxCall('addStoryArc_thread?arcid=${storyarcid}&cvarcid=${cvarcid}&storyarcname=${storyarcname}&arcrefresh=True',$(this),'table')" data-success="Refreshed Story Arc">Refresh Story Arc</a>
+                            <a id="menu_link_refresh" onclick="doAjaxCall('addStoryArc_thread?arcid=${storyarcid}&cvarcid=${cvarcid}&storyarcname=${storyarcname| u}&arcrefresh=True',$(this),'table')" data-success="Refreshed Story Arc">Refresh Story Arc</a>
                         %endif
 		</div>
 	</div>
@@ -72,7 +71,7 @@
                          <input type="checkbox" style="vertical-align: middle; margin: 3px; margin-top: -1px;" name="copy2arcdir" id="copy2arcdir" value="1" ${checked(mylar.CONFIG.COPY2ARCDIR)} disabled /><label>Copy watchlisted issues to ${carcdir} Directory</label>
 
                        <input type="hidden" name="StoryArcID" value="${storyarcid}">
-                       <input type="hidden" name="StoryArcName" value="${storyarcname}">
+                       <input type="hidden" name="StoryArcName" value="${storyarcname| u}">
                      </div>
                     </fieldset>
                     </form>
@@ -98,7 +97,7 @@
                                <input style="display:inline;float:right;" type="text" title="enter full url where image resides" placeholder="full URL where image resides" onfocus="if(this.value==this.defaultValue) this.value='';" name="url" size="25">
                                <input style="display:inline;float:right;" type="image" src="images/download_icon.png" height="20" width="20" alt="submit"></br>
                                <input type="hidden" name="storyarcid" value="${storyarcid}">
-                               <input type="hidden" name="storyarcname" value="${storyarcname}">
+                               <input type="hidden" name="storyarcname" value="${storyarcname| u}">
                           %if storyarcbanner is not None:
                              <p style="display:inline;float:right;">
                              <input type="hidden" name="height" id="height" value="" />
@@ -213,9 +212,9 @@
                 </td>
                 <td id="options">
                  %if any([item['Status'] is None, item['Status'] == None, item['Status'] == 'Skipped']):
-                     <a href="#" onclick="doAjaxCall('queueit?ComicName=${item['ComicName'] | u}&ComicIssue=${item['IssueNumber']}&ComicYear=${issuedate}&mode=readlist&SARC=${item['StoryArc']}&IssueArcID=${item['IssueArcID']}&SeriesYear=${item['SeriesYear']}',$(this),'table')" data-success="Now searching for ${item['ComicName']} #${item['IssueNumber']}"><span class="ui-icon ui-icon-plus"></span>Grab</a>
+                     <a href="#" onclick="doAjaxCall('queueit?ComicName=${item['ComicName'] | u}&ComicIssue=${item['IssueNumber']}&ComicYear=${issuedate}&mode=readlist&SARC=${item['StoryArc'] |u}&IssueArcID=${item['IssueArcID']}&SeriesYear=${item['SeriesYear']}',$(this),'table')" data-success="Now searching for ${item['ComicName']} #${item['IssueNumber']}"><span class="ui-icon ui-icon-plus"></span>Grab</a>
                  %elif item['Status'] == 'Snatched':
-                     <a href="#" onclick="doAjaxCall('queueit?ComicName=${item['ComicName'] | u}&ComicIssue=${item['IssueNumber']}&ComicYear=${issuedate}&mode=readlist&SARC=${item['StoryArc']}&IssueArcID=${item['IssueArcID']}&SeriesYear=${item['SeriesYear']}',$(this),'table')" data-success="Trying to search again for issue"><span class="ui-icon ui-icon-plus"></span>Retry</a>
+                     <a href="#" onclick="doAjaxCall('queueit?ComicName=${item['ComicName'] | u}&ComicIssue=${item['IssueNumber']}&ComicYear=${issuedate}&mode=readlist&SARC=${item['StoryArc'] |u}&IssueArcID=${item['IssueArcID']}&SeriesYear=${item['SeriesYear']}',$(this),'table')" data-success="Trying to search again for issue"><span class="ui-icon ui-icon-plus"></span>Retry</a>
                  %elif item['Status'] == 'Downloaded' and item['Location'] is not None:
                      <a href="downloadthis?pathfile=${item['Location'] |u}"><span class="ui-icon ui-icon-plus"></span>Download</a>
                  %endif

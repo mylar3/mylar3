@@ -30,5 +30,5 @@ class Weekly():
         weeklypull.pullit()
         weeklypull.future_check()
         helpers.job_management(write=True, job='Weekly Pullist', last_run_completed=helpers.utctimestamp(), status='Waiting')
-        mylar.WEEKLY_STATUS = 'Waiting'
+        #mylar.WEEKLY_STATUS = 'Waiting'
 

@@ -251,7 +251,7 @@ def main():
     #    raise SystemExit('FATAL ERROR')
 
     if mylar.MAINTENANCE is False:
-        filechecker.validateAndCreateDirectory(mylar.DATA_DIR, True)
+        filechecker.validateAndCreateDirectory(mylar.DATA_DIR, True, dmode='DATA')
 
         # Make sure the DATA_DIR is writeable
         if not os.access(mylar.DATA_DIR, os.W_OK):
@@ -279,7 +279,7 @@ def main():
             logger.info('[AUTO-BACKUP] Successful backup of %s files [%s]' % (len(successes), successes))
 
     # Rename the main thread
-    threading.currentThread().name = "MAIN"
+    threading.current_thread().name = "MAIN"
 
     if mylar.DAEMON:
         mylar.daemonize()

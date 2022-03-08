@@ -180,7 +180,7 @@ def findComic(name, mode, issue, limityear=None, search_type=None, annual_check=
                                 logger.fdebug('yes')
                                 try:
                                     xmlTag = result.getElementsByTagName('name')[n].firstChild.wholeText
-                                    xmlTag = xmlTag.rstrip()
+                                    xmlTag = xmlTag.strip()
                                     logger.fdebug('name: ' + xmlTag)
                                 except:
                                     logger.error('There was a problem retrieving the given data from ComicVine. Ensure that www.comicvine.com is accessible.')
@@ -299,6 +299,7 @@ def findComic(name, mode, issue, limityear=None, search_type=None, annual_check=
                         while (cl < cnl):
                             if result.getElementsByTagName('name')[cl].parentNode.nodeName == 'volume':
                                 xmlTag = result.getElementsByTagName('name')[cl].firstChild.wholeText
+                                xmlTag = xmlTag.strip()
                                 #break
 
                             #if result.getElementsByTagName('name')[cl].parentNode.nodeName == 'image':

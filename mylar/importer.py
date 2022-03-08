@@ -281,6 +281,11 @@ def addComictoDB(comicid, mismatch=None, pullupd=None, imported=None, ogcname=No
         comvalues = dothedew.folder_create()
         comlocation = comvalues['comlocation']
         comsubpath = comvalues['subpath']
+
+        sck = filers.FileHandlers(comic=comic_values)
+        scheck = sck.series_folder_collision_detection(comlocation, comicid, booktype, SeriesYear, comicVol)
+        if scheck is not None:
+            comlocation = scheck['comlocation']
     else:
         comsubpath = comlocation.replace(mylar.CONFIG.DESTINATION_DIR, '').strip()
 
@@ -993,6 +998,12 @@ def GCDimport(gcomicid, pullupd=None, imported=None, ogcname=None):
 
 
 def issue_collection(issuedata, nostatus, serieslast_updated=None):
+    #make sure serieslast_updated is in the correct format
+    try:
+        serieslast_updated = datetime.datetime.strptime(serieslast_updated, "%Y-%m-%d %H:%M:%S").strftime('%Y-%m-%d')
+    except Exception:
+        pass
+
     myDB = db.DBConnection()
     nowdate = datetime.datetime.now()
     now_week = datetime.datetime.strftime(nowdate, "%Y%U")
@@ -1047,21 +1058,21 @@ def issue_collection(issuedata, nostatus, serieslast_updated=None):
                     else:
                         datechk = datetime.datetime.strptime(dk, "%Y%m%d")
                         issue_week = datetime.datetime.strftime(datechk, "%Y%U")
-                        logger.info('issue_week: %s' % issue_week)
+                        #logger.info('issue_week: %s' % issue_week)
                         if mylar.CONFIG.AUTOWANT_ALL:
                             newValueDict['Status'] = "Wanted"
-                            #logger.fdebug('autowant all')
                         elif serieslast_updated is None:
+                            #logger.fdebug('serieslast_update is None. Setting to Skipped')
                             newValueDict['Status'] = "Skipped"
                         elif issue_week >= now_week and mylar.CONFIG.AUTOWANT_UPCOMING:
-                            logger.fdebug(str(datechk) + ' >= ' + str(nowtime))
+                            logger.fdebug('[Marking as Wanted] week %s >= week %s' % (now_week, issue_week))
                             newValueDict['Status'] = "Wanted"
                         elif all([int(re.sub('-', '', serieslast_updated).strip()) < int(dk), mylar.CONFIG.AUTOWANT_UPCOMING is True]):
                             logger.info('Autowant upcoming triggered for issue #%s' % issue['Issue_Number'])
                             newValueDict['Status'] = "Wanted"
                         else:
                             newValueDict['Status'] = "Skipped"
-                        logger.fdebug('status is : ' + str(newValueDict))
+                        #logger.fdebug('status is : %s' % (newValueDict,))
                 else:
                     #logger.fdebug('Existing status for issue #%s : %s' % (issue['Issue_Number'], iss_exists['Status']))
                     if any([iss_exists['Status'] is None, iss_exists['Status'] == 'None']):
@@ -1083,98 +1094,112 @@ def issue_collection(issuedata, nostatus, serieslast_updated=None):
                 return
 
 
-def manualAnnual(manual_comicid=None, comicname=None, comicyear=None, comicid=None, annchk=None, manualupd=False, deleted=False, forceadd=False):
+def manualAnnual(manual_comicid=None, comicname=None, comicyear=None, comicid=None, annchk=None, manualupd=False, deleted=False, forceadd=False, serieslast_updated=None):
         #called when importing/refreshing an annual that was manually added.
-        myDB = db.DBConnection()
 
-        if annchk is None:
-            nowdate = datetime.datetime.now()
-            now_week = datetime.datetime.strftime(nowdate, "%Y%U")
-            annchk = []
-            issueid = manual_comicid
-            logger.fdebug(str(issueid) + ' added to series list as an Annual')
-            sr = cv.getComic(manual_comicid, 'comic')
-            if sr is None and forceadd is False:
+    #make sure serieslast_updated is in the correct format
+    try:
+        serieslast_updated = datetime.datetime.strptime(serieslast_updated, "%Y-%m-%d %H:%M:%S").strftime('%Y-%m-%d')
+    except Exception:
+        pass
+
+    myDB = db.DBConnection()
+
+    if annchk is None:
+        nowdate = datetime.datetime.now()
+        now_week = datetime.datetime.strftime(nowdate, "%Y%U")
+        annchk = []
+        issueid = manual_comicid
+        logger.fdebug(str(issueid) + ' added to series list as an Annual')
+        sr = cv.getComic(manual_comicid, 'comic')
+        if sr is None and forceadd is False:
+            return
+        logger.fdebug('Attempting to integrate ' + sr['ComicName'] + ' (' + str(issueid) + ') to the existing series of ' + comicname + '(' + str(comicyear) + ')')
+        if len(sr) == 0:
+            logger.fdebug('Could not find any information on the series indicated : ' + str(manual_comicid))
+            return
+        else:
+            n = 0
+            issued = cv.getComic(re.sub('4050-', '', manual_comicid).strip(), 'issue')
+            if not issued:
                 return
-            logger.fdebug('Attempting to integrate ' + sr['ComicName'] + ' (' + str(issueid) + ') to the existing series of ' + comicname + '(' + str(comicyear) + ')')
-            if len(sr) == 0:
-                logger.fdebug('Could not find any information on the series indicated : ' + str(manual_comicid))
-                return
+            if int(sr['ComicIssues']) == 0 and len(issued['issuechoice']) == 1:
+                noissues = 1
             else:
-                n = 0
-                issued = cv.getComic(re.sub('4050-', '', manual_comicid).strip(), 'issue')
-                if not issued:
-                    return
-                if int(sr['ComicIssues']) == 0 and len(issued['issuechoice']) == 1:
-                    noissues = 1
+                noissues = sr['ComicIssues']
+            logger.fdebug('there are ' + str(noissues) + ' annuals within this series.')
+            while (n < int(noissues)):
+                try:
+                    firstval = issued['issuechoice'][n]
+                except IndexError:
+                    break
+                try:
+                    cleanname = firstval['Issue_Name'] #helpers.cleanName(firstval['Issue_Name'])
+                except:
+                    cleanname = 'None'
+
+                if firstval['Store_Date'] == '0000-00-00':
+                    dk = re.sub('-', '', firstval['Issue_Date']).strip()
                 else:
-                    noissues = sr['ComicIssues']
-                logger.fdebug('there are ' + str(noissues) + ' annuals within this series.')
-                while (n < int(noissues)):
-                    try:
-                        firstval = issued['issuechoice'][n]
-                    except IndexError:
-                        break
-                    try:
-                        cleanname = firstval['Issue_Name'] #helpers.cleanName(firstval['Issue_Name'])
-                    except:
-                        cleanname = 'None'
-
-                    if firstval['Store_Date'] == '0000-00-00':
-                        dk = re.sub('-', '', firstval['Issue_Date']).strip()
-                    else:
-                        dk = re.sub('-', '', firstval['Store_Date']).strip() # converts date to 20140718 format
-                    if dk == '00000000':
-                        logger.warn('Issue Data is invalid for Issue Number %s. Marking this issue as Skipped' % firstval['Issue_Number'])
+                    dk = re.sub('-', '', firstval['Store_Date']).strip() # converts date to 20140718 format
+                if dk == '00000000':
+                    logger.warn('Issue Data is invalid for Issue Number %s. Marking this issue as Skipped' % firstval['Issue_Number'])
+                    astatus = "Skipped"
+                else:
+                    datechk = datetime.datetime.strptime(dk, "%Y%m%d")
+                    issue_week = datetime.datetime.strftime(datechk, "%Y%U")
+                    if mylar.CONFIG.AUTOWANT_ALL:
+                        astatus = "Wanted"
+                    elif serieslast_updated is None:
+                        #logger.fdebug('serieslast_update is None. Setting to Skipped')
                         astatus = "Skipped"
+                    elif issue_week >= now_week and mylar.CONFIG.AUTOWANT_UPCOMING:
+                        logger.fdebug('[Marking as Wanted] week %s >= week %s' % (now_week, issue_week))
+                        astatus = "Wanted"
+                    elif all([int(re.sub('-', '', serieslast_updated).strip()) < int(dk), mylar.CONFIG.AUTOWANT_UPCOMING is True]):
+                        logger.info('Autowant upcoming triggered for issue #%s' % issue['Issue_Number'])
+                        astatus = "Wanted"
                     else:
-                        datechk = datetime.datetime.strptime(dk, "%Y%m%d")
-                        issue_week = datetime.datetime.strftime(datechk, "%Y%U")
-                        if mylar.CONFIG.AUTOWANT_ALL:
-                            astatus = "Wanted"
-                        elif issue_week >= now_week and mylar.CONFIG.AUTOWANT_UPCOMING is True:
-                            astatus = "Wanted"
-                        else:
-                            astatus = "Skipped"
+                        astatus = "Skipped"
 
-                    annchk.append({'IssueID':          str(firstval['Issue_ID']),
-                                   'ComicID':          comicid,
-                                   'ReleaseComicID':   re.sub('4050-', '', manual_comicid).strip(),
-                                   'ComicName':        comicname,
-                                   'Issue_Number':     str(firstval['Issue_Number']),
-                                   'IssueName':        cleanname,
-                                   'IssueDate':        str(firstval['Issue_Date']),
-                                   'ReleaseDate':      str(firstval['Store_Date']),
-                                   'DigitalDate':      str(firstval['Digital_Date']),
-                                   'Status':           astatus,
-                                   'ReleaseComicName': sr['ComicName'],
-                                   'Deleted':          deleted})
-                    n+=1
+                annchk.append({'IssueID':          str(firstval['Issue_ID']),
+                               'ComicID':          comicid,
+                               'ReleaseComicID':   re.sub('4050-', '', manual_comicid).strip(),
+                               'ComicName':        comicname,
+                               'Issue_Number':     str(firstval['Issue_Number']),
+                               'IssueName':        cleanname,
+                               'IssueDate':        str(firstval['Issue_Date']),
+                               'ReleaseDate':      str(firstval['Store_Date']),
+                               'DigitalDate':      str(firstval['Digital_Date']),
+                               'Status':           astatus,
+                               'ReleaseComicName': sr['ComicName'],
+                               'Deleted':          deleted})
+                n+=1
 
-            if manualupd is True:
-                return annchk
+        if manualupd is True:
+            return annchk
 
-        for ann in annchk:
-            newCtrl = {"IssueID": ann['IssueID']}
-            newVals = {"Issue_Number":     ann['Issue_Number'],
-                       "Int_IssueNumber":  helpers.issuedigits(ann['Issue_Number']),
-                       "IssueDate":        ann['IssueDate'],
-                       "ReleaseDate":      ann['ReleaseDate'],
-                       "DigitalDate":      ann['DigitalDate'],
-                       "IssueName":        ann['IssueName'],
-                       "ComicID":          ann['ComicID'],   #this is the series ID
-                       "ReleaseComicID":   ann['ReleaseComicID'],  #this is the series ID for the annual(s)
-                       "ComicName":        ann['ComicName'], #series ComicName
-                       "ReleaseComicName": ann['ReleaseComicName'], #series ComicName for the manual_comicid
-                       "Status":           ann['Status'],
-                       "Deleted":          ann['Deleted']}
-                       #need to add in the values for the new series to be added.
-                       #"M_ComicName":    sr['ComicName'],
-                       #"M_ComicID":      manual_comicid}
-            myDB.upsert("annuals", newVals, newCtrl)
-        if len(annchk) > 0:
-            logger.info('Successfully integrated ' + str(len(annchk)) + ' annuals into the series: ' + annchk[0]['ComicName'])
-        return
+    for ann in annchk:
+        newCtrl = {"IssueID": ann['IssueID']}
+        newVals = {"Issue_Number":     ann['Issue_Number'],
+                   "Int_IssueNumber":  helpers.issuedigits(ann['Issue_Number']),
+                   "IssueDate":        ann['IssueDate'],
+                   "ReleaseDate":      ann['ReleaseDate'],
+                   "DigitalDate":      ann['DigitalDate'],
+                   "IssueName":        ann['IssueName'],
+                   "ComicID":          ann['ComicID'],   #this is the series ID
+                   "ReleaseComicID":   ann['ReleaseComicID'],  #this is the series ID for the annual(s)
+                   "ComicName":        ann['ComicName'], #series ComicName
+                   "ReleaseComicName": ann['ReleaseComicName'], #series ComicName for the manual_comicid
+                   "Status":           ann['Status'],
+                   "Deleted":          ann['Deleted']}
+                   #need to add in the values for the new series to be added.
+                   #"M_ComicName":    sr['ComicName'],
+                   #"M_ComicID":      manual_comicid}
+        myDB.upsert("annuals", newVals, newCtrl)
+    if len(annchk) > 0:
+        logger.info('Successfully integrated ' + str(len(annchk)) + ' annuals into the series: ' + annchk[0]['ComicName'])
+    return
 
 
 def updateissuedata(comicid, comicname=None, issued=None, comicIssues=None, calledfrom=None, issuechk=None, issuetype=None, SeriesYear=None, latestissueinfo=None, serieslast_updated=None):
@@ -1809,7 +1834,7 @@ def image_it(comicid, latestissueid, comlocation, ComicImage):
 
 def importer_thread(serieslist):
     # importer thread to queue up series to be added to the watchlist
-    # serieslist = [{'comicid': '2828991', 'series': 'Some Comic'}]
+    # serieslist = [{'comicid': '2828991', 'series': 'Some Comic', 'seriesyear': 1999}]
 
     if type(serieslist) != list:
         serieslist  = [(serieslist)]

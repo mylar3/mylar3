@@ -13,8 +13,6 @@
 #  You should have received a copy of the GNU General Public License
 #  along with Mylar.  If not, see <http://www.gnu.org/licenses/>.
 
-
-
 import os
 import shutil
 import datetime
@@ -28,7 +26,6 @@ import urllib.request, urllib.error, urllib.parse
 import sys
 import pathlib
 from xml.dom.minidom import parseString
-
 
 from mylar import logger, db, helpers, updater, notifiers, filechecker, weeklypull, getimage
 
@@ -353,8 +350,8 @@ class PostProcessor(object):
                     self._log('Failed to remove temporary directory: %s' % odir)
                     logger.error('%s %s not empty. Skipping removal of temporary cache directory - this will either be caught in further post-processing or have to be manually deleted.' % (self.module, odir))
 
-        except (OSError, IOError):
-            logger.fdebug('%s Failed to remove directory - Processing will continue, but manual removal is necessary' % self.module)
+        except (OSError, IOError) as e:
+            logger.fdebug('%s[%s] Failed to remove directory - Processing will continue, but manual removal is necessary' % (self.module,e))
             self._log('Failed to remove temporary directory')
 
 
@@ -514,76 +511,210 @@ class PostProcessor(object):
                         comicseries = myDB.select('SELECT * FROM comics WHERE ComicID=?', [self.comicid])
                     else:
                         if fl['issueid'] is not None:
+                            story_the_arcs = False
+                            annchk = 'no'
+                            tmp_the_arc = {}
+                            tmp_manual_list = {}
+                            tmp_oneoff = {}
                             logger.info('issueid detected in filename: %s' % fl['issueid'])
+                            ssi = myDB.selectone('SELECT ComicID, IssueID, IssueArcID, IssueNumber, ComicName, SeriesYear, StoryArc, StoryArcID, Publisher, ReadingOrder FROM storyarcs WHERE IssueID=?', [fl['issueid']]).fetchone()
+                            if ssi is not None:
+                                story_the_arcs = True
+                                tmp_the_arc= {"ComicID":         ssi['ComicID'],
+                                              "IssueID":         ssi['IssueID'],
+                                              "IssueNumber":     ssi['IssueNumber'],
+                                              "StoryArc":        ssi['StoryArc'],
+                                              "StoryArcID":      ssi['StoryArcID'],
+                                              "IssueArcID":      ssi['IssueArcID'],
+                                              "SeriesYear":      ssi['SeriesYear'],
+                                              "Publisher":       ssi['Publisher'],
+                                              "ReadingOrder":    ssi['ReadingOrder'],
+                                              "ComicName":       ssi['ComicName']}
+
                             csi = myDB.selectone('SELECT i.ComicID, i.IssueID, i.Issue_Number, c.ComicName, c.ComicYear, c.AgeRating FROM comics as c JOIN issues as i ON c.ComicID = i.ComicID WHERE i.IssueID=?', [fl['issueid']]).fetchone()
                             if csi is None:
-                                csi = myDB.selectone('SELECT i.ComicID as comicid, i.IssueID, i.Issue_Number, a.ReleaseComicName, c.ComicName, c.ComicYear, c.AgeRating FROM comics as c JOIN annuals as a ON c.ComicID = a.ComicID WHERE a.IssueID=? AND NOT a.Deleted', [fl['issueid']]).fetchone()
+                                csi = myDB.selectone('SELECT a.ComicID as comicid, a.IssueID, a.Issue_Number, a.ReleaseComicName, c.ComicName, c.ComicYear, c.AgeRating FROM comics as c JOIN annuals as a ON c.ComicID = a.ComicID WHERE a.IssueID=? AND NOT a.Deleted', [fl['issueid']]).fetchone()
                                 if csi is not None:
                                     annchk = 'yes'
-                                else:
-                                    continue
-                            else:
-                                annchk = 'no'
 
-                            if self.nzb_name == 'Manual Run':
-                                tname = str(pathlib.Path(fl['comicfilename']))
-                            else:
-                                tname = str(pathlib.Path(fl['comiclocation']).name)
-                                tpath = fl['comiclocation']
-                            xyb = tname.find('[__')
-                            if xyb != -1:
-                                yyb = tname.find('__]', xyb)
-                                if yyb != -1:
-                                    rem_issueid = tname[xyb+3:yyb]
-                                    logger.fdebug('issueid: %s' % rem_issueid)
-                                    two_add = re.sub(r'\s+', '', tname[yyb+3:]).strip()
-                                    if any([two_add == '', two_add == ' ']):
-                                        nfilename = '%s' % tname[:xyb].strip()
-                                    else:
-                                        nfilename = '%s%s' % (tname[:xyb].strip(), two_add)
-                                    logger.fdebug('issueid information [%s] removed successfully: %s' % (rem_issueid, nfilename))
+                            osi = None
+                            if all([csi is None, ssi is None]):
+                                osi = myDB.selectone('select s.Issue_Number, s.ComicName, s.IssueID, s.ComicID, w.seriesyear FROM snatched AS s INNER JOIN nzblog AS n ON s.IssueID = n.IssueID INNER JOIN weekly AS w ON s.IssueID = w.IssueID WHERE s.IssueID = ? AND n.OneOff = 1 AND s.ComicName IS NOT NULL', [fl['issueid']]).fetchone()
+                                if osi is not None:
+                                    tmp_oneoff = {"ComicID":         osi['ComicID'],
+                                                  "IssueID":         osi['IssueID'],
+                                                  "IssueNumber":     osi['Issue_Number'],
+                                                  "ComicName":       osi['ComicName'],
+                                                  "SeriesYear":      osi['seriesyear'],
+                                                  "One-Off":         True}
+                                    self.oneoffinlist = True
 
+                            if any([csi is not None, ssi is not None, osi is not None]):
                                 if self.nzb_name == 'Manual Run':
-                                    if fl['sub'] is None:
-                                        tpath = os.path.join(self.nzb_folder, fl['comicfilename'])
-                                    else:
-                                        tpath = os.path.join(self.nzb_folder, fl['sub'], fl['comicfilename'])
-                                    cloct = pathlib.Path(tpath).with_name(nfilename)
-                                    clocation = str(pathlib.Path(tpath).rename(cloct))
+                                    tname = str(pathlib.Path(fl['comicfilename']))
                                 else:
-                                    cloct = pathlib.Path(tpath).with_name(nfilename)
-                                    clocation = str(pathlib.Path(tpath).rename(cloct))
+                                    if os.path.isfile(fl['comiclocation']):
+                                        t_mp = pathlib.Path(fl['comiclocation'])
+                                        tpath = str(t_mp.parents[0])
+                                        tname = str(pathlib.Path(fl['comiclocation']).name)
+                                    else:
+                                        tname = str(pathlib.Path(fl['comiclocation']).name)
+                                        tpath = fl['comiclocation']
+                                xyb = tname.find('[__')
+                                if xyb != -1:
+                                    yyb = tname.find('__]', xyb)
+                                    if yyb != -1:
+                                        rem_issueid = tname[xyb+3:yyb]
+                                        two_add = re.sub(r'\s+', '', tname[yyb+3:]).strip()
+                                        if any([two_add == '', two_add == ' ']):
+                                            nfilename = '%s' % tname[:xyb].strip()
+                                        else:
+                                            nfilename = '%s%s' % (tname[:xyb].strip(), two_add)
+                                        logger.fdebug('issueid information [%s] removed successfully: %s' % (rem_issueid, nfilename))
 
-                                logger.fdebug('path with the issueid removed: %s' % clocation)
+                                    path_failure = False
+                                    if self.nzb_name == 'Manual Run':
+                                        if fl['sub'] is None:
+                                            tpath = os.path.join(self.nzb_folder, fl['comicfilename'])
+                                        else:
+                                            tpath = os.path.join(self.nzb_folder, fl['sub'], fl['comicfilename'])
+                                        if pathlib.Path(tpath).is_file():
+                                            try:
+                                                cloct = pathlib.Path(tpath).with_name(nfilename)
+                                                clocation = str(pathlib.Path(tpath).replace(cloct))
+                                                if any([clocation is None, clocation == 'None']):
+                                                    raise ValueError('clocation returned None value')
+                                            except (ValueError, Exception) as err:
+                                                try:
+                                                    tt = str(pathlib.Path(tpath))
+                                                    clocation = str(pathlib.Path(tpath).with_name(nfilename))
+                                                    if any([clocation is None, clocation == 'None']):
+                                                        raise ValueError('clocation returned None value')
+                                                except (ValueError, Exception) as e:
+                                                    logger.warn('[%s] Skipping this file due to path conversion error [path: %s]/[name: %s]' % (e, tpath, tname))
+                                                    path_failure = True
+                                                else:
+                                                    os.replace(tt, clocation)
+                                        else:
+                                            logger.warn('[%s] Skipping this file due to path conversion error [path: %s]/[name: %s]' % (e, tpath, tname))
+                                            path_failure = True
+                                    else:
+                                        logger.fdebug('tpath: %s' % (tpath))
+                                        logger.fdebug('tname: %s' % (tname))
+                                        if pathlib.Path(tpath).joinpath(tname).is_file():
+                                            try:
+                                                cloct = pathlib.Path(tpath).joinpath(tname).with_name(nfilename)
+                                                logger.fdebug('cloct: %s' % (str(cloct)))
+                                                clocation = str(pathlib.Path(tpath).joinpath(tname).replace(cloct))
+                                                logger.fdebug('clocation: %s' % (clocation))
+                                                if any([clocation is None, clocation == 'None']):
+                                                    raise ValueError('clocation returned None value')
+                                            except (ValueError, Exception) as err:
+                                                logger.fdebug('[%s]error converting/copying path via pathlib - reverting to old method' % (err,))
+                                                try:
+                                                    tt = str(pathlib.Path(tpath).joinpath(tname))
+                                                    logger.fdebug('tt: %s' % (tt))
+                                                    clocation = str(pathlib.Path(tpath).joinpath(tname).with_name(nfilename))
+                                                    logger.fdebug('clocation: %s' % (clocation))
+                                                    if any([clocation is None, clocation == 'None']):
+                                                        raise ValueError('clocation returned None value')
+                                                except (ValueError, Exception) as e:
+                                                    logger.warn('[%s] Skipping this file due to path conversion error [path: %s]/[name: %s]' % (e, tpath, tname))
+                                                    path_failure = True
+                                                else:
+                                                    os.replace(tt, clocation)
+                                                    self.nzb_folder = clocation   # this is needed in order to delete after moving.
+                                            else:
+                                               self.nzb_folder = clocation   # this is needed in order to delete after moving.
+                                        else:
+                                            try:
+                                                if all([pathlib.Path(tpath) != pathlib.Path(mylar.CACHE_DIR), pathlib.Path(tpath) != pathlib.Path(mylar.CONFIG.DDL_LOCATION)]):
+                                                   if pathlib.Path(tpath).is_file():
+                                                        try:
+                                                            cloct = pathlib.Path(tpath).with_name(nfilename)
+                                                            logger.fdebug('cloct: %s' % (str(cloct)))
+                                                            clocation = str(pathlib.Path(tpath).replace(cloct))
+                                                            logger.fdebug('clocation: %s' % (clocation))
+                                                            if any([clocation is None, clocation == 'None']):
+                                                                raise ValueError('clocation returned None value')
+                                                        except (ValueError, Exception) as err:
+                                                            logger.fdebug('[%s]error converting/copying path via pathlib - reverting to old method' % (err,))
+                                                            try:
+                                                                tt = str(pathlib.Path(tpath).joinpath(tname))
+                                                                logger.fdebug('tt: %s' % (tt))
+                                                                clocation = str(pathlib.Path(tpath).joinpath(tname).with_name(nfilename))
+                                                                logger.fdebug('clocation: %s' % (clocation))
+                                                                if any([clocation is None, clocation == 'None']):
+                                                                    raise ValueError('clocation returned None value')
+                                                            except Exception as e:
+                                                                logger.warn('[%s] Skipping this file due to path conversion error [path: %s]/[name: %s]' % (e, tpath, tname))
+                                                                path_failure = True
+                                                            else:
+                                                                os.replace(tt, clocation)
+                                                                self.nzb_folder = clocation   # this is needed in order to delete after moving.
+                                                        else:
+                                                            self.nzb_folder = clocation   # this is needed in order to delete after moving.
+                                                   else:
+                                                       logger.warn('[%s] Skipping this file due to path conversion error [path: %s]/[name: %s]' % (e, tpath, tname))
+                                                       path_failure = True
+                                                else:
+                                                    logger.warn('[%s] Skipping this file due to path conversion error [path: %s]/[name: %s]' % (e, tpath, tname))
+                                                    path_failure = True
+                                            except Exception as e:
+                                                logger.warn('[%s] Skipping this file due to path conversion error [path: %s]/[name: %s]' % (e, tpath, tname))
+                                                path_failure = True
 
-                            annualtype = None
-                            if annchk == 'yes':
-                                if 'Annual' in csi['ReleaseComicName']:
-                                    annualtype = 'Annual'
-                                elif 'Special' in csi['ReleaseComicName']:
-                                    annualtype = 'Special'
-                            else:
-                                if 'Annual' in csi['ComicName']:
-                                    annualtype = 'Annual'
-                                elif 'Special' in csi['ComicName']:
-                                    annualtype = 'Special'
-                            manual_list.append({"ComicLocation":   clocation,
-                                                "ComicID":         csi['ComicID'],
-                                                "IssueID":         csi['IssueID'],
-                                                "IssueNumber":     csi['Issue_Number'],
-                                                "AnnualType":      annualtype,
-                                                "ComicName":       csi['ComicName'],
-                                                "AgeRating":       csi['AgeRating'],
-                                                "Series":          fl['series_name'],
-                                                "SeriesYear":      csi['ComicYear'],
-                                                "AltSeries":       fl['alt_series'],
-                                                "One-Off":         False,
-                                                "ForcedMatch":     True})
-                            logger.info('manual_list: %s' % manual_list)
+                                    if path_failure is True:
+                                        continue
+
+                                    logger.fdebug('path with the issueid removed: %s' % clocation)
+
+                                    if csi is not None:
+                                        annualtype = None
+                                        if annchk == 'yes':
+                                            if 'Annual' in csi['ReleaseComicName']:
+                                                annualtype = 'Annual'
+                                            elif 'Special' in csi['ReleaseComicName']:
+                                                annualtype = 'Special'
+                                        else:
+                                            if 'Annual' in csi['ComicName']:
+                                                annualtype = 'Annual'
+                                            elif 'Special' in csi['ComicName']:
+                                                annualtype = 'Special'
+
+                                        tmp_manual_list = {"ComicLocation":   clocation,
+                                                           "ComicID":         csi['ComicID'],
+                                                           "IssueID":         csi['IssueID'],
+                                                           "IssueNumber":     csi['Issue_Number'],
+                                                           "AnnualType":      annualtype,
+                                                           "ComicName":       csi['ComicName'],
+                                                           "AgeRating":       csi['AgeRating'],
+                                                           "Series":          fl['series_name'],
+                                                           "SeriesYear":      csi['ComicYear'],
+                                                           "AltSeries":       fl['alt_series'],
+                                                           "One-Off":         False,
+                                                           "ForcedMatch":     True}
+
+                                    if story_the_arcs is True:
+                                        if tmp_manual_list:
+                                            if tmp_manual_list['IssueID'] == tmp_the_arc['IssueID']:
+                                                tmp_manual_list['IssueArcID'] = ssi['IssueArcID']
+                                        else:
+                                            tmp_the_arc["ComicLocation"] = clocation
+                                            tmp_the_arc["Filename"] = nfilename
+                                    if tmp_oneoff is not None:
+                                        tmp_oneoff['ComicLocation'] = clocation
+
+                            if tmp_manual_list:
+                                manual_list.append(tmp_manual_list)
+                            elif tmp_the_arc:
+                                manual_arclist.append(tmp_the_arc)
+                            elif tmp_oneoff:
+                                oneoff_issuelist.append(tmp_oneoff)
                             continue
-                        else:
-                            tmpsql = "SELECT * FROM comics WHERE DynamicComicName IN ({seq}) COLLATE NOCASE".format(seq=','.join('?' * len(loopchk)))
-                            comicseries = myDB.select(tmpsql, tuple(loopchk))
+
+                        tmpsql = "SELECT * FROM comics WHERE DynamicComicName IN ({seq}) COLLATE NOCASE".format(seq=','.join('?' * len(loopchk)))
+                        comicseries = myDB.select(tmpsql, tuple(loopchk))
 
                     if not comicseries or orig_seriesname != mod_seriesname:
                         if any(['special' in orig_seriesname.lower(), 'annual' in orig_seriesname.lower()]) and all([mylar.CONFIG.ANNUALS_ON, orig_seriesname != mod_seriesname]):
@@ -614,7 +745,7 @@ class PostProcessor(object):
                                 if any([dbcheck[0] == 'Wanted', dbcheck[0] == 'Snatched']):
                                     logger.fdebug('Series is 100%s complete, but specific issue %s matched up to a %s status. Let\'s Go!' % ('%', tmp_iss, dbcheck[0]))
                                 else:
-                                    logger.fdebug('Series is 100%s complete, however status is not Wanted (or Snatche), but %s. Set to Wanted for this to post-process on the next run.' % ('%', dbcheck[0]))
+                                    logger.fdebug('Series is 100%s complete, however status is not Wanted (or Snatched), but %s. Set to Wanted for this to post-process on the next run.' % ('%', dbcheck[0]))
                                     continue
                             else:
                                 logger.warn('%s [%s] is either Paused or in an Ended status with 100%s completion. Ignoring for match.' % (wv['ComicName'], wv['ComicYear'], '%'))
@@ -1737,7 +1868,7 @@ class PostProcessor(object):
 
                             #tidyup old path
                             if any([mylar.CONFIG.FILE_OPTS == 'move', mylar.CONFIG.FILE_OPTS == 'copy']):
-                                self.tidyup(src_location, True, filename=orig_filename)
+                                self.tidyup(src_location, True, filename=os.path.basename(orig_filename))
 
                             #delete entry from nzblog table
                             #if it was downloaded via mylar from the storyarc section, it will have an 'S' in the nzblog
@@ -1985,9 +2116,14 @@ class PostProcessor(object):
                 m_event = None
                 if self.failed_files == 0:
                     if all([self.comicid is not None, self.issueid is None]):
-                        logger.info('%s post-processing of pack completed for %s issues.' % (module, i))
-                        global_line = 'Successfully post-processed pack for %s issues' % (i)
-                    if self.issueid is not None:
+                        try:
+                            logger.info('%s post-processing of pack completed for %s issues of %s (%s).' % (module, i, dspcname, dspcyear))
+                            global_line = 'Successfully post-processed pack for %s issues of %s (%s)' % (i, dspcname, dspcyear)
+                        except Exception:
+                            logger.info('%s post-processing of pack completed for %s issues.' % (module, i))
+                            global_line = 'Successfully post-processed pack for %s issues.' % (i)
+
+                    elif self.issueid is not None:
                         if ml['AnnualType'] is not None:
                             logger.info('%s direct post-processing of issue completed for %s %s #%s.' % (module, ml['ComicName'], ml['AnnualType'], ml['IssueNumber']))
                             global_line = 'Successfully post-processed</br> %s %s %s' % (ml['ComicName'], ml['AnnualType'], ml['IssueNumber'])
@@ -2276,7 +2412,7 @@ class PostProcessor(object):
 
                     #tidyup old path
                     if any([mylar.CONFIG.FILE_OPTS == 'move', mylar.CONFIG.FILE_OPTS == 'copy']):
-                        self.tidyup(src_location, True, filename=orig_filename)
+                        self.tidyup(src_location, True, filename=os.path.basename(orig_filename))
 
                     #delete entry from nzblog table
                     myDB.action('DELETE from nzblog WHERE issueid=?', [issueid])
@@ -2963,7 +3099,7 @@ class PostProcessor(object):
 
                 #tidyup old path
                 if any([mylar.CONFIG.FILE_OPTS == 'move', mylar.CONFIG.FILE_OPTS == 'copy']):
-                    self.tidyup(odir, True, filename=orig_filename)
+                    self.tidyup(odir, True, filename=os.path.basename(orig_filename))
 
             else:
                 #downtype = for use with updater on history table to set status to 'Post-Processed'
@@ -2997,7 +3133,7 @@ class PostProcessor(object):
                 logger.info('%s %s successful to : %s' % (module, mylar.CONFIG.FILE_OPTS, dst))
 
                 if any([mylar.CONFIG.FILE_OPTS == 'move', mylar.CONFIG.FILE_OPTS == 'copy']):
-                    self.tidyup(odir, True, subpath, filename=orig_filename)
+                    self.tidyup(odir, True, subpath, filename=os.path.basename(orig_filename))
 
             #Hopefully set permissions on downloaded file
             if mylar.CONFIG.ENFORCE_PERMS:
@@ -3252,11 +3388,16 @@ class FolderCheck():
             return
         #monitor a selected folder for 'snatched' files that haven't been processed
         #junk the queue as it's not needed for folder monitoring, but needed for post-processing to run without error.
-        helpers.job_management(write=True, job='Folder Monitor', current_run=helpers.utctimestamp(), status='Running')
-        mylar.MONITOR_STATUS = 'Running'
-        logger.info('%s Checking folder %s for newly snatched downloads' % (self.module, mylar.CONFIG.CHECK_FOLDER))
-        PostProcess = PostProcessor('Manual Run', mylar.CONFIG.CHECK_FOLDER, queue=self.queue)
-        result = PostProcess.Process()
-        logger.info('%s Finished checking for newly snatched downloads' % self.module)
-        helpers.job_management(write=True, job='Folder Monitor', last_run_completed=helpers.utctimestamp(), status='Waiting')
-        mylar.MONITOR_STATUS = 'Waiting'
+        if mylar.CONFIG.CHECK_FOLDER is None:
+            logger.warn('%s Unable to initialise folder monitor properly - you need to specify a folder to monitor first' % self.module)
+            mylar.SCHED.pause_job('monitor')
+            mylar.MONITOR_STATUS = 'Paused'
+            helpers.job_management(write=True)
+        else:
+            helpers.job_management(write=True, job='Folder Monitor', current_run=helpers.utctimestamp(), status='Running')
+            mylar.MONITOR_STATUS = 'Running'
+            logger.info('%s Checking folder %s for newly snatched downloads' % (self.module, mylar.CONFIG.CHECK_FOLDER))
+            PostProcess = PostProcessor('Manual Run', mylar.CONFIG.CHECK_FOLDER, queue=self.queue)
+            result = PostProcess.Process()
+            logger.info('%s Finished checking for newly snatched downloads' % self.module)
+            helpers.job_management(write=True, job='Folder Monitor', last_run_completed=helpers.utctimestamp(), status='Waiting')

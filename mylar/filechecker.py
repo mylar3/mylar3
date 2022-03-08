@@ -467,6 +467,13 @@ class FileChecker(object):
         validcountchk = False
         sep_volume = False
         current_pos = -1
+
+        year_check = re.findall(r'(\d{4})(?=[\s]|annual\b|$)', modfilename, flags=re.I)
+        ignore_mod_position = -1
+        if year_check:
+            ignore_mod_position = self.char_file_position(modfilename, year_check[0], modfilename.index(year_check[0]))
+            #logger.fdebug('[%s] year_check: %s' % (ignore_mod_position,year_check,))
+
         for sf in split_file:
             current_pos +=1
             #the series title will always be first and be AT LEAST one word.
@@ -889,6 +896,16 @@ class FileChecker(object):
             yearmodposition = None
             logger.fdebug('No year present within title - ignoring as a variable.')
 
+        #if ignore_mod_position != -1:
+        #    logger.info('possible_issuenumbers: %s' % (possible_issuenumbers,))
+        #    p_cnt = 0
+        #    for pp in possible_issuenumbers:
+        #        logger.info('pp: %s' % (pp,))
+        #        if ignore_mod_position == pp['mod_position']:
+        #            pppp = possible_issuenumbers.pop(p_cnt)
+        #            logger.info('IGNORE POSITION TRIGGERED for : %s' % (pppp,))
+        #            break
+        #        p_cnt +=1
 
         logger.fdebug('highest_series_position: %s' % highest_series_pos)
         #---2019-11-30 account for scanner Glorith-HD stupid naming conventions
@@ -1232,6 +1249,8 @@ class FileChecker(object):
                 if year_check:
                     ann_line = '%s annual' % year_check[0]
                     logger.fdebug('ann_line: %s' % ann_line)
+                    if any([issue_number is None, issue_number == 'Annual']):
+                        issue_number = ann_line
                     series_name = re.sub(ann_line, '', series_name, flags=re.I).strip()
                     series_name_decoded = re.sub(ann_line, '', series_name_decoded, flags=re.I).strip()
                 series_name = re.sub('annual', '', series_name, flags=re.I).strip()

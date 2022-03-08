@@ -23,10 +23,12 @@ class CheckVersion():
     def __init__(self):
         pass
 
-    def run(self):
+    def run(self, scheduled_job=True):
         logger.info('[VersionCheck] Checking for new release on Github.')
         helpers.job_management(write=True, job='Check Version', current_run=helpers.utctimestamp(), status='Running')
         mylar.VERSION_STATUS = 'Running'
-        versioncheck.checkGithub()
+        cc = versioncheck.checkGithub()
         helpers.job_management(write=True, job='Check Version', last_run_completed=helpers.utctimestamp(), status='Waiting')
-        mylar.VERSION_STATUS = 'Waiting'
+        if not scheduled_job:
+            return cc
+

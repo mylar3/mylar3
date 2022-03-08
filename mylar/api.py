@@ -16,12 +16,15 @@
 
 import mylar
 from mylar import db, mb, importer, search, process, versioncheck, logger, webserve, helpers, encrypted, series_metadata
+import threading
 import json
 import cherrypy
+import time
 import random
 import os
 import re
 import shutil
+import queue
 import urllib.request, urllib.error, urllib.parse
 from . import cache
 import imghdr
@@ -34,7 +37,7 @@ cmd_list = ['getIndex', 'getComic', 'getUpcoming', 'getWanted', 'getHistory',
             'pauseComic', 'resumeComic', 'refreshComic', 'addIssue', 'recheckFiles',
             'queueIssue', 'unqueueIssue', 'forceSearch', 'forceProcess', 'changeStatus',
             'getVersion', 'checkGithub','shutdown', 'restart', 'update', 'changeBookType',
-            'getComicInfo', 'getIssueInfo', 'getArt', 'downloadIssue',
+            'getComicInfo', 'getIssueInfo', 'getArt', 'downloadIssue', 'regenerateCovers',
             'refreshSeriesjson', 'seriesjsonListing', 'checkGlobalMessages',
             'listProviders', 'changeProvider', 'addProvider', 'delProvider',
             'downloadNZB', 'getReadList', 'getStoryArc', 'addStoryArc']
@@ -84,7 +87,7 @@ class Api(object):
                     else:
                         data = '\nevent: addbyid\ndata: {\ndata: "status": "' + results['status'] + '",\ndata: "comicid": "' + results['comicid']+ '",\ndata: "message": "' + results['message'] + '",\ndata: "tables": "' + results['tables'] + '",\ndata: "comicname": "' + results['comicname'] + '",\ndata: "seriesyear": "' + results['seriesyear'] + '"\ndata: }\n\n'
                 except Exception as e:
-                    logger.warn('error: %s' % e)
+                    #logger.warn('error: %s' % e)
                     data = '\nevent: addbyid\ndata: {\ndata: "status": "' + results['status'] + '",\ndata: "comicid": "' + results['comicid']+ '",\ndata: "message": "' + results['message'] + '",\ndata: "tables": "' + results['tables'] + '"\ndata: }\n\n'
             elif results['event'] == 'scheduler_message':
                 try:
@@ -96,6 +99,11 @@ class Api(object):
                     data = '\nevent: shutdown\ndata: {\ndata: "status": "' + results['status'] + '",\ndata: "message": "' + results['message'] + '"\ndata: }\n\n'
                 except Exception:
                     data = '\nevent: shutdown\ndata: {\ndata: "status": "' + results['status'] + '",\ndata: "message": "' + results['message'] + '"\ndata: }\n\n'
+            elif results['event'] == 'check_update':
+                try:
+                    data = '\nevent: check_update\ndata: {\ndata: "status": "' + results['status'] + '",\ndata: "current_version": "' + results['current_version'] + '",\ndata: "latest_version": "' + results['latest_version'] + '",\ndata: "commits_behind": "' + results['commits_behind'] + '",\ndata: "docker": "' + results['docker'] + '",\ndata: "message": "' + results['message'] + '"\ndata: }\n\n'
+                except Exception as e:
+                    data = '\nevent: check_update\ndata: {\ndata: "status": "' + results['status'] + '",\ndata: "message": "' + results['message'] + '"\ndata: }\n\n'
             else:
                 try:
                     data = '\ndata: {\ndata: "status": "' + results['status'] + '",\ndata: "comicid": "' + results['comicid']+ '",\ndata: "message": "' + results['message'] + '",\ndata: "tables": "' + results['tables'] + '",\ndata: "comicname": "' + results['comicname'] + '",\ndata: "seriesyear": "' + results['seriesyear'] + '"\ndata: }\n\n'
@@ -471,6 +479,88 @@ class Api(object):
         newValueDict = {'Status': 'Active'}
         myDB.upsert("comics", newValueDict, controlValueDict)
 
+    def _regenerateCovers(self, **kwargs):
+        # kwargs = id: {comicid, {comicid_list}, 'all', 'missing'}
+        #               -- comicid = specific comicid
+        #               -- comicid_list = list of comicids
+        #               -- all = all series on watchlist
+        #               -- missing = just series on watchlist with no cover image in cache
+        #        = overwrite_existing: {true, false} (applies only to {comicid, comicid_list, all})
+
+        myDB = db.DBConnection()
+        if 'id' not in kwargs:
+            self.data = self._failureResponse('Missing parameter: id')
+            return
+        else:
+            self.id = kwargs['id']
+            id_list = []
+            if any([self.id == 'all', self.id == 'missing']):
+                the_list = myDB.select('SELECT * FROM comics')
+                for tt in the_list:
+                    if self.id == 'missing':
+                        if os.path.isfile(os.path.join(mylar.CONFIG.CACHE_DIR, '%s.jpg' % (tt['comicid']))):
+                            continue
+                    id_list.append({'comicid': tt['ComicID'],
+                                    'comicimage': tt['ComicImage'],
+                                    'comicimageurl': tt['ComicImageURL'],
+                                    'comicimagealturl': tt['ComicImageALTURL'],
+                                    'firstimagesize': tt['FirstImageSize']})
+            else:
+                tmp_list = []
+                if ',' in self.id:
+                    tmp_list = self.id.split(',')
+                else:
+                    tmp_list.append(self.id)
+
+                for tm in tmp_list:
+                    th = myDB.selectone('SELECT * FROM comics WHERE comicid=?', [tm]).fetchone()
+                    id_list.append({'comicid': th['ComicID'],
+                                    'comicimage': th['ComicImage'],
+                                    'comicimageurl': th['ComicImageURL'],
+                                    'comicimagealturl': th['ComicImageALTURL'],
+                                    'firstimagesize': th['FirstImageSize']})
+
+            threading.Thread(target=self.get_the_images, name="regenerateCovers", args=(id_list,)).start()
+            logger.info('[API-regenerateCovers] Successfully background submitted cover regeneration for  %s series' % (len(id_list)))
+            self.data = self._successResponse('RegenerateCovers successfully submitted for %s series.' % (len(id_list)))
+            return
+
+    def get_the_images(self, id_list):
+        resultresponse = []
+        success_count = 0
+        failed_count = 0
+        already_present = 0
+        for idl in id_list:
+            comicid = idl['comicid']
+            firstimagesize = idl['firstimagesize']
+            if firstimagesize is None:
+                firstimagesize = 0
+            cimage = os.path.join(mylar.CONFIG.CACHE_DIR, '%s.jpg' % (comicid))
+            if mylar.CONFIG.ALTERNATE_LATEST_SERIES_COVERS is False or not os.path.isfile(cimage):
+                PRComicImage = os.path.join('cache', str(comicid) + ".jpg")
+                ComicImage = helpers.replacetheslash(PRComicImage)
+                coversize = 0
+                if os.path.isfile(cimage):
+                    statinfo = os.stat(cimage)
+                    coversize = statinfo.st_size
+                if firstimagesize != 0 and (os.path.isfile(cimage) is True and firstimagesize == coversize):
+                    logger.fdebug('[%s] Cover already exists for series. Not redownloading.' % comicid)
+                    already_present +=1
+                else:
+                    covercheck = helpers.getImage(comicid, idl['comicimageurl'], apicall=True)
+                    firstimagesize = covercheck['coversize']
+                    if covercheck['status'] == 'retry':
+                        logger.info('[%s] Attempting to retrieve alternate comic image for the series.' % comicid)
+                        covercheck = helpers.getImage(comicid, idl['comicimagealturl'], apicall=True)
+                    if covercheck['status'] == 'success':
+                        success_count +=1
+                    else:
+                        failed_count +=1
+
+            time.sleep(4)
+
+        logger.info('[API-regenerateCovers] Completed: %s covers successfully regenerated, %s covers failed to generate, %s covers already existed.' % (success_count, failed_count, already_present))
+
     def _refreshComic(self, **kwargs):
         if 'id' not in kwargs:
             self.data = self._failureResponse('Missing parameter: id')
@@ -503,7 +593,7 @@ class Api(object):
 
         if len(notfound) > 0:
             logger.info('Unable to locate the following requested ID\'s for Refreshing: %s' % (notfound,))
-            self.data = self._successResponse('Unable to locate the following ID\'s for Refreshing (%s)' % (notfound,))
+            self.data = self._failureResponse('Unable to locate the following ID\'s for Refreshing (%s)' % (notfound,))
         if len(already_added) == 1:
             self.data = self._successResponse('[%s] %s has already been queued for refresh in a queue of %s items.' % (already_added[0]['comicid'], already_added[0]['comicname'], mylar.REFRESH_QUEUE.qsize()))
         elif len(already_added) > 1:
@@ -1100,6 +1190,8 @@ class Api(object):
 
             if event is not None and event == 'shutdown':
                 the_message = {'status': mylar.GLOBAL_MESSAGES['status'], 'event': event, 'message': mylar.GLOBAL_MESSAGES['message']}
+            elif event is not None and event == 'check_update':
+                the_message = {'status': mylar.GLOBAL_MESSAGES['status'], 'event': event, 'current_version': mylar.GLOBAL_MESSAGES['current_version'], 'latest_version': mylar.GLOBAL_MESSAGES['latest_version'], 'commits_behind': str(mylar.GLOBAL_MESSAGES['commits_behind']), 'docker': mylar.GLOBAL_MESSAGES['docker'], 'message': mylar.GLOBAL_MESSAGES['message']}
             else:
                 the_message = {'status': mylar.GLOBAL_MESSAGES['status'], 'event': event, 'comicid': mylar.GLOBAL_MESSAGES['comicid'], 'tables': mylar.GLOBAL_MESSAGES['tables'], 'message': mylar.GLOBAL_MESSAGES['message']}
                 try:
@@ -1111,7 +1203,13 @@ class Api(object):
             if mylar.GLOBAL_MESSAGES['status'] != 'mid-message-event':
                 myDB = db.DBConnection()
                 tmp_message = dict(the_message, **{'session_id': mylar.SESSION_ID})
-                tmp_message.pop('tables')
+                if event != 'check_update':
+                    tmp_message.pop('tables')
+                else:
+                    tmp_message.pop('current_version')
+                    tmp_message.pop('latest_version')
+                    tmp_message.pop('commits_behind')
+                    tmp_message.pop('docker')
                 the_tmp_message = tmp_message.pop('message')
                 the_real_message = re.sub(r'\r\n|\n|</br>', '', the_tmp_message)
                 tmp_message = dict(tmp_message, **{'message': the_real_message})

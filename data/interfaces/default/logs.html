@@ -80,7 +80,8 @@
 </%def>
 
 <%def name="javascriptIncludes()">
-	<script src="js/libs/jquery.dataTables.min.js"></script>
+        <script src="js/libs/jquery.dataTables.min.js"></script>
+        <script src="js/libs/full_numbers_no_ellipses.js"></script>
         <script>
         function manageTheExceptions() {
                 var del_icon = document.getElementById("delete").value;
@@ -238,21 +239,22 @@
         $(document).ready(function() {
             initActions();
             checkloglevel();
+            $.fn.DataTable.ext.pager.numbers_length = 4;
             $('#log_table').dataTable( {
-                    "bProcessing": true,
-                    "bServerSide": true,
-                    "sAjaxSource": 'getLog',
-                    "sPaginationType": "full_numbers",
+                    "processing": true,
+                    "serverSide": true,
+                    "ajaxSource": 'getLog',
+                    "paginationType": "simple_numbers",
                     "aaSorting": [[0, 'desc']],
                     "iDisplayLength": 25,
-                    "bStateSave": true,
-                    "oLanguage": {
-                         "sSearch":"Filter:",
-                         "sLengthMenu":"Show _MENU_ lines per page",
-                         "sEmptyTable": "No log information available",
-                         "sInfo":"Showing _START_ to _END_ of _TOTAL_ lines",
-                         "sInfoEmpty":"Showing 0 to 0 of 0 lines",
-                         "sInfoFiltered":"(filtered from _MAX_ total lines)"},
+                    "stateSave": true,
+                    "language": {
+                         "search":"Filter:",
+                         "lengthMenu":"Show _MENU_ lines per page",
+                         "emptyTable": "No log information available",
+                         "info":"Showing _START_ to _END_ of _TOTAL_ lines",
+                         "infoEmpty":"Showing 0 to 0 of 0 lines",
+                         "infoFiltered":"(filtered from _MAX_ total lines)"},
                     "fnRowCallback": function (nRow, aData, iDisplayIndex, iDisplayIndexFull) {
                          if (aData[1] === "ERROR") {
                             $('td', nRow).closest('tr').addClass("gradeX");
