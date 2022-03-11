@@ -1375,11 +1375,13 @@ class PostProcessor(object):
                                         i+=1
                                         continue
                                     else:
+                                        annualtype = None
                                         if temploc is not None and (any(['annual' in temploc.lower(), 'special' in temploc.lower()]) and mylar.CONFIG.ANNUALS_ON is True):
                                             biannchk = re.sub('-', '', temploc.lower()).strip()
                                             if 'biannual' in biannchk:
                                                 logger.fdebug('%s Bi-Annual detected.' % module)
                                                 fcdigit = helpers.issuedigits(re.sub('biannual', '', str(biannchk)).strip())
+                                                annualtype = 'BiAnnual'
                                             else:
                                                 if 'annual' in temploc.lower():
                                                     year_check = re.findall(r'(\d{4})(?=[\s]|annual\b|$)', temploc, flags=re.I)
@@ -1388,9 +1390,11 @@ class PostProcessor(object):
                                                         fcdigit = helpers.issuedigits(re.sub(ann_line, '', str(temploc.lower())).strip())
                                                         #fcdigit = helpers.issuedigits(re.sub('2021 annual', '', str(temploc.lower())).strip())
                                                     fcdigit = helpers.issuedigits(re.sub('annual', '', str(temploc.lower())).strip())
+                                                    annualtype = 'Annual'
                                                 else:
                                                     fcdigit = helpers.issuedigits(re.sub('special', '', str(temploc.lower())).strip())
-                                                logger.fdebug('%s Annual detected [%s]. ComicID assigned as %s' % (module, fcdigit, v[i]['WatchValues']['ComicID']))
+                                                    annualtype = 'Special'
+                                                logger.fdebug('%s %s detected [%s]. ComicID assigned as %s' % (module, annualtype, fcdigit, v[i]['WatchValues']['ComicID']))
                                             annchk = "yes"
                                             issuechk = myDB.selectone("SELECT * from storyarcs WHERE ComicID=? AND Int_IssueNumber=?", [v[i]['WatchValues']['ComicID'], fcdigit]).fetchone()
                                         else:
@@ -1596,11 +1600,13 @@ class PostProcessor(object):
                                                                                "ComicID":         v[i]['WatchValues']['ComicID'],
                                                                                "IssueID":         v[i]['ArcValues']['IssueID'],
                                                                                "IssueNumber":     v[i]['ArcValues']['IssueNumber'],
+                                                                               "IssueYear":       arc_issueyear,
                                                                                "StoryArc":        v[i]['ArcValues']['StoryArc'],
                                                                                "StoryArcID":      v[i]['ArcValues']['StoryArcID'],
                                                                                "IssueArcID":      v[i]['ArcValues']['IssueArcID'],
                                                                                "SeriesYear":      v[i]['WatchValues']['SeriesYear'],
                                                                                "Publisher":       arcpublisher,
+                                                                               "AnnualType":      annualtype,
                                                                                "ReadingOrder":    v[i]['ArcValues']['ReadingOrder'],
                                                                                "ComicName":       k})
                                                         tmp_arclist.append({"ComicName": k,
@@ -1892,6 +1898,21 @@ class PostProcessor(object):
                         else:
                             logger.fdebug('%s [%s] Post-Processing completed for: %s' % (module, ml['StoryArc'], ml['ComicLocation']))
 
+                        if any([all([mylar.CONFIG.PUSHOVER_IMAGE, mylar.CONFIG.PUSHOVER_ENABLED]), all([mylar.CONFIG.TELEGRAM_IMAGE, mylar.CONFIG.TELEGRAM_ENABLED]) ]):
+                            try:
+                                get_cover = getimage.extract_image(grab_dst, single=True, imquality='notif')
+                                imageFile = get_cover['ComicImage']
+                            except Exception as e:
+                                logger.info('[WARNING] Could not extract image from download in order to send notification')
+                                imageFile = None
+                        else:
+                            imageFile = None
+
+                        try:
+                            self.sendnotify(ml['ComicName'], issueyear=ml['IssueYear'], issuenumOG=ml['IssueNumber'], annchk=annchk, module=module, imageFile=imageFile)
+                        except:
+                            pass
+
             if (all([self.nzb_name != 'Manual Run', self.apicall is False]) or (self.oneoffinlist is True or all([self.issuearcid is not None, self.issueid is None]))) and not self.nzb_name.startswith('0-Day'): # and all([self.issueid is None, self.comicid is None, self.apicall is False]):
                 ppinfo = []
                 if self.oneoffinlist is False:
@@ -2065,15 +2086,26 @@ class PostProcessor(object):
                     self.valreturn.append({"self.log": self.log,
                                            "mode": 'stop'})
                     return self.queue.put(self.valreturn)
-                elif len(manual_arclist) > 0 and len(manual_list) == 0:
-                    logger.info('%s Manual post-processing completed for %s story-arc issues.' % (module, len(manual_arclist)))
-                    if mylar.APILOCK is True:
-                        mylar.APILOCK = False
-                    self.valreturn.append({"self.log": self.log,
-                                           "mode": 'stop'})
-                    return self.queue.put(self.valreturn)
+                #elif len(manual_arclist) > 0: # and len(manual_list) == 0:
+                #    logger.info('%s Manual post-processing completed for %s story-arc issues.' % (module, len(manual_arclist)))
+                    #if mylar.APILOCK is True:
+                    #    mylar.APILOCK = False
+                    #self.valreturn.append({"self.log": self.log,
+                    #                       "mode": 'stop'})
+                    #return self.queue.put(self.valreturn)
                 elif len(manual_arclist) > 0:
-                    logger.info('%s Manual post-processing completed for %s story-arc issues.' % (module, len(manual_arclist)))
+                    if len(manual_arclist) > 1:
+                        logger.info('%s Manual post-processing completed for %s story-arc issues.' % (module, len(manual_arclist)))
+                    try:
+                        dspcname = None
+                        dspcyear = None
+                        if len(manual_arclist) == 1:
+                            dspcname = ml['ComicName']
+                            dspcyear = ml['SeriesYear']
+                    except Exception:
+                        dspcname = None
+                        dspcyear = None
+
 
                 i = 0
 
@@ -3327,11 +3359,16 @@ class PostProcessor(object):
 
     def sendnotify(self, series, issueyear, issuenumOG, annchk, module, imageFile):
 
-        if issueyear is None:
-            prline = '%s %s' % (series, issuenumOG)
+        if issueyear is not None:
+            if issuenumOG is not None:
+                prline = '%s (%s) #%s' % (series, issueyear, issuenumOG)
+            else:
+                prline = '%s (%s)' % (series, issueyear)
         else:
-            prline = '%s (%s) %s' % (series, issueyear, issuenumOG)
-
+            if issuenumOG is not None:
+                prline = '%s #%s' % (series, issuenumOG)
+            else:
+                prline = '%s' % (series)
         prline2 = 'Mylar has downloaded and post-processed: ' + prline
 
         try:
