@@ -3359,6 +3359,7 @@ class PostProcessor(object):
 
     def sendnotify(self, series, issueyear, issuenumOG, annchk, module, imageFile):
 
+<<<<<<< HEAD
         if issuenumOG is not None:
             if '#' not in issuenumOG:
                 issuenumOG = '#%s' % issuenumOG
@@ -3366,11 +3367,20 @@ class PostProcessor(object):
         if issueyear is not None:
             if issuenumOG is not None:
                 prline = '%s (%s) %s' % (series, issueyear, issuenumOG)
+=======
+        if issueyear is not None:
+            if issuenumOG is not None:
+                prline = '%s (%s) #%s' % (series, issueyear, issuenumOG)
+>>>>>>> FIX: Individual story arc grabs would not notify in GUI on post-processing completion
             else:
                 prline = '%s (%s)' % (series, issueyear)
         else:
             if issuenumOG is not None:
+<<<<<<< HEAD
                 prline = '%s %s' % (series, issuenumOG)
+=======
+                prline = '%s #%s' % (series, issuenumOG)
+>>>>>>> FIX: Individual story arc grabs would not notify in GUI on post-processing completion
             else:
                 prline = '%s' % (series)
         prline2 = 'Mylar has downloaded and post-processed: ' + prline
