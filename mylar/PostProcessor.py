@@ -3359,14 +3359,18 @@ class PostProcessor(object):
 
     def sendnotify(self, series, issueyear, issuenumOG, annchk, module, imageFile):
 
+        if issuenumOG is not None:
+            if '#' not in issuenumOG:
+                issuenumOG = '#%s' % issuenumOG
+
         if issueyear is not None:
             if issuenumOG is not None:
-                prline = '%s (%s) #%s' % (series, issueyear, issuenumOG)
+                prline = '%s (%s) %s' % (series, issueyear, issuenumOG)
             else:
                 prline = '%s (%s)' % (series, issueyear)
         else:
             if issuenumOG is not None:
-                prline = '%s #%s' % (series, issuenumOG)
+                prline = '%s %s' % (series, issuenumOG)
             else:
                 prline = '%s' % (series)
         prline2 = 'Mylar has downloaded and post-processed: ' + prline
