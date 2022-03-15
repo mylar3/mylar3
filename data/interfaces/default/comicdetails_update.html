@@ -124,12 +124,12 @@
 
                  </td>
                  <td width="100%" padding="10">
-                         %if comicConfig['publisher_image'] is not None:
-                             <img src="${comicConfig['publisher_image']}" align="right" alt="${comicConfig['publisher_image_alt']}" height="${comicConfig['publisher_imageH']}" width="${comicConfig['publisher_imageW']}" />
+                         <img style="position:absolute;right:25px;" src="${comicConfig['publisher_image']}" align="right" alt="${comicConfig['publisher_image_alt']}" height="${comicConfig['publisher_imageH']}" width="${comicConfig['publisher_imageW']}" />
+                         <div style="position:absolute;float:right;right:325px;top:175px;font-size:90px;font-family:impact;">
+                         %if comic['ComicVersion'] is not None:
+                             <span class="watermark"><center>${comic['ComicVersion']}</center></span>
                          %endif
-                         %if all([comic['ComicVersion'] is not None, comic['ComicVersion'] != 'None']):
-                             <div style="position:relative;float:right;top:200px;right:35px;font-size:90px;font-family:impact;"><span class="watermark"><center>${comic['ComicVersion']}</center></span></div>
-                         %endif
+                         </div>
         		 <fieldset>
                                 <div>
                                    <label><big>Publication Date: </big><norm>${comic['ComicPublished']}</norm></label>
@@ -241,9 +241,9 @@
 
                                         try:
                                             tmpstyle = "display:inline-block;float:left;"
-                                            if 60 > len(comic['ComicLocation']) > 100:
+                                            if 60 > len(comic['ComicLocation']) > 120:
                                                 tmpstyle += "font-size:11px;"
-                                            elif len(comic['ComicLocation']) > 100:
+                                            elif len(comic['ComicLocation']) > 120:
                                                 tmpstyle += "font-size:10px;"
                                             else:
                                                 tmpstyle += "font-size:12px;"
@@ -267,10 +267,10 @@
                                         %if os.path.exists(archive_path) and archive_path != comic['ComicLocation']:
                                             <label><big>Directories:</big></label><br/>
                                             <p><img style="float:left;" src="${path_img}" title="${path_tip}" height="15" width="15" padding="5"><span style="${tmpstyle}"> Primary: ${comic['ComicLocation']}</span><br/>
-                                            <img style="float:left;" src="${arc_img}" title="${arc_tip}" height="15" width="15" padding="5"><span style="${arcstyle}"> Secondary: ${archive_path}</span></label></p>
+                                            <img style="float:left;" src="${arc_img}" title="${arc_tip}" height="15" width="15" padding="5"><span style="${arcstyle}"> Secondary: ${archive_path}</span></p>
                                         %else:
-                                            <label><big>Directory:</big><br/>
-                                            <img src="${path_img}" title="${path_tip}" style="float:left;" height="15" width="15" padding="5"><span style="${tmpstyle}">${comic['ComicLocation']}</span></label>
+                                            <label><big>Directory:</big></label><br/>
+                                            <img src="${path_img}" title="${path_tip}" style="float:left;" height="15" width="15" padding="5"><span style="${tmpstyle}">${comic['ComicLocation']}</span>
                                         %endif
                                     %endif
                                     </br>

@@ -688,7 +688,8 @@ class Api(object):
             return
         else:
             self.id = kwargs['id']
-            if self.id == 'All':
+            if self.id.lower() == 'all':
+                self.id = 'All'
                 bulk = True
             else:
                 bulk = False
@@ -699,11 +700,12 @@ class Api(object):
         logger.info('[BULK:%s] [%s --> %s] ComicIDs to Change Status: %s' % (bulk, self.status_from, self.status_to, self.id))
 
         try:
-            self.data = helpers.statusChange(self.status_from, self.status_to, self.id, bulk=bulk, api=True)
+            le_data = helpers.statusChange(self.status_from, self.status_to, self.id, bulk=bulk, api=True)
         except Exception as e:
             logger.error('[ERROR] %s' % e)
             self.data = e
-
+        else:
+            self.data = self._successResponse(le_data)
         return
 
     def _recheckFiles(self, **kwargs):

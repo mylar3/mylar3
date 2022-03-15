@@ -4347,9 +4347,15 @@ def publisherImages(publisher):
                           'publisher_image_alt':   'AWA Studios',
                           'publisher_imageH':      '75',
                           'publisher_imageW':      '125'}
-    else:
-        comicpublisher = {'publisher_image':       None,
-                          'publisher_image_alt':   'Nope',
+    elif publisher == 'Bongo':
+        comicpublisher = {'publisher_image':       'images/publisherlogos/logo-bongo.png',
+                          'publisher_image_alt':   'Bongo',
+                          'publisher_imageH':      '79',
+                          'publisher_imageW':      '125'}
+
+    if comicpublisher is None:
+        comicpublisher = {'publisher_image':       'images/publisherlogos/logo-blank_publisher.png',
+                          'publisher_image_alt':   None,
                           'publisher_imageH':      '0',
                           'publisher_imageW':      '0'}
 
@@ -4417,7 +4423,7 @@ def statusChange(status_from, status_to, comicid=None, bulk=False, api=True):
             the_list.append(s[0])
     else:
         if comicid == 'All':
-            sc = myDB.select("SELECT IssueID FROM issues WHERE Status=?", [comicid, status_from])
+            sc = myDB.select("SELECT IssueID FROM issues WHERE Status=?", [status_from])
             for s in sc:
                 the_list.append(s[0])
         else:
@@ -4426,7 +4432,7 @@ def statusChange(status_from, status_to, comicid=None, bulk=False, api=True):
                 for s in sc:
                     the_list.append(s[0])
 
-    logger.info('the_list: %s' % the_list)
+    #logger.info('the_list: %s' % the_list)
     #for genlist in chunker(the_list, 200):
     #    tmpsql = "SELECT IssueID FROM issues WHERE Status=? AND ComicID in ({seq})".format(status_from, seq=','.join(['?'] *(len(genlist) -1)))
     #    chkthis = myDB.upsert("issues", {'Status': status_to}, dict(myDB.select(tmpsql, genlist))) #select(tmpsql, genlist)
@@ -4443,9 +4449,10 @@ def statusChange(status_from, status_to, comicid=None, bulk=False, api=True):
         else:
             cnt+=1
 
-    logger.info('Updated %s Issues from a status of %s to %s' % (cnt, status_from, status_to))
-    #upto.execute("UPDATE issues SET Status = ? WHERE (?)", [status_to, tmpsql])
+    rtnline = 'Updated %s Issues from a status of %s to %s' % (cnt, status_from, status_to)
+    logger.info(rtnline)
 
+    return rtnline
 
 def file_ops(path,dst,arc=False,one_off=False):
 #    # path = source path + filename
