@@ -890,6 +890,12 @@ class WebInterface(object):
                                 'haveit': rt['haveit'],
                                 'query_id': rt['query_id']})
 
+        if not results:
+            return json.dumps({
+                'iTotalDisplayRecords': 0,
+                'iTotalRecords': 0,
+                'aaData': [],
+            })
         if sSearch == "" or sSearch == None:
             filtered = results[::]
         else:
@@ -986,43 +992,44 @@ class WebInterface(object):
         try:
             searchresults = sorted(searchresults, key=itemgetter('comicyear', 'issues'), reverse=True)
         except Exception as e:
+            searchresults = None
+            query_id = None
             logger.error('Unable to retrieve results from ComicVine: %s' % e)
             if mylar.CONFIG.COMICVINE_API is None:
                 logger.error('You NEED to set a ComicVine API key prior to adding anything. It\'s Free - Go get one!')
                 return
+        else:
+            query_id = random.randint(1,999999)
+            # write it to temporary db here - so we don't have to continually poll CV
+            myDB = db.DBConnection()
+            for x in searchresults:
+                ctrlid = {'query_id': query_id,
+                          'comicid': int(x['comicid'])}
 
-        query_id = random.randint(1,999999)
-        # write it to temporary db here - so we don't have to continually poll CV
-        myDB = db.DBConnection()
-        for x in searchresults:
-            logger.info('x: %s' % (x,))
-            ctrlid = {'query_id': query_id,
-                      'comicid': int(x['comicid'])}
-
-            if x['haveit'] != "No":
-                haveit = "Yes"
-            else:
-                haveit = "No"
-            vals = {'comicname': x['name'],
-                    'publisher': x['publisher'],
-                    'comicyear': x['comicyear'],
-                    'issues': x['issues'],
-                    'deck': x['deck'],
-                    'url': x['url'],
-                    'comicimage': x['comicimage'],
-                    'thumbimage': x['comicthumb'],
-                    'description': x['description'],
-                    'haveit': haveit,
-                    'mode': smode,
-                    'searchtype': search_type}
-            if search_type == 'story_arc':
-                vals['cvarcid'] = x['cvarcid']
-                vals['arclist'] = x['arclist']
-            else:
-                vals['volume'] = x['volume']
-                vals['publisherimprint'] = x['imprint']
-                vals['type'] =  x['type']
-            myDB.upsert("tmp_searches", vals, ctrlid)
+                if x['haveit'] != "No":
+                    haveit = "Yes"
+                else:
+                   haveit = "No"
+                vals = {'comicname': x['name'],
+                        'publisher': x['publisher'],
+                        'comicyear': x['comicyear'],
+                        'issues': x['issues'],
+                        'deck': x['deck'],
+                        'url': x['url'],
+                        'comicimage': x['comicimage'],
+                        'thumbimage': x['comicthumb'],
+                        'description': x['description'],
+                        'haveit': haveit,
+                        'mode': smode,
+                        'searchtype': search_type}
+                if search_type == 'story_arc':
+                    vals['cvarcid'] = x['cvarcid']
+                    vals['arclist'] = x['arclist']
+                else:
+                    vals['volume'] = x['volume']
+                    vals['publisherimprint'] = x['imprint']
+                    vals['type'] =  x['type']
+                myDB.upsert("tmp_searches", vals, ctrlid)
 
         return serve_template(templatename="searchresults.html", title='Search Results for: "' + name + '"', query_id=query_id, query=name, search_type=search_type)
         # searchresults=searchresults, search_type=search_type, imported=None, ogcname=None, name=name, serinfo=serinfo)
