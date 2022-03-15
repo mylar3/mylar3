@@ -478,7 +478,12 @@ class SLACK:
 
 class DISCORD:
     def __init__(self, test_webhook_url=None):
-        self.webhook_url = mylar.CONFIG.DISCORD_WEBHOOK_URL if test_webhook_url is None else test_webhook_url
+        if test_webhook_url is None:
+            self.webhook_url = mylar.CONFIG.DISCORD_WEBHOOK_URL
+            self.test = False
+        else:
+            self.webhook_url = test_webhook_url
+            self.test = True
 
     def notify(self, text, attachment_text, snatched_nzb=None, prov=None, sent_to=None, module=None, imageFile=None):
         if module is None:
@@ -489,114 +494,43 @@ class DISCORD:
         payload = {}
         timestamp = str(datetime.utcnow())
 
-        if 'snatched' in attachment_text.lower():
-            snatched_text = '%s: %s' % (attachment_text, snatched_nzb)
-            if all([sent_to is not None, prov is not None]):
-                snatched_text += ' from %s and %s' % (prov, sent_to)
-                # If sent_to is not None, split it by whitespace into a list
-                sent_to_split = sent_to.split()
-                if 'DDL' in sent_to:
-                    sent_to = 'DDL'
-                # If client is in this string, that's a torrent client. Get second to last word.
-                elif 'client' in sent_to:
-                    # This should be the name of our torrent client
-                    sent_to = sent_to_split[len(sent_to_split) - 2]
-                # If neither DDL nor client are in the string, it's an nzb. Get last word.
-                else:
-                    sent_to = sent_to_split[len(sent_to_split) - 1]
-            elif sent_to is None:
-                snatched_text += ' from %s' % prov
-            # Separate series and issue numbers
-            split_snatched_nzb = snatched_nzb.split()
-            issue = split_snatched_nzb[len(split_snatched_nzb) - 1]
-            split_snatched_nzb.pop()
-            series = ' '.join(map(str, split_snatched_nzb))
-            payload = {
-                "username": "Mylar",
-                "avatar_url": "https://github.com/mylar3/mylar3/raw/master/data/images/mylarlogo.png",
-                "content": snatched_text,
-                "embeds": [
-                    {
-                        "author": {
-                            "name": "Grabbed by Mylar"
-                        },
-                        "description": attachment_text,
-                        "color": 49151,
-                        "fields": [
-                            {
-                                "name": "Series",
-                                "value": series, 
-                                "inline": "true"
-                            },
-                            {
-                                "name": "Issue",
-                                "value": issue,
-                                "inline": "true"
-                            },
-                            {
-                                "name": chr(173),
-                                "value": chr(173)
-                            },
-                            {
-                                "name": "Indexer",
-                                "value": prov,
-                                "inline": "true"
-                            },
-                            {
-                                "name": "Sent to",
-                                "value": sent_to,
-                                "inline": "true"
-                            }
-                        ],
-                        "timestamp": timestamp
-                    }
-                ]
-            }
-        # If error is in the message
-        elif 'error' in attachment_text.lower():
-            payload = {
-                "username": "Mylar",
-                "avatar_url": "https://github.com/mylar3/mylar3/raw/master/data/images/mylarlogo.png",
-                "content": attachment_text,
-                "embeds": [
-                    {
-                        "author": {
-                            "name": "Mylar Error"
-                        },
-                        "description": attachment_text,
-                        "color": 16705372,
-                        "fields": [
-                            {
-                                "name": "File",
-                                "value": text
-                            }
-                        ],
-                        "timestamp": timestamp
-                    }
-                ]
-            }
-        # If snatched or error is not in the message, it's a download and post-process
+        payload = {
+               "username": "Mylar",
+               "avatar_url": "https://github.com/mylar3/mylar3/raw/master/data/images/mylarlogo.png",
+        }
+        if self.test:
+            payload["content"] = attachment_text
         else:
-            # extract series and issue number
-            series_num = attachment_text[41:]
-            series_num_split = series_num.split()
-            issue = series_num_split[len(series_num_split) - 1]
-            series_num_split.pop()
-            series = ' '.join(map(str, series_num_split))
-
-            # If there's an image file, put it in
-            if imageFile is not None:
-                payload = {
-                    "username": "Mylar",
-                    "avatar_url": "https://github.com/mylar3/mylar3/raw/master/data/images/mylarlogo.png",
-                    "content": attachment_text,
-                    "embeds": [
+            if 'snatched' in attachment_text.lower():
+                snatched_text = '%s: %s' % (attachment_text, snatched_nzb)
+                if all([sent_to is not None, prov is not None]):
+                    snatched_text += ' from %s and %s' % (prov, sent_to)
+                    # If sent_to is not None, split it by whitespace into a list
+                    sent_to_split = sent_to.split()
+                    if 'DDL' in sent_to:
+                        sent_to = 'DDL'
+                    # If client is in this string, that's a torrent client. Get second to last word.
+                    elif 'client' in sent_to:
+                        # This should be the name of our torrent client
+                        sent_to = sent_to_split[len(sent_to_split) - 2]
+                    # If neither DDL nor client are in the string, it's an nzb. Get last word.
+                    else:
+                        sent_to = sent_to_split[len(sent_to_split) - 1]
+                elif sent_to is None:
+                    snatched_text += ' from %s' % prov
+                # Separate series and issue numbers
+                split_snatched_nzb = snatched_nzb.split()
+                issue = split_snatched_nzb[len(split_snatched_nzb) - 1]
+                split_snatched_nzb.pop()
+                series = ' '.join(map(str, split_snatched_nzb))
+                payload["content"] = snatched_text
+                payload["embeds"] = [
                         {
                             "author": {
-                                "name": "Downloaded by Mylar"
+                               "name": "Grabbed by Mylar"
                             },
-                            "description": "Issue downloaded!",
-                            "color": 32768,
+                            "description": attachment_text,
+                            "color": 49151,
                             "fields": [
                                 {
                                     "name": "Series",
@@ -608,42 +542,105 @@ class DISCORD:
                                     "value": issue,
                                     "inline": "true"
                                 },
+                                {
+                                    "name": chr(173),
+                                    "value": chr(173)
+                                },
+                                {
+                                    "name": "Indexer",
+                                    "value": prov,
+                                    "inline": "true"
+                                },
+                                {
+                                    "name": "Sent to",
+                                    "value": sent_to,
+                                    "inline": "true"
+                                }
                             ],
-                            "image": {
-                                "url": "attachment://image.jpg",
-                            },
                             "timestamp": timestamp
                         }
                     ]
-                }
+            # If error is in the message
+            elif 'error' in attachment_text.lower():
+                payload["content"] = attachment_text
+                payload["embeds"] = [
+                        {
+                            "author": {
+                                "name": "Mylar Error"
+                            },
+                            "description": attachment_text,
+                            "color": 16705372,
+                            "fields": [
+                                {
+                                    "name": "File",
+                                    "value": text
+                                }
+                            ],
+                            "timestamp": timestamp
+                        }
+                    ]
+            # If snatched or error is not in the message, it's a download and post-process
             else:
-                payload = {
-                    "username": "Mylar",
-                    "avatar_url": "https://github.com/mylar3/mylar3/raw/master/data/images/mylarlogo.png",
-                    "content": attachment_text,
-                    "embeds": [
-                        {
-                            "author": {
-                                "name": "Downloaded by Mylar"
-                            },
-                            "description": "Issue downloaded!",
-                            "color": 32768,
-                            "fields": [
-                                {
-                                    "name": "Series",
-                                    "value": series,
-                                    "inline": "true"
+                logger.info('attachment_text:%s' % (attachment_text,))
+                # extract series and issue number
+                series_num = attachment_text[41:]
+                series_num_split = series_num.split()
+                issue = series_num_split[len(series_num_split) - 1]
+                series_num_split.pop()
+                series = ' '.join(map(str, series_num_split))
+
+                # If there's an image file, put it in
+                if imageFile is not None:
+                    payload["content"] = attachment_text
+                    payload["embeds"] = [
+                            {
+                                "author": {
+                                    "name": "Downloaded by Mylar"
                                 },
-                                {
-                                    "name": "Issue",
-                                    "value": issue,
-                                    "inline": "true"
+                                "description": "Issue downloaded!",
+                                "color": 32768,
+                                "fields": [
+                                    {
+                                        "name": "Series",
+                                        "value": series,
+                                        "inline": "true"
+                                    },
+                                    {
+                                        "name": "Issue",
+                                        "value": issue,
+                                        "inline": "true"
+                                    },
+                                ],
+                                "image": {
+                                    "url": "attachment://image.jpg",
                                 },
-                            ],
-                            "timestamp": timestamp
-                        }
-                    ]
-                }
+                                "timestamp": timestamp
+                            }
+                        ]
+                else:
+                    payload["content"] = attachment_text
+                    payload["embeds"] = [
+                            {
+                                "author": {
+                                    "name": "Downloaded by Mylar"
+                                },
+                                "description": "Issue downloaded!",
+                                "color": 32768,
+                                "fields": [
+                                    {
+                                        "name": "Series",
+                                        "value": series,
+                                        "inline": "true"
+                                    },
+                                    {
+                                        "name": "Issue",
+                                        "value": issue,
+                                        "inline": "true"
+                                    },
+                                ],
+                                "timestamp": timestamp
+                            }
+                        ]
 
         if imageFile is not None:
             files = {
