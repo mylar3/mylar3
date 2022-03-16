@@ -288,7 +288,7 @@ def initialize(config_file):
 
         SESSION_ID = random.randint(10000,999999)
 
-        CV_HEADERS = {'User-Agent': 'Mozilla/5.0 (Windows NT 6.1; WOW64; rv:40.0) Gecko/20100101 Firefox/40.1'}
+        CV_HEADERS = {'User-Agent': mylar.CONFIG.CV_USER_AGENT}
 
         # set the current week for the pull-list
         todaydate = datetime.datetime.today()
