@@ -10,6 +10,7 @@ from . import logger
 import mylar
 import unicodedata
 import urllib.request, urllib.parse, urllib.error
+from user_agent2 import generate_user_agent
 
 def Startit(searchName, searchIssue, searchYear, ComicVersion, IssDateFix, booktype=None):
     timerdelay = 5
@@ -118,7 +119,7 @@ def Startit(searchName, searchIssue, searchYear, ComicVersion, IssDateFix, bookt
               'poster': "",
               'g[]': 85}
 
-    headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/77.0.3865.90 Safari/537.36'}
+    headers = {'User-Agent': generate_user_agent(os='win', device_type='desktop')}
 
     logger.fdebug('[EXPERIMENTAL] Now searching experimental for %s with numeric issue variations of %s to try and ensure all the bases are covered' % (cName, issue_search))
     url_params = urllib.parse.urlencode(params)

@@ -31,6 +31,7 @@ import json
 import mylar
 from operator import itemgetter
 from mylar import db, logger, helpers, search_filer
+from user_agent2 import generate_user_agent
 
 class GC(object):
 
@@ -130,7 +131,7 @@ class GC(object):
 
         self.headers = {
             'Accept-encoding': 'gzip',
-            'User-Agent': 'Mozilla/5.0 (Windows NT 6.1; WOW64; rv:40.0) Gecko/20100101 Firefox/40.1',
+            'User-Agent': generate_user_agent(os='win', device_type='desktop'),
             'Referer': 'https://getcomics.info/',
         }
 
@@ -154,7 +155,7 @@ class GC(object):
 
         self.headers = {
             'Accept-encoding': 'gzip',
-            'User-Agent': 'Mozilla/5.0 (Windows NT 6.1; WOW64; rv:40.0) Gecko/20100101 Firefox/40.1',
+            'User-Agent': generate_user_agent(os='win', device_type='desktop'),
             'Referer': 'https://getcomics.info/',
         }
 
