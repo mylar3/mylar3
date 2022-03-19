@@ -903,6 +903,7 @@
 
         function add_url(issueid, comicid, issuenumber) {
 <<<<<<< HEAD
+<<<<<<< HEAD
             var newDialog = $("<div>", {
                 id: "dialog-form"
             });
@@ -923,6 +924,13 @@
             newDialog.append("<label style='display: block;'>GetComics.info URL:</label><input type='text' id='new_item' />");
 
 >>>>>>> MVP working properly. More testing is needed seems to be working fine
+=======
+            var newDialog = $("<div>", {
+                id: "dialog-form"
+            });
+
+            newDialog.append("<label style='display: block;'>GetComics.info URL:</label><input type='text' id='new_item' />");
+>>>>>>> Bug Fix:
             //  JQUERY UI DIALOG
             newDialog.dialog({
                 resizable: false,
@@ -936,6 +944,7 @@
                     click: function() {
                         var urllink = $('#new_item').val();
 <<<<<<< HEAD
+<<<<<<< HEAD
                         add_wanted(issueid, comicid, issuenumber, 'want', true, urllink);
                         $(this).dialog("close");
                         $('#new_item').val("");
@@ -946,6 +955,12 @@
                         $(this).dialog("close");
                         $('#new_item').val("");
 >>>>>>> MVP working properly. More testing is needed seems to be working fine
+=======
+                        add_wanted(issueid, comicid, issuenumber, 'want', true, urllink);
+                        $(this).dialog("close");
+                        $('#new_item').val("");
+                        $(this).dialog('destroy').remove()  // Necessary to get new variables
+>>>>>>> Bug Fix:
                     }
                 }, {
                     text: "Cancel",
@@ -953,18 +968,26 @@
                         $(this).dialog("close");
                         $('#new_item').val("");
 <<<<<<< HEAD
+<<<<<<< HEAD
                         $(this).dialog('destroy').remove()
 =======
 >>>>>>> MVP working properly. More testing is needed seems to be working fine
+=======
+                        $(this).dialog('destroy').remove()
+>>>>>>> Bug Fix:
                     }
                 }]
             });
             newDialog.dialog("open");
         }
 <<<<<<< HEAD
+<<<<<<< HEAD
 
 =======
 >>>>>>> MVP working properly. More testing is needed seems to be working fine
+=======
+
+>>>>>>> Bug Fix:
         function unqueue_issue(issueid, comicid, smode, rlscomicid){
             $.when($.ajax({
                  type: "GET",
@@ -1011,9 +1034,13 @@
         }
         function add_wanted(issueid, comicid, issuenumber, mode, msearch, urllink){
 <<<<<<< HEAD
+<<<<<<< HEAD
             console.log(issuenumber);
 =======
 >>>>>>> MVP working properly. More testing is needed seems to be working fine
+=======
+            console.log(issuenumber);
+>>>>>>> Bug Fix:
             $.when($.ajax({
                  type: "GET",
                  url: "queueissue",
