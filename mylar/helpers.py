@@ -37,6 +37,7 @@ import urllib
 from urllib.parse import urljoin
 from io import StringIO
 from apscheduler.triggers.interval import IntervalTrigger
+from bs4 import BeautifulSoup
 
 import mylar
 from . import logger
@@ -3304,7 +3305,26 @@ def search_queue(queue):
                                         'ddl':          False,
                                         'download_info': None})
                 else:
-                    ss_queue = mylar.search.searchforissue(item['issueid'])
+                    url = item.get('urllink')
+
+                    if url and comicid and issueid and mylar.CONFIG.ENABLE_DDL is True:
+                        #GC requires an extra step - do it now.
+                        ggc = getcomics.GC(issueid=issueid, comicid=comicid)
+                        nzbid = get_nzbid(url)
+                        ggc.loadsite(nzbid, url)
+                        ddl_it = ggc.parse_downloadresults(nzbid, url, None)
+
+                        if ddl_it['success'] is True:
+                            mylar.updater.foundsearch(ComicID=comicid, IssueID=issueid, provider='DDL(GetComics)')  # Update the DB and get the web notification
+                            logger.info(
+                                'Successfully snatched %s from DDL site. It is currently being queued'
+                                ' to download in position %s' % (url, mylar.DDL_QUEUE.qsize())
+                            )
+                        else:
+                            logger.info('Failed to retrieve %s from the DDL site.' % url)
+                            # return "ddl-fail"
+                    else:
+                        ss_queue = mylar.search.searchforissue(item['issueid'])
                 time.sleep(5) #arbitrary sleep to let the process attempt to finish pp'ing
 
             if mylar.SEARCHLOCK is True:
@@ -3312,6 +3332,20 @@ def search_queue(queue):
                 time.sleep(15)
         else:
             time.sleep(5)
+
+def get_nzbid(url):
+    """
+    Provided a GetComics.info comic url, it returns its ID
+    """
+    assert 'getcomics' in url
+
+    try:
+        r = requests.get(url)
+        nid = BeautifulSoup(r.content, 'html.parser')
+        nzbid = nid.find('link', rel='shortlink').get("href").split('p=')[-1]
+        return nzbid
+    except Exception as e:
+        logger.exception("[SEARCH-QUEUE] Could not get the nzbid for %s url" % url)
 
 
 def worker_main(queue):

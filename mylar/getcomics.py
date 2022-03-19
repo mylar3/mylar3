@@ -659,7 +659,7 @@ class GC(object):
                 check_extras = soup.findAll("h3")
                 for sb in check_extras:
                     header = sb.findNext(text=True)
-                    if header == 'TPBs' and bookype == 'TPB':
+                    if header == 'TPBs' and booktype == 'TPB':
                         nxt = sb.next_sibling
                         if nxt.name == 'ul':
                             bb = nxt.findAll('li')
