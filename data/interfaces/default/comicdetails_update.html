@@ -902,19 +902,11 @@
         }
 
         function add_url(issueid, comicid, issuenumber) {
-            if ($("#dialog-form").length == 0) {
-                console.log("Dialog not found, creating new Dialog.");
-                var newDialog = $("<div>", {
-                    id: "dialog-form"
-                });
-            } else {
-                console.log("Dialog Found.");
-                var newDialog = $("#dialog-form");
-                newDialog.dialog("open");
-                return true;
-            }
-            newDialog.append("<label style='display: block;'>GetComics.info URL:</label><input type='text' id='new_item' />");
+            var newDialog = $("<div>", {
+                id: "dialog-form"
+            });
 
+            newDialog.append("<label style='display: block;'>GetComics.info URL:</label><input type='text' id='new_item' />");
             //  JQUERY UI DIALOG
             newDialog.dialog({
                 resizable: false,
@@ -927,21 +919,23 @@
                     text: "Yes",
                     click: function() {
                         var urllink = $('#new_item').val();
-                        console.log(urllink);
                         add_wanted(issueid, comicid, issuenumber, 'want', true, urllink);
                         $(this).dialog("close");
                         $('#new_item').val("");
+                        $(this).dialog('destroy').remove()  // Necessary to get new variables
                     }
                 }, {
                     text: "Cancel",
                     click: function() {
                         $(this).dialog("close");
                         $('#new_item').val("");
+                        $(this).dialog('destroy').remove()
                     }
                 }]
             });
             newDialog.dialog("open");
         }
+
         function unqueue_issue(issueid, comicid, smode, rlscomicid){
             $.when($.ajax({
                  type: "GET",
@@ -987,6 +981,7 @@
             });
         }
         function add_wanted(issueid, comicid, issuenumber, mode, msearch, urllink){
+            console.log(issuenumber);
             $.when($.ajax({
                  type: "GET",
                  url: "queueissue",
