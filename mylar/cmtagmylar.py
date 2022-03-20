@@ -233,7 +233,8 @@ def run(dirName, nzbName=None, issueid=None, comversion=None, manual=None, filen
             #logger.info(err)
             #if out is not None:
             #    out = out.decode('utf-8')
-            #if err is not None:
+            if all([err is not None, err != '']):
+                logger.warn('[ERROR RETURNED FROM COMIC-TAGGER] %s' % (err,))
             #    err = err.decode('utf-8')
             if initial_ctrun and 'exported successfully' in out:
                 logger.fdebug('%s[COMIC-TAGGER] : %s' % (module, out))
@@ -297,7 +298,14 @@ def run(dirName, nzbName=None, issueid=None, comversion=None, manual=None, filen
                 file_error = 'file not found||%s' % filename
                 return file_error
             else:
-                logger.info('%s[COMIC-TAGGER] Successfully wrote %s [%s]' % (module, tagdisp, filepath))
+                if 'Save complete' not in out:
+                    unknown_message = out
+                    logger.warn('%s[COMIC-TAGGER][UNKNOWN-ERROR-DURING-METATAGGING] %s' % (module, unknown_message))
+                    sendnotify('Error - %s' % (unknown_message), filename, module)
+                    tidyup(og_filepath, new_filepath, new_folder, manualmeta)
+                    return 'fail'
+                else:
+                    logger.info('%s[COMIC-TAGGER] Successfully wrote %s [%s]' % (module, tagdisp, filepath))
                 i+=1
         except OSError as e:
             logger.warn('%s[COMIC-TAGGER] Unable to run comictagger with the options provided: %s' % (module, re.sub(f_tagoptions[f_tagoptions.index(mylar.CONFIG.COMICVINE_API)], 'REDACTED', str(script_cmd))))
