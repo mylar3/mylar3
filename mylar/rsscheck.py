@@ -27,6 +27,7 @@ import random
 from bs4 import BeautifulSoup
 from io import StringIO
 from pkg_resources import parse_version
+from user_agent2 import generate_user_agent
 
 import mylar
 from mylar import db, logger, ftpsshup, helpers, auth32p, utorrent, helpers, filechecker
@@ -392,7 +393,7 @@ def torrents(pickfeed=None, seriesname=None, issue=None, feedinfo=None):
     return
 
 def ddl(forcerss=False):
-    headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 6.1; WOW64; rv:40.0) Gecko/20100101 Firefox/40.1'}
+    headers = {'User-Agent': generate_user_agent(os='win', device_type='desktop')}
     ddl_feed = 'https://getcomics.info/feed/'
     try:
         r = requests.get(ddl_feed, verify=True, headers=headers, timeout=30)

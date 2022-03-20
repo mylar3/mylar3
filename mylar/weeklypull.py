@@ -29,6 +29,7 @@ import datetime
 import shutil
 import traceback
 import json
+from user_agent2 import generate_user_agent
 
 import mylar
 from mylar import db, updater, helpers, logger, newpull, importer, mb, locg, webserve
@@ -1502,7 +1503,7 @@ def checkthis(datecheck, datestatus, usedate):
 def pull_the_file(newrl):
     import requests
     PULLURL = 'https://www.previewsworld.com/shipping/newreleases.txt'
-    PULL_AGENT = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/42.0.2311.135 Safari/537.36 Edge/12.246'}
+    PULL_AGENT = {'User-Agent': generate_user_agent(os='win', device_type='desktop')}
     try:
         r = requests.get(PULLURL, verify=True, headers=PULL_AGENT, stream=True)
     except requests.exceptions.RequestException as e:
