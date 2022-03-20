@@ -415,8 +415,6 @@ class ComicVineTalker(QObject):
             year_filter = ",cover_date:{0}-1-1|{1}-1-1".format(
                 year, int(year) + 1)
 
-        issue_number = urllib.parse.quote_plus(str(issue_number).encode("utf-8"))
-
         filter_line = '%s%s,issue_number:%s' % (volume_filter, year_filter, issue_number)
 
         issues_url = self.api_base_url + "/issues"
