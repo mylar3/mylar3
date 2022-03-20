@@ -90,7 +90,7 @@ class search_check(object):
                     logger.fdebug('sub: %s' % subs)
                     try:
                         if (
-                            len(subs) >= len(ComicName.split())
+                            len(subs) >= len(ComicName)
                             and not any(d in subs.lower() for d in except_list)
                             and bool(_digits.search(subs)) is True
                         ):
