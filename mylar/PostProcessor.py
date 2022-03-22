@@ -113,10 +113,10 @@ class PostProcessor(object):
 
         ep_obj: The object to use when calling the pre script
         """
-        logger.fdebug("initiating pre script detection.")
-        self._log("initiating pre script detection.")
-        logger.fdebug("mylar.PRE_SCRIPTS : " + mylar.CONFIG.PRE_SCRIPTS)
-        self._log("mylar.PRE_SCRIPTS : " + mylar.CONFIG.PRE_SCRIPTS)
+        logger.fdebug('initiating pre script detection.')
+        self._log('initiating pre script detection.')
+        logger.fdebug('mylar.PRE_SCRIPTS : %s' % mylar.CONFIG.PRE_SCRIPTS)
+        self._log('mylar.PRE_SCRIPTS : %s' % mylar.CONFIG.PRE_SCRIPTS)
 #        for currentScriptName in mylar.CONFIG.PRE_SCRIPTS:
         with open(mylar.CONFIG.PRE_SCRIPTS, 'r') as f:
             first_line = f.readline()
@@ -128,28 +128,31 @@ class PostProcessor(object):
         else:
             #forces mylar to use the executable that it was run with to run the extra script.
             if mylar.CONFIG.PRE_SHELL_LOCATION is not None:
-                shell_cmd = mylar.CONFIG.PRE_SHELL_LOCATION
+                if 'powershell' in os.path.basename(mylar.CONFIG.PRE_SHELL_LOCATION.lower()):
+                    shell_cmd = '%s -%s' % (mylar.CONFIG.PRE_SHELL_LOCATION, 'File')
+                else:
+                    shell_cmd = mylar.CONFIG.PRE_SHELL_LOCATION
             else:
                 shell_cmd = sys.executable
 
         currentScriptName = shell_cmd + ' ' + str(mylar.CONFIG.PRE_SCRIPTS) #.decode("string_escape")
-        logger.fdebug("pre script detected...enabling: " + str(currentScriptName))
+        logger.fdebug('pre script detected...enabling: %s' % currentScriptName)
             # generate a safe command line string to execute the script and provide all the parameters
         script_cmd = shlex.split(currentScriptName, posix=False) + [str(nzb_name), str(nzb_folder), str(filename), str(file_path), json.dumps(seriesmetadata)]
-        logger.fdebug("cmd to be executed: %s" % (script_cmd,))
-        self._log("cmd to be executed: %s" % (script_cmd,))
+        logger.fdebug('cmd to be executed: %s' % (script_cmd,))
+        self._log('cmd to be executed: %s' % (script_cmd,))
 
             # use subprocess to run the cosmmand and capture output
-        logger.fdebug("Executing command %s" % (script_cmd,))
-        logger.fdebug("Absolute path to script: %s" % (script_cmd[0],))
+        logger.fdebug('Executing command %s' % (script_cmd,))
+        logger.fdebug('Absolute path to script: %s' % (script_cmd[0],))
         try:
             p = subprocess.Popen(script_cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, cwd=mylar.PROG_DIR)
             out, err = p.communicate() #@UnusedVariable
-            logger.fdebug("Script result: %s" % (out,))
-            self._log("Script result: %s" % (out,))
+            logger.fdebug('Script result: %s' % (out,))
+            self._log('Script result: %s' % (out,))
         except OSError as e:
-           logger.warn("Unable to run pre_script: %s" % (script_cmd,))
-           self._log("Unable to run pre_script: %s" % (script_cmd,))
+           logger.warn('Unable to run pre_script: %s' % (script_cmd,))
+           self._log('Unable to run pre_script: %s' % (script_cmd,))
 
     def _run_extra_scripts(self, nzb_name, nzb_folder, filen, folderp, seriesmetadata):
         """
@@ -157,10 +160,10 @@ class PostProcessor(object):
 
         ep_obj: The object to use when calling the extra script
         """
-        logger.fdebug("initiating extra script detection.")
-        self._log("initiating extra script detection.")
-        logger.fdebug("mylar.EXTRA_SCRIPTS : " + mylar.CONFIG.EXTRA_SCRIPTS)
-        self._log("mylar.EXTRA_SCRIPTS : " + mylar.CONFIG.EXTRA_SCRIPTS)
+        logger.fdebug('initiating extra script detection.')
+        self._log('initiating extra script detection.')
+        logger.fdebug('mylar.EXTRA_SCRIPTS : %s' % mylar.CONFIG.EXTRA_SCRIPTS)
+        self._log('mylar.EXTRA_SCRIPTS : %s' % mylar.CONFIG.EXTRA_SCRIPTS)
 #        for curScriptName in mylar.CONFIG.EXTRA_SCRIPTS:
         with open(mylar.CONFIG.EXTRA_SCRIPTS, 'r') as f:
             first_line = f.readline()
@@ -171,29 +174,32 @@ class PostProcessor(object):
                 shell_cmd = '/bin/bash'
         else:
             if mylar.CONFIG.ES_SHELL_LOCATION is not None:
-                shell_cmd = mylar.CONFIG.ES_SHELL_LOCATION
-            else:
                 #forces mylar to use the executable that it was run with to run the extra script.
+                if 'powershell' in os.path.basename(mylar.CONFIG.ES_SHELL_LOCATION.lower()):
+                    shell_cmd = '%s -%s' % (mylar.CONFIG.ES_SHELL_LOCATION, 'File')
+                else:
+                    shell_cmd = mylar.CONFIG.ES_SHELL_LOCATION
+            else:
                 shell_cmd = sys.executable
 
         curScriptName = shell_cmd + ' ' + str(mylar.CONFIG.EXTRA_SCRIPTS) #.decode("string_escape")
-        logger.fdebug("extra script detected...enabling: " + str(curScriptName))
+        logger.fdebug('extra script detected...enabling: %s' % curScriptName)
             # generate a safe command line string to execute the script and provide all the parameters
-        script_cmd = shlex.split(curScriptName) + [str(nzb_name), str(nzb_folder), str(filen), str(folderp), str(seriesmetadata)]
-        logger.fdebug("cmd to be executed: " + str(script_cmd))
-        self._log("cmd to be executed: " + str(script_cmd))
+        script_cmd = shlex.split(curScriptName) + [str(nzb_name), str(nzb_folder), str(filen), str(folderp), json.dumps(seriesmetadata)]
+        logger.fdebug('cmd to be executed: %s' % (script_cmd,))
+        self._log('cmd to be executed: %s' % (script_cmd,))
 
             # use subprocess to run the command and capture output
-        logger.fdebug("Executing command " +str(script_cmd))
-        logger.fdebug("Absolute path to script: " +script_cmd[0])
+        logger.fdebug('Executing command %s' % (script_cmd,))
+        logger.fdebug('Absolute path to script: %s' % (script_cmd[0],))
         try:
             p = subprocess.Popen(script_cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, cwd=mylar.PROG_DIR, text=True)
             out, err = p.communicate() #@UnusedVariable
-            logger.fdebug("Script result: " + out)
-            self._log("Script result: " + out)
+            logger.fdebug('Script result: %s' % (out,))
+            self._log('Script result: %s' % (out,))
         except OSError as e:
-            logger.warn("Unable to run extra_script: " + str(script_cmd))
-            self._log("Unable to run extra_script: " + str(script_cmd))
+            logger.warn('Unable to run extra_script: %s' % (script_cmd,))
+            self._log('Unable to run extra_script: %s' % (script_cmd,))
 
 
     def duplicate_process(self, dupeinfo):
