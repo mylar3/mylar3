@@ -20,12 +20,13 @@ import re
 import shlex
 import time
 import logging
-import mylar
+import json
 import subprocess
 import urllib.request, urllib.error, urllib.parse
 import sys
 import pathlib
 from xml.dom.minidom import parseString
+import mylar
 
 from mylar import logger, db, helpers, updater, notifiers, filechecker, weeklypull, getimage
 
@@ -106,7 +107,7 @@ class PostProcessor(object):
 #        logger.log(message, level)
         self.log += message + '\n'
 
-    def _run_pre_scripts(self, nzb_name, nzb_folder, seriesmetadata):
+    def _run_pre_scripts(self, nzb_name, nzb_folder, seriesmetadata, filename, file_path):
         """
         Executes any pre scripts defined in the config.
 
@@ -134,21 +135,21 @@ class PostProcessor(object):
         currentScriptName = shell_cmd + ' ' + str(mylar.CONFIG.PRE_SCRIPTS) #.decode("string_escape")
         logger.fdebug("pre script detected...enabling: " + str(currentScriptName))
             # generate a safe command line string to execute the script and provide all the parameters
-        script_cmd = shlex.split(currentScriptName, posix=False) + [str(nzb_name), str(nzb_folder), str(seriesmetadata)]
-        logger.fdebug("cmd to be executed: " + str(script_cmd))
-        self._log("cmd to be executed: " + str(script_cmd))
+        script_cmd = shlex.split(currentScriptName, posix=False) + [str(nzb_name), str(nzb_folder), str(filename), str(file_path), json.dumps(seriesmetadata)]
+        logger.fdebug("cmd to be executed: %s" % (script_cmd,))
+        self._log("cmd to be executed: %s" % (script_cmd,))
 
-            # use subprocess to run the command and capture output
-        logger.fdebug("Executing command " +str(script_cmd))
-        logger.fdebug("Absolute path to script: " +script_cmd[0])
+            # use subprocess to run the cosmmand and capture output
+        logger.fdebug("Executing command %s" % (script_cmd,))
+        logger.fdebug("Absolute path to script: %s" % (script_cmd[0],))
         try:
             p = subprocess.Popen(script_cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, cwd=mylar.PROG_DIR)
             out, err = p.communicate() #@UnusedVariable
-            logger.fdebug("Script result: " + out)
-            self._log("Script result: " + out)
+            logger.fdebug("Script result: %s" % (out,))
+            self._log("Script result: %s" % (out,))
         except OSError as e:
-           logger.warn("Unable to run pre_script: " + str(script_cmd))
-           self._log("Unable to run pre_script: " + str(script_cmd))
+           logger.warn("Unable to run pre_script: %s" % (script_cmd,))
+           self._log("Unable to run pre_script: %s" % (script_cmd,))
 
     def _run_extra_scripts(self, nzb_name, nzb_folder, filen, folderp, seriesmetadata):
         """
@@ -519,10 +520,18 @@ class PostProcessor(object):
                             logger.info('issueid detected in filename: %s' % fl['issueid'])
                             ssi = myDB.selectone('SELECT ComicID, IssueID, IssueArcID, IssueNumber, ComicName, SeriesYear, StoryArc, StoryArcID, Publisher, ReadingOrder FROM storyarcs WHERE IssueID=?', [fl['issueid']]).fetchone()
                             if ssi is not None:
+                                annualtype = None
+                                if mylar.CONFIG.ANNUALS_ON:
+                                    if 'Annual' in ssi['ComicName']:
+                                        annualtype = 'Annual'
+                                    elif 'Special' in ssi['ComicName']:
+                                        annualtype = 'Special'
+
                                 story_the_arcs = True
                                 tmp_the_arc= {"ComicID":         ssi['ComicID'],
                                               "IssueID":         ssi['IssueID'],
                                               "IssueNumber":     ssi['IssueNumber'],
+                                              "AnnualType":      annualtype,
                                               "StoryArc":        ssi['StoryArc'],
                                               "StoryArcID":      ssi['StoryArcID'],
                                               "IssueArcID":      ssi['IssueArcID'],
@@ -2078,6 +2087,8 @@ class PostProcessor(object):
 
             if any([self.nzb_name == 'Manual Run', self.issueid is not None, self.comicid is not None, self.apicall is True]):
                 #loop through the hits here.
+                annualtype = None
+                issuenumOG = None
                 if len(manual_list) == 0 and len(manual_arclist) == 0:
                     if self.nzb_name == 'Manual Run':
                         logger.info('%s No matches for Manual Run ... exiting.' % module)
@@ -2102,11 +2113,11 @@ class PostProcessor(object):
                         if len(manual_arclist) == 1:
                             dspcname = ml['ComicName']
                             dspcyear = ml['SeriesYear']
+                            annualtype = ml['AnnualType']
+                            issuenumOG = ml['IssueNumber']
                     except Exception:
                         dspcname = None
                         dspcyear = None
-
-
                 i = 0
 
                 for ml in manual_list:
@@ -2156,16 +2167,24 @@ class PostProcessor(object):
                             global_line = 'Successfully post-processed pack for %s issues.' % (i)
 
                     elif self.issueid is not None:
-                        if ml['AnnualType'] is not None:
-                            logger.info('%s direct post-processing of issue completed for %s %s #%s.' % (module, ml['ComicName'], ml['AnnualType'], ml['IssueNumber']))
-                            global_line = 'Successfully post-processed</br> %s %s %s' % (ml['ComicName'], ml['AnnualType'], ml['IssueNumber'])
+                        if ml:
+                            t_comicname = ml['ComicName']
+                            t_annualtype = ml['AnnualType']
+                            t_issuenumber = ml['IssueNumber']
                         else:
-                            if ml['IssueNumber'] is not None:
-                                logger.info('%s direct post-processing of issue completed for %s #%s.' % (module, ml['ComicName'], ml['IssueNumber']))
-                                global_line = 'Successfully post-processed</br> %s #%s' % (ml['ComicName'], ml['IssueNumber'])
+                            t_comicname = dspcname
+                            t_annualtype = annualtype
+                            t_issuenumber = issuenumOG
+                        if t_annualtype is not None:
+                            logger.info('%s direct post-processing of issue completed for %s %s #%s.' % (module, t_comicname, t_annualtype, t_issuenumber))
+                            global_line = 'Successfully post-processed</br> %s %s %s' % (t_comicname, t_annualtype, t_issuenumber)
+                        else:
+                            if t_issuenumber is not None:
+                                logger.info('%s direct post-processing of issue completed for %s #%s.' % (module, t_comicname, t_issuenumber))
+                                global_line = 'Successfully post-processed</br> %s #%s' % (t_comicname, t_issuenumber)
                             else:
-                                logger.info('%s direct post-processing of issue completed for %s.' % (module, ml['ComicName']))
-                                global_line = 'Successfully post-processed</br> %s' % (ml['ComicName'])
+                                logger.info('%s direct post-processing of issue completed for %s.' % (module, t_comicname))
+                                global_line = 'Successfully post-processed</br> %s' % (t_comicname)
                     else:
                         logger.info('%s Manual post-processing completed for %s issues.' % (module, i))
                         global_line = 'Manual post-processing completed for %s issues' % (i)
@@ -2905,6 +2924,25 @@ class PostProcessor(object):
                 subpath, orig_filename = os.path.split(ml['ComicLocation'])
                 crcvalue = helpers.crc(ml['ComicLocation'])
 
+            #Run Pre-script
+
+            if mylar.CONFIG.ENABLE_PRE_SCRIPTS:
+                nzbn = self.nzb_name #original nzb name
+                nzbf = self.nzb_folder #original nzb folder
+                #name, comicyear, comicid , issueid, issueyear, issue, publisher
+                #create the dic and send it.
+                seriesmetadata = {
+                            'name':                 series,
+                            'comicyear':            seriesyear,
+                            'comicid':              comicid,
+                            'issueid':              issueid,
+                            'issueyear':            issueyear,
+                            'issue':                issuenum,
+                            'publisher':            publisher
+                            }
+                self._run_pre_scripts(nzbn, nzbf, seriesmetadata, orig_filename, subpath)
+
+
             #tag the meta.
             if mylar.CONFIG.ENABLE_META:
 
@@ -2979,25 +3017,6 @@ class PostProcessor(object):
                     logger.info('%s Sucessfully wrote metadata to .cbz (%s) - Continuing..' % (module, ofilename))
             #Run Pre-script
 
-            if mylar.CONFIG.ENABLE_PRE_SCRIPTS:
-                nzbn = self.nzb_name #original nzb name
-                nzbf = self.nzb_folder #original nzb folder
-                #name, comicyear, comicid , issueid, issueyear, issue, publisher
-                #create the dic and send it.
-                seriesmeta = []
-                seriesmetadata = {}
-                seriesmeta.append({
-                            'name':                 series,
-                            'comicyear':            seriesyear,
-                            'comicid':              comicid,
-                            'issueid':              issueid,
-                            'issueyear':            issueyear,
-                            'issue':                issuenum,
-                            'publisher':            publisher
-                            })
-                seriesmetadata['seriesmeta'] = seriesmeta
-                self._run_pre_scripts(nzbn, nzbf, seriesmetadata)
-
             file_values = {'$Series':    seriesfilename,
                            '$Issue':     prettycomiss,
                            '$Year':      issueyear,
@@ -3010,7 +3029,6 @@ class PostProcessor(object):
                            '$month':     month,
                            '$Annual':    'Annual'
                           }
-
 
             if ml:
 
