@@ -226,7 +226,8 @@ def initialize(config_file):
         except Exception as e:
             logger.error('Cannot connect to the database: %s' % e)
         else:
-            cc.provider_sequence()
+            if mylar.MAINTENANCE is False:
+                cc.provider_sequence()
 
             # quick check here to see if a previous db update failed.
             chk = maintenance.Maintenance(mode='db update')

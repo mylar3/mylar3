@@ -109,7 +109,7 @@ def main():
     parser.add_argument('-v', '--verbose', action='store_true', default=False, help='Increase console logging verbosity')
     parser.add_argument('-q', '--quiet', action='store_true', default=False, help='Turn off console logging')
     parser.add_argument('-d', '--daemon', action='store_true', default=False, help='Run as a daemon')
-    parser.add_argument('-p', '--port', type=int, default=8090, help='Force mylar to run on a specified port')
+    parser.add_argument('-p', '--port', type=int, default=0, help='Force mylar to run on a specified port')
     parser.add_argument('-b', '--backup', nargs='?', const='both', help='Will automatically backup & keep the last 4 rolling copies.')
     parser.add_argument('-w', '--noweekly', action='store_true', default=False, help='Turn off weekly pull list check on startup (quicker boot sequence)')
     parser.add_argument('-iu', '--ignoreupdate', action='store_true', default=False, help='Do not update db if required (for problem bypass)')
@@ -254,6 +254,13 @@ def main():
     #    print e
     #    raise SystemExit('FATAL ERROR')
 
+
+    # check for clearprovidertable value after ini load
+    if mylar.CONFIG.CLEAR_PROVIDER_TABLE is True:
+        logger.info('[CLEAR_PROVIDER_TABLE] forcing over-ride value from config.ini')
+        args_clearprovidertable = True
+        mylar.MAINTENANCE = True
+
     if mylar.MAINTENANCE is False:
         filechecker.validateAndCreateDirectory(mylar.DATA_DIR, True, dmode='DATA')
 
@@ -379,7 +386,7 @@ def main():
         mylar.shutdown(restart=restart_method, maintenance=True)
 
     # Force the http port if neccessary
-    if args_port:
+    if args_port > 0:
         http_port = args_port
         logger.info('Starting Mylar on forced port: %i' % http_port)
     else:
