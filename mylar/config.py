@@ -108,6 +108,7 @@ _CONFIG_DEFINITIONS = OrderedDict({
     'DEFAULT_DATES': (str, 'General', 'store_date'),
     'FOLDER_CACHE_LOCATION': (str, 'General', None),
     'SCAN_ON_SERIES_CHANGES': (bool, 'General', True),
+    'CLEAR_PROVIDER_TABLE': (bool, 'General', False),
 
     'RSS_CHECKINTERVAL': (int, 'Scheduler', 20),
     'SEARCH_INTERVAL': (int, 'Scheduler', 360),
@@ -981,6 +982,9 @@ class Config(object):
             self.WRITE_THE_CONFIG = True
 
     def configure(self, update=False, startup=False):
+
+        if all([self.CLEAR_PROVIDER_TABLE is True, startup is True]):
+            mylar.MAINTENANCE = True
 
         #force alt_pull = 2 on restarts regardless of settings
         if self.ALT_PULL != 2:
