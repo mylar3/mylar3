@@ -25,6 +25,7 @@ import sqlite3
 import itertools
 import json
 import requests
+import shlex
 import time
 import csv
 import shutil
@@ -1666,9 +1667,13 @@ def shutdown(restart=False, update=False, maintenance=False):
         if 'maintenance' not in ARGS:
             popen_list += ARGS
         else:
+            plist = []
             for x in ARGS:
-                if all([x != 'maintenance', x != '-u']):
-                    popen_list += x
+                if x != 'maintenance':
+                    plist.append(x)
+                else:
+                    break
+            popen_list.extend(plist)
         logger.info('Restarting Mylar with ' + str(popen_list))
         os.execv(sys.executable, popen_list)
 

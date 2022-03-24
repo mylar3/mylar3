@@ -106,80 +106,84 @@ def main():
     subparsers = parser.add_subparsers(title='Subcommands', dest='maintenance')
 
     #main parser
-    parser.add_argument('-v', '--verbose', action='store_true', help='Increase console logging verbosity')
-    parser.add_argument('-q', '--quiet', action='store_true', help='Turn off console logging')
-    parser.add_argument('-d', '--daemon', action='store_true', help='Run as a daemon')
-    parser.add_argument('-p', '--port', type=int, help='Force mylar to run on a specified port')
+    parser.add_argument('-v', '--verbose', action='store_true', default=False, help='Increase console logging verbosity')
+    parser.add_argument('-q', '--quiet', action='store_true', default=False, help='Turn off console logging')
+    parser.add_argument('-d', '--daemon', action='store_true', default=False, help='Run as a daemon')
+    parser.add_argument('-p', '--port', type=int, default=8090, help='Force mylar to run on a specified port')
     parser.add_argument('-b', '--backup', nargs='?', const='both', help='Will automatically backup & keep the last 4 rolling copies.')
-    parser.add_argument('-w', '--noweekly', action='store_true', help='Turn off weekly pull list check on startup (quicker boot sequence)')
-    parser.add_argument('-iu', '--ignoreupdate', action='store_true', help='Do not update db if required (for problem bypass)')
-    parser.add_argument('--datadir', help='Specify a directory where to store your data files')
-    parser.add_argument('--config', help='Specify a config file to use')
-    parser.add_argument('--nolaunch', action='store_true', help='Prevent browser from launching on startup')
-    parser.add_argument('--pidfile', help='Create a pid file (only relevant when running as a daemon)')
-    parser.add_argument('--safe', action='store_true', help='redirect the startup page to point to the Manage Comics screen on startup')
+    parser.add_argument('-w', '--noweekly', action='store_true', default=False, help='Turn off weekly pull list check on startup (quicker boot sequence)')
+    parser.add_argument('-iu', '--ignoreupdate', action='store_true', default=False, help='Do not update db if required (for problem bypass)')
+    parser.add_argument('--datadir', default=None, help='Specify a directory where to store your data files')
+    parser.add_argument('--config', default=None, help='Specify a config file to use')
+    parser.add_argument('--nolaunch', action='store_true', default=False, help='Prevent browser from launching on startup')
+    parser.add_argument('--pidfile', default=None, help='Create a pid file (only relevant when running as a daemon)')
+    parser.add_argument('--safe', action='store_true', default=False, help='redirect the startup page to point to the Manage Comics screen on startup')
 
     parser_maintenance = subparsers.add_parser('maintenance', help='Enter maintenance mode (no GUI). Additional commands are available (maintenance --help)')
-    parser_maintenance.add_argument('-xj', '--exportjson', action='store', help='Export existing mylar.db to json file', default=argparse.SUPPRESS)
-    parser_maintenance.add_argument('-id', '--importdatabase', action='store', help='Import a mylar.db into current db', default=argparse.SUPPRESS)
-    parser_maintenance.add_argument('-ij', '--importjson', action='store', help='Import a specified json file containing just {"ComicID": "XXXXX"} into current db', default=argparse.SUPPRESS)
-    parser_maintenance.add_argument('-st', '--importstatus', action='store_true', help='Provide current maintenance status', default=argparse.SUPPRESS)
-    parser_maintenance.add_argument('-u', '--update', action='store_true', help='force mylar to perform an update as if in GUI', default=argparse.SUPPRESS)
-    parser_maintenance.add_argument('-fs', '--fixslashes', action='store_true', help='remove double-slashes from within paths in db', default=argparse.SUPPRESS)
+    parser_maintenance.add_argument('-xj', '--exportjson', default=None, action='store', help='Export existing mylar.db to json file') #, default=argparse.SUPPRESS)
+    parser_maintenance.add_argument('-id', '--importdatabase', default=None, action='store', help='Import a mylar.db into current db') # , default=argparse.SUPPRESS)
+    parser_maintenance.add_argument('-ij', '--importjson', default=None, action='store', help='Import a specified json file containing just {"ComicID": "XXXXX"} into current db') #, default=argparse.SUPPRESS)
+    parser_maintenance.add_argument('-st', '--importstatus', default=False, action='store_true', help='Provide current maintenance status') #, default=argparse.SUPPRESS)
+    parser_maintenance.add_argument('-u', '--update', default=False, action='store_true', help='force mylar to perform an update as if in GUI') #, default=argparse.SUPPRESS)
+    parser_maintenance.add_argument('-fs', '--fixslashes', default=False, action='store_true', help='remove double-slashes from within paths in db') #, default=argparse.SUPPRESS)
+    parser_maintenance.add_argument('-cp', '--clearprovidertable', default=False, action='store_true', help='clear out the provider_searches table in db') #, default=argparse.SUPPRESS)
     #parser_maintenance.add_argument('-it', '--importtext', action='store', help='Import a specified text file into current db')
 
-    args = parser.parse_args()
+    args = vars(parser.parse_args())
 
     #these need to be set for things to register
-    args_exportjson = None
-    args_importdatabase = None
-    args_importjson = None
-    args_importstatus = False
-    args_update = False
-    args_fixslashes = False
+    args_exportjson = args.get('exportjson')
+    args_importdatabase = args.get('importdatabase')
+    args_importjson = args.get('importjson')
+    args_importstatus = args.get('importstatus')
+    args_update = args.get('update')
+    args_fixslashes = args.get('fixslashes')
+    args_clearprovidertable = args.get('clearprovidertable')
+    args_maintenance = args.get('maintenance')
+    args_verbose = args.get('verbose')
+    args_quiet = args.get('quiet')
+    args_ignoreupdate = args.get('ignoreupdate')
+    args_daemon = args.get('daemon')
+    args_pidfile = args.get('pidfile')
+    args_datadir = args.get('datadir')
+    args_config = args.get('config')
+    args_safe = args.get('safe')
+    args_noweekly = args.get('noweekly')
+    args_port = args.get('port')
+    args_nolaunch = args.get('nolaunch')
+    args_backup = args.get('backup')
+    if not any([args_backup == 'ini', args_backup == 'db', args_backup == 'both']):
+        args_backup = False
 
-    if 'exportjson' in args:
-        args_exportjson = args.exportjson
-    if 'importdatabase' in args:
-        args_importdatabase = args.importdatabase
-    if 'importjson' in args:
-        args_importjson = args.importjson
-    if 'importstatus' in args:
-        args_importstatus = True
-    if 'update'in args:
-        args_update = True
-    if 'fixslashes' in args:
-        args_fixslashes = True
-
-    if args.maintenance:
-        if all([args_exportjson is None, args_importdatabase is None, args_importjson is None, args_importstatus is False, args_update is False, args_fixslashes is False]):
+    if args_maintenance:
+        if all([args_exportjson is None, args_importdatabase is None, args_importjson is None, args_importstatus is False, args_update is False, args_fixslashes is False, args_clearprovidertable is False]):
             print('Expecting subcommand with the maintenance positional argumeent')
             sys.exit()
         mylar.MAINTENANCE = True
     else:
         mylar.MAINTENANCE = False
 
-    if args.verbose:
+    if args_verbose:
         print('Verbose/Debugging mode enabled...')
         mylar.LOG_LEVEL = 2
-    elif args.quiet:
+    elif args_quiet:
         mylar.QUIET = True
         print('Quiet logging mode enabled...')
         mylar.LOG_LEVEL = 0
     else:
         mylar.LOG_LEVEL = None
 
-    if args.ignoreupdate:
+    if args_ignoreupdate:
         mylar.MAINTENANCE = False
 
-    if args.daemon:
+    if args_daemon:
         if sys.platform == 'win32':
             print("Daemonize not supported under Windows, starting normally")
         else:
             mylar.DAEMON = True
 
-    if args.pidfile:
-        mylar.PIDFILE = str(args.pidfile)
+    if args_pidfile:
+        mylar.PIDFILE = str(args_pidfile)
 
         # If the pidfile already exists, mylar may still be running, so exit
         if os.path.exists(mylar.PIDFILE):
@@ -199,22 +203,22 @@ def main():
         else:
             print("Not running in daemon mode. PID file creation disabled.")
 
-    if args.datadir:
-        mylar.DATA_DIR = args.datadir
+    if args_datadir:
+        mylar.DATA_DIR = args_datadir
     else:
         mylar.DATA_DIR = mylar.PROG_DIR
 
-    if args.config:
-        mylar.CONFIG_FILE = args.config
+    if args_config:
+        mylar.CONFIG_FILE = args_config
     else:
         mylar.CONFIG_FILE = os.path.join(mylar.DATA_DIR, 'config.ini')
 
-    if args.safe:
+    if args_safe:
         mylar.SAFESTART = True
     else:
         mylar.SAFESTART = False
 
-    if args.noweekly:
+    if args_noweekly:
         mylar.NOWEEKLY = True
     else:
         mylar.NOWEEKLY = False
@@ -223,13 +227,13 @@ def main():
         backup = False
         backup_db = False
         backup_cfg = False
-        if 'backup' in args:
+        if args_backup:
             backup = True
-            if args.backup == 'ini':
+            if args_backup == 'ini':
                 backup_cfg = True
-            elif args.backup == 'db':
+            elif args_backup == 'db':
                 backup_db = True
-            elif args.backup == 'both':
+            elif args_backup == 'both':
                 backup_cfg = True
                 backup_db = True
             else:
@@ -286,7 +290,7 @@ def main():
 
     #print('mylar.MAINTENANCE: %s'%  mylar.MAINTENANCE)
     #print('mylar.MAINTENANCE_TOTAL: %s'%  mylar.MAINTENANCE_DB_TOTAL)
-    if mylar.MAINTENANCE is True and (mylar.MAINTENANCE_UPDATE or any([args_exportjson, args_importjson, args_update is True, args_importstatus is True, args_fixslashes is True])):
+    if mylar.MAINTENANCE is True and (mylar.MAINTENANCE_UPDATE or any([args_exportjson, args_importjson, args_update is True, args_importstatus is True, args_fixslashes is True, args_clearprovidertable is True])):
         # Start up a temporary maintenance server for GUI display only.
         maint_config = {
             'http_port': int(mylar.CONFIG.HTTP_PORT),
@@ -341,9 +345,9 @@ def main():
                 logger.info('%s file indicated as being in json format - path accepted as %s' % (loggermode, maintenance_path))
                 ij = maintenance.Maintenance('json-import', file=maintenance_path)
                 j = ij.json_import()
-            #elif args.importtext:
+            #elif args_importtext:
             #    #for attempted file re-import (list format)
-            #    maintenance_path = args.importtext
+            #    maintenance_path = args_importtext
             #    logger.info('%s file indicated as being in list format - path accepted as %s' % (loggermode, maintenance_path))
             #    it = maintenance.Maintenance('list-import', file=maintenance_path)
             #    t = it.list_import()
@@ -358,8 +362,13 @@ def main():
                 logger.info('%s method indicated as fix slashes' % loggermode)
                 fs = maintenance.Maintenance('fixslashes')
                 j = fs.fix_slashes()
+            elif args_clearprovidertable:
+                #for running the clearprovidertable on the db manually
+                logger.info('%s method indicated as fix clearprovidertable' % loggermode)
+                fs = maintenance.Maintenance('clearprovidertable')
+                j = fs.clear_provider_table()
             else:
-                logger.info('%s Not a valid command: %s' % (loggermode, args.maintenance))
+                logger.info('%s Not a valid command: %s' % (loggermode, args_maintenance))
                 sys.exit()
             logger.info('%s Exiting Maintenance mode' % (loggermode))
 
@@ -370,8 +379,8 @@ def main():
         mylar.shutdown(restart=restart_method, maintenance=True)
 
     # Force the http port if neccessary
-    if args.port:
-        http_port = args.port
+    if args_port:
+        http_port = args_port
         logger.info('Starting Mylar on forced port: %i' % http_port)
     else:
         http_port = int(mylar.CONFIG.HTTP_PORT)
@@ -414,7 +423,7 @@ def main():
     #for version info if it's already running
     versioncheck.versionload()
 
-    if mylar.CONFIG.LAUNCH_BROWSER and not args.nolaunch:
+    if mylar.CONFIG.LAUNCH_BROWSER and not args_nolaunch:
         mylar.launch_browser(mylar.CONFIG.HTTP_HOST, http_port, mylar.CONFIG.HTTP_ROOT)
 
     # Start the background threads
