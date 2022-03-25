@@ -1225,6 +1225,7 @@
                                 </div>
                                     <div class="config">
 -->
+                                        <small class="heading" id="cbr2cbz_section" style="display:none;"><span style="float: left; margin-right: .3em; margin-top: 4px;" class="ui-icon ui-icon-info"></span><span id="cbr2cbz_blurb"></span></small>
                                         <div class="row checkbox left clearfix">
                                                 <% cbr2cbz_config = int(mylar.CONFIG.CBR2CBZ_ONLY) %>
                                                 <input type="hidden" id="cbr2cbz_config" value="${cbr2cbz_config}" />
@@ -1232,7 +1233,7 @@
                                         </div>
 <!--
                                         <div class="row checkbox left clearfix">
-                                                <input style="float:left;width:40px;" id="cbr2cb7_only" type="checkbox" name="cbr2cb7_only" value="1" /><label style="float:left;width:75%;">Convert (CBR/CBZ) to CB7</label>
+                                                <input style="float:left;width:40px;" id="cbr2cb7_only" type="checkbox" name="cbr2cb7_only" value="0" /><label style="float:left;width:75%;">Convert (CBR/CBZ) to CB7</label>
                                         </div>
                                     </div>
                                 <div class="row checkbox left clearfix">
@@ -1240,10 +1241,10 @@
                                 </div>
                                     <div class="config">
                                         <div class="row checkbox left clearfix">
-                                                <input style="float:left;width:40px;" id="cbr2cbz" type="checkbox" name="cbr2cbz_only" value="1" ${config['cbr2cbz_only']} /><label style="float:left;width:75%;">Convert (JPG/PNG) to WEBP</label>
+                                                <input style="float:left;width:40px;" id="jpg2wepb" type="checkbox" name="jpg2wepb_only" value="0" /><label style="float:left;width:75%;">Convert (JPG/PNG) to WEBP</label>
                                         </div>
                                         <div class="row checkbox left clearfix">
-                                                <input style="float:left;width:40px;" id="cbr2cbz" type="checkbox" name="cbr2cbz_only" value="1" ${config['cbr2cbz_only']} /><label style="float:left;width:75%;">Convert WEBP to JPG</label>
+                                                <input style="float:left;width:40px;" id="webp2jpg" type="checkbox" name="webp2jpg_only" value="0" /><label style="float:left;width:75%;">Convert WEBP to JPG</label>
                                         </div>
                                     </div>
 -->
@@ -1916,27 +1917,84 @@
                         }
                 });
 
+                if ($("#cbr2cbz_only").is(":checked"))
+                        {
+                                if ( document.getElementById("enable_meta").checked == true ){
+                                    document.getElementById("enable_meta").checked = false;
+                                }
+                                document.getElementById("enable_meta").setAttribute("disabled", "disabled");
+                                $("#metataggingoptions").slideUp();
+                                document.getElementById("cbr2cbz_blurb").innerHTML = '';
+                                document.getElementById("cbr2cbz_section").style.display = "none";
+                        }
+                else    {
+                                document.getElementById("enable_meta").removeAttribute("disabled");
+                                if (document.getElementById("enable_meta").checked == true){
+                                    document.getElementById("cbr2cbz_blurb").innerHTML = 'CBR to CBZ conversion is automatic with Metadata Tagging enabled';
+                                    document.getElementById("cbr2cbz_section").style.display = "block";
+                                    $("#metataggingoptions").slideDown();
+                                } else {
+                                    document.getElementById("cbr2cbz_blurb").innerHTML = '';
+                                    document.getElementById("cbr2cbz_section").style.display = "none";
+                                    $("#metataggingoptions").slideUp();
+                                }
+                        }
+
+                $("#cbr2cbz_only").click(function(){
+                        if ($("#cbr2cbz_only").is(":checked"))
+                        {
+                                if ( document.getElementById("enable_meta").checked == true ){   // && document.getElementById("cbr2cb7_only").checked =$
+                                    document.getElementById("enable_meta").checked = false;
+                                }
+                                document.getElementById("enable_meta").setAttribute("disabled", "disabled");
+                                $("#metataggingoptions").slideUp();
+                                document.getElementById("cbr2cbz_blurb").innerHTML = '';
+                                document.getElementById("cbr2cbz_only").removeAttribute("disabled");
+                                $("#metataggingoptions").slideUp();
+                                document.getElementById("cbr2cbz_section").style.display = "none";
+                        }
+                        else
+                        {
+                                document.getElementById("enable_meta").removeAttribute("disabled");
+                                if (document.getElementById("enable_meta").checked == true){
+                                    $("#metataggingoptions").slideDown();
+                                    document.getElementById("cbr2cbz_blurb").innerHTML = 'CBR to CBZ conversion is automatic with Metadata Tagging enabled';
+                                    document.getElementById("cbr2cbz_section").style.display = "block";
+                                } else {
+                                    $("#metataggingoptions").slideUp();
+                                    document.getElementById("cbr2cbz_blurb").innerHTML = '';
+                                    document.getElementById("cbr2cbz_section").style.display = "none";
+                                }
+                        }
+                });
+
                 if ($("#enable_meta").is(":checked"))
                         {
-                                if ( document.getElementById("cbr2cbz_only").checked == false ){   // && document.getElementById("cbr2cb7_only").checked == false){
-                                    document.getElementById("cbr2cbz_only").checked = true;
-                                    document.getElementById("cbr2cbz_only").setAttribute("disabled", "disabled");
+                                if ( document.getElementById("cbr2cbz_only").checked == true ){   // && document.getElementById("cbr2cb7_only").checked == false){
+                                    document.getElementById("cbr2cbz_only").checked = false;
                                 }
+                                document.getElementById("cbr2cbz_only").setAttribute("disabled", "disabled");
                                 $("#metataggingoptions").slideDown();
+                                document.getElementById("cbr2cbz_blurb").innerHTML = 'CBR to CBZ conversion is automatic with Metadata Tagging enabled';
+                                document.getElementById("cbr2cbz_section").style.display = "block";
                         }
                 else    {
                                 document.getElementById("cbr2cbz_only").removeAttribute("disabled");
                                 $("#metataggingoptions").slideUp();
+                                document.getElementById("cbr2cbz_blurb").innerHTML = '';
+                                document.getElementById("cbr2cbz_section").style.display = "none";
                         }
 
                 $("#enable_meta").click(function(){
                         if ($("#enable_meta").is(":checked"))
                         {
-                                if ( document.getElementById("cbr2cbz_only").checked == false ){   // && document.getElementById("cbr2cb7_only").checked == false){
-                                    document.getElementById("cbr2cbz_only").checked = true;
+                                if ( document.getElementById("cbr2cbz_only").checked == true ){   // && document.getElementById("cbr2cb7_only").checked == false){
+                                    document.getElementById("cbr2cbz_only").checked = false;
                                 }
                                 document.getElementById("cbr2cbz_only").setAttribute("disabled", "disabled");
                                 $("#metataggingoptions").slideDown();
+                                document.getElementById("cbr2cbz_blurb").innerHTML = 'CBR to CBZ conversion is automatic with Metadata Tagging enabled';
+                                document.getElementById("cbr2cbz_section").style.display = "block";
                         }
                         else
                         {
@@ -1947,6 +2005,9 @@
                                 }
                                 document.getElementById("cbr2cbz_only").removeAttribute("disabled");
                                 $("#metataggingoptions").slideUp();
+                                document.getElementById("cbr2cbz_blurb").innerHTML = '';
+                                document.getElementById("cbr2cbz_section").style.display = "none";
+
                         }
                 });
                 if ($("#cmtag_start_year_as_volume").is(":checked"))
