@@ -108,6 +108,7 @@ _CONFIG_DEFINITIONS = OrderedDict({
     'DEFAULT_DATES': (str, 'General', 'store_date'),
     'FOLDER_CACHE_LOCATION': (str, 'General', None),
     'SCAN_ON_SERIES_CHANGES': (bool, 'General', True),
+    'CLEAR_PROVIDER_TABLE': (bool, 'General', False),
 
     'RSS_CHECKINTERVAL': (int, 'Scheduler', 20),
     'SEARCH_INTERVAL': (int, 'Scheduler', 360),
@@ -982,6 +983,9 @@ class Config(object):
 
     def configure(self, update=False, startup=False):
 
+        if all([self.CLEAR_PROVIDER_TABLE is True, startup is True]):
+            mylar.MAINTENANCE = True
+
         #force alt_pull = 2 on restarts regardless of settings
         if self.ALT_PULL != 2:
             self.ALT_PULL = 2
@@ -1666,84 +1670,96 @@ class Config(object):
                if ck_hits is None:
                    ck_hits = 0
                t_id = ck['id']
+               prov_t = ck['provider']
+               if t_id == 'Experimental':
+                   prov_t = 'experimental'
                #logger.fdebug('[%s] t_id: %s' % (ck['provider'], t_id))
                if any([t_id == 0, t_id is None]):
                    # id of 0 means it hasn't been assigned - so we need to assign it before we build out the dict
-                   if 'DDL(GetComics)' in ck['provider']:
+                   if 'DDL(GetComics)' in prov_t:
                        t_id = 200
-                   elif any(['experimental' in ck['provider'], 'Experimental' in ck['provider']]):
+                   elif any(['experimental' in prov_t, 'Experimental' in prov_t]):
                        t_id = 101
-                   elif 'dog' in ck['provider']:
+                   elif 'dog' in prov_t:
                        t_id = 102
-                   elif any(['nzb.su' in ck['provider'], 'nzbsu' in ck['provider']]):
+                   elif any(['nzb.su' in prov_t, 'nzbsu' in prov_t]):
                        t_id = 103
                    else:
                        nnf = False
                        if self.EXTRA_NEWZNABS:
                            for n in self.EXTRA_NEWZNABS:
-                               if n[0] == ck['provider']:
+                               if n[0] == prov_t:
                                    t_id = n[6]
                                    nnf = True
                                    break
                        if nnf is False and self.EXTRA_TORZNABS:
                            for n in self.EXTRA_TORZNABS:
-                               if n[0] == ck['provider']:
+                               if n[0] == prov_t:
                                    t_id = n[6]
                                    nnf = True
                                    break
 
-                   t_ctrl = {'provider': ck['provider']}
-                   t_vals = {'id': t_id, 'active': ck['active'], 'lastrun': ck['lastrun'], 'type': ck['type'], 'hits': ck_hits}
+                   t_ctrl = {'id': t_id, 'provider': prov_t}
+                   t_vals = {'active': ck['active'], 'lastrun': ck['lastrun'], 'type': ck['type'], 'hits': ck_hits}
                    writeout = myDB.upsert("provider_searches", t_vals, t_ctrl)
-               p_list[ck['provider']] = {'id': t_id, 'active': ck['active'], 'lastrun': ck['lastrun'], 'type': ck['type'], 'hits': ck_hits}
+               p_list[prov_t] = {'id': t_id, 'active': ck['active'], 'lastrun': ck['lastrun'], 'type': ck['type'], 'hits': ck_hits}
 
        #logger.fdebug('p_list: %s' % (p_list,))
        for k, v in self.PROVIDER_ORDER.items():
-           if not any(p.lower() == v.lower() for p, pv in p_list.items()):
+           tmp_prov = v
+           if not any(p.lower() == tmp_prov.lower() for p, pv in p_list.items()):
                write = True
                #logger.fdebug('%s was not found in search db. Writing it..' % v)
-               if 'DDL(GetComics)' in v:
+               if 'DDL(GetComics)' in tmp_prov:
                    t_type = 'DDL'
                    t_id = 200
-               elif any(['experimental' in v, 'Experimental' in v]):
+               elif any(['experimental' in tmp_prov, 'Experimental' in tmp_prov]):
+                   tmp_prov = 'experimental'
                    t_type = 'experimental'
                    t_id = 101
-               elif 'dog' in v:
+               elif 'dog' in tmp_prov:
                    t_type = 'dognzb'
                    t_id = 102
-               elif any(['nzb.su' in v, 'nzbsu' in v]):
+               elif any(['nzb.su' in tmp_prov, 'nzbsu' in tmp_prov]):
                    t_type = 'nzb.su'
                    t_id = 103
                else:
                    nnf = False
                    if self.EXTRA_NEWZNABS:
                        for n in self.EXTRA_NEWZNABS:
-                           if n[0] == v:
+                           if n[0] == tmp_prov:
                                t_type = 'newznab'
                                t_id = n[6]
                                nnf = True
                                break
                    if nnf is False and self.EXTRA_TORZNABS:
                        for n in self.EXTRA_TORZNABS:
-                           if n[0] == v:
+                           if n[0] == tmp_prov:
                                t_type = 'torznab'
                                t_id = n[6]
                                nnf = True
                                break
-               vals = {'id': t_id, 'active': False, 'lastrun': 0, 'type': t_type, 'hits': 0}
+               ctrls = {'id': t_id, 'provider': tmp_prov}
+               vals = {'active': False, 'lastrun': 0, 'type': t_type, 'hits': 0}
            else:
                try:
-                   tprov = [p_list[x] for x, y in p_list.items() if x.lower() == v.lower()][0]
+                   tprov = [p_list[x] for x, y in p_list.items() if x.lower() == tmp_prov.lower()][0]
                except Exception:
                    tprov = None
 
                if tprov:
-                   if any(['nzb.su' in v, 'nzbsu' in v]) and tprov['type'] != 'nzb.su':
+                   if (any(['nzb.su' in tmp_prov, 'nzbsu' in tmp_prov]) and tprov['type'] != 'nzb.su') or (tmp_prov == 'Experimental'):
                        # needed to ensure the type is set properly for this provider
-                       vals = {'id': tprov['id'], 'active': tprov['active'], 'lastrun': tprov['lastrun'], 'type': 'nzb.su', 'hits': tprov['hits']}
+                       ptype = tprov['type']
+                       if tmp_prov == 'Experimental':
+                           myDB.action("DELETE FROM provider_searches where id=101")
+                           tmp_prov = 'experimental'
+                       else:
+                           ptype = 'nzb.su'
+                       ctrls = {'id': tprov['id'], 'provider': tmp_prov}
+                       vals = {'active': tprov['active'], 'lastrun': tprov['lastrun'], 'type': ptype, 'hits': tprov['hits']}
                        write = True
 
            if write is True:
-               ctrls = {'provider': v}
                logger.fdebug('writing: keys - %s: vals - %s' % (vals, ctrls))
                writeout = myDB.upsert("provider_searches", vals, ctrls)

@@ -243,8 +243,11 @@ def getVersion():
                 if os.path.isfile(version_file):
                     #write the name to the .LAST_RELEASE so we don't have to poll for it
                     logger.fdebug('this would have been written to the .LAST_RELEASE file: %s' % (current_release_name))
-                    with open(version_file, 'a') as wf:
-                        wf.write('%s' % current_release_name)
+                    try:
+                        with open(version_file, 'a') as wf:
+                            wf.write('%s' % current_release_name)
+                    except Exception as e:
+                        pass
 
         if current_version:
             if mylar.CONFIG.GIT_BRANCH:

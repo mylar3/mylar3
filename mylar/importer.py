@@ -458,6 +458,7 @@ def addComictoDB(comicid, mismatch=None, pullupd=None, imported=None, ogcname=No
     issuedata = updateddata['issuedata']
     anndata = updateddata['annualchk']
     nostatus = updateddata['nostatus']
+    json_updated = updateddata['json_updated']
     importantdates = updateddata['importantdates']
     if issuedata is None:
         logger.warn('Unable to complete Refreshing / Adding issue data - this WILL create future problems if not addressed.')
@@ -531,7 +532,7 @@ def addComictoDB(comicid, mismatch=None, pullupd=None, imported=None, ogcname=No
     updater.forceRescan(comicid)
 
     #series.json updater here (after all data written out)
-    if mylar.CONFIG.SERIES_METADATA_LOCAL is True:
+    if not json_updated and mylar.CONFIG.SERIES_METADATA_LOCAL is True:
         sm = series_metadata.metadata_Series(comicid, bulk=False, api=False)
         sm.update_metadata()
 
@@ -1219,7 +1220,8 @@ def updateissuedata(comicid, comicname=None, issued=None, comicIssues=None, call
         comic = cv.getComic(comicid, 'comic', series=True)
         if comic is None:
             logger.warn('Error retrieving from ComicVine - either the site is down or you are not using your own CV API key')
-            return
+            return {'status': 'failure'}
+
         if comicIssues is None:
             comicIssues = comic['ComicIssues']
         if SeriesYear is None:
@@ -1230,7 +1232,7 @@ def updateissuedata(comicid, comicname=None, issued=None, comicIssues=None, call
         issued = cv.getComic(comicid, 'issue')
         if issued is None:
             logger.warn('Error retrieving from ComicVine - either the site is down or you are not using your own CV API key')
-            return
+            return {'status': 'failure'}
 
     # poll against annuals here - to make sure annuals are uptodate.
     annualchk = annual_check(comicname, SeriesYear, comicid, issuetype, issuechk, annualchk)
@@ -1597,6 +1599,11 @@ def updateissuedata(comicid, comicname=None, issued=None, comicIssues=None, call
     importantdates['ComicPublished'] = publishfigure
     importantdates['NewPublish'] = newpublish
 
+    #series.json updater here (after all data written out)
+    if mylar.CONFIG.SERIES_METADATA_LOCAL is True:
+        sm = series_metadata.metadata_Series(comicid, bulk=False, api=False)
+        sm.update_metadata()
+
     if calledfrom == 'weeklycheck':
         return weeklyissue_check
 
@@ -1604,12 +1611,14 @@ def updateissuedata(comicid, comicname=None, issued=None, comicIssues=None, call
         return {'issuedata': issuedata,
                 'annualchk': annualchk,
                 'importantdates': importantdates,
+                'json_updated': True,
                 'nostatus':  False}
 
     elif calledfrom == 'dbupdate':
         return {'issuedata': issuedata,
                 'annualchk': annualchk,
                 'importantdates': importantdates,
+                'json_updated': True,
                 'nostatus':  True}
 
     else:

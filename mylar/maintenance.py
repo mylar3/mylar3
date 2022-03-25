@@ -229,6 +229,16 @@ class Maintenance(object):
         else:
             logger.info('[MAINTENANCE-MODE][%s] No series found with incorrect slashes in the path' % self.mode.upper())
 
+    def clear_provider_table(self):
+        self.sql_attachmylar()
+        # drop it
+        self.dbmylar.execute("DROP TABLE provider_searches")
+        # bring it back hot
+        self.dbmylar.execute("CREATE TABLE IF NOT EXISTS provider_searches(id INTEGER UNIQUE, provider TEXT UNIQUE, type TEXT, lastrun INTEGER, active TEXT, hits INTEGER DEFAULT 0)")
+        self.sql_closemylar()
+        mylar.CONFIG.writeconfig(values={'clear_provider_table': False})
+        logger.info('[MAINTENANCE-MODE][%s] Successfully cleared the provider_searches table' % (self.mode.upper()))
+
     def check_status(self):
         try:
             found = False

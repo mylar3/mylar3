@@ -4420,17 +4420,30 @@ def statusChange(status_from, status_to, comicid=None, bulk=False, api=True):
     if bulk is False: #type(comicid) != list:
         sc = myDB.select("SELECT IssueID FROM issues WHERE ComicID=? AND Status=?", [comicid, status_from])
         for s in sc:
-            the_list.append(s[0])
+            the_list.append({'table': 'issues', 'issueid': s['IssueID']})
+        if mylar.CONFIG.ANNUALS_ON:
+            ac = myDB.select("SELECT IssueID FROM annuals WHERE ComicID=? AND Status=?", [comicid, status_from])
+            for s in ac:
+                the_list.append({'table': 'annuals', 'issueid': s['IssueID']})
     else:
         if comicid == 'All':
             sc = myDB.select("SELECT IssueID FROM issues WHERE Status=?", [status_from])
             for s in sc:
-                the_list.append(s[0])
+                the_list.append({'table': 'issues', 'issueid': s['IssueID']})
+            if mylar.CONFIG.ANNUALS_ON:
+                ac = myDB.select("SELECT IssueID FROM annuals WHERE Status=?", [status_from])
+                for s in ac:
+                   the_list.append({'table': 'annuals', 'issueid': s['IssueID']})
+
         else:
             for x in comicid:
                 sc = myDB.select("SELECT IssueID FROM issues WHERE ComicID=? AND Status=?", [x, status_from])
                 for s in sc:
-                    the_list.append(s[0])
+                    the_list.append({'table': 'issues', 'issueid': s['IssueID']})
+                if mylar.CONFIG.ANNUALS_ON:
+                    ac = myDB.select("SELECT IssueID FROM annuals WHERE ComicID=? AND Status=?", [x, status_from])
+                    for s in ac:
+                        the_list.append({'table': 'annuals', 'issueid': s['IssueID']})
 
     #logger.info('the_list: %s' % the_list)
     #for genlist in chunker(the_list, 200):
@@ -4443,7 +4456,7 @@ def statusChange(status_from, status_to, comicid=None, bulk=False, api=True):
     dlist = []
     for x in the_list:
         try:
-            myDB.upsert("issues", {'Status': status_to}, {'IssueID': x, 'Status': status_from})
+            myDB.upsert(x['table'], {'Status': status_to}, {'IssueID': x['issueid'], 'Status': status_from})
         except Exception as e:
             pass
         else:

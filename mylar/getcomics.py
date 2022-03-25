@@ -248,7 +248,7 @@ class GC(object):
                     )
 
                     write_time = time.time()
-                    mylar.search.last_run_check(write={'DDL(GetComics)': {'active': True, 'lastrun': write_time, 'type': 'DDL', 'hits': self.provider_stat['hits']+1}})
+                    mylar.search.last_run_check(write={'DDL(GetComics)': {'id': 200, 'active': True, 'lastrun': write_time, 'type': 'DDL', 'hits': self.provider_stat['hits']+1}})
                     self.provider_stat['lastrun'] = write_time
 
                     with open(self.local_filename, 'wb') as f:

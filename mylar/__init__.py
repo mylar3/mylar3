@@ -25,6 +25,7 @@ import sqlite3
 import itertools
 import json
 import requests
+import shlex
 import time
 import csv
 import shutil
@@ -225,7 +226,8 @@ def initialize(config_file):
         except Exception as e:
             logger.error('Cannot connect to the database: %s' % e)
         else:
-            cc.provider_sequence()
+            if mylar.MAINTENANCE is False:
+                cc.provider_sequence()
 
             # quick check here to see if a previous db update failed.
             chk = maintenance.Maintenance(mode='db update')
@@ -1666,9 +1668,13 @@ def shutdown(restart=False, update=False, maintenance=False):
         if 'maintenance' not in ARGS:
             popen_list += ARGS
         else:
+            plist = []
             for x in ARGS:
-                if all([x != 'maintenance', x != '-u']):
-                    popen_list += x
+                if x != 'maintenance':
+                    plist.append(x)
+                else:
+                    break
+            popen_list.extend(plist)
         logger.info('Restarting Mylar with ' + str(popen_list))
         os.execv(sys.executable, popen_list)
 

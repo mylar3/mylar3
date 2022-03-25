@@ -370,23 +370,23 @@ def search_init(
                 #should be DDL(GetComics)
                 if prov_order[prov_count] == 'DDL(GetComics)' and not provider_blocked and 'DDL(GetComics)' not in checked_once:
                     if 'DDL(GetComics)' not in searchprov.keys():
-                        searchprov['DDL(GetComics)'] = ({'type': 'DDL', 'lastrun': 0, 'active': True})
+                        searchprov['DDL(GetComics)'] = ({'id': 200, 'type': 'DDL', 'lastrun': 0, 'active': True, 'hits': 0})
                     else:
                         searchprov['DDL(GetComics)']['active'] = True
                 elif prov_order[prov_count] == '32p' and not provider_blocked:
-                    searchprov['32P'] = ({'type': 'torrent', 'lastrun': 0, 'active': True})
-                elif prov_order[prov_count] == 'experimental' and not provider_blocked and 'experimental' not in checked_once:
-                    if 'experimental' not in searchprov.keys():
+                    searchprov['32P'] = ({'type': 'torrent', 'lastrun': 0, 'active': True, 'hits': 0})
+                elif prov_order[prov_count].lower() == 'experimental' and not provider_blocked and 'experimental' not in checked_once:
+                    if all(['experimental' not in searchprov.keys(), 'Experimental' not in searchprov.keys()]):
                         prov_order[prov_count] = 'experimental'  # cause it's Experimental for display
                         logger.info('resetting searchprov - last run here..')
-                        searchprov['experimental'] = ({'type': 'experimental', 'lastrun': 0, 'active': True})
+                        searchprov['experimental'] = ({'id': 101, 'type': 'experimental', 'lastrun': 0, 'active': True, 'hits': 0})
                     else:
                         searchprov['experimental']['active'] = True
                 elif (
                     prov_order[prov_count] == 'public torrents' and not provider_blocked
                 ):
                     if 'Public Torrents' not in searchprov.keys():
-                        searchprov['Public Torrents'] = ({'type': 'torrent', 'lastrun': 0, 'active': True})
+                        searchprov['Public Torrents'] = ({'id': mylar.PROVIDER_START_ID+1, 'type': 'torrent', 'lastrun': 0, 'active': True, 'hits': 0})
                     else:
                         searchprov['Public Torrents']['active'] = True
                 elif 'torznab' in prov_order[prov_count]:
@@ -407,7 +407,7 @@ def search_init(
                                    torznab_host[0] not in searchprov.keys(),
                                ]
                         ):
-                            searchprov[torznab_host[0]] = ({'type': 'torznab', 'lastrun': 0, 'active': True})
+                            searchprov[torznab_host[0]] = ({'id': mylar.PROVIDER_START_ID+1, 'type': 'torznab', 'lastrun': 0, 'active': True, 'hits': 0})
                             fnd = True
                         elif all(
                                  [
@@ -438,7 +438,7 @@ def search_init(
                                    newznab_host[0] not in searchprov.keys(),
                                ]
                         ):
-                            searchprov[newznab_host[0]] = ({'type': 'newznab', 'lastrun': 0, 'active': True})
+                            searchprov[newznab_host[0]] = ({'id': mylar.PROVIDER_START_ID+1, 'type': 'newznab', 'lastrun': 0, 'active': True, 'hits': 0})
                             fnd = True
                         elif all(
                                  [
@@ -456,7 +456,7 @@ def search_init(
                     newznab_host = None
                     torznab_host = None
                     if prov_order[prov_count].lower() not in searchprov.keys():
-                        searchprov[prov_order[prov_count].lower()] = ({'type': prov_order[prov_count].lower(), 'lastrun': 0, 'active': True})
+                        searchprov[prov_order[prov_count].lower()] = ({'id': mylar.PROVIDER_START_ID+1, 'type': prov_order[prov_count].lower(), 'lastrun': 0, 'active': True, 'hits': 0})
                     else:
                         searchprov[prov_order[prov_count].lower()]['active'] = True
 
@@ -598,7 +598,7 @@ def search_init(
                 logger.info('attempting to set %s to not being the active provider.'% (list(current_prov.keys())[0]))
                 if findit['lastrun'] != 0:
                    logger.info('setting last run to: %s' % (findit['lastrun']))
-                   last_run_check(write={''.join(current_prov.keys()): {'active': False, 'lastrun': findit['lastrun'], 'type': current_prov[list(current_prov.keys())[0]]['type'], 'hits': current_prov[list(current_prov.keys())[0]]['hits']}})
+                   last_run_check(write={''.join(current_prov.keys()): {'active': False, 'lastrun': findit['lastrun'], 'type': current_prov[list(current_prov.keys())[0]]['type'], 'hits': current_prov[list(current_prov.keys())[0]]['hits'], 'id': current_prov[list(current_prov.keys())[0]]['id']}})
                    #current_prov[list(current_prov.keys())[0]]['lastrun'] = findit['lastrun']
                 current_prov[list(current_prov.keys())[0]]['active'] = False
                 logger.info('setting took. Current provider is: %s' % (current_prov,))
@@ -804,7 +804,7 @@ def NZB_SEARCH(
     if type(nzbprov) != str:
         nzbprov = list(nzbprov.keys())[0]
         provider_stat = provider_stat.get(list(provider_stat.keys())[0])
-    logger.info('nzbprov: %s' % (nzbprov))
+    #logger.info('nzbprov: %s' % (nzbprov))
     #logger.fdebug('provider_stat_after: %s' % (provider_stat))
 
     if nzbprov == 'nzb.su':
@@ -1305,7 +1305,7 @@ def NZB_SEARCH(
                         break
                     is_info['foundc']['lastrun'] = time.time()
                     logger.info('setting lastrun for %s to %s' % (is_info['foundc']['provider'], time.ctime(is_info['foundc']['lastrun'])))
-                    last_run_check(write={str(nzbprov): {'active': provider_stat['active'], 'lastrun': is_info['foundc']['lastrun'], 'type': provider_stat['type'], 'hits': provider_stat['hits']+1}})
+                    last_run_check(write={str(nzbprov): {'active': provider_stat['active'], 'lastrun': is_info['foundc']['lastrun'], 'type': provider_stat['type'], 'hits': provider_stat['hits']+1, 'id': provider_stat['id']}})
                     try:
                         if str(r.status_code) != '200':
                             logger.warn(
@@ -1386,7 +1386,7 @@ def NZB_SEARCH(
                     verified_matches = sfs.checker(bb, is_info)
                 is_info['foundc']['lastrun'] = time.time()
                 logger.fdebug('setting lastrun for %s to %s' % (is_info['foundc']['provider'], time.ctime(is_info['foundc']['lastrun'])))
-                last_run_check(write={str(nzbprov): {'active': provider_stat['active'], 'lastrun': is_info['foundc']['lastrun'], 'type': provider_stat['type'], 'hits': provider_stat['hits']+1}})
+                last_run_check(write={str(nzbprov): {'active': provider_stat['active'], 'lastrun': is_info['foundc']['lastrun'], 'type': provider_stat['type'], 'hits': provider_stat['hits']+1, 'id': provider_stat['id']}})
 
         if verified_matches != "no results":
             verification(verified_matches, is_info)
@@ -4144,27 +4144,36 @@ def last_run_check(write=None, check=None, provider=None):
         chk = {}
         if checkout:
            if provider is not None:
+               if provider == 'Experimental':
+                   provider = 'experimental'
                for ck in checkout:
                    if provider == ck['provider']:
                        chk[ck['provider']] = {'type': ck['type'],
                                               'lastrun': ck['lastrun'],
                                               'active': ck['active'],
-                                              'hits': ck['hits']}
+                                              'hits': ck['hits'],
+                                              'id': ck['id']}
                        break
            else:
                for ck in checkout:
-                   chk[ck['provider']] = {'type': ck['type'],
-                                          'lastrun': ck['lastrun'],
-                                          'active': ck['active'],
-                                          'hits': ck['hits']}
+                   ck_prov = ck['provider']
+                   if ck_prov == 'Experimental':
+                       ck_prov = 'experimental'
+                   chk[ck_prov] = {'type': ck['type'],
+                                   'lastrun': ck['lastrun'],
+                                   'active': ck['active'],
+                                   'hits': ck['hits'],
+                                   'id': ck['id']}
         return chk
     else:
         #logger.fdebug('write: %s' % (write,))
         writekey = list(write.keys())[0]
+        if writekey == 'Experimental':
+            writekey = 'experimental'
         writevals = write[writekey]
         vals = {'active': writevals['active'], 'lastrun': writevals['lastrun'], 'type': writevals['type'], 'hits': writevals['hits']}
-        ctrls = {'provider': writekey}
-        #logger.fdebug('writing: keys - %s: vals - %s' % (vals, ctrls))
+        ctrls = {'provider': writekey, 'id': writevals['id']}
+        #logger.fdebug('writing: keys - %s: vals - %s' % (ctrls, vals))
         writeout = myDB.upsert("provider_searches", vals, ctrls)
 
 def check_the_search_delay(manual=False):
