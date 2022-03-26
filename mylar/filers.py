@@ -87,9 +87,16 @@ class FileHandlers(object):
         if folder_format is None:
             folder_format = '$Series ($Year)'
 
+        publisher = re.sub('!', '', self.comic['ComicPublisher']) # thanks Boom!
+        publisher = helpers.filesafe(publisher)
+
         if mylar.OS_DETECT == 'Windows':
             if '/' in folder_format:
                 folder_format = re.sub('/', '\\', folder_format).strip()
+            if publisher is not None:
+                # windows - she go boom when a directory ends with a period. *nix not so much.
+                if publisher.endswith(r'\.'):
+                    publisher = publisher[:-1]
         else:
             if '\\' in folder_format:
                 folder_format = folder_format.replace('\\', '/').strip()
@@ -109,10 +116,6 @@ class FileHandlers(object):
                 series = series[:-2]
             elif series.endswith('.'):
                 series = series[:-1]
-
-        publisher = re.sub('!', '', self.comic['ComicPublisher']) # thanks Boom!
-        publisher = helpers.filesafe(publisher)
-
 
         if booktype is not None:
             if self.comic['Corrected_Type'] is not None:
