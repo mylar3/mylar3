@@ -169,7 +169,7 @@ class PostProcessor(object):
             first_line = f.readline()
 
         if mylar.CONFIG.EXTRA_SCRIPTS.endswith('.sh'):
-            shell_cmd = re.sub('#!', '', first_line)
+            shell_cmd = re.sub('#!', '', first_line).strip()
             if shell_cmd == '' or shell_cmd is None:
                 shell_cmd = '/bin/bash'
         else:
@@ -185,7 +185,7 @@ class PostProcessor(object):
         curScriptName = shell_cmd + ' ' + str(mylar.CONFIG.EXTRA_SCRIPTS) #.decode("string_escape")
         logger.fdebug('extra script detected...enabling: %s' % curScriptName)
             # generate a safe command line string to execute the script and provide all the parameters
-        script_cmd = shlex.split(curScriptName) + [str(nzb_name), str(nzb_folder), str(filen), str(folderp), json.dumps(seriesmetadata)]
+        script_cmd = shlex.split(curScriptName, posix=False) + [str(nzb_name), str(nzb_folder), str(filen), str(folderp), json.dumps(seriesmetadata)]
         logger.fdebug('cmd to be executed: %s' % (script_cmd,))
         self._log('cmd to be executed: %s' % (script_cmd,))
 
