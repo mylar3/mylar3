@@ -53,7 +53,6 @@ _CONFIG_DEFINITIONS = OrderedDict({
     'DELETE_REMOVE_DIR': (bool, 'General', False),
     'UPCOMING_SNATCHED': (bool, 'General', True),
     'UPDATE_ENDED': (bool, 'General', False),
-    'LOCMOVE': (bool, 'General', False),
     'NEWCOM_DIR': (str, 'General', None),
     'FFTONEWCOM_DIR': (bool, 'General', False),
     'FOLDER_SCAN_LOG_VERBOSE': (bool, 'General', False),
