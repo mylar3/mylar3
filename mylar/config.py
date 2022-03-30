@@ -270,6 +270,7 @@ _CONFIG_DEFINITIONS = OrderedDict({
     'SAB_TO_MYLAR': (bool, 'SABnzbd', False),
     'SAB_DIRECTORY': (str, 'SABnzbd', None),
     'SAB_VERSION': (str, 'SABnzbd', None),
+    'SAB_MOVING_DELAY': (int, 'SABnzbd', 5),
     'SAB_CLIENT_POST_PROCESSING': (bool, 'SABnzbd', False),   #0/False: ComicRN.py, #1/True: Completed Download Handling
 
     'NZBGET_HOST': (str, 'NZBGet', None),

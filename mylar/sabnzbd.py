@@ -17,13 +17,14 @@
 import urllib.request, urllib.parse, urllib.error
 import requests
 import ntpath
+import pathlib
 import os
 import sys
 import re
 import time
 from pkg_resources import parse_version
 import mylar
-from mylar import logger
+from mylar import logger, cdh_mapping
 
 class SABnzbd(object):
     def __init__(self, params):
@@ -197,27 +198,19 @@ class SABnzbd(object):
                         break
 
                     elif all([mylar.CONFIG.SAB_TO_MYLAR, mylar.CONFIG.SAB_DIRECTORY is not None, mylar.CONFIG.SAB_DIRECTORY != 'None']):
-                        tmpfile = ntpath.basename(hq['storage'])
-                        tmp_path = os.path.abspath(os.path.join(hq['storage'], os.pardir))
-                        tmp_path_b = tmp_path.split(os.path.sep)[:-1]
-                        sub_dir = tmp_path.split(os.path.sep)[-1]
-                        if tmp_path == mylar.CONFIG.SAB_DIRECTORY:
-                            rep_tmp_path_b = mylar.CONFIG.SAB_DIRECTORY
-                        else:
-                            rep_tmp_path_b = re.sub(os.path.sep.join(tmp_path_b), mylar.CONFIG.SAB_DIRECTORY, tmp_path).strip()
-
                         try:
-                            if os.path.exists(os.path.join( rep_tmp_path_b, os.path.sep.join(sub_dir), tmpfile )):
-                                new_path = os.path.join( rep_tmp_path_b, os.path.sep.join(sub_dir), tmpfile )
-                            elif os.path.exists(os.path.join( rep_tmp_path_b, tmpfile )):
-                                new_path = os.path.join( rep_tmp_path_b, tmpfile )
-                            else:
-                                logger.error('[SAB-DIRECTORY ENABLED] No file found where it should be @ %s - sabnzbd passed this: %s' % (rep_tmp_path_b, hq['storage']))
-                                return {'status': 'file not found', 'failed': False}
-
+                            np = cdh_mapping.CDH_MAP(hq['storage'], sab=True)
+                            new_path = np.the_sequence()
                         except Exception as e:
-                            logger.warn('[ERROR] %s' % e)
+                            logger.warn('[ERROR] error returned during attempt to map [%s] --> root dir:[%s]. Error: %s' % (hq['storage'], mylar.CONFIG.SAB_DIRECTORY, e))
                             return {'status': 'file not found', 'failed': False}
+                        else:
+                            if new_path is None:
+                                logger.warn('[ERROR] Unable to remap the directory from SAB to Mylar\'s configuration. Error returned:' % (e,))
+                                return {'status': 'file not found', 'failed': False}
+                            elif not os.path.isfile(new_path):
+                                logger.fdebug('[ERROR] Unable to locate path (%s) on the machine that is running Mylar. If Mylar and nzbget are on separate machines, you need to set a directory location that is accessible to both: %s' % (e,))
+                                return {'status': 'file not found', 'failed': False}
 
                         logger.fdebug('location found @ %s' % new_path)
                         found = {'status':   True,
@@ -264,15 +257,17 @@ class SABnzbd(object):
                 elif hq['nzo_id'] == sendresponse:
                     nzo_exists = True
                     logger.fdebug('nzo_id: %s found while processing queue in an unhandled status: %s' % (hq['nzo_id'], hq['status']))
-                    if hq['status'] == 'Queued' and roundtwo is False:
-                        time.sleep(4)
+                    if any([hq['status'] == 'Queued', hq['status'] == 'Moving']) and roundtwo is False:
+                        logger.fdebug('sleeping for %ss to allow the process to finish before trying again..' % (mylar.CONFIG.SAB_MOVING_DELAY))
+                        time.sleep(mylar.CONFIG.SAB_MOVING_DELAY)
                         return self.historycheck(nzbinfo, roundtwo=True)
                     else:
                         return {'failed': False, 'status': 'unhandled status of: %s' %( hq['status'])}
 
             if not nzo_exists:
                 logger.error('Cannot find nzb %s in the queue.  Was it removed?' % sendresponse)
-                time.sleep(5)
+                logger.fdebug('sleeping for %ss to allow the process to finish before trying again..' % (mylar.CONFIG.SAB_MOVING_DELAY))
+                time.sleep(mylar.CONFIG.SAB_MOVING_DELAY)
                 if roundtwo is False:
                     return self.historycheck(nzbinfo, roundtwo=True)
                 else:
