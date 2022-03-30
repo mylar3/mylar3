@@ -25,7 +25,7 @@ import sys
 import re
 import time
 import mylar
-from . import logger
+from mylar import logger, cdh_mapping
 
 class NZBGet(object):
     def __init__(self):
@@ -220,6 +220,10 @@ class NZBGet(object):
                 if os.path.isdir(hq[0]['DestDir']):
                     destdir = hq[0]['DestDir']
                     logger.fdebug('location found @ %s' % destdir)
+                else:
+                    logger.fdebug('Unable to locate path (%s) on the machine that is running Mylar. If Mylar and nzbget are on separate machines, you need to set a directory location that is accessible to both' % hq[0]['DestDir'])
+                    return {'status': 'file not found', 'failed': False}
+
             elif all(['COPY' in hq[0]['Status'], int(hq[0]['FileSizeMB']) > 0, hq[0]['DeleteStatus'] == 'COPY']):
                 if hq[0]['Deleted'] is False:
                     config = self.server.config()
@@ -270,11 +274,11 @@ class NZBGet(object):
                 return {'status': 'file not found', 'failed': False}
 
             if mylar.CONFIG.NZBGET_DIRECTORY is not None:
-                destdir2 = mylar.CONFIG.NZBGET_DIRECTORY
-                if not destdir2.endswith(os.sep):
-                    destdir = destdir2 + os.sep
-                destdir = os.path.join(destdir2, hq[0]['Name'])
-                logger.fdebug('NZBGet Destination folder set via config to: %s' % destdir)
+                logger.fdebug('DestDir being passed to cdh conversion is: %s' % hq[0]['DestDir'])
+                cdh = cdh_mapping.CDH_MAP(hq[0]['DestDir'], nzbget=True, nzbget_server=self.server)
+                destdir = cdh.the_sequence()
+                if destdir is not None:
+                    logger.fdebug('NZBGet Destination folder Successfully set via config to: %s' % destdir)
 
             if destdir is not None:
                 return {'status':   True,
