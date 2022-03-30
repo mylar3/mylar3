@@ -220,7 +220,7 @@ class NZBGet(object):
                 if os.path.isdir(hq[0]['DestDir']):
                     destdir = hq[0]['DestDir']
                     logger.fdebug('location found @ %s' % destdir)
-                else:
+                elif mylar.CONFIG.NZBGET_DIRECTORY is None:
                     logger.fdebug('Unable to locate path (%s) on the machine that is running Mylar. If Mylar and nzbget are on separate machines, you need to set a directory location that is accessible to both' % hq[0]['DestDir'])
                     return {'status': 'file not found', 'failed': False}
 
@@ -279,6 +279,9 @@ class NZBGet(object):
                 destdir = cdh.the_sequence()
                 if destdir is not None:
                     logger.fdebug('NZBGet Destination folder Successfully set via config to: %s' % destdir)
+                else:
+                    logger.fdebug('Unable to locate path (%s) on the machine that is running Mylar. If Mylar and nzbget are on separate machines, you need to set a directory location that is accessible to both' % hq[0]['DestDir'])
+                    return {'status': 'file not found', 'failed': False}
 
             if destdir is not None:
                 return {'status':   True,
