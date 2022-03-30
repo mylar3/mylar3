@@ -926,8 +926,8 @@ def updateComicLocation():
         else:
             logger.info('There are no series in your watchlist to Update the locations. Not updating anything at this time.')
         #set the value to 0 here so we don't keep on doing this...
-        mylar.CONFIG.LOCMOVE = 0
-        #mylar.config_write()
+        mylar.CONFIG.LOCMOVE = False
+        mylar.CONFIG.writeconfig(values={'locmove': False})
     else:
         logger.info('No new ComicLocation path specified - not updating. Set NEWCOMD_DIR in config.ini')
         #raise cherrypy.HTTPRedirect("config")
