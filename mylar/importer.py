@@ -1158,7 +1158,7 @@ def manualAnnual(manual_comicid=None, comicname=None, comicyear=None, comicid=No
                         logger.fdebug('[Marking as Wanted] week %s >= week %s' % (now_week, issue_week))
                         astatus = "Wanted"
                     elif all([int(re.sub('-', '', serieslast_updated).strip()) < int(dk), mylar.CONFIG.AUTOWANT_UPCOMING is True]):
-                        logger.info('Autowant upcoming triggered for issue #%s' % issue['Issue_Number'])
+                        logger.info('Autowant upcoming triggered for issue #%s' % firstval['Issue_Number'])
                         astatus = "Wanted"
                     else:
                         astatus = "Skipped"

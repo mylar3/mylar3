@@ -93,13 +93,13 @@ class FileHandlers(object):
         if mylar.OS_DETECT == 'Windows':
             if '/' in folder_format:
                 folder_format = re.sub('/', '\\', folder_format).strip()
-            if publisher is not None:
-                # windows - she go boom when a directory ends with a period. *nix not so much.
-                if publisher.endswith(r'\.'):
-                    publisher = publisher[:-1]
         else:
             if '\\' in folder_format:
                 folder_format = folder_format.replace('\\', '/').strip()
+
+        if publisher is not None:
+            if publisher.endswith('.'):
+                publisher = publisher[:-1]
 
         u_comicnm = self.comic['ComicName']
         # let's remove the non-standard characters here that will break filenaming / searching.
