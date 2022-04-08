@@ -3433,6 +3433,10 @@ class PostProcessor(object):
                 logger.info("Sending email notification")
                 email = notifiers.EMAIL()
                 email.notify(prline2, "Mylar notification - Processed", module=module)
+
+            if mylar.CONFIG.GOTIFY_ENABLED:
+                gotify = notifiers.GOTIFY()
+                gotify.notify("Download and Postprocessing completed", prline2, module=module)
         except Exception as e:
             logger.warn('[NOTIFICATION] Unable to send notification: %s' % e)
 

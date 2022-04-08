@@ -234,6 +234,11 @@ _CONFIG_DEFINITIONS = OrderedDict({
     'EMAIL_ONGRAB': (bool, 'Email', True),
     'EMAIL_ONPOST': (bool, 'Email', True),
 
+    'GOTIFY_ENABLED': (bool, 'GOTIFY', False),
+    'GOTIFY_SERVER_URL': (str, 'GOTIFY', None),
+    'GOTIFY_TOKEN': (str, 'GOTIFY', None),
+    'GOTIFY_ONSNATCH': (bool, 'GOTIFY', False),
+
     'POST_PROCESSING': (bool, 'PostProcess', False),
     'FILE_OPTS': (str, 'PostProcess', 'move'),
     'SNATCHEDTORRENT_NOTIFY': (bool, 'PostProcess', False),

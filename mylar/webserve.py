@@ -6618,6 +6618,10 @@ class WebInterface(object):
                     "email_tls": helpers.radio(int(mylar.CONFIG.EMAIL_ENC), 2),
                     "email_ongrab": helpers.checked(mylar.CONFIG.EMAIL_ONGRAB),
                     "email_onpost": helpers.checked(mylar.CONFIG.EMAIL_ONPOST),
+                    "gotify_enabled": helpers.checked(mylar.CONFIG.GOTIFY_ENABLED),
+                    "gotify_server_url": mylar.CONFIG.GOTIFY_SERVER_URL,
+                    "gotify_token": mylar.CONFIG.GOTIFY_TOKEN,
+                    "gotify_onsnatch": helpers.checked(mylar.CONFIG.GOTIFY_ONSNATCH),
                     "enable_extra_scripts": helpers.checked(mylar.CONFIG.ENABLE_EXTRA_SCRIPTS),
                     "extra_scripts": mylar.CONFIG.EXTRA_SCRIPTS,
                     "enable_snatch_script": helpers.checked(mylar.CONFIG.ENABLE_SNATCH_SCRIPT),
@@ -6969,7 +6973,7 @@ class WebInterface(object):
                            'lowercase_filenames', 'autowant_upcoming', 'autowant_all', 'comic_cover_local', 'cover_folder_local', 'series_metadata_local', 'alternate_latest_series_covers', 'cvinfo', 'snatchedtorrent_notify',
                            'prowl_enabled', 'prowl_onsnatch', 'pushover_enabled', 'pushover_onsnatch', 'pushover_image', 'boxcar_enabled',
                            'boxcar_onsnatch', 'pushbullet_enabled', 'pushbullet_onsnatch', 'telegram_enabled', 'telegram_onsnatch', 'telegram_image', 'discord_enabled', 'discord_onsnatch', 'slack_enabled', 'slack_onsnatch',
-                           'email_enabled', 'email_enc', 'email_ongrab', 'email_onpost', 'opds_enable', 'opds_authentication', 'opds_metainfo', 'opds_pagesize', 'enable_ddl',
+                           'email_enabled', 'email_enc', 'email_ongrab', 'email_onpost', 'gotify_enabled', 'gotify_server_url', 'gotify_token', 'gotify_onsnatch', 'opds_enable', 'opds_authentication', 'opds_metainfo', 'opds_pagesize', 'enable_ddl',
                            'enable_getcomics', 'deluge_pause'] #enable_public
 
         for checked_config in checked_configs:
@@ -7837,6 +7841,17 @@ class WebInterface(object):
             logger.warn('Email test has gone horribly wrong. Variables used were [FROM: %s] [TO: %s] [SERVER: %s] [PORT: %s] [USER: %s] [PASSWORD: ********] [ENCRYPTION: %s]' % (emailfrom, emailto, emailsvr, emailport, emailuser, emailenc))
             return "Error sending test message via email"
     testemail.exposed = True
+
+    def testgotify(self, webhook_url):
+        gotify = notifiers.GOTIFY(test_webhook_url=webhook_url)
+        result = gotify.test_notify()
+
+        if result == True:
+            return "Successfully sent Gotify test -  check to make sure it worked"
+        else:
+            logger.warn('Test variables used [WEBHOOK_URL: %s][USERNAME: %s]' % (webhook_url, username))
+            return "Error sending test message to Gotify"
+    testgotify.exposed = True
 
     def testrtorrent(self, host, username, password, auth, verify, rpc_url):
         if verify == 'true':
