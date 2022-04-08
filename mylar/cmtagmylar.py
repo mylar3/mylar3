@@ -374,6 +374,10 @@ def sendnotify(message, filename, module):
             logger.info("Sending email notification")
             email = notifiers.EMAIL()
             email.notify(prline2, "Mylar metatagging error: ", module=module)
+
+        if mylar.CONFIG.GOTIFY_ENABLED:
+            gotify = notifiers.GOTIFY()
+            gotify.notify("Mylar metatagging error: ", prline2, module=module)
     except Exception as e:
         logger.warn('[NOTIFICATION] Unable to send notification: %s' % e)
 
