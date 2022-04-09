@@ -628,7 +628,7 @@ def GetComicInfo(comicid, dom, safechk=None, series=False):
         for fc in desclinks:
             try:
                 fc_id = fc['data-ref-id']
-            except:
+            except Exception:
                 continue
 
             if fc_id in micdrop:
@@ -1134,9 +1134,11 @@ def GetSeriesYears(dom):
                             micdrop.append(mic_check['data-ref-id'])
 
             for fc in desclinks:
-                #logger.info('fc: %s'  % fc)
-                fc_id = fc['data-ref-id']
-                #logger.info('fc_id: %s'  % fc_id)
+                try:
+                    fc_id = fc['data-ref-id']
+                except Exception:
+                    continue
+
                 if fc_id in micdrop:
                     continue
                 fc_name = fc.findNext(text=True)
