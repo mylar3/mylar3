@@ -1665,6 +1665,28 @@
                         </div>
                     </fieldset>
 
+                    <fieldset>
+                        <h3><img src="images/gotify.png" style="vertical-align: middle; margin: 3px; margin-top: -1px;" height="30" width="30"/>Gotify</h3>
+                        <div class="row checkbox">
+                            <input type="checkbox" name="gotify_enabled" id="gotify" value="1" ${config['gotify_enabled']} /><label>Enable Gotify Notifications</label>
+                        </div>
+                        <div id="gotifyoptions">
+                            <div class="row">
+                                <label>Server URL</label><input type="text" name="gotify_server_url" id="gotify_server_url" value="${config['gotify_server_url']}" size="50">
+                            </div>
+                            <div class="row">
+                                <label>Token</label><input type="text" name="gotify_token" id="gotify_token" value="${config['gotify_token']}" size="50">
+                            </div>
+                            <div class="row checkbox">
+                                <input type="checkbox" name="gotify_onsnatch" value="1" ${config['gotify_onsnatch']} /><label>Notify on snatch?</label>
+                            </div>
+                            <div align="center" class="row">
+                                <img name="gotify_statusicon" id="gotify_statusicon" src="images/success.png" style="float:right;visibility:hidden;" height="20" width="20" />
+                                <input type="button" value="Test Gotify" id="gotify_test" style="float:center" /></br>
+                                <input type="text" name="gotifystatus" style="text-align:center; font-size:11px;" id="gotifystatus" size="55" DISABLED />
+                            </div>
+                        </div>
+                    </fieldset>
 	       </td>
              </tr>
         </table>
@@ -2170,6 +2192,26 @@
                     else
                     {
                         $("#emailoptions").slideUp();
+                    }
+                });
+
+                if ($("#gotify").is(":checked"))
+                {
+                    $("#gotifyoptions").show();
+                }
+                else
+                {
+                    $("#gotifyoptions").hide();
+                }
+
+                $("#gotify").click(function(){
+                    if ($("#gotify").is(":checked"))
+                    {
+                        $("#gotifyoptions").slideDown();
+                    }
+                    else
+                    {
+                        $("#gotifyoptions").slideUp();
                     }
                 });
 
@@ -2983,6 +3025,33 @@
                                 return;
                             }
                             $('#emailstatus').val(data);
+                            $('#ajaxMsg').removeClass();
+                            $('#ajaxMsg').html("<div class='msg'><span class='ui-icon ui-icon-check'></span>"+data+"</div>");
+                            if ( data.indexOf("Successfully") > -1){
+                               imagechk.src = "";
+                                imagechk.src = "images/success.png";
+                                imagechk.style.visibility = "visible";
+                            } else {
+                                imagechk.src = "";
+                                imagechk.src = "images/x_red.png";
+                                imagechk.style.visibility = "visible";
+                            }
+                    });
+                    $('#ajaxMsg').addClass('success').fadeIn().delay(3000).fadeOut();
+                });
+                
+                $('#gotify_test').click(function () {
+                    var imagechk = document.getElementById("gotify_statusicon");
+                    var server_url = document.getElementById("gotify_server_url").value;
+                    var server_token = document.getElementById("gotify_token").value;
+                    $.get("testgotify",
+                        { webhook_url: server_url+"message?token="+server_token },
+                        function(data){
+                            if (data.error != undefined) {
+                                alert(data.error);
+                                return;
+                            }
+                            $('#gotifystatus').val(data);
                             $('#ajaxMsg').removeClass();
                             $('#ajaxMsg').html("<div class='msg'><span class='ui-icon ui-icon-check'></span>"+data+"</div>");
                             if ( data.indexOf("Successfully") > -1){
