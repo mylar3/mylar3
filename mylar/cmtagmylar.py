@@ -365,6 +365,10 @@ def sendnotify(message, filename, module):
         if mylar.CONFIG.SLACK_ENABLED:
             slack = notifiers.SLACK()
             slack.notify("Mylar metatagging error: ", prline2, module=module)
+            
+        if mylar.CONFIG.MATTERMOST_ENABLED:
+            mattermost = notifiers.MATTERMOST()
+            mattermost.notify("Mylar metatagging error: ", prline2, module=module)
 
         if mylar.CONFIG.DISCORD_ENABLED:
             discord = notifiers.DISCORD()

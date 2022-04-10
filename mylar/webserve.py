@@ -6603,6 +6603,9 @@ class WebInterface(object):
                     "slack_enabled": helpers.checked(mylar.CONFIG.SLACK_ENABLED),
                     "slack_webhook_url": mylar.CONFIG.SLACK_WEBHOOK_URL,
                     "slack_onsnatch": helpers.checked(mylar.CONFIG.SLACK_ONSNATCH),
+                    "mattermost_enabled": helpers.checked(mylar.CONFIG.MATTERMOST_ENABLED),
+                    "mattermost_webhook_url": mylar.CONFIG.MATTERMOST_WEBHOOK_URL,
+                    "mattermost_onsnatch": helpers.checked(mylar.CONFIG.MATTERMOST_ONSNATCH),
                     "discord_enabled": helpers.checked(mylar.CONFIG.DISCORD_ENABLED),
                     "discord_webhook_url": mylar.CONFIG.DISCORD_WEBHOOK_URL,
                     "discord_onsnatch": helpers.checked(mylar.CONFIG.DISCORD_ONSNATCH),
@@ -7815,6 +7818,17 @@ class WebInterface(object):
             logger.warn('Test variables used [WEBHOOK_URL: %s][USERNAME: %s]' % (webhook_url, username))
             return "Error sending test message to Slack"
     testslack.exposed = True
+    
+    def testmattermost(self, webhook_url):
+        mattermost = notifiers.MATTERMOST(test_webhook_url=webhook_url)
+        result = mattermost.test_notify()
+
+        if result == True:
+            return "Successfully sent Mattermost test -  check to make sure it worked"
+        else:
+            logger.warn('Test variables used [WEBHOOK_URL: %s][USERNAME: %s]' % (webhook_url, username))
+            return "Error sending test message to Slack"
+    testmattermost.exposed = True
 
     def testdiscord(self, webhook_url):
         discord = notifiers.DISCORD(test_webhook_url=webhook_url)

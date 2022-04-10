@@ -3425,6 +3425,10 @@ class PostProcessor(object):
                 slack = notifiers.SLACK()
                 slack.notify("Download and Postprocessing completed", prline2, module=module)
 
+            if mylar.CONFIG.MATTERMOST_ENABLED:
+                mattermost = notifiers.MATTERMOST()
+                mattermost.notify("New comic available", prline2, module=module)
+
             if mylar.CONFIG.DISCORD_ENABLED:
                 discord = notifiers.DISCORD()
                 discord.notify("Download and Postprocessing completed", prline2, module=module, imageFile=imageFile)
