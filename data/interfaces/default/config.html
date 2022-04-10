@@ -1574,6 +1574,26 @@
                     </fieldset>
 
                     <fieldset>
+                        <h3><img src="images/mattermost_logo.png" style="vertical-align: middle; margin: 3px; margin-top: -1px;" height="30" width="30"/>Mattermost</h3>
+                        <div class="row checkbox">
+                            <input type="checkbox" name="mattermost_enabled" id="mattermost" value="1" ${config['mattermost_enabled']} /><label>Enable Discord Notifications</label>
+                        </div>
+                        <div id="mattermostoptions">
+                            <div class="row">
+                                <label>Webhook URL</label><input type="text" name="mattermost_webhook_url" id="mattermost_webhook_url" value="${config['mattermost_webhook_url']}" size="50">
+                            </div>
+                            <div class="row checkbox">
+                                <input type="checkbox" name="mattermost_onsnatch" value="1" ${config['mattermost_onsnatch']} /><label>Notify on snatch?</label>
+                            </div>
+                            <div align="center" class="row">
+                                <img name="mattermost_statusicon" id="mattermost_statusicon" src="images/success.png" style="float:right;visibility:hidden;" height="20" width="20" />
+                                <input type="button" value="Test Mattermost" id="mattermost_test" style="float:center" /></br>
+                                <input type="text" name="mattermoststatus" style="text-align:center; font-size:11px;" id="discordstatus" size="55" DISABLED />
+                            </div>
+                        </div>
+                    </fieldset>
+
+                    <fieldset>
                         <h3><img src="images/discord.png" style="vertical-align: middle; margin: 3px; margin-top: -1px;" height="30" width="30"/>discord</h3>
                         <div class="row checkbox">
                             <input type="checkbox" name="discord_enabled" id="discord" value="1" ${config['discord_enabled']} /><label>Enable Discord Notifications</label>
@@ -2921,6 +2941,32 @@
                                 return;
                             }
                             $('#slackstatus').val(data);
+                            $('#ajaxMsg').removeClass();
+                            $('#ajaxMsg').html("<div class='msg'><span class='ui-icon ui-icon-check'></span>"+data+"</div>");
+                            if ( data.indexOf("Successfully") > -1){
+                               imagechk.src = "";
+                                imagechk.src = "images/success.png";
+                                imagechk.style.visibility = "visible";
+                            } else {
+                                imagechk.src = "";
+                                imagechk.src = "images/x_red.png";
+                                imagechk.style.visibility = "visible";
+                            }
+                    });
+                    $('#ajaxMsg').addClass('success').fadeIn().delay(3000).fadeOut();
+                });
+
+                $('#mattermost_test').click(function () {
+                    var imagechk = document.getElementById("mattermost_statusicon");
+                    var webhook_url = document.getElementById("mattermost_webhook_url").value;
+                    $.get("testslack",
+                        { webhook_url: webhook_url },
+                        function(data){
+                            if (data.error != undefined) {
+                                alert(data.error);
+                                return;
+                            }
+                            $('#mattermoststatus').val(data);
                             $('#ajaxMsg').removeClass();
                             $('#ajaxMsg').html("<div class='msg'><span class='ui-icon ui-icon-check'></span>"+data+"</div>");
                             if ( data.indexOf("Successfully") > -1){

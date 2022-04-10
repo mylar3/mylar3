@@ -218,6 +218,10 @@ _CONFIG_DEFINITIONS = OrderedDict({
     'SLACK_ENABLED': (bool, 'SLACK', False),
     'SLACK_WEBHOOK_URL': (str, 'SLACK', None),
     'SLACK_ONSNATCH': (bool, 'SLACK', False),
+    
+    'MATTERMOST_ENABLED': (bool, 'MATTERMOST', False),
+    'MATTERMOST_WEBHOOK_URL': (str, 'MATTERMOST', None),
+    'MATTERMOST_ONSNATCH': (bool, 'MATTERMOST', False),
 
     'DISCORD_ENABLED': (bool, 'DISCORD', False),
     'DISCORD_WEBHOOK_URL': (str, 'DISCORD', None),
