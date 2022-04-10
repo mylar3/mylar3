@@ -3427,7 +3427,7 @@ class PostProcessor(object):
 
             if mylar.CONFIG.MATTERMOST_ENABLED:
                 mattermost = notifiers.MATTERMOST()
-                mattermost.notify("New comic available", prline2, module=module)
+                mattermost.notify("Downloading and Postprocessing completed", prline2, module=module)
 
             if mylar.CONFIG.DISCORD_ENABLED:
                 discord = notifiers.DISCORD()
