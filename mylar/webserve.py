@@ -7827,7 +7827,7 @@ class WebInterface(object):
             return "Successfully sent Mattermost test -  check to make sure it worked"
         else:
             logger.warn('Test variables used [WEBHOOK_URL: %s][USERNAME: %s]' % (webhook_url, username))
-            return "Error sending test message to Slack"
+            return "Error sending test message to Mattermost"
     testmattermost.exposed = True
 
     def testdiscord(self, webhook_url):
