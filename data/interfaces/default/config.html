@@ -1576,7 +1576,7 @@
                     <fieldset>
                         <h3><img src="images/mattermost_logo.png" style="vertical-align: middle; margin: 3px; margin-top: -1px;" height="30" width="30"/>Mattermost</h3>
                         <div class="row checkbox">
-                            <input type="checkbox" name="mattermost_enabled" id="mattermost" value="1" ${config['mattermost_enabled']} /><label>Enable Discord Notifications</label>
+                            <input type="checkbox" name="mattermost_enabled" id="mattermost" value="1" ${config['mattermost_enabled']} /><label>Enable Mattermost Notifications</label>
                         </div>
                         <div id="mattermostoptions">
                             <div class="row">
@@ -2212,6 +2212,26 @@
                     else
                     {
                         $("#gotifyoptions").slideUp();
+                    }
+                });
+
+                if ($("#mattermost").is(":checked"))
+                {
+                    $("#mattermostoptions").show();
+                }
+                else
+                {
+                    $("#mattermostoptions").hide();
+                }
+
+                $("#mattermost").click(function(){
+                    if ($("#mattermost").is(":checked"))
+                    {
+                        $("#mattermostoptions").slideDown();
+                    }
+                    else
+                    {
+                        $("#mattermostoptions").slideUp();
                     }
                 });
 
@@ -2959,7 +2979,7 @@
                 $('#mattermost_test').click(function () {
                     var imagechk = document.getElementById("mattermost_statusicon");
                     var webhook_url = document.getElementById("mattermost_webhook_url").value;
-                    $.get("testslack",
+                    $.get("testmattermost",
                         { webhook_url: webhook_url },
                         function(data){
                             if (data.error != undefined) {
