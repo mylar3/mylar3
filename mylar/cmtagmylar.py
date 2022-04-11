@@ -90,16 +90,24 @@ def run(dirName, nzbName=None, issueid=None, comversion=None, manual=None, filen
         cbr2cbzoptions = ["--configfolder", mylar.CONFIG.CT_SETTINGSPATH, "-e"]
 
     tagoptions = ["-s"]
+
+    cvers = "volume="
     if mylar.CONFIG.CMTAG_VOLUME:
         if mylar.CONFIG.CMTAG_START_YEAR_AS_VOLUME:
-            comversion = str(comversion)
+            pass
+            # comversion is already converted - just leaving this here so we know
         else:
-            if any([comversion is None, comversion == '', comversion == 'None']):
-                comversion = '1'
-            comversion = re.sub('[^0-9]', '', comversion).strip()
-        cvers = 'volume=' + str(comversion)
-    else:
-        cvers = "volume="
+            if mylar.CONFIG.SETDEFAULTVOLUME:
+                if any([comversion is None, comversion == '', comversion == 'None']):
+                    comversion = '1'
+                comversion = re.sub('[^0-9]', '', comversion).strip()
+            else:
+                if any([comversion is None, comversion == '', comversion == 'None']):
+                    comversion = None
+                else:
+                    comversion = re.sub('[^0-9]', '', comversion).strip()
+        if comversion is not None:
+            cvers = 'volume=%s' % comversion
 
     if readingorder is not None:
         if type(readingorder) == list:
@@ -365,7 +373,7 @@ def sendnotify(message, filename, module):
         if mylar.CONFIG.SLACK_ENABLED:
             slack = notifiers.SLACK()
             slack.notify("Mylar metatagging error: ", prline2, module=module)
-            
+
         if mylar.CONFIG.MATTERMOST_ENABLED:
             mattermost = notifiers.MATTERMOST()
             mattermost.notify("Mylar metatagging error: ", prline2, module=module)

@@ -6636,6 +6636,7 @@ class WebInterface(object):
                     "enable_meta": helpers.checked(mylar.CONFIG.ENABLE_META),
                     "cbr2cbz_only": helpers.checked(mylar.CONFIG.CBR2CBZ_ONLY),
                     "cmtag_start_year_as_volume": helpers.checked(mylar.CONFIG.CMTAG_START_YEAR_AS_VOLUME),
+                    "setdefaultvolume": helpers.checked(mylar.CONFIG.SETDEFAULTVOLUME),
                     "cmtagger_path": mylar.CONFIG.CMTAGGER_PATH,
                     "ct_tag_cr": helpers.checked(mylar.CONFIG.CT_TAG_CR),
                     "ct_tag_cbl": helpers.checked(mylar.CONFIG.CT_TAG_CBL),
@@ -6669,7 +6670,7 @@ class WebInterface(object):
                     "dlstats": dlprovstats,
                     "dltotals": freq_tot,
                     "alphaindex": mylar.CONFIG.ALPHAINDEX,
-                    "backup_on_start": helpers.checked(mylar.CONFIG.BACKUP_ON_START)
+                    "backup_on_start": helpers.checked(mylar.CONFIG.BACKUP_ON_START),
                }
         return serve_template(templatename="config.html", title="Settings", config=config, comicinfo=comicinfo)
     config.exposed = True
@@ -6971,7 +6972,7 @@ class WebInterface(object):
                            'dognzb', 'dognzb_verify', 'experimental', 'enable_torrent_search', 'enable_32p', 'enable_torznab',
                            'newznab', 'use_minsize', 'use_maxsize', 'ddump', 'failed_download_handling', 'sab_client_post_processing', 'nzbget_client_post_processing',
                            'failed_auto', 'post_processing', 'enable_check_folder', 'enable_pre_scripts', 'enable_snatch_script', 'enable_extra_scripts',
-                           'enable_meta', 'cbr2cbz_only', 'ct_tag_cr', 'ct_tag_cbl', 'ct_cbz_overwrite', 'cmtag_start_year_as_volume', 'cmtag_volume',
+                           'enable_meta', 'cbr2cbz_only', 'ct_tag_cr', 'ct_tag_cbl', 'ct_cbz_overwrite', 'cmtag_start_year_as_volume', 'cmtag_volume', 'setdefaultvolume',
                            'rename_files', 'replace_spaces', 'zero_level',
                            'lowercase_filenames', 'autowant_upcoming', 'autowant_all', 'comic_cover_local', 'cover_folder_local', 'series_metadata_local', 'alternate_latest_series_covers', 'cvinfo', 'snatchedtorrent_notify',
                            'prowl_enabled', 'prowl_onsnatch', 'pushover_enabled', 'pushover_onsnatch', 'pushover_image', 'mattermost_enabled', 'mattermost_onsnatch', 'boxcar_enabled',
