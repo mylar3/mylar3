@@ -4417,10 +4417,8 @@ class WebInterface(object):
                 StoryArcID = arcinfo[0]['StoryArcID']
             #if StoryArcName is None:
             StoryArcName = arcinfo[0]['StoryArc']
-            lowyear = 9999
-            maxyear = 0
             for la in arcinfo:
-                if all([la['Status'] == 'Downloaded', la['Location'] is None,]):
+                if all([la['Status'] == 'Downloaded', la['Location'] is None]):
                     issref.append({'IssueID':         la['IssueID'],
                                    'ComicID':         la['ComicID'],
                                    'IssuePublisher':  la['IssuePublisher'],
@@ -4431,23 +4429,8 @@ class WebInterface(object):
                                    'IssueNumber':     la['IssueNumber'],
                                    'ReadingOrder':    la['ReadingOrder']})
 
-                if la['IssueDate'] is None or la['IssueDate'] == '0000-00-00':
-                    continue
-                else:
-                    if int(la['IssueDate'][:4]) > maxyear:
-                        maxyear = int(la['IssueDate'][:4])
-                    if int(la['IssueDate'][:4]) < lowyear:
-                        lowyear = int(la['IssueDate'][:4])
-
-
-            if maxyear == 0:
-                spanyears = la['SeriesYear']
-            elif lowyear == maxyear:
-                spanyears = str(maxyear)
-            else:
-                spanyears = '%s - %s' % (lowyear, maxyear)
-
-            sdir = helpers.arcformat(arcinfo[0]['StoryArc'], spanyears, arcpub)
+            spanyears = helpers.spantheyears(StoryArcID)
+            sdir = helpers.arcformat(StoryArcName, spanyears, arcpub)
 
         except:
             cvarcid = None
@@ -4937,29 +4920,14 @@ class WebInterface(object):
             #cycle through the story arcs here for matches on the watchlist
             arcname = ArcWatch[0]['StoryArc']
             arcdir = helpers.filesafe(arcname)
+            if StoryArcID is None:
+                StoryArcID = ArcWatch[0]['StoryArcID']
             arcpub = ArcWatch[0]['Publisher']
             if arcpub is None:
                 arcpub = ArcWatch[0]['IssuePublisher']
-            lowyear = 9999
-            maxyear = 0
-            for la in ArcWatch:
-                if la['IssueDate'] is None:
-                    continue
-                else:
-                    if int(la['IssueDate'][:4]) > maxyear:
-                        maxyear = int(la['IssueDate'][:4])
-                    if int(la['IssueDate'][:4]) < lowyear:
-                        lowyear = int(la['IssueDate'][:4])
-
-            if maxyear == 0:
-                spanyears = la['SeriesYear']
-            elif lowyear == maxyear:
-                spanyears = str(maxyear)
-            else:
-                spanyears = '%s - %s' % (lowyear, maxyear)
 
             logger.info('arcpub: %s' % arcpub)
-            dstloc = helpers.arcformat(arcdir, spanyears, arcpub)
+            dstloc = helpers.arcformat(arcdir, helpers.spantheyears(StoryArcID), arcpub)
             filelist = None
 
             if dstloc is not None:
