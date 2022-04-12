@@ -3373,7 +3373,7 @@ class PostProcessor(object):
             #    return self.queue.put(self.valreturn)
 
             # If using Pushover with image enabled, Telegram with image enabled, or Discord, extract the first image in the file for the notification
-            if any([all([mylar.CONFIG.PUSHOVER_IMAGE, mylar.CONFIG.PUSHOVER_ENABLED]), all([mylar.CONFIG.TELEGRAM_IMAGE, mylar.CONFIG.TELEGRAM_ENABLED]), all([mylar.CONFIG.DISCORD_ENABLED]) ]):
+            if any([all([mylar.CONFIG.PUSHOVER_IMAGE, mylar.CONFIG.PUSHOVER_ENABLED]), all([mylar.CONFIG.TELEGRAM_IMAGE, mylar.CONFIG.TELEGRAM_ENABLED]), all([mylar.CONFIG.DISCORD_ENABLED]), all([mylar.CONFIG.GOTIFY_ENABLED]) ]):
                 try:
                     get_cover = getimage.extract_image(dst, single=True, imquality='notif')
                     imageFile = get_cover['ComicImage']
@@ -3455,7 +3455,7 @@ class PostProcessor(object):
 
             if mylar.CONFIG.GOTIFY_ENABLED:
                 gotify = notifiers.GOTIFY()
-                gotify.notify("Download and Postprocessing completed", prline2, module=module)
+                gotify.notify("Download and Postprocessing completed", prline2, module=module, imageFile=imageFile)
         except Exception as e:
             logger.warn('[NOTIFICATION] Unable to send notification: %s' % e)
 

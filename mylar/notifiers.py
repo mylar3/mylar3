@@ -713,7 +713,7 @@ class GOTIFY:
     def __init__(self, test_webhook_url=None):
         self.webhook_url = mylar.CONFIG.GOTIFY_SERVER_URL+"message?token="+mylar.CONFIG.GOTIFY_TOKEN if test_webhook_url is None else test_webhook_url
 
-    def notify(self, text, attachment_text, snatched_nzb=None, prov=None, sent_to=None, module=None):
+    def notify(self, text, attachment_text, snatched_nzb=None, prov=None, sent_to=None, module=None, imageFile=None):
         if module is None:
             module = ''
         module += '[NOTIFIER]'
@@ -728,11 +728,23 @@ class GOTIFY:
         else:
             pass
 
-        payload = {
-            "title": text,
-            "message": attachment_text
-        }
-
+        if imageFile is None:
+            payload = {
+                "title": text,
+                "message": attachment_text
+            }
+        else:
+            markdown = attachment_text+"\n\n"+f"![](data:image/jpeg;base64,{imageFile})"
+            payload = {
+                "title": text,
+                "message": markdown,
+                "extras": {
+                    "client::display": {
+                        "contentType": "text/markdown"
+                    }
+                }
+            }
+        
         try:
             response = requests.post(self.webhook_url, json=payload, verify=True)
         except Exception as e:
