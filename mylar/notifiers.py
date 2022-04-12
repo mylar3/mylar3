@@ -480,7 +480,7 @@ class MATTERMOST:
     def __init__(self, test_webhook_url=None):
         self.webhook_url = mylar.CONFIG.MATTERMOST_WEBHOOK_URL if test_webhook_url is None else test_webhook_url
 
-    def notify(self, text, attachment_text, snatched_nzb=None, prov=None, sent_to=None, module=None):
+    def notify(self, text, attachment_text,snatched_nzb=None, prov=None, sent_to=None, module=None, imageFile=None,  metadata=None):
         if module is None:
             module = ''
         module += '[NOTIFIER]'
@@ -496,7 +496,39 @@ class MATTERMOST:
             pass
 
         payload = {
-            "text": attachment_text
+            "text": attachment_text,
+            "username": "Mylar",
+            "icon_url": "https://github.com/mylar3/mylar3/raw/master/data/images/mylarlogo.png",
+            "image_url": f"data:image/jpeg;base64,{imageFile}",
+            "footer": "Powered by [Mylar](https://github.com/mylar3/mylar3)",
+            "footer_icon": "https://github.com/mylar3/mylar3/raw/master/data/images/mylarlogo.png",
+            "attachments":[
+                {
+                    "title":f"{metadata['series']} ({metadata['year']}) - Issue {metadata['issue']}",
+                    "fields": [
+                        {
+                            "short": True,
+                            "title": "Series",
+                            "value": metadata['series']
+                        },
+                        {
+                            "short": True,
+                            "title": "Issue No.",
+                            "value": metadata['issue']
+                        },
+                        {
+                            "short": True,
+                            "title": "Year",
+                            "value": metadata['year']
+                        },
+                        {
+                            "short": False,
+                            "title": "Cover",
+                            "value": f"![Cover](data:image/jpeg;base64,{imageFile})"
+                        }
+                    ]
+                }
+            ]
         }
 
         try:
