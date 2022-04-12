@@ -4417,10 +4417,8 @@ class WebInterface(object):
                 StoryArcID = arcinfo[0]['StoryArcID']
             #if StoryArcName is None:
             StoryArcName = arcinfo[0]['StoryArc']
-            lowyear = 9999
-            maxyear = 0
             for la in arcinfo:
-                if all([la['Status'] == 'Downloaded', la['Location'] is None,]):
+                if all([la['Status'] == 'Downloaded', la['Location'] is None]):
                     issref.append({'IssueID':         la['IssueID'],
                                    'ComicID':         la['ComicID'],
                                    'IssuePublisher':  la['IssuePublisher'],
@@ -4431,23 +4429,8 @@ class WebInterface(object):
                                    'IssueNumber':     la['IssueNumber'],
                                    'ReadingOrder':    la['ReadingOrder']})
 
-                if la['IssueDate'] is None or la['IssueDate'] == '0000-00-00':
-                    continue
-                else:
-                    if int(la['IssueDate'][:4]) > maxyear:
-                        maxyear = int(la['IssueDate'][:4])
-                    if int(la['IssueDate'][:4]) < lowyear:
-                        lowyear = int(la['IssueDate'][:4])
-
-
-            if maxyear == 0:
-                spanyears = la['SeriesYear']
-            elif lowyear == maxyear:
-                spanyears = str(maxyear)
-            else:
-                spanyears = '%s - %s' % (lowyear, maxyear)
-
-            sdir = helpers.arcformat(arcinfo[0]['StoryArc'], spanyears, arcpub)
+            spanyears = helpers.spantheyears(StoryArcID)
+            sdir = helpers.arcformat(StoryArcName, spanyears, arcpub)
 
         except:
             cvarcid = None
@@ -4937,29 +4920,14 @@ class WebInterface(object):
             #cycle through the story arcs here for matches on the watchlist
             arcname = ArcWatch[0]['StoryArc']
             arcdir = helpers.filesafe(arcname)
+            if StoryArcID is None:
+                StoryArcID = ArcWatch[0]['StoryArcID']
             arcpub = ArcWatch[0]['Publisher']
             if arcpub is None:
                 arcpub = ArcWatch[0]['IssuePublisher']
-            lowyear = 9999
-            maxyear = 0
-            for la in ArcWatch:
-                if la['IssueDate'] is None:
-                    continue
-                else:
-                    if int(la['IssueDate'][:4]) > maxyear:
-                        maxyear = int(la['IssueDate'][:4])
-                    if int(la['IssueDate'][:4]) < lowyear:
-                        lowyear = int(la['IssueDate'][:4])
-
-            if maxyear == 0:
-                spanyears = la['SeriesYear']
-            elif lowyear == maxyear:
-                spanyears = str(maxyear)
-            else:
-                spanyears = '%s - %s' % (lowyear, maxyear)
 
             logger.info('arcpub: %s' % arcpub)
-            dstloc = helpers.arcformat(arcdir, spanyears, arcpub)
+            dstloc = helpers.arcformat(arcdir, helpers.spantheyears(StoryArcID), arcpub)
             filelist = None
 
             if dstloc is not None:
@@ -6636,6 +6604,7 @@ class WebInterface(object):
                     "enable_meta": helpers.checked(mylar.CONFIG.ENABLE_META),
                     "cbr2cbz_only": helpers.checked(mylar.CONFIG.CBR2CBZ_ONLY),
                     "cmtag_start_year_as_volume": helpers.checked(mylar.CONFIG.CMTAG_START_YEAR_AS_VOLUME),
+                    "setdefaultvolume": helpers.checked(mylar.CONFIG.SETDEFAULTVOLUME),
                     "cmtagger_path": mylar.CONFIG.CMTAGGER_PATH,
                     "ct_tag_cr": helpers.checked(mylar.CONFIG.CT_TAG_CR),
                     "ct_tag_cbl": helpers.checked(mylar.CONFIG.CT_TAG_CBL),
@@ -6669,7 +6638,7 @@ class WebInterface(object):
                     "dlstats": dlprovstats,
                     "dltotals": freq_tot,
                     "alphaindex": mylar.CONFIG.ALPHAINDEX,
-                    "backup_on_start": helpers.checked(mylar.CONFIG.BACKUP_ON_START)
+                    "backup_on_start": helpers.checked(mylar.CONFIG.BACKUP_ON_START),
                }
         return serve_template(templatename="config.html", title="Settings", config=config, comicinfo=comicinfo)
     config.exposed = True
@@ -6971,10 +6940,10 @@ class WebInterface(object):
                            'dognzb', 'dognzb_verify', 'experimental', 'enable_torrent_search', 'enable_32p', 'enable_torznab',
                            'newznab', 'use_minsize', 'use_maxsize', 'ddump', 'failed_download_handling', 'sab_client_post_processing', 'nzbget_client_post_processing',
                            'failed_auto', 'post_processing', 'enable_check_folder', 'enable_pre_scripts', 'enable_snatch_script', 'enable_extra_scripts',
-                           'enable_meta', 'cbr2cbz_only', 'ct_tag_cr', 'ct_tag_cbl', 'ct_cbz_overwrite', 'cmtag_start_year_as_volume', 'cmtag_volume',
+                           'enable_meta', 'cbr2cbz_only', 'ct_tag_cr', 'ct_tag_cbl', 'ct_cbz_overwrite', 'cmtag_start_year_as_volume', 'cmtag_volume', 'setdefaultvolume',
                            'rename_files', 'replace_spaces', 'zero_level',
                            'lowercase_filenames', 'autowant_upcoming', 'autowant_all', 'comic_cover_local', 'cover_folder_local', 'series_metadata_local', 'alternate_latest_series_covers', 'cvinfo', 'snatchedtorrent_notify',
-                           'prowl_enabled', 'prowl_onsnatch', 'pushover_enabled', 'pushover_onsnatch', 'pushover_image', 'boxcar_enabled',
+                           'prowl_enabled', 'prowl_onsnatch', 'pushover_enabled', 'pushover_onsnatch', 'pushover_image', 'mattermost_enabled', 'mattermost_onsnatch', 'boxcar_enabled',
                            'boxcar_onsnatch', 'pushbullet_enabled', 'pushbullet_onsnatch', 'telegram_enabled', 'telegram_onsnatch', 'telegram_image', 'discord_enabled', 'discord_onsnatch', 'slack_enabled', 'slack_onsnatch',
                            'email_enabled', 'email_enc', 'email_ongrab', 'email_onpost', 'gotify_enabled', 'gotify_server_url', 'gotify_token', 'gotify_onsnatch', 'opds_enable', 'opds_authentication', 'opds_metainfo', 'opds_pagesize', 'enable_ddl',
                            'enable_getcomics', 'deluge_pause'] #enable_public
@@ -7822,7 +7791,7 @@ class WebInterface(object):
             logger.warn('Test variables used [WEBHOOK_URL: %s][USERNAME: %s]' % (webhook_url, username))
             return "Error sending test message to Slack"
     testslack.exposed = True
-    
+
     def testmattermost(self, webhook_url):
         mattermost = notifiers.MATTERMOST(test_webhook_url=webhook_url)
         result = mattermost.test_notify()

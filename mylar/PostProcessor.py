@@ -524,7 +524,7 @@ class PostProcessor(object):
                             tmp_manual_list = {}
                             tmp_oneoff = {}
                             logger.info('issueid detected in filename: %s' % fl['issueid'])
-                            ssi = myDB.selectone('SELECT ComicID, IssueID, IssueArcID, IssueNumber, ComicName, SeriesYear, StoryArc, StoryArcID, Publisher, ReadingOrder FROM storyarcs WHERE IssueID=?', [fl['issueid']]).fetchone()
+                            ssi = myDB.selectone('SELECT ComicID, IssueID, IssueArcID, IssueNumber, ComicName, SeriesYear, StoryArc, StoryArcID, Publisher, Volume, ReadingOrder FROM storyarcs WHERE IssueID=?', [fl['issueid']]).fetchone()
                             if ssi is not None:
                                 annualtype = None
                                 if mylar.CONFIG.ANNUALS_ON:
@@ -544,6 +544,7 @@ class PostProcessor(object):
                                               "SeriesYear":      ssi['SeriesYear'],
                                               "Publisher":       ssi['Publisher'],
                                               "ReadingOrder":    ssi['ReadingOrder'],
+                                              "Volume":          ssi['Volume'],
                                               "ComicName":       ssi['ComicName']}
 
                             csi = myDB.selectone('SELECT i.ComicID, i.IssueID, i.Issue_Number, c.ComicName, c.ComicYear, c.AgeRating FROM comics as c JOIN issues as i ON c.ComicID = i.ComicID WHERE i.IssueID=?', [fl['issueid']]).fetchone()
@@ -1164,6 +1165,9 @@ class PostProcessor(object):
                                         if len(tmp_watchmatch_vol) == 4:
                                             if int(tmp_watchmatch_vol) == int(watch_values['SeriesYear']):
                                                 logger.fdebug('%s[ISSUE-VERIFY][SeriesYear-Volume MATCH] Series Year of %s matched to volume/year label of %s' % (module, watch_values['SeriesYear'], tmp_watchmatch_vol))
+                                                if len(watchvals) == 1:
+                                                    logger.fdebug('%s[ISSUE-VERIFY][Lone Volume MATCH] Series Volume Year of %s indicates only volume for this series on your watchlist.' % (module, watch_values['SeriesYear']))
+                                                    lonevol = True
                                             else:
                                                 logger.fdebug('%s[ISSUE-VERIFY][SeriesYear-Volume FAILURE] Series Year of %s DID NOT match to volume/year label of %s' % (module, watch_values['SeriesYear'], tmp_watchmatch_vol))
                                                 datematch = "False"
@@ -1623,6 +1627,7 @@ class PostProcessor(object):
                                                                                "Publisher":       arcpublisher,
                                                                                "AnnualType":      annualtype,
                                                                                "ReadingOrder":    v[i]['ArcValues']['ReadingOrder'],
+                                                                               "Volume":          v[i]['WatchValues']['ComicVersion'],
                                                                                "ComicName":       k})
                                                         tmp_arclist.append({"ComicName": k,
                                                                             "ComicID":   v[i]['WatchValues']['ComicID'],
@@ -1796,6 +1801,11 @@ class PostProcessor(object):
 
                             crcvalue = helpers.crc(ofilename)
 
+                            if mylar.CONFIG.CMTAG_START_YEAR_AS_VOLUME:
+                                vol_label = ml['SeriesYear']
+                            else:
+                                vol_label = ml['Volume']
+
                             roders = myDB.select('SELECT StoryArc, ReadingOrder from storyarcs WHERE ComicID=? AND IssueID=?', [ml['ComicID'], issueid])
                             readingorder = None
                             if roders is not None:
@@ -1808,7 +1818,7 @@ class PostProcessor(object):
                                 logger.info('[STORY-ARC POST-PROCESSING] Metatagging enabled - proceeding...')
                                 try:
                                     from . import cmtagmylar
-                                    metaresponse = cmtagmylar.run(self.nzb_folder, issueid=issueid, filename=ofilename, readingorder=readingorder, agerating=None)
+                                    metaresponse = cmtagmylar.run(self.nzb_folder, issueid=issueid, comversion=vol_label, filename=ofilename, readingorder=readingorder, agerating=None)
                                 except ImportError:
                                     logger.warn('%s comictaggerlib not found on system. Ensure the ENTIRE lib directory is located within mylar/lib/comictaggerlib/' % module)
                                     metaresponse = "fail"
@@ -2369,7 +2379,12 @@ class PostProcessor(object):
                         readingorder = rdorder
                     logger.fdebug('readingorder: %s' % (readingorder))
 
-                    #tag the meta.
+                    if mylar.CONFIG.CMTAG_START_YEAR_AS_VOLUME:
+                        vol_label = arcdata['SeriesYear']
+                    else:
+                        vol_label = arcdata['ComicVersion']
+
+                    #tag the meta
                     metaresponse = None
                     crcvalue = helpers.crc(os.path.join(location, ofilename))
 
@@ -2383,7 +2398,7 @@ class PostProcessor(object):
                                 tmp_ppdir = odir
                             else:
                                 tmp_ppdir = os.path.join(odir, ofilename)
-                            metaresponse = cmtagmylar.run(location, issueid=issueid, filename=tmp_ppdir, readingorder=readingorder, agerating=None)
+                            metaresponse = cmtagmylar.run(location, issueid=issueid, comversion=vol_label, filename=tmp_ppdir, readingorder=readingorder, agerating=None)
                         except ImportError:
                             logger.warn('%s comictaggerlib not found on system. Ensure the ENTIRE lib directory is located within mylar/lib/comictaggerlib/' % module)
                             metaresponse = "fail"
