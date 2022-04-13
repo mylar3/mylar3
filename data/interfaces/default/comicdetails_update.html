@@ -22,6 +22,7 @@
                            </div>
 
                         <input type="hidden" name="meta_enabled" id="meta_enabled" value=${mylar.CONFIG.ENABLE_META} />
+                        <input type="hidden" name="meta_cbr2cbz" id="meta_cbr2cbz" value=${mylar.CONFIG.CBR2CBZ_ONLY} />
                         <input type="hidden" name="rename_enabled" id="rename_enabled" value=${mylar.CONFIG.RENAME_FILES} />
                         %if mylar.CONFIG.RENAME_FILES:
                             <a id="menu_link_refresh" tile="rename all files in a Downloaded status as per the folder format string" onclick="manual_rename(${comic['ComicID']})" href="#">Rename Files</a>
@@ -29,7 +30,7 @@
 
                             <a id="menu_link_refresh" title="Rescan local files" onclick="force_rescan(${comic['ComicID']})">Recheck Files</a>
                         <a id="menu_link_searchmissing" title="Search for all Missing files" onclick="search4missing(${comic['ComicID']})" href="#">Search-4-Missing</a>
-                        %if mylar.CONFIG.ENABLE_META:
+                        %if any([mylar.CONFIG.ENABLE_META, mylar.CONFIG.CBR2CBZ_ONLY]):
                             <a id="menu_link_refresh" href="#" title="perform metatagging on each Downloaded issue" onclick="group_metatag(${comic['ComicID']})">Manual MetaTagging</a>
                         %endif
 
@@ -1662,7 +1663,7 @@
                                             issueimg = '<img src="images/issueinfo_orange.png" height="25" width="25" title="View CBR Issue Details" class="highqual" style="margin:2px 1px 3px 3px;" />';
                                         }
                                    }
-                                   if (document.getElementById("meta_enabled").value == 'True'){
+                                   if (document.getElementById("meta_enabled").value == 'True' || document.getElementById("meta_cbr2cbz").value == 'True'){
                                        displayline += '<a id="metatag" name="metatag" title="Manually meta-tag issue" href="#"><img src="images/comictagger.png" height="25" width="25" style="margin:2px 1px 3px 3px;" /></a>';
                                    }
                                }
@@ -1880,7 +1881,7 @@
                                             issueimg = '<img src="images/issueinfo_orange.png" height="25" width="25" title="View CBR Issue Details" class="highqual" style="margin:2px 1px 3px 3px;" />';
                                         }
                                    }
-                                   if (document.getElementById("meta_enabled").value == 'True'){
+                                   if (document.getElementById("meta_enabled").value == 'True' || document.getElementById("meta_cbr2cbz").value == 'True'){
                                        displayline += '<a id="ametatag" name="ametatag" title="Manually meta-tag issue" href="#"><img src="images/comictagger.png" height="25" width="25" style="margin:2px 1px 3px 3px;" /></a>';
                                    }
                                }
