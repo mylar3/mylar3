@@ -1814,7 +1814,7 @@ class PostProcessor(object):
                                     readingorder.append((rd['StoryArc'], rd['ReadingOrder']))
                             logger.fdebug('readingorder: %s' % (readingorder))
 
-                            if mylar.CONFIG.ENABLE_META:
+                            if any([mylar.CONFIG.ENABLE_META, mylar.CONFIG.CBR2CBZ_ONLY]):
                                 logger.info('[STORY-ARC POST-PROCESSING] Metatagging enabled - proceeding...')
                                 try:
                                     from . import cmtagmylar
@@ -2390,7 +2390,7 @@ class PostProcessor(object):
 
                     #if a one-off download from the pull-list, will not have an issueid associated with it, and will fail to due conversion/tagging.
                     #if altpull/2 method is being used, issueid may already be present so conversion/tagging is possible with some additional fixes.
-                    if all([mylar.CONFIG.ENABLE_META, issueid is not None]):
+                    if all([mylar.CONFIG.ENABLE_META, issueid is not None]) or mylar.CONFIG.CBR2CBZ_ONLY:
                         self._log("Metatagging enabled - proceeding...")
                         try:
                             from . import cmtagmylar
@@ -2965,7 +2965,7 @@ class PostProcessor(object):
 
 
             #tag the meta.
-            if mylar.CONFIG.ENABLE_META:
+            if any([mylar.CONFIG.ENABLE_META, mylar.CONFIG.CBR2CBZ_ONLY]):
 
                 self._log("Metatagging enabled - proceeding...")
                 logger.fdebug('%s Metatagging enabled - proceeding...' % module)

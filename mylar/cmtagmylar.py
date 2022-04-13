@@ -162,16 +162,19 @@ def run(dirName, nzbName=None, issueid=None, comversion=None, manual=None, filen
     i = 1
     tagcnt = 0
 
-    if mylar.CONFIG.CT_TAG_CR:
-        tagcnt = 1
-        logger.fdebug(module + ' CR Tagging enabled.')
+    if mylar.CONFIG.CBR2CBZ_ONLY:
+        logger.fdebug(module + ' CBR2CBZ Conversion only.')
+    else:
+        if mylar.CONFIG.CT_TAG_CR:
+            tagcnt = 1
+            logger.fdebug(module + ' CR Tagging enabled.')
 
-    if mylar.CONFIG.CT_TAG_CBL:
-        if not mylar.CONFIG.CT_TAG_CR: i = 2  #set the tag to start at cbl and end without doing another tagging.
-        tagcnt = 2
-        logger.fdebug(module + ' CBL Tagging enabled.')
+        if mylar.CONFIG.CT_TAG_CBL:
+            if not mylar.CONFIG.CT_TAG_CR: i = 2  #set the tag to start at cbl and end without doing another tagging.
+            tagcnt = 2
+            logger.fdebug(module + ' CBL Tagging enabled.')
 
-    if tagcnt == 0:
+    if tagcnt == 0 and not mylar.CONFIG.CBR2CBZ_ONLY:
         logger.warn(module + ' You have metatagging enabled, but you have not selected the type(s) of metadata to write. Please fix and re-run manually')
         tidyup(filepath, new_filepath, new_folder, manualmeta)
         return "fail"

@@ -1198,7 +1198,7 @@ class Config(object):
         #comictagger - force to use included version if option is enabled.
         import comictaggerlib.ctversion as ctversion
         logger.info('[COMICTAGGER] Version detected: %s' % ctversion.version)
-        if self.ENABLE_META:
+        if any([self.ENABLE_META, self.CBR2CBZ_ONLY]):
             mylar.CMTAGGER_PATH = mylar.PROG_DIR
 
             if not ([self.CT_NOTES_FORMAT == 'CVDB', self.CT_NOTES_FORMAT == 'Issue ID']):
