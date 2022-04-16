@@ -1923,7 +1923,7 @@ class PostProcessor(object):
                         else:
                             logger.fdebug('%s [%s] Post-Processing completed for: %s' % (module, ml['StoryArc'], ml['ComicLocation']))
 
-                        if any([all([mylar.CONFIG.PUSHOVER_IMAGE, mylar.CONFIG.PUSHOVER_ENABLED]), all([mylar.CONFIG.TELEGRAM_IMAGE, mylar.CONFIG.TELEGRAM_ENABLED]) ]):
+                        if any([all([mylar.CONFIG.PUSHOVER_IMAGE, mylar.CONFIG.PUSHOVER_ENABLED]), all([mylar.CONFIG.TELEGRAM_IMAGE, mylar.CONFIG.TELEGRAM_ENABLED]),all([mylar.CONFIG.MATTERMOST_ENABLED]) ]):
                             try:
                                 get_cover = getimage.extract_image(grab_dst, single=True, imquality='notif')
                                 imageFile = get_cover['ComicImage']
@@ -2512,7 +2512,7 @@ class PostProcessor(object):
                         logger.info('%s Post-Processing completed for: [ %s #%s ] %s' % (module, comicname, issuenumber, grab_dst))
                         self._log("Post Processing SUCCESSFUL! ")
 
-                    if any([all([mylar.CONFIG.PUSHOVER_IMAGE, mylar.CONFIG.PUSHOVER_ENABLED]), all([mylar.CONFIG.TELEGRAM_IMAGE, mylar.CONFIG.TELEGRAM_ENABLED]) ]):
+                    if any([all([mylar.CONFIG.PUSHOVER_IMAGE, mylar.CONFIG.PUSHOVER_ENABLED]), all([mylar.CONFIG.TELEGRAM_IMAGE, mylar.CONFIG.TELEGRAM_ENABLED]), all([mylar.CONFIG.MATTERMOST_ENABLED]) ]):
                         try:
                             get_cover = getimage.extract_image(grab_dst, single=True, imquality='notif')
                             imageFile = get_cover['ComicImage']
@@ -3373,7 +3373,7 @@ class PostProcessor(object):
             #    return self.queue.put(self.valreturn)
 
             # If using Pushover with image enabled, Telegram with image enabled, or Discord, extract the first image in the file for the notification
-            if any([all([mylar.CONFIG.PUSHOVER_IMAGE, mylar.CONFIG.PUSHOVER_ENABLED]), all([mylar.CONFIG.TELEGRAM_IMAGE, mylar.CONFIG.TELEGRAM_ENABLED]), all([mylar.CONFIG.DISCORD_ENABLED]), all([mylar.CONFIG.GOTIFY_ENABLED]) ]):
+            if any([all([mylar.CONFIG.PUSHOVER_IMAGE, mylar.CONFIG.PUSHOVER_ENABLED]), all([mylar.CONFIG.TELEGRAM_IMAGE, mylar.CONFIG.TELEGRAM_ENABLED]), all([mylar.CONFIG.DISCORD_ENABLED]), all([mylar.CONFIG.GOTIFY_ENABLED]), all([mylar.CONFIG.MATTERMOST_ENABLED])]):
                 try:
                     get_cover = getimage.extract_image(dst, single=True, imquality='notif')
                     imageFile = get_cover['ComicImage']
@@ -3442,7 +3442,8 @@ class PostProcessor(object):
 
             if mylar.CONFIG.MATTERMOST_ENABLED:
                 mattermost = notifiers.MATTERMOST()
-                mattermost.notify("Downloading and Postprocessing completed", prline2, module=module)
+                metadata = { 'series':series, 'issue': issuenumOG, 'year': issueyear }
+                mattermost.notify("Downloading and Postprocessing completed", prline2, metadata=metadata, imageFile=imageFile, module=module)
 
             if mylar.CONFIG.DISCORD_ENABLED:
                 discord = notifiers.DISCORD()
