@@ -87,12 +87,19 @@ class FileHandlers(object):
         if folder_format is None:
             folder_format = '$Series ($Year)'
 
+        publisher = re.sub('!', '', self.comic['ComicPublisher']) # thanks Boom!
+        publisher = helpers.filesafe(publisher)
+
         if mylar.OS_DETECT == 'Windows':
             if '/' in folder_format:
                 folder_format = re.sub('/', '\\', folder_format).strip()
         else:
             if '\\' in folder_format:
                 folder_format = folder_format.replace('\\', '/').strip()
+
+        if publisher is not None:
+            if publisher.endswith('.'):
+                publisher = publisher[:-1]
 
         u_comicnm = self.comic['ComicName']
         # let's remove the non-standard characters here that will break filenaming / searching.
@@ -109,10 +116,6 @@ class FileHandlers(object):
                 series = series[:-2]
             elif series.endswith('.'):
                 series = series[:-1]
-
-        publisher = re.sub('!', '', self.comic['ComicPublisher']) # thanks Boom!
-        publisher = helpers.filesafe(publisher)
-
 
         if booktype is not None:
             if self.comic['Corrected_Type'] is not None:

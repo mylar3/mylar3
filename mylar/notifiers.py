@@ -475,6 +475,46 @@ class SLACK:
 
     def test_notify(self):
         return self.notify('Test Message', 'Release the Ninjas!')
+    
+class MATTERMOST:
+    def __init__(self, test_webhook_url=None):
+        self.webhook_url = mylar.CONFIG.MATTERMOST_WEBHOOK_URL if test_webhook_url is None else test_webhook_url
+
+    def notify(self, text, attachment_text, snatched_nzb=None, prov=None, sent_to=None, module=None):
+        if module is None:
+            module = ''
+        module += '[NOTIFIER]'
+
+        if 'snatched' in attachment_text.lower():
+            snatched_text = '%s: %s' % (attachment_text, snatched_nzb)
+            if all([sent_to is not None, prov is not None]):
+                snatched_text += ' from %s and %s' % (prov, sent_to)
+            elif sent_to is None:
+                snatched_text += ' from %s' % prov
+            attachment_text = snatched_text
+        else:
+            pass
+
+        payload = {
+            "text": attachment_text
+        }
+
+        try:
+            response = requests.post(self.webhook_url, json=payload, verify=True)
+        except Exception as e:
+            logger.info(module + 'Mattermost notify failed: ' + str(e))
+
+        # Error logging
+        sent_successfuly = True
+        if not response.status_code == 200:
+            logger.info(module + 'Could not send notification to Mattermost (webhook_url=%s). Response: [%s]' % (self.webhook_url, response.text))
+            sent_successfuly = False
+
+        logger.info(module + "Mattermost notifications sent.")
+        return sent_successfuly
+
+    def test_notify(self):
+        return self.notify('Test Message', 'Release the Ninjas!')
 
 class DISCORD:
     def __init__(self, test_webhook_url=None):
@@ -664,6 +704,59 @@ class DISCORD:
             sent_successfuly = False
 
         logger.info(module + "Discord notifications sent.")
+        return sent_successfuly
+
+    def test_notify(self):
+        return self.notify('Test Message', 'Release the Ninjas!')
+
+class GOTIFY:
+    def __init__(self, test_webhook_url=None):
+        self.webhook_url = mylar.CONFIG.GOTIFY_SERVER_URL+"message?token="+mylar.CONFIG.GOTIFY_TOKEN if test_webhook_url is None else test_webhook_url
+
+    def notify(self, text, attachment_text, snatched_nzb=None, prov=None, sent_to=None, module=None, imageFile=None):
+        if module is None:
+            module = ''
+        module += '[NOTIFIER]'
+
+        if 'snatched' in attachment_text.lower():
+            snatched_text = '%s: %s' % (attachment_text, snatched_nzb)
+            if all([sent_to is not None, prov is not None]):
+                snatched_text += ' from %s and %s' % (prov, sent_to)
+            elif sent_to is None:
+                snatched_text += ' from %s' % prov
+            attachment_text = snatched_text
+        else:
+            pass
+
+        if imageFile is None:
+            payload = {
+                "title": text,
+                "message": attachment_text
+            }
+        else:
+            markdown = attachment_text+"\n\n"+f"![](data:image/jpeg;base64,{imageFile})"
+            payload = {
+                "title": text,
+                "message": markdown,
+                "extras": {
+                    "client::display": {
+                        "contentType": "text/markdown"
+                    }
+                }
+            }
+        
+        try:
+            response = requests.post(self.webhook_url, json=payload, verify=True)
+        except Exception as e:
+            logger.info(module + 'Gotify notify failed: ' + str(e))
+
+        # Error logging
+        sent_successfuly = True
+        if not response.status_code == 200:
+            logger.info(module + 'Could not send notification to Gotify (webhook_url=%s). Response: [%s]' % (self.webhook_url, response.text))
+            sent_successfuly = False
+
+        logger.info(module + "Gotify notifications sent.")
         return sent_successfuly
 
     def test_notify(self):

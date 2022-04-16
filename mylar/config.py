@@ -53,7 +53,6 @@ _CONFIG_DEFINITIONS = OrderedDict({
     'DELETE_REMOVE_DIR': (bool, 'General', False),
     'UPCOMING_SNATCHED': (bool, 'General', True),
     'UPDATE_ENDED': (bool, 'General', False),
-    'LOCMOVE': (bool, 'General', False),
     'NEWCOM_DIR': (str, 'General', None),
     'FFTONEWCOM_DIR': (bool, 'General', False),
     'FOLDER_SCAN_LOG_VERBOSE': (bool, 'General', False),
@@ -219,6 +218,10 @@ _CONFIG_DEFINITIONS = OrderedDict({
     'SLACK_ENABLED': (bool, 'SLACK', False),
     'SLACK_WEBHOOK_URL': (str, 'SLACK', None),
     'SLACK_ONSNATCH': (bool, 'SLACK', False),
+    
+    'MATTERMOST_ENABLED': (bool, 'MATTERMOST', False),
+    'MATTERMOST_WEBHOOK_URL': (str, 'MATTERMOST', None),
+    'MATTERMOST_ONSNATCH': (bool, 'MATTERMOST', False),
 
     'DISCORD_ENABLED': (bool, 'DISCORD', False),
     'DISCORD_WEBHOOK_URL': (str, 'DISCORD', None),
@@ -234,6 +237,11 @@ _CONFIG_DEFINITIONS = OrderedDict({
     'EMAIL_ENC': (int, 'Email', 0),
     'EMAIL_ONGRAB': (bool, 'Email', True),
     'EMAIL_ONPOST': (bool, 'Email', True),
+
+    'GOTIFY_ENABLED': (bool, 'GOTIFY', False),
+    'GOTIFY_SERVER_URL': (str, 'GOTIFY', None),
+    'GOTIFY_TOKEN': (str, 'GOTIFY', None),
+    'GOTIFY_ONSNATCH': (bool, 'GOTIFY', False),
 
     'POST_PROCESSING': (bool, 'PostProcess', False),
     'FILE_OPTS': (str, 'PostProcess', 'move'),
@@ -270,6 +278,7 @@ _CONFIG_DEFINITIONS = OrderedDict({
     'SAB_TO_MYLAR': (bool, 'SABnzbd', False),
     'SAB_DIRECTORY': (str, 'SABnzbd', None),
     'SAB_VERSION': (str, 'SABnzbd', None),
+    'SAB_MOVING_DELAY': (int, 'SABnzbd', 5),
     'SAB_CLIENT_POST_PROCESSING': (bool, 'SABnzbd', False),   #0/False: ComicRN.py, #1/True: Completed Download Handling
 
     'NZBGET_HOST': (str, 'NZBGet', None),
@@ -1189,7 +1198,7 @@ class Config(object):
         #comictagger - force to use included version if option is enabled.
         import comictaggerlib.ctversion as ctversion
         logger.info('[COMICTAGGER] Version detected: %s' % ctversion.version)
-        if self.ENABLE_META:
+        if any([self.ENABLE_META, self.CBR2CBZ_ONLY]):
             mylar.CMTAGGER_PATH = mylar.PROG_DIR
 
             if not ([self.CT_NOTES_FORMAT == 'CVDB', self.CT_NOTES_FORMAT == 'Issue ID']):

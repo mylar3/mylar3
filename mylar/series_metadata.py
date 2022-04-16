@@ -130,7 +130,7 @@ class metadata_Series(object):
                 comicVol = comic['ComicVersion']
                 if all([mylar.CONFIG.SETDEFAULTVOLUME is True, comicVol is None]):
                     comicVol = 1
-                if comicVol is not None:
+                elif comicVol is not None:
                     if comicVol.isdigit():
                         comicVol = int(comicVol)
                         logger.info('Updated version to :' + str(comicVol))
@@ -138,9 +138,6 @@ class metadata_Series(object):
                            comicVol = None
                     else:
                         comicVol = int(re.sub('[^0-9]', '', comicVol).strip())
-                else:
-                    if mylar.CONFIG.SETDEFAULTVOLUME is True:
-                        comicVol = 1
 
                 if any([comic['ComicYear'] is None, comic['ComicYear'] == '0000', comic['ComicYear'][-1:] == '-']):
                     SeriesYear = int(issued['firstdate'][:4])

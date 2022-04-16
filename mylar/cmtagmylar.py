@@ -90,16 +90,24 @@ def run(dirName, nzbName=None, issueid=None, comversion=None, manual=None, filen
         cbr2cbzoptions = ["--configfolder", mylar.CONFIG.CT_SETTINGSPATH, "-e"]
 
     tagoptions = ["-s"]
+
+    cvers = "volume="
     if mylar.CONFIG.CMTAG_VOLUME:
         if mylar.CONFIG.CMTAG_START_YEAR_AS_VOLUME:
-            comversion = str(comversion)
+            pass
+            # comversion is already converted - just leaving this here so we know
         else:
-            if any([comversion is None, comversion == '', comversion == 'None']):
-                comversion = '1'
-            comversion = re.sub('[^0-9]', '', comversion).strip()
-        cvers = 'volume=' + str(comversion)
-    else:
-        cvers = "volume="
+            if mylar.CONFIG.SETDEFAULTVOLUME:
+                if any([comversion is None, comversion == '', comversion == 'None']):
+                    comversion = '1'
+                comversion = re.sub('[^0-9]', '', comversion).strip()
+            else:
+                if any([comversion is None, comversion == '', comversion == 'None']):
+                    comversion = None
+                else:
+                    comversion = re.sub('[^0-9]', '', comversion).strip()
+        if comversion is not None:
+            cvers = 'volume=%s' % comversion
 
     if readingorder is not None:
         if type(readingorder) == list:
@@ -154,16 +162,19 @@ def run(dirName, nzbName=None, issueid=None, comversion=None, manual=None, filen
     i = 1
     tagcnt = 0
 
-    if mylar.CONFIG.CT_TAG_CR:
-        tagcnt = 1
-        logger.fdebug(module + ' CR Tagging enabled.')
+    if mylar.CONFIG.CBR2CBZ_ONLY:
+        logger.fdebug(module + ' CBR2CBZ Conversion only.')
+    else:
+        if mylar.CONFIG.CT_TAG_CR:
+            tagcnt = 1
+            logger.fdebug(module + ' CR Tagging enabled.')
 
-    if mylar.CONFIG.CT_TAG_CBL:
-        if not mylar.CONFIG.CT_TAG_CR: i = 2  #set the tag to start at cbl and end without doing another tagging.
-        tagcnt = 2
-        logger.fdebug(module + ' CBL Tagging enabled.')
+        if mylar.CONFIG.CT_TAG_CBL:
+            if not mylar.CONFIG.CT_TAG_CR: i = 2  #set the tag to start at cbl and end without doing another tagging.
+            tagcnt = 2
+            logger.fdebug(module + ' CBL Tagging enabled.')
 
-    if tagcnt == 0:
+    if tagcnt == 0 and not mylar.CONFIG.CBR2CBZ_ONLY:
         logger.warn(module + ' You have metatagging enabled, but you have not selected the type(s) of metadata to write. Please fix and re-run manually')
         tidyup(filepath, new_filepath, new_folder, manualmeta)
         return "fail"
@@ -366,6 +377,10 @@ def sendnotify(message, filename, module):
             slack = notifiers.SLACK()
             slack.notify("Mylar metatagging error: ", prline2, module=module)
 
+        if mylar.CONFIG.MATTERMOST_ENABLED:
+            mattermost = notifiers.MATTERMOST()
+            mattermost.notify("Mylar metatagging error: ", prline2, module=module)
+
         if mylar.CONFIG.DISCORD_ENABLED:
             discord = notifiers.DISCORD()
             discord.notify(filename, message, module=module)
@@ -374,6 +389,10 @@ def sendnotify(message, filename, module):
             logger.info("Sending email notification")
             email = notifiers.EMAIL()
             email.notify(prline2, "Mylar metatagging error: ", module=module)
+
+        if mylar.CONFIG.GOTIFY_ENABLED:
+            gotify = notifiers.GOTIFY()
+            gotify.notify("Mylar metatagging error: ", prline2, module=module)
     except Exception as e:
         logger.warn('[NOTIFICATION] Unable to send notification: %s' % e)
 

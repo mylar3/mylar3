@@ -169,7 +169,7 @@ class PostProcessor(object):
             first_line = f.readline()
 
         if mylar.CONFIG.EXTRA_SCRIPTS.endswith('.sh'):
-            shell_cmd = re.sub('#!', '', first_line)
+            shell_cmd = re.sub('#!', '', first_line).strip()
             if shell_cmd == '' or shell_cmd is None:
                 shell_cmd = '/bin/bash'
         else:
@@ -185,7 +185,7 @@ class PostProcessor(object):
         curScriptName = shell_cmd + ' ' + str(mylar.CONFIG.EXTRA_SCRIPTS) #.decode("string_escape")
         logger.fdebug('extra script detected...enabling: %s' % curScriptName)
             # generate a safe command line string to execute the script and provide all the parameters
-        script_cmd = shlex.split(curScriptName) + [str(nzb_name), str(nzb_folder), str(filen), str(folderp), json.dumps(seriesmetadata)]
+        script_cmd = shlex.split(curScriptName, posix=False) + [str(nzb_name), str(nzb_folder), str(filen), str(folderp), json.dumps(seriesmetadata)]
         logger.fdebug('cmd to be executed: %s' % (script_cmd,))
         self._log('cmd to be executed: %s' % (script_cmd,))
 
@@ -524,7 +524,7 @@ class PostProcessor(object):
                             tmp_manual_list = {}
                             tmp_oneoff = {}
                             logger.info('issueid detected in filename: %s' % fl['issueid'])
-                            ssi = myDB.selectone('SELECT ComicID, IssueID, IssueArcID, IssueNumber, ComicName, SeriesYear, StoryArc, StoryArcID, Publisher, ReadingOrder FROM storyarcs WHERE IssueID=?', [fl['issueid']]).fetchone()
+                            ssi = myDB.selectone('SELECT ComicID, IssueID, IssueArcID, IssueNumber, ComicName, SeriesYear, StoryArc, StoryArcID, Publisher, Volume, ReadingOrder FROM storyarcs WHERE IssueID=?', [fl['issueid']]).fetchone()
                             if ssi is not None:
                                 annualtype = None
                                 if mylar.CONFIG.ANNUALS_ON:
@@ -544,6 +544,7 @@ class PostProcessor(object):
                                               "SeriesYear":      ssi['SeriesYear'],
                                               "Publisher":       ssi['Publisher'],
                                               "ReadingOrder":    ssi['ReadingOrder'],
+                                              "Volume":          ssi['Volume'],
                                               "ComicName":       ssi['ComicName']}
 
                             csi = myDB.selectone('SELECT i.ComicID, i.IssueID, i.Issue_Number, c.ComicName, c.ComicYear, c.AgeRating FROM comics as c JOIN issues as i ON c.ComicID = i.ComicID WHERE i.IssueID=?', [fl['issueid']]).fetchone()
@@ -1164,6 +1165,9 @@ class PostProcessor(object):
                                         if len(tmp_watchmatch_vol) == 4:
                                             if int(tmp_watchmatch_vol) == int(watch_values['SeriesYear']):
                                                 logger.fdebug('%s[ISSUE-VERIFY][SeriesYear-Volume MATCH] Series Year of %s matched to volume/year label of %s' % (module, watch_values['SeriesYear'], tmp_watchmatch_vol))
+                                                if len(watchvals) == 1:
+                                                    logger.fdebug('%s[ISSUE-VERIFY][Lone Volume MATCH] Series Volume Year of %s indicates only volume for this series on your watchlist.' % (module, watch_values['SeriesYear']))
+                                                    lonevol = True
                                             else:
                                                 logger.fdebug('%s[ISSUE-VERIFY][SeriesYear-Volume FAILURE] Series Year of %s DID NOT match to volume/year label of %s' % (module, watch_values['SeriesYear'], tmp_watchmatch_vol))
                                                 datematch = "False"
@@ -1623,6 +1627,7 @@ class PostProcessor(object):
                                                                                "Publisher":       arcpublisher,
                                                                                "AnnualType":      annualtype,
                                                                                "ReadingOrder":    v[i]['ArcValues']['ReadingOrder'],
+                                                                               "Volume":          v[i]['WatchValues']['ComicVersion'],
                                                                                "ComicName":       k})
                                                         tmp_arclist.append({"ComicName": k,
                                                                             "ComicID":   v[i]['WatchValues']['ComicID'],
@@ -1796,6 +1801,11 @@ class PostProcessor(object):
 
                             crcvalue = helpers.crc(ofilename)
 
+                            if mylar.CONFIG.CMTAG_START_YEAR_AS_VOLUME:
+                                vol_label = ml['SeriesYear']
+                            else:
+                                vol_label = ml['Volume']
+
                             roders = myDB.select('SELECT StoryArc, ReadingOrder from storyarcs WHERE ComicID=? AND IssueID=?', [ml['ComicID'], issueid])
                             readingorder = None
                             if roders is not None:
@@ -1804,11 +1814,11 @@ class PostProcessor(object):
                                     readingorder.append((rd['StoryArc'], rd['ReadingOrder']))
                             logger.fdebug('readingorder: %s' % (readingorder))
 
-                            if mylar.CONFIG.ENABLE_META:
+                            if any([mylar.CONFIG.ENABLE_META, mylar.CONFIG.CBR2CBZ_ONLY]):
                                 logger.info('[STORY-ARC POST-PROCESSING] Metatagging enabled - proceeding...')
                                 try:
                                     from . import cmtagmylar
-                                    metaresponse = cmtagmylar.run(self.nzb_folder, issueid=issueid, filename=ofilename, readingorder=readingorder, agerating=None)
+                                    metaresponse = cmtagmylar.run(self.nzb_folder, issueid=issueid, comversion=vol_label, filename=ofilename, readingorder=readingorder, agerating=None)
                                 except ImportError:
                                     logger.warn('%s comictaggerlib not found on system. Ensure the ENTIRE lib directory is located within mylar/lib/comictaggerlib/' % module)
                                     metaresponse = "fail"
@@ -2369,13 +2379,18 @@ class PostProcessor(object):
                         readingorder = rdorder
                     logger.fdebug('readingorder: %s' % (readingorder))
 
-                    #tag the meta.
+                    if mylar.CONFIG.CMTAG_START_YEAR_AS_VOLUME:
+                        vol_label = arcdata['SeriesYear']
+                    else:
+                        vol_label = arcdata['ComicVersion']
+
+                    #tag the meta
                     metaresponse = None
                     crcvalue = helpers.crc(os.path.join(location, ofilename))
 
                     #if a one-off download from the pull-list, will not have an issueid associated with it, and will fail to due conversion/tagging.
                     #if altpull/2 method is being used, issueid may already be present so conversion/tagging is possible with some additional fixes.
-                    if all([mylar.CONFIG.ENABLE_META, issueid is not None]):
+                    if all([mylar.CONFIG.ENABLE_META, issueid is not None]) or mylar.CONFIG.CBR2CBZ_ONLY:
                         self._log("Metatagging enabled - proceeding...")
                         try:
                             from . import cmtagmylar
@@ -2383,7 +2398,7 @@ class PostProcessor(object):
                                 tmp_ppdir = odir
                             else:
                                 tmp_ppdir = os.path.join(odir, ofilename)
-                            metaresponse = cmtagmylar.run(location, issueid=issueid, filename=tmp_ppdir, readingorder=readingorder, agerating=None)
+                            metaresponse = cmtagmylar.run(location, issueid=issueid, comversion=vol_label, filename=tmp_ppdir, readingorder=readingorder, agerating=None)
                         except ImportError:
                             logger.warn('%s comictaggerlib not found on system. Ensure the ENTIRE lib directory is located within mylar/lib/comictaggerlib/' % module)
                             metaresponse = "fail"
@@ -2950,7 +2965,7 @@ class PostProcessor(object):
 
 
             #tag the meta.
-            if mylar.CONFIG.ENABLE_META:
+            if any([mylar.CONFIG.ENABLE_META, mylar.CONFIG.CBR2CBZ_ONLY]):
 
                 self._log("Metatagging enabled - proceeding...")
                 logger.fdebug('%s Metatagging enabled - proceeding...' % module)
@@ -3358,7 +3373,7 @@ class PostProcessor(object):
             #    return self.queue.put(self.valreturn)
 
             # If using Pushover with image enabled, Telegram with image enabled, or Discord, extract the first image in the file for the notification
-            if any([all([mylar.CONFIG.PUSHOVER_IMAGE, mylar.CONFIG.PUSHOVER_ENABLED]), all([mylar.CONFIG.TELEGRAM_IMAGE, mylar.CONFIG.TELEGRAM_ENABLED]), all([mylar.CONFIG.DISCORD_ENABLED]) ]):
+            if any([all([mylar.CONFIG.PUSHOVER_IMAGE, mylar.CONFIG.PUSHOVER_ENABLED]), all([mylar.CONFIG.TELEGRAM_IMAGE, mylar.CONFIG.TELEGRAM_ENABLED]), all([mylar.CONFIG.DISCORD_ENABLED]), all([mylar.CONFIG.GOTIFY_ENABLED]) ]):
                 try:
                     get_cover = getimage.extract_image(dst, single=True, imquality='notif')
                     imageFile = get_cover['ComicImage']
@@ -3425,6 +3440,10 @@ class PostProcessor(object):
                 slack = notifiers.SLACK()
                 slack.notify("Download and Postprocessing completed", prline2, module=module)
 
+            if mylar.CONFIG.MATTERMOST_ENABLED:
+                mattermost = notifiers.MATTERMOST()
+                mattermost.notify("Downloading and Postprocessing completed", prline2, module=module)
+
             if mylar.CONFIG.DISCORD_ENABLED:
                 discord = notifiers.DISCORD()
                 discord.notify("Download and Postprocessing completed", prline2, module=module, imageFile=imageFile)
@@ -3433,6 +3452,10 @@ class PostProcessor(object):
                 logger.info("Sending email notification")
                 email = notifiers.EMAIL()
                 email.notify(prline2, "Mylar notification - Processed", module=module)
+
+            if mylar.CONFIG.GOTIFY_ENABLED:
+                gotify = notifiers.GOTIFY()
+                gotify.notify("Download and Postprocessing completed", prline2, module=module, imageFile=imageFile)
         except Exception as e:
             logger.warn('[NOTIFICATION] Unable to send notification: %s' % e)
 

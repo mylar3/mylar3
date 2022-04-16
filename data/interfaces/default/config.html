@@ -1225,6 +1225,7 @@
                                 </div>
                                     <div class="config">
 -->
+                                        <small class="heading" id="cbr2cbz_section" style="display:none;"><span style="float: left; margin-right: .3em; margin-top: 4px;" class="ui-icon ui-icon-info"></span><span id="cbr2cbz_blurb"></span></small>
                                         <div class="row checkbox left clearfix">
                                                 <% cbr2cbz_config = int(mylar.CONFIG.CBR2CBZ_ONLY) %>
                                                 <input type="hidden" id="cbr2cbz_config" value="${cbr2cbz_config}" />
@@ -1232,7 +1233,7 @@
                                         </div>
 <!--
                                         <div class="row checkbox left clearfix">
-                                                <input style="float:left;width:40px;" id="cbr2cb7_only" type="checkbox" name="cbr2cb7_only" value="1" /><label style="float:left;width:75%;">Convert (CBR/CBZ) to CB7</label>
+                                                <input style="float:left;width:40px;" id="cbr2cb7_only" type="checkbox" name="cbr2cb7_only" value="0" /><label style="float:left;width:75%;">Convert (CBR/CBZ) to CB7</label>
                                         </div>
                                     </div>
                                 <div class="row checkbox left clearfix">
@@ -1240,10 +1241,10 @@
                                 </div>
                                     <div class="config">
                                         <div class="row checkbox left clearfix">
-                                                <input style="float:left;width:40px;" id="cbr2cbz" type="checkbox" name="cbr2cbz_only" value="1" ${config['cbr2cbz_only']} /><label style="float:left;width:75%;">Convert (JPG/PNG) to WEBP</label>
+                                                <input style="float:left;width:40px;" id="jpg2wepb" type="checkbox" name="jpg2wepb_only" value="0" /><label style="float:left;width:75%;">Convert (JPG/PNG) to WEBP</label>
                                         </div>
                                         <div class="row checkbox left clearfix">
-                                                <input style="float:left;width:40px;" id="cbr2cbz" type="checkbox" name="cbr2cbz_only" value="1" ${config['cbr2cbz_only']} /><label style="float:left;width:75%;">Convert WEBP to JPG</label>
+                                                <input style="float:left;width:40px;" id="webp2jpg" type="checkbox" name="webp2jpg_only" value="0" /><label style="float:left;width:75%;">Convert WEBP to JPG</label>
                                         </div>
                                     </div>
 -->
@@ -1270,12 +1271,16 @@
                                             <div>
                                                 <div id="advanced_meta" style="display:none">
                                                     <div class="row checkbox left clearfix">
-                                                        <input type="checkbox" name="cmtag_volume" id="cmtag_volume" value="1" ${config['cmtag_volume']} /><span title="write out the Volume field"><label>Tag Volume</label></span>
+                                                        <input type="checkbox" name="cmtag_volume" onclick="initConfigCheckbox($(this));" title="write out the Volume field" id="cmtag_volume" value="1" ${config['cmtag_volume']} /><label>Tag Volume<span id="volume_info" style="color:#999;font-size:11px;"></span></label>
                                                     </div>
-                                                    <div class="row checkbox left clearfix">
-                                                        <input type="checkbox" name="cmtag_start_year_as_volume" id="cmtag_start_year_as_volume" value="1" ${config['cmtag_start_year_as_volume']} /><span title="Use the start year for the Volume in place of the Volume #"><label>Use Start Year as Volume</label></span>
-                                                    </div>
-                                                    <div>
+                                                        <div id="volumetag_options" style="display:none">
+                                                            <div class="row checkbox left clearfix" style="display:block;padding-left:1.5em;">
+                                                                <input type="checkbox" name="cmtag_start_year_as_volume" id="cmtag_start_year_as_volume" value="1" ${config['cmtag_start_year_as_volume']} /><span title="Use the start year for the Volume in place of the Volume #"><label>Use Start Year as Volume</label></span>
+                                                            </div>
+                                                            <div id="defaultvolume_div" class="row checkbox left clearfix" style="display:block;padding-left:1.5em;">
+                                                                <input type="checkbox" name="setdefaultvolume" id="setdefaultvolume" value="1" ${config['setdefaultvolume']} /><span title="If the volume is 1 or None/NA, always set it to 1"><label>Always set a Volume label</label></span>
+                                                            </div>
+                                                        </div>
                                                         <span title="How the IssueID is written - use Comictagger(IssueID) or ComicVine Scraper (CVDB) versioning"><label>Notes format</label>
                                                         <select name="ct_notes_format">
                                                          %for notes_f in ['Issue ID', 'CVDB']:
@@ -1573,6 +1578,26 @@
                     </fieldset>
 
                     <fieldset>
+                        <h3><img src="images/mattermost_logo.png" style="vertical-align: middle; margin: 3px; margin-top: -1px;" height="30" width="30"/>Mattermost</h3>
+                        <div class="row checkbox">
+                            <input type="checkbox" name="mattermost_enabled" id="mattermost" value="1" ${config['mattermost_enabled']} /><label>Enable Mattermost Notifications</label>
+                        </div>
+                        <div id="mattermostoptions">
+                            <div class="row">
+                                <label>Webhook URL</label><input type="text" name="mattermost_webhook_url" id="mattermost_webhook_url" value="${config['mattermost_webhook_url']}" size="50">
+                            </div>
+                            <div class="row checkbox">
+                                <input type="checkbox" name="mattermost_onsnatch" value="1" ${config['mattermost_onsnatch']} /><label>Notify on snatch?</label>
+                            </div>
+                            <div align="center" class="row">
+                                <img name="mattermost_statusicon" id="mattermost_statusicon" src="images/success.png" style="float:right;visibility:hidden;" height="20" width="20" />
+                                <input type="button" value="Test Mattermost" id="mattermost_test" style="float:center" /></br>
+                                <input type="text" name="mattermoststatus" style="text-align:center; font-size:11px;" id="discordstatus" size="55" DISABLED />
+                            </div>
+                        </div>
+                    </fieldset>
+
+                    <fieldset>
                         <h3><img src="images/discord.png" style="vertical-align: middle; margin: 3px; margin-top: -1px;" height="30" width="30"/>discord</h3>
                         <div class="row checkbox">
                             <input type="checkbox" name="discord_enabled" id="discord" value="1" ${config['discord_enabled']} /><label>Enable Discord Notifications</label>
@@ -1640,6 +1665,29 @@
                                 <img name="email_statusicon" id="email_statusicon" src="images/success.png" style="float:right;visibility:hidden;" height="20" width="20" />
                                 <input type="button" value="Test Email" id="email_test" style="float:center" /></br>
                                 <input type="text" name="emailstatus" style="text-align:center; font-size:11px;" id="emailstatus" size="55" DISABLED />
+                            </div>
+                        </div>
+                    </fieldset>
+
+                    <fieldset>
+                        <h3><img src="images/gotify.png" style="vertical-align: middle; margin: 3px; margin-top: -1px;" height="30" width="30"/>Gotify</h3>
+                        <div class="row checkbox">
+                            <input type="checkbox" name="gotify_enabled" id="gotify" value="1" ${config['gotify_enabled']} /><label>Enable Gotify Notifications</label>
+                        </div>
+                        <div id="gotifyoptions">
+                            <div class="row">
+                                <label>Server URL</label><input type="text" name="gotify_server_url" id="gotify_server_url" value="${config['gotify_server_url']}" size="50">
+                            </div>
+                            <div class="row">
+                                <label>Token</label><input type="text" name="gotify_token" id="gotify_token" value="${config['gotify_token']}" size="50">
+                            </div>
+                            <div class="row checkbox">
+                                <input type="checkbox" name="gotify_onsnatch" value="1" ${config['gotify_onsnatch']} /><label>Notify on snatch?</label>
+                            </div>
+                            <div align="center" class="row">
+                                <img name="gotify_statusicon" id="gotify_statusicon" src="images/success.png" style="float:right;visibility:hidden;" height="20" width="20" />
+                                <input type="button" value="Test Gotify" id="gotify_test" style="float:center" /></br>
+                                <input type="text" name="gotifystatus" style="text-align:center; font-size:11px;" id="gotifystatus" size="55" DISABLED />
                             </div>
                         </div>
                     </fieldset>
@@ -1916,27 +1964,84 @@
                         }
                 });
 
+                if ($("#cbr2cbz_only").is(":checked"))
+                        {
+                                if ( document.getElementById("enable_meta").checked == true ){
+                                    document.getElementById("enable_meta").checked = false;
+                                }
+                                document.getElementById("enable_meta").setAttribute("disabled", "disabled");
+                                $("#metataggingoptions").slideUp();
+                                document.getElementById("cbr2cbz_blurb").innerHTML = '';
+                                document.getElementById("cbr2cbz_section").style.display = "none";
+                        }
+                else    {
+                                document.getElementById("enable_meta").removeAttribute("disabled");
+                                if (document.getElementById("enable_meta").checked == true){
+                                    document.getElementById("cbr2cbz_blurb").innerHTML = 'CBR to CBZ conversion is automatic with Metadata Tagging enabled';
+                                    document.getElementById("cbr2cbz_section").style.display = "block";
+                                    $("#metataggingoptions").slideDown();
+                                } else {
+                                    document.getElementById("cbr2cbz_blurb").innerHTML = '';
+                                    document.getElementById("cbr2cbz_section").style.display = "none";
+                                    $("#metataggingoptions").slideUp();
+                                }
+                        }
+
+                $("#cbr2cbz_only").click(function(){
+                        if ($("#cbr2cbz_only").is(":checked"))
+                        {
+                                if ( document.getElementById("enable_meta").checked == true ){   // && document.getElementById("cbr2cb7_only").checked =$
+                                    document.getElementById("enable_meta").checked = false;
+                                }
+                                document.getElementById("enable_meta").setAttribute("disabled", "disabled");
+                                $("#metataggingoptions").slideUp();
+                                document.getElementById("cbr2cbz_blurb").innerHTML = '';
+                                document.getElementById("cbr2cbz_only").removeAttribute("disabled");
+                                $("#metataggingoptions").slideUp();
+                                document.getElementById("cbr2cbz_section").style.display = "none";
+                        }
+                        else
+                        {
+                                document.getElementById("enable_meta").removeAttribute("disabled");
+                                if (document.getElementById("enable_meta").checked == true){
+                                    $("#metataggingoptions").slideDown();
+                                    document.getElementById("cbr2cbz_blurb").innerHTML = 'CBR to CBZ conversion is automatic with Metadata Tagging enabled';
+                                    document.getElementById("cbr2cbz_section").style.display = "block";
+                                } else {
+                                    $("#metataggingoptions").slideUp();
+                                    document.getElementById("cbr2cbz_blurb").innerHTML = '';
+                                    document.getElementById("cbr2cbz_section").style.display = "none";
+                                }
+                        }
+                });
+
                 if ($("#enable_meta").is(":checked"))
                         {
-                                if ( document.getElementById("cbr2cbz_only").checked == false ){   // && document.getElementById("cbr2cb7_only").checked == false){
-                                    document.getElementById("cbr2cbz_only").checked = true;
-                                    document.getElementById("cbr2cbz_only").setAttribute("disabled", "disabled");
+                                if ( document.getElementById("cbr2cbz_only").checked == true ){   // && document.getElementById("cbr2cb7_only").checked == false){
+                                    document.getElementById("cbr2cbz_only").checked = false;
                                 }
+                                document.getElementById("cbr2cbz_only").setAttribute("disabled", "disabled");
                                 $("#metataggingoptions").slideDown();
+                                document.getElementById("cbr2cbz_blurb").innerHTML = 'CBR to CBZ conversion is automatic with Metadata Tagging enabled';
+                                document.getElementById("cbr2cbz_section").style.display = "block";
                         }
                 else    {
                                 document.getElementById("cbr2cbz_only").removeAttribute("disabled");
                                 $("#metataggingoptions").slideUp();
+                                document.getElementById("cbr2cbz_blurb").innerHTML = '';
+                                document.getElementById("cbr2cbz_section").style.display = "none";
                         }
 
                 $("#enable_meta").click(function(){
                         if ($("#enable_meta").is(":checked"))
                         {
-                                if ( document.getElementById("cbr2cbz_only").checked == false ){   // && document.getElementById("cbr2cb7_only").checked == false){
-                                    document.getElementById("cbr2cbz_only").checked = true;
+                                if ( document.getElementById("cbr2cbz_only").checked == true ){   // && document.getElementById("cbr2cb7_only").checked == false){
+                                    document.getElementById("cbr2cbz_only").checked = false;
                                 }
                                 document.getElementById("cbr2cbz_only").setAttribute("disabled", "disabled");
                                 $("#metataggingoptions").slideDown();
+                                document.getElementById("cbr2cbz_blurb").innerHTML = 'CBR to CBZ conversion is automatic with Metadata Tagging enabled';
+                                document.getElementById("cbr2cbz_section").style.display = "block";
                         }
                         else
                         {
@@ -1947,31 +2052,76 @@
                                 }
                                 document.getElementById("cbr2cbz_only").removeAttribute("disabled");
                                 $("#metataggingoptions").slideUp();
+                                document.getElementById("cbr2cbz_blurb").innerHTML = '';
+                                document.getElementById("cbr2cbz_section").style.display = "none";
+
                         }
                 });
-                if ($("#cmtag_start_year_as_volume").is(":checked"))
+                if ($("#cmtag_volume").is(":checked"))
                         {
-                                document.getElementById("cmtag_volume").checked = true;
-                                document.getElementById("cmtag_volume").setAttribute("disabled", "disabled");
+                                $("#volumetag_options").slideDown();
+                                document.getElementById("volumetag_options").style.display = "block";
+                                if ($("#cmtag_start_year_as_volume").is(":checked")){
+                                    document.getElementById("volume_info").innerHTML = ' (Format: year [2022])';
+                                    document.getElementById("defaultvolume_div").style.display = "none";
+                                } else {
+                                    document.getElementById("volume_info").innerHTML = ' (Format: numerical [1])';
+                                    document.getElementById("defaultvolume_div").style.display = "block";
+                                }
                         }
                 else
                        {
-                                document.getElementById("cmtag_volume").removeAttribute("disabled");
+                                document.getElementById("volumetag_options").style.display = "none";
+                                document.getElementById("volume_info").innerHTML = '';
+                                $("#volumetag_options").slideUp();
+                       }
+
+                $("#cmtag_volume").click(function(){
+                        if ($("#cmtag_volume").is(":checked"))
+                        {
+                                document.getElementById("volumetag_options").style.display = "block";
+                                if ($("#cmtag_start_year_as_volume").is(":checked")){
+                                    document.getElementById("volume_info").innerHTML = ' (Format: year [2022])';
+                                    document.getElementById("defaultvolume_div").style.display = "none";
+                                } else {
+                                    document.getElementById("volume_info").innerHTML = ' (Format: numerical [1])';
+                                    document.getElementById("defaultvolume_div").style.display = "block";
+                                }
+                                $("#volumetag_options").slideDown();
+
+                        }
+                        else
+                        {
+                                document.getElementById("volumetag_options").style.display = "none";
+                                document.getElementById("volume_info").innerHTML = '';
+                                $("#volumetag_options").slideUp();
+                        }
+                });
+
+                if ($("#cmtag_start_year_as_volume").is(":checked"))
+                        {
+                                document.getElementById("volume_info").innerHTML = ' (Format: year [2022])';
+                                document.getElementById("defaultvolume_div").style.display = "none";
+                        }
+                else
+                       {
+                                document.getElementById("volume_info").innerHTML = '(Format: numerical [1])';
+                                document.getElementById("defaultvolume_div").style.display = "block";
                        }
 
                 $("#cmtag_start_year_as_volume").click(function(){
                         if ($("#cmtag_start_year_as_volume").is(":checked"))
                         {
-                                if ( document.getElementById("cmtag_volume").checked == false ){
-                                    document.getElementById("cmtag_volume").checked = true;
-                                    document.getElementById("cmtag_volume").setAttribute("disabled", "disabled");
-                                }
+                                document.getElementById("volume_info").innerHTML = ' (Format: year [2022])';
+                                document.getElementById("defaultvolume_div").style.display = "none";
                         }
                         else
                         {
-                                    document.getElementById("cmtag_volume").removeAttribute("disabled");
+                                document.getElementById("volume_info").innerHTML = ' (Format: numerical [1])';
+                                document.getElementById("defaultvolume_div").style.display = "block";
                         }
                 });
+
                 if ($("#prowl").is(":checked"))
                         {
                                 $("#prowloptions").show();
@@ -2089,6 +2239,46 @@
                     else
                     {
                         $("#emailoptions").slideUp();
+                    }
+                });
+
+                if ($("#gotify").is(":checked"))
+                {
+                    $("#gotifyoptions").show();
+                }
+                else
+                {
+                    $("#gotifyoptions").hide();
+                }
+
+                $("#gotify").click(function(){
+                    if ($("#gotify").is(":checked"))
+                    {
+                        $("#gotifyoptions").slideDown();
+                    }
+                    else
+                    {
+                        $("#gotifyoptions").slideUp();
+                    }
+                });
+
+                if ($("#mattermost").is(":checked"))
+                {
+                    $("#mattermostoptions").show();
+                }
+                else
+                {
+                    $("#mattermostoptions").hide();
+                }
+
+                $("#mattermost").click(function(){
+                    if ($("#mattermost").is(":checked"))
+                    {
+                        $("#mattermostoptions").slideDown();
+                    }
+                    else
+                    {
+                        $("#mattermostoptions").slideUp();
                     }
                 });
 
@@ -2833,6 +3023,32 @@
                     $('#ajaxMsg').addClass('success').fadeIn().delay(3000).fadeOut();
                 });
 
+                $('#mattermost_test').click(function () {
+                    var imagechk = document.getElementById("mattermost_statusicon");
+                    var webhook_url = document.getElementById("mattermost_webhook_url").value;
+                    $.get("testmattermost",
+                        { webhook_url: webhook_url },
+                        function(data){
+                            if (data.error != undefined) {
+                                alert(data.error);
+                                return;
+                            }
+                            $('#mattermoststatus').val(data);
+                            $('#ajaxMsg').removeClass();
+                            $('#ajaxMsg').html("<div class='msg'><span class='ui-icon ui-icon-check'></span>"+data+"</div>");
+                            if ( data.indexOf("Successfully") > -1){
+                               imagechk.src = "";
+                                imagechk.src = "images/success.png";
+                                imagechk.style.visibility = "visible";
+                            } else {
+                                imagechk.src = "";
+                                imagechk.src = "images/x_red.png";
+                                imagechk.style.visibility = "visible";
+                            }
+                    });
+                    $('#ajaxMsg').addClass('success').fadeIn().delay(3000).fadeOut();
+                });
+
                 $('#discord_test').click(function () {
                     var imagechk = document.getElementById("discord_statusicon");
                     var webhook_url = document.getElementById("discord_webhook_url").value;
@@ -2891,6 +3107,33 @@
                     $('#ajaxMsg').addClass('success').fadeIn().delay(3000).fadeOut();
                 });
 
+                $('#gotify_test').click(function () {
+                    var imagechk = document.getElementById("gotify_statusicon");
+                    var server_url = document.getElementById("gotify_server_url").value;
+                    var server_token = document.getElementById("gotify_token").value;
+                    $.get("testgotify",
+                        { webhook_url: server_url+"message?token="+server_token },
+                        function(data){
+                            if (data.error != undefined) {
+                                alert(data.error);
+                                return;
+                            }
+                            $('#gotifystatus').val(data);
+                            $('#ajaxMsg').removeClass();
+                            $('#ajaxMsg').html("<div class='msg'><span class='ui-icon ui-icon-check'></span>"+data+"</div>");
+                            if ( data.indexOf("Successfully") > -1){
+                               imagechk.src = "";
+                                imagechk.src = "images/success.png";
+                                imagechk.style.visibility = "visible";
+                            } else {
+                                imagechk.src = "";
+                                imagechk.src = "images/x_red.png";
+                                imagechk.style.visibility = "visible";
+                            }
+                    });
+                    $('#ajaxMsg').addClass('success').fadeIn().delay(3000).fadeOut();
+                });
+
                 if ("${config['py_check_pass']}" == "False"){
                     document.getElementById("py_vers").classList.add("py_vers");
                     document.getElementById("py_check").innerHTML = '<center>Minimum python ${mylar.MINIMUM_PY_VERSION}</br>requirement not met</center>';
@@ -2923,6 +3166,7 @@
                 initConfigCheckbox("#ddump");
                 initConfigCheckbox("#enable_failed");
                 initConfigCheckbox("#enable_meta");
+                initConfigCheckbox("#volumetag_options");
                 initConfigCheckbox("#enable_ddl");
                 initConfigCheckbox("#zero_level");
                 initConfigCheckbox("#post_processing");
@@ -2937,6 +3181,5 @@
 		initThisPage();
                 annuals_integration()
 	});
-	
 	</script>
 </%def>

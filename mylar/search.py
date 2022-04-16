@@ -3845,6 +3845,16 @@ def notify_snatch(sent_to, comicname, comyear, IssueNumber, nzbprov, pack):
             "Mylar notification - Snatch",
             module="[SEARCH]",
         )
+    if mylar.CONFIG.GOTIFY_ENABLED and mylar.CONFIG.GOTIFY_ONSNATCH:
+        logger.info("Sending Gotify notification")
+        gotify = notifiers.GOTIFY()
+        gotify.notify(
+            "Snatched",
+            snline,
+            snatched_nzb=snatched_name,
+            sent_to=sent_to,
+            prov=nzbprov,
+        )
 
     return
 

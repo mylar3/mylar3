@@ -19,6 +19,7 @@ import zipfile
 class carePackage(object):
 
     def __init__(self):
+        self.carepackage_version = 1.05
         self.filename = os.path.join(mylar.CONFIG.LOG_DIR, 'MylarRunningEnvironment.txt')
         self.panicfile = os.path.join(mylar.CONFIG.LOG_DIR, "carepackage.zip")
         self.configpath = os.path.join(mylar.DATA_DIR, 'config.ini')
@@ -52,10 +53,6 @@ class carePackage(object):
                             ('NMA', 'nma_apikey'),
                             ('TELEGRAM', 'telegram_token'),
                             ('CV', 'comicvine_api'),
-                            ('32P', 'password_32p'),
-                            ('32P', 'passkey_32p'),
-                            ('32P', 'username_32p'),
-                            ('32P', 'rssfeed_32p'),
                             ('Seedbox', 'seedbox_user'),
                             ('Seedbox', 'seedbox_pass'),
                             ('Seedbox', 'seedbox_port'),
@@ -89,7 +86,7 @@ class carePackage(object):
 
     def environment(self):
         f = open(self.filename, "w+")
-
+        f.write("-- Carepackage version %s --\n" % self.carepackage_version)
         f.write("Mylar host information:\n")
         match = re.search('Windows', platform.system(), re.IGNORECASE)
         if match:
@@ -118,7 +115,7 @@ class carePackage(object):
         f.write("%s\n" % pyloc)
 
         try:
-            pf = subprocess.run(['pip3', 'freeze'],
+            pf = subprocess.run([pyloc, '-m', 'pip', 'freeze'],
                 capture_output=True,
                 text=True)
             f.write("\nPIP (freeze) list:\n")
@@ -181,8 +178,8 @@ class carePackage(object):
             except (configparser.NoSectionError, configparser.NoOptionError) as e:
                 pass
 
-        extra_newznabs = list(zip(*[iter(tmpconfig.get('Newznab', 'extra_newznabs').split(', '))]*6))
-        extra_torznabs = list(zip(*[iter(tmpconfig.get('Torznab', 'extra_torznabs').split(', '))]*5))
+        extra_newznabs = list(zip(*[iter(tmpconfig.get('Newznab', 'extra_newznabs').split(', '))]*7))
+        extra_torznabs = list(zip(*[iter(tmpconfig.get('Torznab', 'extra_torznabs').split(', '))]*7))
         cleaned_newznabs = []
         cleaned_torznabs = []
         for ens in extra_newznabs:
@@ -203,17 +200,18 @@ class carePackage(object):
                 n_api = 'xXX[REMOVED]XXx'
             if ens[4] is not None:
                 n_uid = 'xXX[REMOVED]XXx'
-            newnewzline = (ens[0], n_host, ens[2], n_api, n_uid, ens[5])
+            newnewzline = (ens[0], n_host, ens[2], n_api, n_uid, ens[5], ens[6])
             cleaned_newznabs.append(newnewzline)
 
         for ets in extra_torznabs:
+            logger.info('torznab: %s' % (ets,))
             n_host = None
             n_uid = None
             n_api = None
             if ets[1] is not None:
                 n_host = 'xXX[REMOVED]XXx'
-            if ets[2] is not None:
-                tzkey = ets[2]
+            if ets[3] is not None:
+                tzkey = ets[3]
                 if tzkey[:5] == '^~$z$':
                     tz = encrypted.Encryptor(tzkey)
                     tz_stat = tz.decrypt_it()
@@ -224,7 +222,7 @@ class carePackage(object):
                 n_api = 'xXX[REMOVED]XXx'
             if ets[4] is not None:
                 n_uid = 'xXX[REMOVED]XXx'
-            newtorline = (ets[0], n_host, n_api, ets[3], ets[4])
+            newtorline = (ets[0], n_host, ets[2], n_api, ets[4], ets[5], ets[6])
             cleaned_torznabs.append(newtorline)
 
         tmpconfig.set('Newznab', 'extra_newznabs', ', '.join(self.write_extras(cleaned_newznabs)))
@@ -283,11 +281,6 @@ class carePackage(object):
                     with open(fname, 'r') as f:
                         line = f.readline()
                         while line:
-                            if mylar.KEYS_32P is not None:
-                                if mylar.KEYS_32P['auth'] in line:
-                                    line = line.replace(mylar.KEYS_32P['auth'], '-REDACTED-')
-                                if mylar.KEYS_32P['authkey'] in line:
-                                    line = line.replace(mylar.KEYS_32P['authkey'], '-REDACTED-')
                             for keyed in self.keylist:
                                 if keyed in line and len(keyed) > 0 and (len(keyed) > 4 and not keyed.isdigit()):
                                     cnt+=1
