@@ -158,6 +158,10 @@ def getComic(comicid, rtype, issueid=None, arc=None, arcid=None, arclist=None, c
                 #new api - have to change to page # instead of offset count
                 offsetcount = countResults
                 searched = pulldetails(id, 'issue', None, offsetcount, islist)
+            if not searched:
+                # if it's a CV timeout/error, just return what we have thus far and hopefully
+                # the next run will be able to catch things up
+                break
             issuechoice, tmpdate = GetIssuesInfo(id, searched, arcid)
             if tmpdate < firstdate:
                 firstdate = tmpdate
