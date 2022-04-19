@@ -3383,7 +3383,7 @@ class PostProcessor(object):
                     #logger.info('image location used is : %s' % imageFile)
             else:
                 imageFile = None
-            self.sendnotify(series, issueyear, dispiss, annchk, module, imageFile)
+            self.sendnotify(series, issueyear, dispiss, annchk, module, imageFile, issueid)
 
             logger.info('%s Post-Processing completed for: %s %s' % (module, series, dispiss))
             self._log("Post Processing SUCCESSFUL! ")
@@ -3396,7 +3396,7 @@ class PostProcessor(object):
             return self.queue.put(self.valreturn)
 
 
-    def sendnotify(self, series, issueyear, issuenumOG, annchk, module, imageFile):
+    def sendnotify(self, series, issueyear, issuenumOG, annchk, module, imageFile, issueid):
 
         if issuenumOG is not None:
             if '#' not in issuenumOG:
@@ -3456,7 +3456,8 @@ class PostProcessor(object):
 
             if mylar.CONFIG.GOTIFY_ENABLED:
                 gotify = notifiers.GOTIFY()
-                gotify.notify("Download and Postprocessing completed", prline2, module=module, imageFile=imageFile)
+                metadata = { 'series':series, 'issue': issuenumOG, 'year': issueyear, 'issueid': issueid }
+                gotify.notify("Download and Postprocessing completed", prline2, module=module, imageFile=imageFile, metadata=metadata)
         except Exception as e:
             logger.warn('[NOTIFICATION] Unable to send notification: %s' % e)
 
