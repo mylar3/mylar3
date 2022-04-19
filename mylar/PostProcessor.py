@@ -1934,7 +1934,7 @@ class PostProcessor(object):
                             imageFile = None
 
                         try:
-                            self.sendnotify(ml['ComicName'], issueyear=ml['IssueYear'], issuenumOG=ml['IssueNumber'], annchk=annchk, module=module, imageFile=imageFile)
+                            self.sendnotify(ml['ComicName'], issueyear=ml['IssueYear'], issuenumOG=ml['IssueNumber'], annchk=annchk, module=module, imageFile=imageFile, issueid=issueid)
                         except:
                             pass
 
@@ -2523,7 +2523,7 @@ class PostProcessor(object):
                         imageFile = None
 
                     try:
-                        self.sendnotify(comicname, issueyear=None, issuenumOG=issuenumber, annchk=annchk, module=module, imageFile=imageFile)
+                        self.sendnotify(comicname, issueyear=None, issuenumOG=issuenumber, annchk=annchk, module=module, imageFile=imageFile, issueid=issueid)
                     except:
                         pass
 
@@ -3396,7 +3396,7 @@ class PostProcessor(object):
             return self.queue.put(self.valreturn)
 
 
-    def sendnotify(self, series, issueyear, issuenumOG, annchk, module, imageFile, issueid):
+    def sendnotify(self, series, issueyear, issuenumOG, annchk, module, imageFile, issueid=None):
 
         if issuenumOG is not None:
             if '#' not in issuenumOG:
