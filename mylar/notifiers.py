@@ -745,7 +745,7 @@ class GOTIFY:
     def __init__(self, test_webhook_url=None):
         self.webhook_url = mylar.CONFIG.GOTIFY_SERVER_URL+"message?token="+mylar.CONFIG.GOTIFY_TOKEN if test_webhook_url is None else test_webhook_url
 
-    def notify(self, text, attachment_text, snatched_nzb=None, prov=None, sent_to=None, module=None, imageFile=None):
+    def notify(self, text, attachment_text, snatched_nzb=None, prov=None, sent_to=None, module=None, imageFile=None, metadata=None):
         if module is None:
             module = ''
         module += '[NOTIFIER]'
@@ -773,6 +773,9 @@ class GOTIFY:
                 "extras": {
                     "client::display": {
                         "contentType": "text/markdown"
+                    },
+                    "client::notification": {
+                      "click": { "url": "https://comicvine.gamespot.com/issue/4000-"+metadata['issueid']+"/" }
                     }
                 }
             }
