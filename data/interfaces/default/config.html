@@ -67,6 +67,14 @@
                             </br><span style="float:left;vertical-align:top;" title="${config['br_type']} installation detected.">${config['br_type']}</span>
                             <span style="float:right;vertical-align:top;">${config['branch']}</span>
                   </fieldset>
+                  </br>
+                  <fieldset id="warnings_check">
+                       <legend>WARNINGS / IMPORTANT RELEASE INFO</legend>
+                       <label><strong>PIP requirements: </strong></label><span id="pip_reqcheck"></span></br>
+                       <label><strong>Unrar requirement: </strong></label><span id="rar_reqcheck"></span></br>
+                       <span id="config_messages"><label><strong>Configuration warnings: </strong></label><span id="config_reqcheck"></span></span>
+                       <span id="release_messages"><label><strong>Messages: </strong></label><span id="releasemsg_check"></span></span>
+                  </fieldset>
                   <fieldset>
                        <div>
                             <br/>
@@ -1592,7 +1600,7 @@
                             <div align="center" class="row">
                                 <img name="mattermost_statusicon" id="mattermost_statusicon" src="images/success.png" style="float:right;visibility:hidden;" height="20" width="20" />
                                 <input type="button" value="Test Mattermost" id="mattermost_test" style="float:center" /></br>
-                                <input type="text" name="mattermoststatus" style="text-align:center; font-size:11px;" id="discordstatus" size="55" DISABLED />
+                                <input type="text" name="mattermoststatus" style="text-align:center; font-size:11px;" id="mattermoststatus" size="55" DISABLED />
                             </div>
                         </div>
                     </fieldset>
@@ -1710,7 +1718,7 @@
 </%def>
 
 <%def name="javascriptIncludes()">
-        <script src="js/libs/jquery.dataTables.min.js"></script>
+        <script src="js/libs/jquery.dataTables.1.10.25.min.js"></script>
         <script>
         function changeTest()
         {
@@ -1866,11 +1874,70 @@
             document.getElementById("opds_url").innerHTML = the_line;
         }
 
+        function check_requirements(){
+            $.when($.ajax({
+                 type: "GET",
+                 url: "return_checks",
+                 success: function(response) {
+                    obj = JSON.parse(response);
+                    if (typeof(obj) === "undefined" || obj === null || obj.length === 0) {
+                        document.getElementById("pip_reqcheck").innerHTML = 'OK';
+                        document.getElementById("warnings_check").className = 'fieldset_header';
+                    }
+                 },
+                 error: function(data)
+                     {
+                     },
+            })).done(function(data) {
+                 if (obj['pip']['pip_failure'] === true) {
+                     pjson = obj['pip']['pip_info'];
+                     pting = '<table style="border:none;">';
+                     pjson.forEach(item => {
+                         pting += '<tr><td style="text-align:right;width:20px;">' + item.module + '</td><td style="width:30px;">' + item.message + '</td></tr>';
+                     });
+                     pting += '</table>';
+                     document.getElementById("pip_reqcheck").innerHTML = pting;
+                     document.getElementById("warnings_check").className = 'fieldset_header_check';
+                 } else if (obj['pip']['pip_failure'] === false) {
+                     document.getElementById("pip_reqcheck").innerHTML = 'OK';
+                     document.getElementById("warnings_check").className = 'fieldset_header';
+                 }
+                 if (obj['rar']['rar_message']) {
+                     document.getElementById("rar_reqcheck").innerHTML = obj['rar']['rar_message'];
+                 }
+                 document.getElementById("config_messages").style.display = 'none';
+                 document.getElementById("release_messages").style.display = 'none';
+                 var cck = false;
+                 var cfg = obj['config'];
+                 tcfg = '<table border="0">';
+                 cfg.forEach(item => {
+                     tcfg += '<tr align="left"><td width="60">' + item.error_message + '</td></tr>';
+                     cck = true;
+                 });
+                 tcfg += '</table>';
+                 if (cck === true){
+                     document.getElementById("config_reqcheck").innerHTML = tcfg;
+                     document.getElementById("warnings_check").className = 'fieldset_header_check';
+                     document.getElementById("config_messages").style.display = 'block';
+                     document.getElementById("warnings_check").className = 'fieldset_header';
+                 }
+                 rlsline = obj['release_messages'];
+                 if (typeof(rlsline) != 'undefined' && rlsline != null){
+                     rlsmsg = '<p style="margin-left:10px;">';
+                     rlsline.forEach(item => {
+                         rlsmsg += item + '</br>';
+                     });
+                     document.getElementById("releasemsg_check").innerHTML = rlsmsg + '</p>';
+                     document.getElementById("release_messages").style.display = 'block';
+                 }
+            });
+        }
+
         </script>
-	<script>
-	function initThisPage() 
-	
-	{
+       <script>
+       function initThisPage()
+
+       {
                 var prov_start_id = 0;
                 if ($("#api_enabled").is(":checked"))
                         {
@@ -3180,6 +3247,7 @@
 	$(document).ready(function() {
 		initThisPage();
                 annuals_integration()
+                check_requirements();
 	});
 	</script>
 </%def>

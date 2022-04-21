@@ -2351,6 +2351,14 @@ fieldset.fieldset_header {
   box-shadow: 0px 0px 10px #c4c4c4;
   padding-top: 5px;
 }
+fieldset.fieldset_header_check {
+  margin: 5px;
+  padding: 0px 5px 5px;
+  border: 1px solid #F50202;
+  border-radius: 8px;
+  box-shadow: 0px 0px 10px #F50202;
+  padding-top: 5px;
+}
 figure.item{
   vertical-align: top;
   display: inline-block;

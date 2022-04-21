@@ -32,11 +32,15 @@ import feedparser
 import mylar
 from mylar import logger, db
 
-def runGit(args):
+def runGit(args, ptv=None):
 
     git_locations = []
-    if mylar.CONFIG.GIT_PATH is not None:
-        git_locations.append(mylar.CONFIG.GIT_PATH)
+    if ptv is not None:
+        if ptv['git_path'] is not None:
+            git_locations.append(ptv['git_path'])
+    else:
+        if mylar.CONFIG.GIT_PATH is not None:
+            git_locations.append(mylar.CONFIG.GIT_PATH)
 
     git_locations.append('git')
 
@@ -80,12 +84,12 @@ def runGit(args):
 
     return output
 
-def getVersion():
+def getVersion(ptv):
     current_version = None
     current_version_name = None
     current_release_name = None
 
-    if mylar.CONFIG.GIT_BRANCH is not None and mylar.CONFIG.GIT_BRANCH.startswith('win32build'):
+    if ptv['git_branch'] is not None and ptv['git_branch'].startswith('win32build'):
 
         mylar.INSTALL_TYPE = 'win'
 
@@ -95,15 +99,15 @@ def getVersion():
     elif os.path.isdir(os.path.join(mylar.PROG_DIR, '.git')):
 
         mylar.INSTALL_TYPE = 'git'
-        output = runGit('describe --exact-match --tags 2> %s && git rev-parse HEAD --abbrev-ref HEAD' % os.devnull)
+        output = runGit('describe --exact-match --tags 2> %s && git rev-parse HEAD --abbrev-ref HEAD' % os.devnull, ptv)
         #output, err = runGit('rev-parse HEAD --abbrev-ref HEAD')
 
         if not output:
-            output = runGit('describe --exact-match --tags 2> %s || git rev-parse HEAD --abbrev-ref HEAD' % os.devnull)
+            output = runGit('describe --exact-match --tags 2> %s || git rev-parse HEAD --abbrev-ref HEAD' % os.devnull, ptv)
             if not output:
                 logger.error('Couldn\'t find latest installed version.')
                 cur_commit_hash = None
-                cur_branch = mylar.CONFIG.GIT_BRANCH
+                cur_branch = ptv['git_branch']
         #branch_history, err = runGit("log --oneline --pretty=format:'%h - %ar - %s' -n 5")
         #bh = []
         #print ("branch_history: " + branch_history)
@@ -115,10 +119,10 @@ def getVersion():
             cur_commit_hash = output[:opp]
             cur_branch = output[opp:output.find('\n', opp+1)].strip()
 
-            if cur_commit_hash.startswith('v') and mylar.CONFIG.CHECK_GITHUB_ON_STARTUP is True:
-                url2 = 'https://api.github.com/repos/%s/mylar3/tags' % (mylar.CONFIG.GIT_USER)
+            if cur_commit_hash.startswith('v') and ptv['check_github_on_startup'] is True:
+                url2 = 'https://api.github.com/repos/%s/mylar3/tags' % (ptv['git_user'])
                 try:
-                    response = requests.get(url2, verify=True, auth=mylar.CONFIG.GIT_TOKEN)
+                    response = requests.get(url2, verify=True, auth=ptv['git_token'])
                     git = response.json()
                 except Exception as e:
                     logger.warn('[ERROR] %s' % e)
@@ -131,10 +135,10 @@ def getVersion():
                                 cur_commit_hash = x['commit']['sha']
                                 break
                         logger.info('version_name: %s' % current_version_name)
-                        url3 = 'https://api.github.com/repos/%s/mylar3/releases/tags/%s' % (mylar.CONFIG.GIT_USER, current_version_name)
+                        url3 = 'https://api.github.com/repos/%s/mylar3/releases/tags/%s' % (ptv['git_user'], current_version_name)
                         #logger.fdebug('url3: %s' % url3)
                         try:
-                            repochk = requests.get(url3, verify=True, auth=mylar.CONFIG.GIT_TOKEN)
+                            repochk = requests.get(url3, verify=True, auth=ptv['git_token'])
                             repo_resp = repochk.json()
                             #logger.fdebug('repo_resp: %s' % repo_resp)
                             current_release_name = repo_resp['name']
@@ -148,14 +152,14 @@ def getVersion():
             logger.error('Output does not look like a hash, not using it')
             cur_commit_hash = None
 
-        if mylar.CONFIG.GIT_BRANCH == cur_branch:
-            branch = mylar.CONFIG.GIT_BRANCH
+        if ptv['git_branch'] == cur_branch:
+            branch = ptv['git_branch']
 
         if cur_commit_hash is None:
             branch = None
         else:
             branch = None
-            branch_name = runGit('branch --contains %s' % cur_commit_hash)
+            branch_name = runGit('branch --contains %s' % cur_commit_hash, ptv)
             if not branch_name:
                 logger.warn('Could not retrieve branch name [%s] from git. Defaulting to Master.' % branch)
                 branch = 'master'
@@ -165,9 +169,9 @@ def getVersion():
                         branch = re.sub('[\*\n]','',line).strip()
                         break
 
-        if not branch and mylar.CONFIG.GIT_BRANCH:
-            logger.warn('Unable to retrieve branch name [%s] from git. Setting branch to configuration value of : %s' % (branch, mylar.CONFIG.GIT_BRANCH))
-            branch = mylar.CONFIG.GIT_BRANCH
+        if not branch and ptv['git_branch']:
+            logger.warn('Unable to retrieve branch name [%s] from git. Setting branch to configuration value of : %s' % (branch, ptv['git_branch']))
+            branch = ptv['git_branch']
         if not branch:
             logger.warn('Could not retrieve branch name [%s] from git. Defaulting to Master.' % branch)
             branch = 'master'
@@ -232,7 +236,7 @@ def getVersion():
         if current_version_name is not None and current_release_name is None and branch == 'master':
             # only master has tags - so if not master, no need to check at all.
             # and mylar.CONFIG.CHECK_GITHUB_ON_STARTUP is True:
-            url2 = 'https://api.github.com/repos/%s/mylar3/releases/tags/%s' % (mylar.CONFIG.GIT_USER, current_version_name)
+            url2 = 'https://api.github.com/repos/%s/mylar3/releases/tags/%s' % (ptv['git_user'], current_version_name)
             try:
                 response = requests.get(url2, verify=True, auth=mylar.CONFIG.GIT_TOKEN)
                 git = response.json()
@@ -251,8 +255,8 @@ def getVersion():
 
         if current_version:
             if mylar.CONFIG.GIT_BRANCH:
-                logger.info('Branch detected & set to : ' + mylar.CONFIG.GIT_BRANCH)
-                return {'current_version': current_version, 'current_version_name': current_version_name, 'branch': mylar.CONFIG.GIT_BRANCH, 'current_release_name': current_release_name}
+                logger.info('Branch detected & set to : ' + ptv['git_branch'])
+                return {'current_version': current_version, 'current_version_name': current_version_name, 'branch': ptv['git_branch'], 'current_release_name': current_release_name}
             else:
                 if branch:
                     logger.info('Branch detected & set to : ' + branch)
@@ -262,8 +266,8 @@ def getVersion():
                 return {'current_version': current_version, 'current_version_name': current_version_name, 'branch': branch, 'current_release_name': current_release_name}
         else:
             if mylar.CONFIG.GIT_BRANCH:
-                logger.info('Branch detected & set to : ' + mylar.CONFIG.GIT_BRANCH)
-                return {'current_version': current_version, 'current_version_name': current_version_name, 'branch': mylar.CONFIG.GIT_BRANCH, 'current_release_name': current_release_name}
+                logger.info('Branch detected & set to : ' + ptv['git_branch'])
+                return {'current_version': current_version, 'current_version_name': current_version_name, 'branch': ptv['git_branch'], 'current_release_name': current_release_name}
             else:
                 logger.warn('No branch specified within config - will attempt to poll version from mylar')
                 try:
@@ -416,13 +420,31 @@ def update():
                     os.remove(new_path)
                 os.renames(old_path, new_path)
 
-def versionload():
+def versionload(cli_values=None):
+    if cli_values:
+        pass_thru_vals = cli_values
+    else:
+        pass_thru_vals = {'git_branch': mylar.CONFIG.GIT_BRANCH,
+                          'git_user': mylar.CONFIG.GIT_USER,
+                          'git_token': mylar.CONFIG.GIT_TOKEN,
+                          'auto_update': mylar.CONFIG.AUTO_UPDATE,
+                          'check_github_on_startup': mylar.CONFIG.CHECK_GITHUB_ON_STARTUP,
+                          'git_path': mylar.CONFIG.GIT_PATH}
 
-    version_info = getVersion()
+    version_info = getVersion(pass_thru_vals)
     logger.fdebug('version_info: %s' % (version_info,))
     mylar.CURRENT_VERSION = version_info['current_version']
     mylar.CURRENT_VERSION_NAME = version_info['current_version_name']
     mylar.CURRENT_RELEASE_NAME = version_info['current_release_name']
+
+    if cli_values:
+        # if cli_values exist, it's from maintenance mode CLI switch, just return now
+        return {'current_branch': version_info['branch'],
+                'current_version': version_info['current_version'],
+                'current_version_name': version_info['current_version_name'],
+                'current_release_name': version_info['current_release_name']}
+
+
     mylar.CONFIG.GIT_BRANCH = version_info['branch']
 
     if mylar.CURRENT_VERSION is not None:

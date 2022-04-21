@@ -13,19 +13,19 @@ from collections import OrderedDict
 from operator import itemgetter
 
 from glob import glob
-from mylar import mylar, config, logger, encrypted
+import mylar
+from mylar import config, logger, encrypted, versioncheck
 import zipfile
 
 class carePackage(object):
 
-    def __init__(self):
+    def __init__(self, maintenance=False):
+        self.maintenance = maintenance
         self.carepackage_version = 1.05
-        self.filename = os.path.join(mylar.CONFIG.LOG_DIR, 'MylarRunningEnvironment.txt')
-        self.panicfile = os.path.join(mylar.CONFIG.LOG_DIR, "carepackage.zip")
         self.configpath = os.path.join(mylar.DATA_DIR, 'config.ini')
-        self.cleanpath = os.path.join(mylar.CONFIG.LOG_DIR, 'clean_config.ini')
         self.lastrelpath = os.path.join(mylar.PROG_DIR, '.LASTRELEASE')
         self.keylist = []
+        self.pass_thru_vals = None
         self.cleaned_list = {
                             ('Interface', 'http_password'),
                             ('SABnzbd', 'sab_username'),
@@ -80,14 +80,43 @@ class carePackage(object):
                             ('Seedbox', 'seedbox_host'),
                             ('Email', 'email_server')
                              }
-        self.environment()
-        self.cleaned_config()
-        self.panicbutton()
 
-    def environment(self):
+    def loaders(self):
+        self.cleaned_config()
+        vers_vals = versioncheck.versionload(cli_values=self.pass_thru_vals)
+        self.filename = os.path.join(self.log_dir, 'MylarRunningEnvironment.txt')
+        logger.info('vers_vals: %s' % (vers_vals,))
+        # set the stage for the filename
+        if not vers_vals:
+            vers_vals = {'current_branch': mylar.CONFIG.GIT_BRANCH,
+                         'current_version': mylar.CURRENT_VERSION,
+                         'current_version_name': mylar.CURRENT_VERSION_NAME,
+                         'current_release_name': mylar.CURRENT_RELEASE_NAME}
+
+        if vers_vals['current_branch'] == 'master' and vers_vals['current_version_name'] is not None:
+            panic_name = 'carepackage_%s.zip' % (vers_vals['current_version_name'])
+        else:
+            panic_name = 'carepackage_%s_(%s).zip' % (vers_vals['current_version'], vers_vals['current_branch'])
+
+        self.panicfile = os.path.join(self.log_dir, panic_name)
+
+        env_status = self.environment(vers_vals)
+        panic_status = self.panicbutton()
+        return {'status': 'success',
+                'carepackage': self.panicfile}
+
+    def environment(self, vers_vals):
         f = open(self.filename, "w+")
         f.write("-- Carepackage version %s --\n" % self.carepackage_version)
-        f.write("Mylar host information:\n")
+        f.write("\n-- Release information --\n")
+        f.write("branch: %s\n" % (vers_vals['current_branch']))
+        f.write("commmit: %s\n" % (vers_vals['current_version']))
+        if vers_vals['current_version_name'] is not None:
+            f.write("version: %s\n" % (vers_vals['current_version_name']))
+        if vers_vals['current_release_name']:
+            f.write("release name: %s\n" % (vers_vals['current_release_name']))
+        f.write("-------------------------\n")
+        f.write("\nMylar host information:\n")
         match = re.search('Windows', platform.system(), re.IGNORECASE)
         if match:
             objline = ['systeminfo']
@@ -99,12 +128,13 @@ class carePackage(object):
             text=True)
         for hiline in hi.stdout.split('\n'):
             if platform.system() == 'Windows':
-                if all(['Host Name' not in hiline, 'OS Name' not in hiline, 
+                if all(['Host Name' not in hiline, 'OS Name' not in hiline,
 				'OS Version' not in hiline, 'OS Configuration' not in hiline,
 				'OS Build Type' not in hiline, 'Locale' not in hiline,
 				'Time Zone' not in hiline]):
                     continue
-            f.write("%s\n" % hiline)
+            if all([hiline is not None, hiline != '', hiline != r'\n']):
+                f.write("%s\n" % hiline)
 
         f.write("\n\nMylar python information:\n")
         pyloc = sys.executable
@@ -144,9 +174,34 @@ class carePackage(object):
         f.close()
 
     def cleaned_config(self):
-        shutil.copy(self.configpath, self.cleanpath)
         tmpconfig = configparser.SafeConfigParser()
-        tmpconfig.readfp(codecs.open(self.cleanpath, 'r', 'utf8'))
+        tmpconfig.readfp(codecs.open(self.configpath, 'r', 'utf8'))
+
+        if self.maintenance is True:
+            self.log_dir = tmpconfig['Logs']['log_dir']
+            if self.log_dir is None:
+                self.log_dir = os.path.join(mylar.DATA_DIR, 'logs')
+
+            # we need to dummy these up if this is via CLI
+            git_tmp = tmpconfig['Git']
+            git_user = git_tmp['git_user']
+            git_branch = git_tmp['git_branch']
+            git_token = git_tmp['git_token']
+            self.git_path = git_tmp['git_path']
+            auto_update = False
+            check_github_on_startup = False
+            self.pass_thru_vals = {'git_user': git_user,
+                                   'git_branch': git_branch,
+                                   'git_token': git_token,
+                                   'git_path': self.git_path,
+                                   'auto_update': auto_update,
+                                   'check_github_on_startup': check_github_on_startup}
+        else:
+            self.log_dir = mylar.CONFIG.LOG_DIR
+
+        self.cleanpath = os.path.join(self.log_dir, 'clean_config.ini')
+
+        shutil.copy(self.configpath, self.cleanpath)
 
         for v in self.cleaned_list:
             try:
@@ -204,7 +259,6 @@ class carePackage(object):
             cleaned_newznabs.append(newnewzline)
 
         for ets in extra_torznabs:
-            logger.info('torznab: %s' % (ets,))
             n_host = None
             n_uid = None
             n_api = None
@@ -260,14 +314,14 @@ class carePackage(object):
 
             files = []
             try:
-                caredir = os.path.join(mylar.CONFIG.LOG_DIR, 'carepackage')
+                caredir = os.path.join(self.log_dir, 'carepackage')
                 os.mkdir(caredir)
             except Exception as e:
                 pass
 
-            for file in glob(os.path.join(mylar.CONFIG.LOG_DIR,'mylar.log*')):
+            for file in glob(os.path.join(self.log_dir,'mylar.log*')):
                 #files.append(pathlib.Path(pathlib.PurePath(mylar.CONFIG.LOG_DIR).joinpath(os.path.basename(file)))) #os.path.join(mylar.CONFIG.LOG_DIR, os.path.basename(file)))
-                files.append(os.path.join(mylar.CONFIG.LOG_DIR, os.path.basename(file)))
+                files.append(os.path.join(self.log_dir, os.path.basename(file)))
 
             if len(files) > 0:
                 for fname in files:
