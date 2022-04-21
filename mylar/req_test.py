@@ -221,11 +221,15 @@ class Req(object):
         mylar.REQS['rar'] = {'rar_failure': rar_failure, 'rar_message': rar_message}
 
     def release_messages(self):
-        with open('.release_messages', 'r') as rmf:
-            rls_messages = rmf.readlines()
+        try:
+            with open('.release_messages', 'r') as rmf:
+                rls_messages = rmf.readlines()
+        except Exception:
+             rls_messages = None
+        else:
+            if len(rls_messages) == 0:
+                rls_messages = None
 
-        if len(rls_messages) == 0:
-            rls_messages = None
         logger.info('release_messages: %s' % (rls_messages,))
         mylar.REQS['release_messages'] = rls_messages
 
