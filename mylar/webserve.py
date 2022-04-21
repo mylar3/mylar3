@@ -1,4 +1,3 @@
-
 #  This file is part of Mylar.
 #
 #  Mylar is free software: you can redistribute it and/or modify
@@ -44,15 +43,37 @@ import platform
 import urllib.request, urllib.parse, urllib.error
 import shutil
 import fnmatch
+import simplejson as simplejson
+from operator import itemgetter
 
 import mylar
-
-from mylar import logger, db, importer, mb, search, filechecker, helpers, updater, parseit, weeklypull, PostProcessor, librarysync, moveit, Failed, readinglist, notifiers, sabparse, config, series_metadata
-from mylar.auth import AuthController, require
-
-import simplejson as simplejson
-
-from operator import itemgetter
+from mylar import (
+    carepackage,
+    config,
+    db,
+    Failed,
+    filechecker,
+    helpers,
+    importer,
+    librarysync,
+    logger,
+    mb,
+    moveit,
+    notifiers,
+    parseit,
+    PostProcessor,
+    readinglist,
+    req_test,
+    sabparse,
+    search,
+    series_metadata,
+    updater,
+    weeklypull,
+)
+from mylar.auth import (
+    AuthController,
+    require,
+)
 
 def serve_template(templatename, **kwargs):
     interface_dir = os.path.join(str(mylar.PROG_DIR), 'data/interfaces/')
@@ -7182,11 +7203,10 @@ class WebInterface(object):
     NZBGet_test.exposed = True
 
     def carepackage(self):
-        from mylar.carepackage import carePackage
-        cp = carePackage()
+        cp = carepackage.carePackage()
+        file_to_care = cp.loaders()
         from cherrypy.lib.static import serve_download
-        cppb = os.path.join(mylar.CONFIG.LOG_DIR, "carepackage.zip")
-        return serve_download(cppb)
+        return serve_download(file_to_care['carepackage'])
     carepackage.exposed = True
 
     def shutdown(self):
@@ -8905,3 +8925,10 @@ class WebInterface(object):
                 pass
 
     addMissingSeriesFromArc.exposed = True
+
+    def return_checks(self):
+        r = mylar.req_test.Req()
+        r.check_config_values()
+
+        return json.dumps(mylar.REQS)
+    return_checks.exposed = True

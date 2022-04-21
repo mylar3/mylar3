@@ -612,7 +612,7 @@ class PostProcessor(object):
                                                 else:
                                                     os.replace(tt, clocation)
                                         else:
-                                            logger.warn('[%s] Skipping this file due to path conversion error [path: %s]/[name: %s]' % (e, tpath, tname))
+                                            logger.warn('Skipping this file due to path conversion error [path: %s]/[name: %s]' % (tpath, tname))
                                             path_failure = True
                                     else:
                                         logger.fdebug('tpath: %s' % (tpath))
@@ -671,10 +671,10 @@ class PostProcessor(object):
                                                         else:
                                                             self.nzb_folder = clocation   # this is needed in order to delete after moving.
                                                    else:
-                                                       logger.warn('[%s] Skipping this file due to path conversion error [path: %s]/[name: %s]' % (e, tpath, tname))
+                                                       logger.warn('Skipping this file due to path conversion error [path: %s]/[name: %s]' % (tpath, tname))
                                                        path_failure = True
                                                 else:
-                                                    logger.warn('[%s] Skipping this file due to path conversion error [path: %s]/[name: %s]' % (e, tpath, tname))
+                                                    logger.warn('Skipping this file due to path conversion error [path: %s]/[name: %s]' % (tpath, tname))
                                                     path_failure = True
                                             except Exception as e:
                                                 logger.warn('[%s] Skipping this file due to path conversion error [path: %s]/[name: %s]' % (e, tpath, tname))
@@ -1923,7 +1923,7 @@ class PostProcessor(object):
                         else:
                             logger.fdebug('%s [%s] Post-Processing completed for: %s' % (module, ml['StoryArc'], ml['ComicLocation']))
 
-                        if any([all([mylar.CONFIG.PUSHOVER_IMAGE, mylar.CONFIG.PUSHOVER_ENABLED]), all([mylar.CONFIG.TELEGRAM_IMAGE, mylar.CONFIG.TELEGRAM_ENABLED]),all([mylar.CONFIG.MATTERMOST_ENABLED]) ]):
+                        if any([all([mylar.CONFIG.PUSHOVER_IMAGE, mylar.CONFIG.PUSHOVER_ENABLED]), all([mylar.CONFIG.TELEGRAM_IMAGE, mylar.CONFIG.TELEGRAM_ENABLED]), mylar.CONFIG.DISCORD_ENABLED, mylar.CONFIG.GOTIFY_ENABLED, mylar.CONFIG.MATTERMOST_ENABLED ]):
                             try:
                                 get_cover = getimage.extract_image(grab_dst, single=True, imquality='notif')
                                 imageFile = get_cover['ComicImage']
@@ -2512,7 +2512,7 @@ class PostProcessor(object):
                         logger.info('%s Post-Processing completed for: [ %s #%s ] %s' % (module, comicname, issuenumber, grab_dst))
                         self._log("Post Processing SUCCESSFUL! ")
 
-                    if any([all([mylar.CONFIG.PUSHOVER_IMAGE, mylar.CONFIG.PUSHOVER_ENABLED]), all([mylar.CONFIG.TELEGRAM_IMAGE, mylar.CONFIG.TELEGRAM_ENABLED]), all([mylar.CONFIG.MATTERMOST_ENABLED]) ]):
+                    if any([all([mylar.CONFIG.PUSHOVER_IMAGE, mylar.CONFIG.PUSHOVER_ENABLED]), all([mylar.CONFIG.TELEGRAM_IMAGE, mylar.CONFIG.TELEGRAM_ENABLED]), mylar.CONFIG.DISCORD_ENABLED, mylar.CONFIG.GOTIFY_ENABLED, mylar.CONFIG.MATTERMOST_ENABLED ]):
                         try:
                             get_cover = getimage.extract_image(grab_dst, single=True, imquality='notif')
                             imageFile = get_cover['ComicImage']
@@ -3373,7 +3373,7 @@ class PostProcessor(object):
             #    return self.queue.put(self.valreturn)
 
             # If using Pushover with image enabled, Telegram with image enabled, or Discord, extract the first image in the file for the notification
-            if any([all([mylar.CONFIG.PUSHOVER_IMAGE, mylar.CONFIG.PUSHOVER_ENABLED]), all([mylar.CONFIG.TELEGRAM_IMAGE, mylar.CONFIG.TELEGRAM_ENABLED]), all([mylar.CONFIG.DISCORD_ENABLED]), all([mylar.CONFIG.GOTIFY_ENABLED]), all([mylar.CONFIG.MATTERMOST_ENABLED])]):
+            if any([all([mylar.CONFIG.PUSHOVER_IMAGE, mylar.CONFIG.PUSHOVER_ENABLED]), all([mylar.CONFIG.TELEGRAM_IMAGE, mylar.CONFIG.TELEGRAM_ENABLED]), mylar.CONFIG.DISCORD_ENABLED, mylar.CONFIG.GOTIFY_ENABLED, mylar.CONFIG.MATTERMOST_ENABLED ]):
                 try:
                     get_cover = getimage.extract_image(dst, single=True, imquality='notif')
                     imageFile = get_cover['ComicImage']
