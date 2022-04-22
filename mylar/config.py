@@ -1198,54 +1198,54 @@ class Config(object):
         #comictagger - force to use included version if option is enabled.
         import comictaggerlib.ctversion as ctversion
         logger.info('[COMICTAGGER] Version detected: %s' % ctversion.version)
-        if any([self.ENABLE_META, self.CBR2CBZ_ONLY]):
-            mylar.CMTAGGER_PATH = mylar.PROG_DIR
+        #if any([self.ENABLE_META, self.CBR2CBZ_ONLY]):
+        mylar.CMTAGGER_PATH = mylar.PROG_DIR
 
-            if not ([self.CT_NOTES_FORMAT == 'CVDB', self.CT_NOTES_FORMAT == 'Issue ID']):
-                setattr(self, 'CT_NOTES_FORMAT', 'Issue ID')
-                config.set('Metatagging', 'ct_notes_format', self.CT_NOTES_FORMAT)
+        if not ([self.CT_NOTES_FORMAT == 'CVDB', self.CT_NOTES_FORMAT == 'Issue ID']):
+            setattr(self, 'CT_NOTES_FORMAT', 'Issue ID')
+            config.set('Metatagging', 'ct_notes_format', self.CT_NOTES_FORMAT)
 
-            #we need to make sure the default folder setting for the comictagger settings exists so things don't error out
-            if self.CT_SETTINGSPATH is None:
-                chkpass = False
-                import pathlib
+        #we need to make sure the default folder setting for the comictagger settings exists so things don't error out
+        if self.CT_SETTINGSPATH is None:
+            chkpass = False
+            import pathlib
 
-                #windows won't be able to create in ~, so force it to DATA_DIR
-                if mylar.OS_DETECT == 'Windows':
-                    ct_path = mylar.DATA_DIR
-                    chkpass = True
-                else:
-                    ct_path = str(pathlib.Path(os.path.expanduser("~")))
-                    try:
-                        os.mkdir(os.path.join(ct_path, '.ComicTagger'))
-                        chkpass = True
-                    except OSError as e:
-                        if e.errno != errno.EEXIST:
-                            logger.error('Unable to create .ComicTagger directory in %s. Setting up to default location of %s' % (ct_path, os.path.join(mylar.DATA_DIR, '.ComicTagger')))
-                            ct_path = mylar.DATA_DIR
-                            chkpass = True
-                        elif e.errno == 17: #file_already_exists
-                            chkpass = True
-                    except exception as e:
-                        logger.error('Unable to create setting directory for ComicTagger. This WILL cause problems when tagging.')
-                        ct_path = mylar.DATA_DIR
-                        chkpass = True
-
-                if chkpass is True:
-                    setattr(self, 'CT_SETTINGSPATH', os.path.join(ct_path, '.ComicTagger'))
-                    config.set('Metatagging', 'ct_settingspath', self.CT_SETTINGSPATH)
-
-            if not update:
-                logger.fdebug('[COMICTAGGER] Setting ComicTagger settings default path to : %s' % self.CT_SETTINGSPATH)
-
-            if not os.path.exists(self.CT_SETTINGSPATH):
+            #windows won't be able to create in ~, so force it to DATA_DIR
+            if mylar.OS_DETECT == 'Windows':
+                ct_path = mylar.DATA_DIR
+                chkpass = True
+            else:
+                ct_path = str(pathlib.Path(os.path.expanduser("~")))
                 try:
-                    os.mkdir(self.CT_SETTINGSPATH)
+                    os.mkdir(os.path.join(ct_path, '.ComicTagger'))
+                    chkpass = True
                 except OSError as e:
                     if e.errno != errno.EEXIST:
-                        logger.error('Unable to create setting directory for ComicTagger. This WILL cause problems when tagging.')
-                else:
-                    logger.fdebug('Successfully created ComicTagger Settings location.')
+                        logger.error('Unable to create .ComicTagger directory in %s. Setting up to default location of %s' % (ct_path, os.path.join(mylar.DATA_DIR, '.ComicTagger')))
+                        ct_path = mylar.DATA_DIR
+                        chkpass = True
+                    elif e.errno == 17: #file_already_exists
+                        chkpass = True
+                except exception as e:
+                    logger.error('Unable to create setting directory for ComicTagger. This WILL cause problems when tagging.')
+                    ct_path = mylar.DATA_DIR
+                    chkpass = True
+
+            if chkpass is True:
+                setattr(self, 'CT_SETTINGSPATH', os.path.join(ct_path, '.ComicTagger'))
+                config.set('Metatagging', 'ct_settingspath', self.CT_SETTINGSPATH)
+
+        if not update:
+            logger.fdebug('[COMICTAGGER] Setting ComicTagger settings default path to : %s' % self.CT_SETTINGSPATH)
+
+        if not os.path.exists(self.CT_SETTINGSPATH):
+            try:
+                os.mkdir(self.CT_SETTINGSPATH)
+            except OSError as e:
+                if e.errno != errno.EEXIST:
+                    logger.error('Unable to create setting directory for ComicTagger. This WILL cause problems when tagging.')
+            else:
+                logger.fdebug('Successfully created ComicTagger Settings location.')
 
         #make sure queues are running here...
         if startup is False:
