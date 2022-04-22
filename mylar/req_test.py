@@ -30,6 +30,8 @@ class Req(object):
 
     def __init__(self):
         self.file = os.path.join(mylar.DATA_DIR, 'requirements.txt')
+        if mylar.INSTALL_TYPE == 'docker':
+            self.file = os.path.join(mylar.PROG_DIR, 'requirements.txt')
         self.req_list = []
         self.pip_list = []
         self.operators = ['==', '>=', '<=']
