@@ -8966,7 +8966,7 @@ class WebInterface(object):
         storyarcname = None
 
         myDB = db.DBConnection()
-        arcs = myDB.select('Select ComicID, ComicName, SeriesYear, StoryArc FROM storyarcs WHERE storyarcid=? GROUP BY ComicID', [storyarcid])
+        arcs = myDB.select('Select ComicID, ComicName, SeriesYear, StoryArc FROM storyarcs WHERE storyarcid=? AND (Manual!='deleted' OR Manual IS NULL) GROUP BY ComicID', [storyarcid])
 
         for ac in arcs:
             if storyarcname is None and ac['StoryArc'] is not None:
