@@ -4924,6 +4924,83 @@ class WebInterface(object):
         raise cherrypy.HTTPRedirect("detailStoryArc?StoryArcID=%s&StoryArcName=%s" % (storyarcid, storyarc))
     importReadlist.exposed = True
 
+    def GenerateCBLReadingList(self, StoryArcID=None):
+
+        myDB = db.DBConnection()
+
+        if StoryArcID:
+            ReadingArc = myDB.select("SELECT * FROM storyarcs WHERE StoryArcID=? AND (Manual!='deleted' OR Manual IS NULL) ORDER BY ReadingOrder", [StoryArcID])
+
+        if ReadingArc is None:
+            logger.info("Couldn't find Story Arc to use for reading list!")
+        else:
+            arcName = ReadingArc[0]['StoryArc']
+            logger.fdebug('Generating CBL file for ' + arcName)
+
+            # !Replace root_path variable
+            readingListDest = os.path.join(mylar.CONFIG.DESTINATION_DIR, 'ReadingLists')
+            filename = arcName + ".cbl"
+            fullPath = os.path.join(readingListDest, filename)
+
+            if not os.path.exists(readingListDest):
+                logger.fdebug('making directory: %s' % readingListDest)
+                os.mkdir(readingListDest)
+
+            logger.fdebug('Opening file: ' + fullPath)
+
+            with open(fullPath, 'w') as file:
+
+                line1 = "<?xml version=\"1.0\"?>"
+                line2 = "<ReadingList xmlns:xsd=\"http://www.w3.org/2001/XMLSchema\" xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\">"
+                line3 = "<Name>" + escape(arcName) + "</Name>"
+                line4 = "<Books>"
+
+                file.writelines([line1, line2, line3, line4])
+
+                #For each issue in arc
+                for issue in ReadingArc:
+
+                    #Set default values to blank string
+                    fileName = seriesName = issueNumber = volNumber = issueYear = ""
+
+                    if issue['Location'] is not None:
+                        filePath = issue['Location'].split("/")
+                        #lastItemIndex = len(filePath) - 1
+                        fileName = escape(filePath[-1])
+                        
+                        #Strip reading order numbers from start of filename if present
+                        regex = re.compile("^\d{3}-(.*?)\.(cbz|cbr)")
+                        match = regex.match(fileName)
+                        if match != None:
+                            strippedName = '{}.{}'.format(*match.groups())
+                            fileName=strippedName
+
+                    if issue['ComicName'] is not None:
+                        seriesName = escape(str(issue['ComicName']))
+                    if issue['IssueNumber'] is not None:
+                        issueNumber = escape(str(issue['IssueNumber']))
+                    if issue['Volume'] is not None:
+                        volNumber = escape(str(issue['Volume']))
+                    if issue['SeriesYear'] is not None:
+                        issueYear = escape(str(issue['SeriesYear']))
+                    if issue['IssueID'] is not None:
+                        issueCVID = escape(str(issue['IssueID']))
+
+                    file.write("<Book Series=\"" + seriesName + "\" Number=\"" + issueNumber + "\" Volume=\"" + volNumber + "\" Year=\"" + issueYear + "\">")
+                    file.write("<FileName>" + fileName + "</FileName>")
+                    file.write("<CVID>" + issueCVID + "</CVID>")
+                    file.write("</Book>")
+
+                line1 = "</Books>"
+                line2 = "<Matchers />"
+                line3 = "</ReadingList>"
+
+                file.writelines([line1, line2, line3])
+
+                file.close()
+
+    GenerateCBLReadingList.exposed = True
+
     def ArcWatchlist(self,StoryArcID=None):
         myDB = db.DBConnection()
         if StoryArcID:
