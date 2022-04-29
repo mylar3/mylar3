@@ -206,10 +206,10 @@ class SABnzbd(object):
                             return {'status': 'file not found', 'failed': False}
                         else:
                             if new_path is None:
-                                logger.warn('[ERROR] Unable to remap the directory from SAB to Mylar\'s configuration. Error returned:' % (e,))
+                                logger.warn('[ERROR] Unable to remap the directory from SAB to Mylar\'s configuration.')
                                 return {'status': 'file not found', 'failed': False}
                             elif not os.path.isfile(new_path):
-                                logger.fdebug('[ERROR] Unable to locate path (%s) on the machine that is running Mylar. If Mylar and nzbget are on separate machines, you need to set a directory location that is accessible to both: %s' % (e,))
+                                logger.fdebug('[ERROR] Unable to locate path (%s) on the machine that is running Mylar. If Mylar and sabnzbd are on separate machines, you need to set a directory location that is accessible to both' % (new_path))
                                 return {'status': 'file not found', 'failed': False}
 
                         logger.fdebug('location found @ %s' % new_path)
@@ -273,7 +273,7 @@ class SABnzbd(object):
                 else:
                     return {'status': 'nzb removed', 'failed': False}
         except Exception as e:
-            logger.warn('error %s' % e)
+            logger.warn('error %s' % (e,))
             return {'status': False, 'failed': False}
 
         return found
