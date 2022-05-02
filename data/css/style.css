@@ -146,14 +146,6 @@ div#paddingheader { padding-top: 48px; font-size: 24px; font-weight: bold; text-
 div#paddingheadertitle { padding-top: 24px; font-size: 24px; font-weight: bold; text-align: center; }
 div#nopaddingheader { font-size: 24px; font-weight: bold; text-align: center; }
 
-table#history_table { background-color: white; width: 100%; font-size: 13px; }
-
-table#history_table td#dateadded { vertical-align: middle; text-align: center; min-width: 150px; font-size: 14px; }
-table#history_table td#filename { vertical-align: middle; text-align: center; min-width: 100px; font-size: 15px; }
-table#history_table td#size { vertical-align: middle; text-align: center; min-width: 75px; font-size: 14px; }
-table#history_table td#status { vertical-align: middle; text-align: center; font-size: 14px; }
-table#history_table td#action { vertical-align: middle; text-align: center; font-size: 14px; }
-
 table#log_table { background-color: white; }
 
 table#log_table th#timestamp { text-align: left; min-width: 150px; }
