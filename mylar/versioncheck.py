@@ -442,7 +442,8 @@ def versionload(cli_values=None):
         return {'current_branch': version_info['branch'],
                 'current_version': version_info['current_version'],
                 'current_version_name': version_info['current_version_name'],
-                'current_release_name': version_info['current_release_name']}
+                'current_release_name': version_info['current_release_name'],
+                'install_type': mylar.INSTALL_TYPE}
 
 
     mylar.CONFIG.GIT_BRANCH = version_info['branch']

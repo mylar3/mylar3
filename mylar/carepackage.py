@@ -21,7 +21,7 @@ class carePackage(object):
 
     def __init__(self, maintenance=False):
         self.maintenance = maintenance
-        self.carepackage_version = 1.05
+        self.carepackage_version = 1.06
         self.configpath = os.path.join(mylar.DATA_DIR, 'config.ini')
         self.lastrelpath = os.path.join(mylar.PROG_DIR, '.LASTRELEASE')
         self.keylist = []
@@ -109,6 +109,7 @@ class carePackage(object):
         f = open(self.filename, "w+")
         f.write("-- Carepackage version %s --\n" % self.carepackage_version)
         f.write("\n-- Release information --\n")
+        f.write("installation method: %s\n" % (vers_vals['install_type']))
         f.write("branch: %s\n" % (vers_vals['current_branch']))
         f.write("commmit: %s\n" % (vers_vals['current_version']))
         if vers_vals['current_version_name'] is not None:
