@@ -1547,11 +1547,11 @@ def verification(verified_matches, is_info):
                         SARC=is_info['SARC'],
                         IssueArcID=is_info['IssueArcID'],
                         id=verified_matches[verified_index]['nzbid'],
-                        prov=is_info['tmpprov'],
+                        prov=is_info['nzbprov'],
                         oneoff=is_info['oneoff'],
                     )
                     updater.foundsearch(
-                        is_info['ComicID'], isid['issueid'], mode=is_info['smode'], provider=is_info['tmpprov']
+                        is_info['ComicID'], isid['issueid'], mode=is_info['smode'], provider=is_info['nzbprov']
                     )
                 notify_snatch(
                     sent_to,
@@ -1572,7 +1572,7 @@ def verification(verified_matches, is_info):
                 )
 
         else:
-            tmpprov = is_info['tmpprov']
+            tmpprov = is_info['nzbprov']
             if alt_nzbname is None or alt_nzbname == '':
                 logger.fdebug(
                     'Found matching comic...preparing to send to Updater with IssueID:'
@@ -2525,15 +2525,15 @@ def searchforissue(issueid=None, new=False, rsschecker=None, manual=False):
                 if foundNZB['status'] is True:
                     mylar.SEARCHLOCK = False
                     logger.fdebug('I found %s #%s' % (ComicName, IssueNumber))
-                    updater.foundsearch(
-                        ComicID,
-                        actissueid,
-                        mode=smode,
-                        provider=prov,
-                        SARC=SARC,
-                        IssueArcID=IssueArcID,
-                        hash=foundNZB['info']['t_hash'],
-                    )
+                    #updater.foundsearch(
+                    #    ComicID,
+                    #    actissueid,
+                    #    mode=smode,
+                    #    provider=prov,
+                    #    SARC=SARC,
+                    #    IssueArcID=IssueArcID,
+                    #    hash=foundNZB['info']['t_hash'],
+                    #)
                 return foundNZB
 
             except Exception as err:
