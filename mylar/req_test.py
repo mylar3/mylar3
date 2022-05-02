@@ -32,8 +32,11 @@ class Req(object):
         self.file = os.path.join(mylar.DATA_DIR, 'requirements.txt')
         if mylar.INSTALL_TYPE == 'docker':
             self.file = os.path.join(mylar.PROG_DIR, 'requirements.txt')
+        #logger.fdebug('requirements.txt location: %s' % (self.file,))
         self.req_list = []
         self.pip_list = []
+        self.pip_error = None
+        self.rls_messages = []
         self.operators = ['==', '>=', '<=']
         # mylar.REQS = {'pip': {'pip_failure': true/false, 'pip_list': {pip_list_dictionary}},
         #               'rar': {'rar_failure': true/false, 'rar_exe_path': path to rar / rar message},
@@ -68,62 +71,70 @@ class Req(object):
         self.pip_load()
 
         req_pip_list = []
+        plist = []
 
         cest_boom = 'OK'
 
-        for rq in self.req_list:
-            version_match = False
-            for pl in self.pip_list:
-                if re.sub('[\-\_]', '', rq['module']).strip() == re.sub('[\-\_]', '', pl['module']).strip():
-                    if parse_version(pl['version']) == parse_version(rq['version']):
-                        version_match = 'OK'
-                    elif parse_version(pl['version']) < parse_version(rq['version']):
-                        if rq['arg'] == '<=':
+        if self.pip_error is not None:
+            pip_failed = True
+            plist.append({'module': '???',
+                          'message': self.pip_error['message'],
+                          'version_match': ''})
+            if mylar.INSTALL_TYPE == 'docker':
+                self.rls_messages.append("Hotio images cannot verify required modules.</br> Your python requirements might not be met")
+        else:
+            for rq in self.req_list:
+                version_match = False
+                for pl in self.pip_list:
+                    if re.sub('[\-\_]', '', rq['module']).strip() == re.sub('[\-\_]', '', pl['module']).strip():
+                        if parse_version(pl['version']) == parse_version(rq['version']):
                             version_match = 'OK'
-                        else:
-                            version_match = 'FAIL'
-                            cest_boom = 'FAIL'
-                    elif parse_version(pl['version']) > parse_version(rq['version']):
-                        if rq['arg'] == '>=':
-                            version_match = 'OK'
-                        else:
-                            version_match = 'FAIL'
-                            cest_boom = 'FAIL'
-                    logger.fdebug('[%s] REQUIRED: %s ---> INSTALLED: %s [%s]' % (rq['module'], rq['version'], pl['version'], version_match))
+                        elif parse_version(pl['version']) < parse_version(rq['version']):
+                            if rq['arg'] == '<=':
+                                version_match = 'OK'
+                            else:
+                                version_match = 'FAIL'
+                                cest_boom = 'FAIL'
+                        elif parse_version(pl['version']) > parse_version(rq['version']):
+                            if rq['arg'] == '>=':
+                                version_match = 'OK'
+                            else:
+                                version_match = 'FAIL'
+                                cest_boom = 'FAIL'
+                        logger.fdebug('[%s] REQUIRED: %s ---> INSTALLED: %s [%s]' % (rq['module'], rq['version'], pl['version'], version_match))
+                        req_pip_list.append({'module': rq['module'],
+                                             'req_version': rq['version'],
+                                             'arg': rq['arg'],
+                                             'pip_version': pl['version'],
+                                             'version_match': version_match})
+                        break
+
+                if version_match is False:
+                    version_match = 'FAIL'
+                    cest_boom = 'FAIL'
+                    logger.fdebug('[%s] REQUIRED: %s ---> INSTALLED: %s ' % (rq['module'], rq['version'], version_match))
                     req_pip_list.append({'module': rq['module'],
                                          'req_version': rq['version'],
                                          'arg': rq['arg'],
-                                         'pip_version': pl['version'],
+                                         'pip_version': 'Not Installed',
                                          'version_match': version_match})
-                    break
 
-            if version_match is False:
-                version_match = 'FAIL'
-                cest_boom = 'FAIL'
-                logger.fdebug('[%s] REQUIRED: %s ---> INSTALLED: %s ' % (rq['module'], rq['version'], version_match))
-                req_pip_list.append({'module': rq['module'],
-                                     'req_version': rq['version'],
-                                     'arg': rq['arg'],
-                                     'pip_version': 'Not Installed',
-                                     'version_match': version_match})
+            pip_failed = False
+            for x in req_pip_list:
+                if x['version_match'] == 'FAIL':
+                    if x['pip_version'] != 'Not Installed':
+                        if x['arg'] == '>=':
+                            targ = '<'
+                        elif x['arg'] == '<=':
+                            targ = '>'
+                        pip_message = "%s installed %s %s required" % (x['pip_version'], targ, x['req_version'])
+                    else:
+                        pip_message = "%s %s" % (x['req_version'], x['pip_version'])
+                    plist.append({"module": str(x['module']),
+                                  "message": pip_message,
+                                  "version_match": str(x['version_match'])})
+                    pip_failed = True
 
-        pip_failed = False
-        plist = []
-        for x in req_pip_list:
-            if x['version_match'] == 'FAIL':
-                if x['pip_version'] != 'Not Installed':
-                    if x['arg'] == '>=':
-                        targ = '<'
-                    elif x['arg'] == '<=':
-                        targ = '>'
-                    pip_message = "%s installed %s %s required" % (x['pip_version'], targ, x['req_version'])
-                else:
-                    pip_message = "%s %s" % (x['req_version'], x['pip_version'])
-                plist.append({"module": str(x['module']),
-                              "message": pip_message,
-                              "version_match": str(x['version_match'])})
-                pip_failed = True
- 
         mylar.REQS['pip'] = {'pip_failure': pip_failed, 'pip_info': plist}
 
     def pip_load(self):
@@ -136,16 +147,21 @@ class Req(object):
             logger.fdebug('Python Version: %s' % (py_version.strip()))
             logger.fdebug('Python executable location: %s' % (pyloc.strip()))
 
-            pf_raw = subprocess.run([pyloc, '-m', 'pip', 'list'], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True).stdout.splitlines()
+            pf_out = subprocess.run([pyloc, '-m', 'pip', 'list'], capture_output=True, text=True)
+            pf_err = pf_out.stderr
+            pf_raw = pf_out.stdout
+            if pf_err:
+                if 'No module named pip' in pf_err:
+                    self.pip_error = {'module': '???', 'message': 'unable to perform check'}
+                    return
 
-            for pf in pf_raw:
-                pipline = str(pf)
-                if any(['WARNING' in pipline, 'You should' in pipline, '----' in pipline, 'Package' in pipline]):
+            for pf in pf_raw.splitlines():
+                if any(['WARNING' in pf, 'You should' in pf, '----' in pf, 'Package' in pf]):
                     continue
-                else:
-                    p_mod = str(pipline[:pipline.find(' ')]).strip()
-                    p_version = str(pipline[pipline.find(' ')+1:]).strip()
-                    self.pip_list.append({'module': p_mod, 'version': p_version})
+                pipline = str(pf)
+                p_mod = str(pipline[:pipline.find(' ')]).strip()
+                p_version = str(pipline[pipline.find(' ')+1:]).strip()
+                self.pip_list.append({'module': p_mod, 'version': p_version})
         except Exception as e:
             logger.fdebug('error: %s' % (e,))
 
@@ -178,7 +194,7 @@ class Req(object):
             try:
                 logger.fdebug('Trying to execute: %s' % (cmd))
                 output = subprocess.run(cmd, text=True, capture_output=True, shell=True)
-                logger.fdebug('rar_check output: %s' % output)
+                #logger.fdebug('rar_check output: %s' % output)
                 itworked = True
             except Exception as e:
                 logger.fdebug('Command %s didn\'t work [%s]' % (cmd, e))
@@ -211,7 +227,6 @@ class Req(object):
 
         rar_exe_path = output
 
-        print('rar_exe_path: %s' % rar_exe_path)
         rar_message = 'Unable to locate unrar'
         try:
             if rar_exe_path is not None:
@@ -231,6 +246,12 @@ class Req(object):
         else:
             if len(rls_messages) == 0:
                 rls_messages = None
+
+        if self.rls_messages:
+            if rls_messages is not None:
+                rls_messages.append(self.rls_messages)
+            else:
+                rls_messages = self.rls_messages
 
         logger.info('release_messages: %s' % (rls_messages,))
         mylar.REQS['release_messages'] = rls_messages

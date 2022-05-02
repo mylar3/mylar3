@@ -1489,37 +1489,73 @@ div#artistheader h2 a {
   margin-top: 45px;
   margin-bottom: 0;
 }
-#history_table {
-  background-color: #FFF;
-  font-size: 13px;
-  width: 100%;
+#history_table th#select {
+  vertical-align: middle;
+  text-align: center;
+  max-width: 7px;
+}
+#history_table th#dateadded {
+  width: 15px;
+  text-align: center;
+  vertical-align: middle;
+}
+#history_table th#series {
+  width: 250px;
+  text-align: center;
+  vertical-align: middle;
+}
+#history_table th#issue {
+  width: 10px;
+  text-align: center;
+  vertical-align: middle;
+}
+#history_table th#status {
+  width: 20px;
+  text-align: center;
+  vertical-align: middle;
+}
+#history_table th#provider {
+  width: 20px;
+  text-align: center;
+  vertical-align: middle;
+}
+#history_table th#action {
+  width: 30px;
+  text-align: center;
+  vertical-align: middle;
+}
+#history_table td#select {
+  vertical-align: middle;
+  text-align: center;
+  max-width: 7px;
 }
 #history_table td#dateadded {
-  font-size: 12px;
-  min-width: 100px;
+  width: 15px;
   text-align: center;
   vertical-align: middle;
 }
-#history_table td#filename {
-  font-size: 12px;
-  min-width: 150px;
+#history_table td#series {
+  width: 250px;
   text-align: center;
   vertical-align: middle;
 }
-#history_table td#size {
-  font-size: 12px;
-  min-width: 40px;
+#history_table td#issue {
+  width: 10px;
   text-align: center;
   vertical-align: middle;
 }
 #history_table td#status {
-  font-size: 12px;
+  width: 20px;
+  text-align: center;
+  vertical-align: middle;
+}
+#history_table td#provider {
+  width: 20px;
   text-align: center;
   vertical-align: middle;
 }
 #history_table td#action {
-  font-size: 12px;
-  max-width: 30px;
+  width: 30px;
   text-align: center;
   vertical-align: middle;
 }
@@ -2498,20 +2534,24 @@ img.mylarload.lastbad {
     color: rgba(0,0,0,0);
     text-shadow:
       .25em 0 0 rgba(0,0,0,0),
-      .5em 0 0 rgba(0,0,0,0);}
+      .5em 0 0 rgba(0,0,0,0);
+  }
   40% {
     color: white;
     text-shadow:
       .25em 0 0 rgba(0,0,0,0),
-      .5em 0 0 rgba(0,0,0,0);}
+      .5em 0 0 rgba(0,0,0,0);
+  }
   60% {
     text-shadow:
       .25em 0 0 white,
-      .5em 0 0 rgba(0,0,0,0);}
+      .5em 0 0 rgba(0,0,0,0);
+  }
   80%, 100% {
     text-shadow:
       .25em 0 0 white,
-      .5em 0 0 white;}
+      .5em 0 0 white;
+  }
 }
 .version_display {
   color: white;
