@@ -769,7 +769,7 @@ class WebInterface(object):
             prevcomicid = None
             start_date = None
             span = None
-            for ann in sorted(annualslist, key=itemgetter('ReleaseComicID', 'ReleaseDate', 'Int_IssueNumber'), reverse=False):
+            for ann in sorted(annualslist, key=itemgetter('ReleaseComicID', 'ComicID', 'Int_IssueNumber', 'ReleaseDate'), reverse=False):
                 foundfilter = False
                 for filter in filters:
                     if filter['name'] == ann['Status']:
@@ -788,9 +788,14 @@ class WebInterface(object):
                         span = {'span':     spanline,
                                 'comicid':  prevcomicid}
                         start_date = ann['IssueDate']
+                        if start_date == '0000-00-00':
+                            start_date = ann['ReleaseDate']
                         end_date = None
                     else:
-                        start_date = ann['IssueDate']
+                        if ann['IssueDate'] == '0000-00-00':
+                            start_date = ann['ReleaseDate']
+                        else:
+                            start_date = ann['IssueDate']
 
                     if len(aName) > 0 and span is not None:
                         cnt = 0
@@ -831,7 +836,10 @@ class WebInterface(object):
                                 "PrevComicID":       prevcomicid})
 
                 prevcomicid = ann['ReleaseComicID']
-                previssdate = ann['IssueDate']
+                if ann['IssueDate'] == '0000-00-00':
+                    previssdate = ann['ReleaseDate']
+                else:
+                    previssdate = ann['IssueDate']
 
             if len(aName) > 0: # and span is not None:
                 end_date = previssdate  #make sure to take the last looped value as the last issue date
