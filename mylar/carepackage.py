@@ -83,7 +83,7 @@ class carePackage(object):
 
     def loaders(self):
         self.cleaned_config()
-        vers_vals = versioncheck.versionload(cli_values=self.pass_thru_vals)
+        vers_vals = versioncheck.versionload(cli_values=self.pass_thru_vals, carepackage_call=True)
         self.filename = os.path.join(self.log_dir, 'MylarRunningEnvironment.txt')
         logger.info('vers_vals: %s' % (vers_vals,))
         # set the stage for the filename
@@ -102,6 +102,7 @@ class carePackage(object):
 
         env_status = self.environment(vers_vals)
         panic_status = self.panicbutton()
+        logger.info('[CARE-PACKAGE-GENERATION] Successfully generated carepackage @ %s' % self.panicfile)
         return {'status': 'success',
                 'carepackage': self.panicfile}
 
