@@ -321,9 +321,14 @@ def dbUpdate(ComicIDList=None, calledfrom=None, sched=False):
                                                 newVAL['IssueDate'] = issue['IssueDate']
                                                 newVAL['IssueDate_Edit'] = None
                                             else:
-                                                logger.fdebug('[#%s] Detected manually edited Issue Date.' % issue['Issue_Number'])
+                                                if issue['IssueDate_Edit'].endswith('s'):
+                                                    issue_type = 'store'
+                                                    newVAL['ReleaseDate'] = issue['ReleaseDate']
+                                                else:
+                                                    issue_type = 'cover'
+                                                    newVAL['IssueDate'] = issue['IssueDate']
+                                                logger.fdebug('[#%s] Detected manually edited %s Issue Date.' % (issue_type, issue['Issue_Number']))
                                                 logger.fdebug('new value : ' + str(issue['IssueDate']) + ' ... cv value : ' + str(issuenew['IssueDate']))
-                                                newVAL['IssueDate'] = issue['IssueDate']
                                                 newVAL['IssueDate_Edit'] = issue['IssueDate_Edit']
 
                                         if any(d['IssueID'] == str(issue['IssueID']) for d in ann_list):
