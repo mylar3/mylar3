@@ -420,7 +420,7 @@ def update():
                     os.remove(new_path)
                 os.renames(old_path, new_path)
 
-def versionload(cli_values=None):
+def versionload(cli_values=None, carepackage_call=False):
     if cli_values:
         pass_thru_vals = cli_values
     else:
@@ -437,7 +437,7 @@ def versionload(cli_values=None):
     mylar.CURRENT_VERSION_NAME = version_info['current_version_name']
     mylar.CURRENT_RELEASE_NAME = version_info['current_release_name']
 
-    if cli_values:
+    if cli_values or carepackage_call is True:
         # if cli_values exist, it's from maintenance mode CLI switch, just return now
         return {'current_branch': version_info['branch'],
                 'current_version': version_info['current_version'],
