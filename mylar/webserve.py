@@ -1939,19 +1939,28 @@ class WebInterface(object):
     description_edit.exposed = True
 
     def issue_edit(self, id, value):
-        logger.fdebug('id: ' + str(id))
+        #logger.fdebug('id: ' + str(id))
         logger.fdebug('value: ' + str(value))
-        comicid = id[:id.find('.')]
+        first_id = id.find('.')
+        comicid = id[:first_id]
         logger.fdebug('comicid:' + str(comicid))
-        issueid = id[id.find('.') +1:]
+        second_id = id.find('.', first_id+1)
+        issueid = id[first_id+1:second_id]
         logger.fdebug('issueid:' + str(issueid))
+        issue_type = id[second_id+1:]
+        logger.fdebug('issue_type: %s' % issue_type)
         myDB = db.DBConnection()
         comicchk = myDB.selectone('SELECT ComicYear FROM comics WHERE ComicID=?', [comicid]).fetchone()
         issuechk = myDB.selectone('SELECT * FROM issues WHERE IssueID=?', [issueid]).fetchone()
         if issuechk is None:
             logger.error('Cannot edit this for some reason - something is wrong.')
             return
-        oldissuedate = issuechk['IssueDate']
+        if issue_type == 'store':
+            oldissuedate = issuechk['ReleaseDate']
+            issue_field = 'ReleaseDate'
+        else:
+            oldissuedate = issuechk['IssueDate']
+            issue_field = 'IssueDate'
         seriesyear = comicchk['ComicYear']
         issuenumber = issuechk['Issue_Number']
 
@@ -1970,11 +1979,11 @@ class WebInterface(object):
                     logger.error('Series year of ' + str(seriesyear) + ' is less than new issue date of ' + str(value[:4]))
                     return oldissuedate
 
-        newVal = {"IssueDate": value,
-                  "IssueDate_Edit": oldissuedate}
+        newVal = {issue_field: value,
+                  "IssueDate_Edit": '%s.%s' % (oldissuedate, issue_type[0])}  #store = s, cover = c
         ctrlVal = {"IssueID": issueid}
         myDB.upsert("issues", newVal, ctrlVal)
-        logger.info('Updated Issue Date for issue #' + str(issuenumber))
+        logger.info('Updated %s Issue Date for issue #%s' % (issue_type, issuenumber))
         return value
 
     issue_edit.exposed=True
