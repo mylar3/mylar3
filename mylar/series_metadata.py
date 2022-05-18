@@ -167,7 +167,7 @@ class metadata_Series(object):
                                              'publisher': comic['ComicPublisher'],
                                              'imprint': comic['PublisherImprint'],
                                              'name': comic['ComicName'],
-                                             'cid': int(cid),
+                                             'comicid': int(cid),
                                              'year': SeriesYear,
                                              'description_text': cdes_removed,
                                              'description_formatted': cdes_formatted,
