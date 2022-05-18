@@ -1,4 +1,3 @@
-
 #  This file is part of Mylar.
 #
 #  Mylar is free software: you can redistribute it and/or modify
@@ -44,15 +43,37 @@ import platform
 import urllib.request, urllib.parse, urllib.error
 import shutil
 import fnmatch
+import simplejson as simplejson
+from operator import itemgetter
 
 import mylar
-
-from mylar import logger, db, importer, mb, search, filechecker, helpers, updater, parseit, weeklypull, PostProcessor, librarysync, moveit, Failed, readinglist, notifiers, sabparse, config, series_metadata
-from mylar.auth import AuthController, require
-
-import simplejson as simplejson
-
-from operator import itemgetter
+from mylar import (
+    carepackage,
+    config,
+    db,
+    Failed,
+    filechecker,
+    helpers,
+    importer,
+    librarysync,
+    logger,
+    mb,
+    moveit,
+    notifiers,
+    parseit,
+    PostProcessor,
+    readinglist,
+    req_test,
+    sabparse,
+    search,
+    series_metadata,
+    updater,
+    weeklypull,
+)
+from mylar.auth import (
+    AuthController,
+    require,
+)
 
 def serve_template(templatename, **kwargs):
     interface_dir = os.path.join(str(mylar.PROG_DIR), 'data/interfaces/')
@@ -748,7 +769,7 @@ class WebInterface(object):
             prevcomicid = None
             start_date = None
             span = None
-            for ann in sorted(annualslist, key=itemgetter('ReleaseComicID', 'ReleaseDate', 'Int_IssueNumber'), reverse=False):
+            for ann in sorted(annualslist, key=itemgetter('ReleaseComicID', 'ComicID', 'Int_IssueNumber', 'ReleaseDate'), reverse=False):
                 foundfilter = False
                 for filter in filters:
                     if filter['name'] == ann['Status']:
@@ -767,9 +788,14 @@ class WebInterface(object):
                         span = {'span':     spanline,
                                 'comicid':  prevcomicid}
                         start_date = ann['IssueDate']
+                        if start_date == '0000-00-00':
+                            start_date = ann['ReleaseDate']
                         end_date = None
                     else:
-                        start_date = ann['IssueDate']
+                        if ann['IssueDate'] == '0000-00-00':
+                            start_date = ann['ReleaseDate']
+                        else:
+                            start_date = ann['IssueDate']
 
                     if len(aName) > 0 and span is not None:
                         cnt = 0
@@ -810,7 +836,10 @@ class WebInterface(object):
                                 "PrevComicID":       prevcomicid})
 
                 prevcomicid = ann['ReleaseComicID']
-                previssdate = ann['IssueDate']
+                if ann['IssueDate'] == '0000-00-00':
+                    previssdate = ann['ReleaseDate']
+                else:
+                    previssdate = ann['IssueDate']
 
             if len(aName) > 0: # and span is not None:
                 end_date = previssdate  #make sure to take the last looped value as the last issue date
@@ -1910,19 +1939,28 @@ class WebInterface(object):
     description_edit.exposed = True
 
     def issue_edit(self, id, value):
-        logger.fdebug('id: ' + str(id))
+        #logger.fdebug('id: ' + str(id))
         logger.fdebug('value: ' + str(value))
-        comicid = id[:id.find('.')]
+        first_id = id.find('.')
+        comicid = id[:first_id]
         logger.fdebug('comicid:' + str(comicid))
-        issueid = id[id.find('.') +1:]
+        second_id = id.find('.', first_id+1)
+        issueid = id[first_id+1:second_id]
         logger.fdebug('issueid:' + str(issueid))
+        issue_type = id[second_id+1:]
+        logger.fdebug('issue_type: %s' % issue_type)
         myDB = db.DBConnection()
         comicchk = myDB.selectone('SELECT ComicYear FROM comics WHERE ComicID=?', [comicid]).fetchone()
         issuechk = myDB.selectone('SELECT * FROM issues WHERE IssueID=?', [issueid]).fetchone()
         if issuechk is None:
             logger.error('Cannot edit this for some reason - something is wrong.')
             return
-        oldissuedate = issuechk['IssueDate']
+        if issue_type == 'store':
+            oldissuedate = issuechk['ReleaseDate']
+            issue_field = 'ReleaseDate'
+        else:
+            oldissuedate = issuechk['IssueDate']
+            issue_field = 'IssueDate'
         seriesyear = comicchk['ComicYear']
         issuenumber = issuechk['Issue_Number']
 
@@ -1941,11 +1979,11 @@ class WebInterface(object):
                     logger.error('Series year of ' + str(seriesyear) + ' is less than new issue date of ' + str(value[:4]))
                     return oldissuedate
 
-        newVal = {"IssueDate": value,
-                  "IssueDate_Edit": oldissuedate}
+        newVal = {issue_field: value,
+                  "IssueDate_Edit": '%s.%s' % (oldissuedate, issue_type[0])}  #store = s, cover = c
         ctrlVal = {"IssueID": issueid}
         myDB.upsert("issues", newVal, ctrlVal)
-        logger.info('Updated Issue Date for issue #' + str(issuenumber))
+        logger.info('Updated %s Issue Date for issue #%s' % (issue_type, issuenumber))
         return value
 
     issue_edit.exposed=True
@@ -7182,11 +7220,10 @@ class WebInterface(object):
     NZBGet_test.exposed = True
 
     def carepackage(self):
-        from mylar.carepackage import carePackage
-        cp = carePackage()
+        cp = carepackage.carePackage()
+        file_to_care = cp.loaders()
         from cherrypy.lib.static import serve_download
-        cppb = os.path.join(mylar.CONFIG.LOG_DIR, "carepackage.zip")
-        return serve_download(cppb)
+        return serve_download(file_to_care['carepackage'])
     carepackage.exposed = True
 
     def shutdown(self):
@@ -8905,3 +8942,10 @@ class WebInterface(object):
                 pass
 
     addMissingSeriesFromArc.exposed = True
+
+    def return_checks(self):
+        r = mylar.req_test.Req()
+        r.check_config_values()
+
+        return json.dumps(mylar.REQS)
+    return_checks.exposed = True

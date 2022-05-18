@@ -26,7 +26,16 @@ sys.path.insert(1, os.path.join(os.path.dirname(__file__), 'lib'))
 
 import mylar
 
-from mylar import webstart, logger, filechecker, versioncheck, maintenance, maintenance_webstart
+from mylar import (
+    carepackage,
+    filechecker,
+    logger,
+    maintenance,
+    maintenance_webstart,
+    req_test,
+    versioncheck,
+    webstart,
+)
 
 import argparse
 
@@ -127,6 +136,7 @@ def main():
     parser_maintenance.add_argument('-u', '--update', default=False, action='store_true', help='force mylar to perform an update as if in GUI') #, default=argparse.SUPPRESS)
     parser_maintenance.add_argument('-fs', '--fixslashes', default=False, action='store_true', help='remove double-slashes from within paths in db') #, default=argparse.SUPPRESS)
     parser_maintenance.add_argument('-cp', '--clearprovidertable', default=False, action='store_true', help='clear out the provider_searches table in db') #, default=argparse.SUPPRESS)
+    parser_maintenance.add_argument('-care', '--carepackage', default=False, action='store_true', help='generate a carepackage') #, default=argparse.SUPPRESS)
     #parser_maintenance.add_argument('-it', '--importtext', action='store', help='Import a specified text file into current db')
 
     args = vars(parser.parse_args())
@@ -139,6 +149,7 @@ def main():
     args_update = args.get('update')
     args_fixslashes = args.get('fixslashes')
     args_clearprovidertable = args.get('clearprovidertable')
+    args_carepackage = args.get('carepackage')
     args_maintenance = args.get('maintenance')
     args_verbose = args.get('verbose')
     args_quiet = args.get('quiet')
@@ -156,12 +167,28 @@ def main():
         args_backup = False
 
     if args_maintenance:
-        if all([args_exportjson is None, args_importdatabase is None, args_importjson is None, args_importstatus is False, args_update is False, args_fixslashes is False, args_clearprovidertable is False]):
+        if all([args_exportjson is None, args_importdatabase is None, args_importjson is None, args_importstatus is False, args_update is False, args_fixslashes is False, args_clearprovidertable is False, args_carepackage is False]):
             print('Expecting subcommand with the maintenance positional argumeent')
             sys.exit()
         mylar.MAINTENANCE = True
     else:
         mylar.MAINTENANCE = False
+
+    if mylar.MAINTENANCE is True and args_carepackage is True:
+        print('[MAINTENANCE-MODE][CAREPACKAGE] Please wait....attempting to generate carepackage (this can take a few seconds)...')
+        mylar.LOG_LEVEL = 0
+        if args_datadir:
+            mylar.DATA_DIR = args_datadir
+        else:
+            mylar.DATA_DIR = mylar.PROG_DIR
+        cp = carepackage.carePackage(maintenance=True)
+        resp = cp.loaders()
+        if resp['status'] == 'success':
+            print('%s[CAREPACKAGE] Successfully generated carepackage @ %s' % ('[MAINTENANCE-MODE]', resp['carepackage']))
+        else:
+            print('%s[CAREPACKAGE] Unable to generate carepackage. Error returned as : %s' % ('[MAINTENANCE-MODE]', resp['carepackage']))
+        print('Exiting....')
+        sys.exit()
 
     if args_verbose:
         print('Verbose/Debugging mode enabled...')
@@ -297,7 +324,7 @@ def main():
 
     #print('mylar.MAINTENANCE: %s'%  mylar.MAINTENANCE)
     #print('mylar.MAINTENANCE_TOTAL: %s'%  mylar.MAINTENANCE_DB_TOTAL)
-    if mylar.MAINTENANCE is True and (mylar.MAINTENANCE_UPDATE or any([args_exportjson, args_importjson, args_update is True, args_importstatus is True, args_fixslashes is True, args_clearprovidertable is True])):
+    if mylar.MAINTENANCE is True and (mylar.MAINTENANCE_UPDATE or any([args_exportjson, args_importjson, args_update is True, args_importstatus is True, args_fixslashes is True, args_clearprovidertable is True, args_carepackage is True])):
         # Start up a temporary maintenance server for GUI display only.
         maint_config = {
             'http_port': int(mylar.CONFIG.HTTP_PORT),
@@ -313,11 +340,11 @@ def main():
             'login_timeout': mylar.CONFIG.LOGIN_TIMEOUT
         }
 
+        loggermode = '[MAINTENANCE-MODE]'
+        versioncheck.versionload()
+
         # Try to start the server.
         maintenance_webstart.initialize(maint_config)
-        versioncheck.versionload()
-        print("started")
-        loggermode = '[MAINTENANCE-MODE]'
 
         restart_method = True  #True will restart, False will shutdown.
 
@@ -429,6 +456,10 @@ def main():
     #check for version here after web server initialized so it doesn't try to repeatidly hit github
     #for version info if it's already running
     versioncheck.versionload()
+
+    # pip requirements check here
+    r = req_test.Req()
+    r.loaders()
 
     if mylar.CONFIG.LAUNCH_BROWSER and not args_nolaunch:
         mylar.launch_browser(mylar.CONFIG.HTTP_HOST, http_port, mylar.CONFIG.HTTP_ROOT)

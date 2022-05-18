@@ -40,9 +40,10 @@
 			<tr>
                                 <th id="select" align="left"></th>
 				<th id="dateadded">Date Added</th>
-				<th id="filename">Comic Name</th>
-                                <th id="size">Issue</th>
+				<th id="series">Comic Name</th>
+                                <th id="issue">Issue</th>
 				<th id="status">Status</th>
+				<th id="provider">Provider</th>
 				<th id="action">Options</th>
 			</tr>
 		    </thead>
@@ -115,7 +116,7 @@
                        "targets": [ 0 ],
                        "visible": true,
                        "render":function (data,type,full) {
-                           return '<input type="checkbox" name="' + full[4] + '" class="checkbox" />';
+                           return '<input type="checkbox" name="' + full[4] + '" />';
                        }
                     },
                     {
@@ -162,21 +163,26 @@
                        "render":function (data,type,full) {
                            return full[2];
                        }
-                    },                    {
+                    },
+                    {
                        "sortable": true,
                        "targets": [ 4 ],
                        "visible": true,
                        "render":function (data,type,full) {
-                           if (full[3] == 'Snatched'){
-                               return full[3] + '(' + full[6] + ')';
-                           } else {
-                               return full[3];
-                           }
+                           return full[3];
+                       }
+                    },
+                    {
+                       "sortable": true,
+                       "targets": [ 5 ],
+                       "visible": true,
+                       "render":function (data,type,full) {
+                           return full[6];
                        }
                     },
                     {
                        "sortable": false,
-                       "targets": [ 5 ],
+                       "targets": [ 6 ],
                        "visible": true,
                        "render":function (data,type,full) {
                            return '[<a id="retry" name="retry" title="Retry search for issue" href="#">retry</a>]';
@@ -206,9 +212,10 @@
                         $('td', nRow).closest('tr').addClass("gradeU");
                      }
                      nRow.children[1].id = 'dateadded';
-                     nRow.children[2].id = 'filename';
-                     nRow.children[3].id = 'size';
+                     nRow.children[2].id = 'series';
+                     nRow.children[3].id = 'issue';
                      nRow.children[4].id = 'status';
+                     nRow.children[5].id = 'provider';
                      return nRow;
                  },
                  "drawCallback": function (o) {

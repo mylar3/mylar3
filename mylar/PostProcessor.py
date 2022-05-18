@@ -612,7 +612,7 @@ class PostProcessor(object):
                                                 else:
                                                     os.replace(tt, clocation)
                                         else:
-                                            logger.warn('[%s] Skipping this file due to path conversion error [path: %s]/[name: %s]' % (e, tpath, tname))
+                                            logger.warn('Skipping this file due to path conversion error [path: %s]/[name: %s]' % (tpath, tname))
                                             path_failure = True
                                     else:
                                         logger.fdebug('tpath: %s' % (tpath))
@@ -671,10 +671,10 @@ class PostProcessor(object):
                                                         else:
                                                             self.nzb_folder = clocation   # this is needed in order to delete after moving.
                                                    else:
-                                                       logger.warn('[%s] Skipping this file due to path conversion error [path: %s]/[name: %s]' % (e, tpath, tname))
+                                                       logger.warn('Skipping this file due to path conversion error [path: %s]/[name: %s]' % (tpath, tname))
                                                        path_failure = True
                                                 else:
-                                                    logger.warn('[%s] Skipping this file due to path conversion error [path: %s]/[name: %s]' % (e, tpath, tname))
+                                                    logger.warn('Skipping this file due to path conversion error [path: %s]/[name: %s]' % (tpath, tname))
                                                     path_failure = True
                                             except Exception as e:
                                                 logger.warn('[%s] Skipping this file due to path conversion error [path: %s]/[name: %s]' % (e, tpath, tname))
@@ -1923,7 +1923,7 @@ class PostProcessor(object):
                         else:
                             logger.fdebug('%s [%s] Post-Processing completed for: %s' % (module, ml['StoryArc'], ml['ComicLocation']))
 
-                        if any([all([mylar.CONFIG.PUSHOVER_IMAGE, mylar.CONFIG.PUSHOVER_ENABLED]), all([mylar.CONFIG.TELEGRAM_IMAGE, mylar.CONFIG.TELEGRAM_ENABLED]) ]):
+                        if any([all([mylar.CONFIG.PUSHOVER_IMAGE, mylar.CONFIG.PUSHOVER_ENABLED]), all([mylar.CONFIG.TELEGRAM_IMAGE, mylar.CONFIG.TELEGRAM_ENABLED]), mylar.CONFIG.DISCORD_ENABLED, mylar.CONFIG.GOTIFY_ENABLED, mylar.CONFIG.MATTERMOST_ENABLED ]):
                             try:
                                 get_cover = getimage.extract_image(grab_dst, single=True, imquality='notif')
                                 imageFile = get_cover['ComicImage']
@@ -1934,7 +1934,7 @@ class PostProcessor(object):
                             imageFile = None
 
                         try:
-                            self.sendnotify(ml['ComicName'], issueyear=ml['IssueYear'], issuenumOG=ml['IssueNumber'], annchk=annchk, module=module, imageFile=imageFile)
+                            self.sendnotify(ml['ComicName'], issueyear=ml['IssueYear'], issuenumOG=ml['IssueNumber'], annchk=annchk, module=module, imageFile=imageFile, issueid=issueid)
                         except:
                             pass
 
@@ -2512,7 +2512,7 @@ class PostProcessor(object):
                         logger.info('%s Post-Processing completed for: [ %s #%s ] %s' % (module, comicname, issuenumber, grab_dst))
                         self._log("Post Processing SUCCESSFUL! ")
 
-                    if any([all([mylar.CONFIG.PUSHOVER_IMAGE, mylar.CONFIG.PUSHOVER_ENABLED]), all([mylar.CONFIG.TELEGRAM_IMAGE, mylar.CONFIG.TELEGRAM_ENABLED]) ]):
+                    if any([all([mylar.CONFIG.PUSHOVER_IMAGE, mylar.CONFIG.PUSHOVER_ENABLED]), all([mylar.CONFIG.TELEGRAM_IMAGE, mylar.CONFIG.TELEGRAM_ENABLED]), mylar.CONFIG.DISCORD_ENABLED, mylar.CONFIG.GOTIFY_ENABLED, mylar.CONFIG.MATTERMOST_ENABLED ]):
                         try:
                             get_cover = getimage.extract_image(grab_dst, single=True, imquality='notif')
                             imageFile = get_cover['ComicImage']
@@ -2523,7 +2523,7 @@ class PostProcessor(object):
                         imageFile = None
 
                     try:
-                        self.sendnotify(comicname, issueyear=None, issuenumOG=issuenumber, annchk=annchk, module=module, imageFile=imageFile)
+                        self.sendnotify(comicname, issueyear=None, issuenumOG=issuenumber, annchk=annchk, module=module, imageFile=imageFile, issueid=issueid)
                     except:
                         pass
 
@@ -3373,7 +3373,7 @@ class PostProcessor(object):
             #    return self.queue.put(self.valreturn)
 
             # If using Pushover with image enabled, Telegram with image enabled, or Discord, extract the first image in the file for the notification
-            if any([all([mylar.CONFIG.PUSHOVER_IMAGE, mylar.CONFIG.PUSHOVER_ENABLED]), all([mylar.CONFIG.TELEGRAM_IMAGE, mylar.CONFIG.TELEGRAM_ENABLED]), all([mylar.CONFIG.DISCORD_ENABLED]), all([mylar.CONFIG.GOTIFY_ENABLED]) ]):
+            if any([all([mylar.CONFIG.PUSHOVER_IMAGE, mylar.CONFIG.PUSHOVER_ENABLED]), all([mylar.CONFIG.TELEGRAM_IMAGE, mylar.CONFIG.TELEGRAM_ENABLED]), mylar.CONFIG.DISCORD_ENABLED, mylar.CONFIG.GOTIFY_ENABLED, mylar.CONFIG.MATTERMOST_ENABLED ]):
                 try:
                     get_cover = getimage.extract_image(dst, single=True, imquality='notif')
                     imageFile = get_cover['ComicImage']
@@ -3383,7 +3383,7 @@ class PostProcessor(object):
                     #logger.info('image location used is : %s' % imageFile)
             else:
                 imageFile = None
-            self.sendnotify(series, issueyear, dispiss, annchk, module, imageFile)
+            self.sendnotify(series, issueyear, dispiss, annchk, module, imageFile, issueid)
 
             logger.info('%s Post-Processing completed for: %s %s' % (module, series, dispiss))
             self._log("Post Processing SUCCESSFUL! ")
@@ -3396,7 +3396,7 @@ class PostProcessor(object):
             return self.queue.put(self.valreturn)
 
 
-    def sendnotify(self, series, issueyear, issuenumOG, annchk, module, imageFile):
+    def sendnotify(self, series, issueyear, issuenumOG, annchk, module, imageFile, issueid=None):
 
         if issuenumOG is not None:
             if '#' not in issuenumOG:
@@ -3442,7 +3442,8 @@ class PostProcessor(object):
 
             if mylar.CONFIG.MATTERMOST_ENABLED:
                 mattermost = notifiers.MATTERMOST()
-                mattermost.notify("Downloading and Postprocessing completed", prline2, module=module)
+                metadata = { 'series':series, 'issue': issuenumOG, 'year': issueyear }
+                mattermost.notify("Downloading and Postprocessing completed", prline2, metadata=metadata, imageFile=imageFile, module=module)
 
             if mylar.CONFIG.DISCORD_ENABLED:
                 discord = notifiers.DISCORD()
@@ -3455,7 +3456,8 @@ class PostProcessor(object):
 
             if mylar.CONFIG.GOTIFY_ENABLED:
                 gotify = notifiers.GOTIFY()
-                gotify.notify("Download and Postprocessing completed", prline2, module=module, imageFile=imageFile)
+                metadata = { 'series':series, 'issue': issuenumOG, 'year': issueyear, 'issueid': issueid }
+                gotify.notify("Download and Postprocessing completed", prline2, module=module, imageFile=imageFile, metadata=metadata)
         except Exception as e:
             logger.warn('[NOTIFICATION] Unable to send notification: %s' % e)
 

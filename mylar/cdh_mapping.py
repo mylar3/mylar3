@@ -16,6 +16,7 @@
 import requests
 import pathlib
 import re
+from pkg_resources import parse_version
 import mylar
 from mylar import logger
 
@@ -66,9 +67,13 @@ class CDH_MAP(object):
     def the_sequence(self):
         if self.sab is True:
             self.completedir()
-            self.cats()
-            cat_dir = self.cat['dir']
-            cat_name = self.cat['name']
+            if any([mylar.CONFIG.SAB_CATEGORY is None, mylar.CONFIG.SAB_CATEGORY == 'None']):
+                cat_dir = None
+                cat_name = None
+            else:
+                self.cats()
+                cat_dir = self.cat['dir']
+                cat_name = self.cat['name']
 
             if cat_dir is None:
                 logger.fdebug('[CDH MAPPING] No category defined - using %s as the base download folder with no job folder creation' % self.cdir)
@@ -101,14 +106,24 @@ class CDH_MAP(object):
         logger.fdebug('[CDH MAPPING] Base directory for downloads set to: %s' % (self.basedir))
         logger.fdebug('[CDH MAPPING] Downloaded file @: %s' % self.storage)
         logger.fdebug('[CDH MAPPING] Destination root directory @: %s' % (self.sab_dir))
-
-        if self.subdir is False:
-            maindir = self.storage.parents[0]
-            file = self.storage.name
-        else:
-            maindir = self.storage.parents[1]
-            file = self.storage.relative_to(maindir)
+        logger.fdebug('sub_dir: %s' % self.subdir)
+        try:
+            if self.subdir is False:
+                if cat_dir is None:
+                    maindir = self.storage.parents[1]
+                    file = self.storage.relative_to(maindir)
+                else:
+                    maindir = self.storage.parents[0]
+                    file = self.storage.name
+            else:
+                maindir = self.storage.parents[1]
+                file = self.storage.relative_to(maindir)
+        except Exception as e:
+            logger.warn('cdh-error: %s' % (e,))
+        logger.fdebug('maindir: %s' % (maindir,))
+        logger.fdebug('file: %s' % (file,))
         final_dst = self.sab_dir.joinpath(file)
+        logger.fdebug('final_dst: %s' % (final_dst,))
         return final_dst
 
     def sendsab(self, params):
@@ -117,7 +132,17 @@ class CDH_MAP(object):
         return response
 
     def completedir(self):
-        params = {'mode': 'fullstatus',
+        min_sab = '3.4.0'
+        sab_vers = mylar.CONFIG.SAB_VERSION
+        if 'beta' in sab_vers:
+            sab_vers = re.sub('[^0-9]', '', sab_vers)
+            if len(sab_vers) > 3:
+                sab_vers = sab_vers[:-1]
+        if parse_version(sab_vers) >= parse_version(min_sab):
+            sab_mode = 'status'
+        else:
+            sab_mode = 'fullstatus'
+        params = {'mode': sab_mode,
                   'apikey': self.apikey,
                   'output': 'json'}
 
@@ -126,8 +151,8 @@ class CDH_MAP(object):
 
     def cats(self):
         params =  {'mode': 'get_config',
-                  'section': 'categories',
-                   'keyword': 'comics',
+                   'section': 'categories',
+                   'keyword': mylar.CONFIG.SAB_CATEGORY,
                    'apikey': self.apikey,
                    'output': 'json'}
         cats = self.sendsab(params)['config']['categories']
@@ -135,7 +160,7 @@ class CDH_MAP(object):
         cat_name= None
         self.subdir = False
         for x in cats:
-            if x['name'] == 'comics':
+            if x['name'] == mylar.CONFIG.SAB_CATEGORY:
                 cat_dir = x['dir']
                 cat_name = x['name']
                 logger.fdebug(cat_dir)

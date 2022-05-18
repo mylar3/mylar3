@@ -1603,15 +1603,17 @@
 
                                if (displaydate == 'Show Cover Date'){
                                    issdate = full[10];
+                                   vv = 'store';
                                } else {
                                    issdate = full[2];
+                                   vv = 'cover';
                                }
                                dateline = 'Publication Date (click to edit)';
                                if (full[9] != '0000-00-00' && full[9] !== null ){
                                    dateline += '\nDigital Release: '+full[9];
                                    issdate += '**';
                                }
-                               return '<span class="date_edit" title="'+dateline+'" style="vertical-align:middle;text-align:center;max-width:20px;" id="'+full[7]+'.'+full[4]+'">'+issdate+'</span>';
+                               return '<span class="date_edit" title="'+dateline+'" style="vertical-align:middle;text-align:center;max-width:20px;" id="'+full[7]+'.'+full[4]+'.'+vv+'">'+issdate+'</span>';
                            }
                        },
                        {
