@@ -88,7 +88,7 @@ def extract_image(location, single=False, imquality=None, comicname=None):
     if PIL_Found is False:
         return
     cover = "notfound"
-    pic_extensions = ('.jpg','.jpeg','.png','.webp')
+    pic_extensions = ('.jpg','.jpeg','.png','.webp','.gif')
     issue_ends = ('1','0')
     modtime = os.path.getmtime(location)
     low_infile = 999999999999999999
