@@ -1400,7 +1400,7 @@ class WebInterface(object):
             imageurl = image
 
         logger.info('imageurl: %s' % imageurl)
-        if imageurl.startswith('http'):
+        if imageurl and imageurl.startswith('http'):
             try:
                 r = requests.get(imageurl, params=None, stream=True, verify=mylar.CONFIG.CV_VERIFY, headers=mylar.CV_HEADERS)
             except Exception as e:
