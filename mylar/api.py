@@ -1180,7 +1180,7 @@ class Api(object):
         wi = webserve.WebInterface()
         logger.info("arclist: %s - arcid: %s - storyarcname: %s - storyarcissues: %s" % (arclist, self.id, storyarcname, issuecount))
         wi.addStoryArc_thread(arcid=self.id, storyarcname=storyarcname, storyarcissues=issuecount, arclist=arclist, **kwargs)
-        self.data = self._successResponse(f'Adding {issuecount} issue(s) to {storyarcname}')
+        self.data = self._successResponse(f'Adding {len(issuelist)} issue(s) to {storyarcname}')
         return
 
     def _checkGlobalMessages(self, **kwargs):
