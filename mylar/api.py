@@ -1179,9 +1179,7 @@ class Api(object):
                         arclist += "|"
         wi = webserve.WebInterface()
         logger.info("arclist: %s - arcid: %s - storyarcname: %s - storyarcissues: %s" % (arclist, self.id, storyarcname, issuecount))
-        wi.addStoryArc_thread(arcid=self.id, storyarcname=storyarcname, storyarcissues=issuecount, arclist=arclist, **kwargs)
-        self.data = f'Adding {issuecount} issue(s) to {storyarcname}'
-        return
+        wi.addStoryArc_thread(arcid=self.id, storyarcname=storyarcname, storyarcissues=issuecount, arclist=arclist, **kwargs)        return
 
     def _checkGlobalMessages(self, **kwargs):
         the_message = {'status': None, 'event': None, 'comicname': None, 'seriesyear': None, 'comicid': None, 'tables': None, 'message': None}
