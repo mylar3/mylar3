@@ -214,6 +214,7 @@ class Api(object):
                         return self.data
                     else:
                         cherrypy.response.headers['Content-Type'] = "application/json"
+                        cherrypy.response.headers['Access-Control-Allow-Origin'] = '*'
                         return json.dumps(self.data)
             else:
                 self.callback = self.kwargs['callback']
