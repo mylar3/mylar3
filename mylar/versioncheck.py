@@ -183,7 +183,7 @@ def getVersion(ptv):
     else:
 
         d_path = '/proc/self/cgroup'
-        if os.path.exists('/.dockerenv') or os.path.isfile(d_path) and any('docker' in line for line in open(d_path)):
+        if os.path.exists('/.dockerenv') or 'KUBERNETES_SERVICE_HOST' in os.environ or os.path.isfile(d_path) and any('docker' in line for line in open(d_path)):
             logger.info('[DOCKER-AWARE] Docker installation detected.')
             mylar.INSTALL_TYPE = 'docker'
         else:
