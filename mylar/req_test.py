@@ -29,15 +29,20 @@ from mylar import logger
 class Req(object):
 
     def __init__(self):
+        self.req_file_present = True
         self.file = os.path.join(mylar.DATA_DIR, 'requirements.txt')
-        if mylar.INSTALL_TYPE == 'docker':
+        if any([mylar.INSTALL_TYPE == 'docker', mylar.DATA_DIR != mylar.PROG_DIR]) and not os.path.isfile(self.file):
             self.file = os.path.join(mylar.PROG_DIR, 'requirements.txt')
-        #logger.fdebug('requirements.txt location: %s' % (self.file,))
+        if not os.path.isfile(self.file):
+            self.req_file_present = False
+
         self.req_list = []
         self.pip_list = []
         self.pip_error = None
         self.rls_messages = []
         self.operators = ['==', '>=', '<=']
+        #logger.fdebug('requirements.txt location: %s' % (self.file,))
+
         # mylar.REQS = {'pip': {'pip_failure': true/false, 'pip_list': {pip_list_dictionary}},
         #               'rar': {'rar_failure': true/false, 'rar_exe_path': path to rar / rar message},
         #               'release_messages': release messages,
@@ -52,26 +57,33 @@ class Req(object):
         #self.check_config_values()
 
     def check_the_pip(self):
-        with open(self.file, 'r')as f:
-            for line in f:
-                if '#' not in line:
-                    for opc in self.operators:
-                        p_test = line.find(opc)
-                        if p_test > 0:
-                            p_arg = opc
-                            p_mod = str(line[:p_test]).strip()
-                            if p_mod == '':
-                                continue
-                            p_version = str(line[p_test+2:]).strip()
-                            if p_version == '':
-                                continue
-                            self.req_list.append({'module': p_mod, 'version': p_version, 'arg': p_arg})
-                            break
+        plist = []
+
+        if not self.req_file_present:
+            pip_failed = True
+            plist.append({'module': '???',
+                          'message': 'Unable to locate requirements.txt file',
+                          'version_match': ''})
+        else:
+            with open(self.file, 'r')as f:
+                for line in f:
+                    if '#' not in line:
+                        for opc in self.operators:
+                            p_test = line.find(opc)
+                            if p_test > 0:
+                                p_arg = opc
+                                p_mod = str(line[:p_test]).strip()
+                                if p_mod == '':
+                                    continue
+                                p_version = str(line[p_test+2:]).strip()
+                                if p_version == '':
+                                    continue
+                                self.req_list.append({'module': p_mod, 'version': p_version, 'arg': p_arg})
+                                break
 
         self.pip_load()
 
         req_pip_list = []
-        plist = []
 
         cest_boom = 'OK'
 
@@ -119,7 +131,9 @@ class Req(object):
                                          'pip_version': 'Not Installed',
                                          'version_match': version_match})
 
-            pip_failed = False
+            if len(req_pip_list) > 0:
+                pip_failed = False
+
             for x in req_pip_list:
                 if x['version_match'] == 'FAIL':
                     if x['pip_version'] != 'Not Installed':
