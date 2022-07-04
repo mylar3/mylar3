@@ -1251,7 +1251,7 @@ def urlretrieve(urlfile, fpath):
 def renamefile_readingorder(readorder):
     logger.fdebug('readingorder#: ' + str(readorder))
     if int(readorder) < 10: readord = "00" + str(readorder)
-    elif int(readorder) >= 10 and int(readorder) < 99: readord = "0" + str(readorder)
+    elif int(readorder) >= 10 and int(readorder) <= 99: readord = "0" + str(readorder)
     else: readord = str(readorder)
 
     return readord
