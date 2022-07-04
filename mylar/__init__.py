@@ -40,7 +40,7 @@ from apscheduler.triggers.interval import IntervalTrigger
 
 import cherrypy
 
-from mylar import logger, versioncheckit, rsscheckit, searchit, weeklypullit, PostProcessor, updater, helpers
+from mylar import logger, versioncheckit, rsscheckit, searchit, weeklypullit, PostProcessor, updater, helpers, sabnzbd
 
 import mylar.config
 
@@ -359,6 +359,12 @@ def initialize(config_file):
 
         if CONFIG.LOCMOVE:
             helpers.updateComicLocation()
+
+        # startup check(s) here so that the config values are already loaded against.
+        if all([mylar.USE_SABNZBD is True, mylar.CONFIG.SAB_HOST is not None]):
+            s_to_the_ab = sabnzbd.SABnzbd(params=None)
+            s_to_the_ab.sab_versioncheck()
+            logger.info('[SAB-VERSION-CHECK] SABnzbd version detected as: %s' % mylar.CONFIG.SAB_VERSION)
 
         # make sure the intLatestIssue field is populated with values...
         # ??helpers.latestissue_update()

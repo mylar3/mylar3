@@ -7148,9 +7148,10 @@ class WebInterface(object):
             return json.dumps({"status": False, "message": "Invalid API Key provided.", "version": str(version)})
 
         mylar.CONFIG.SAB_APIKEY = q_apikey
-        logger.info('APIKey provided is the FULL API Key which is the correct key. You still need to SAVE the config for the changes to be applied.')
+        logger.info('APIKey provided is the FULL API Key which is the correct key.')
         logger.info('Connection to SABnzbd tested sucessfully')
         mylar.CONFIG.SAB_VERSION = version
+        mylar.CONFIG.writeconfig(values={'sab_version': version, 'sab_apikey': q_apikey})
         return json.dumps({"status": True, "message": "Successfully verified API Key.", "version": str(version)})
 
     SABtest.exposed = True
