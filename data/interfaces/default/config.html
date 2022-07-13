@@ -1077,13 +1077,22 @@
             <tr>
                 <td>
                         <fieldset>
-                                <legend>Quality</legend>
+                                <legend>File-Type Search Restrictions</legend>
                                 <div class="row radio left clearfix">
                                      <input type="radio" style="vertical-align: middle; margin: 3px; margin-top: -1px;" name="preferred_quality" value="1" ${config['pref_qual_1']} /><label>cbr</label>
                                      <input type="radio" style="vertical-align: middle; margin: 3px; margin-top: -1px;" name="preferred_quality" value="2" ${config['pref_qual_2']} /><label>cbz</label>
                                      <input type="radio" style="vertical-align: middle; margin: 3px; margin-top: -1px;" name="preferred_quality" value="0" ${config['pref_qual_0']} /><label>Whichever - just get it</label>
                                 </div>
                         </fieldset>
+                         <fieldset>
+                                <legend>Ignore Words Search Restrictions</legend>
+                                   <div name="ignore_words_selection" id="ignore_words_selection" style="vertical-align: middle; text-align: center;">
+                                     <div>
+                                       <select id="ignore_words" name="ignore_search_words[]" multiple style="width:75%;" placeholder="Ignore words for search results...">
+                                       </select>
+                                     <div>
+                                   </div>
+                         </fieldset>
                         <fieldset>
                                 <legend>File-Size Search Restrictions</legend>
                                 <div class="row checkbox left">
@@ -1093,7 +1102,6 @@
                                        <div class="row">
                                            <input type="text" name="minsize" value="${config['minsize']}" size="6">
                                        </div>
-                                </div>
                                 </div>
                          </fieldset>
                          <fieldset>
@@ -1715,10 +1723,12 @@
 
 <%def name="headIncludes()">
         <link rel="stylesheet" href="interfaces/${interface}/css/data_table.css">
+        <link rel="stylesheet" type="text/css" href="css/selectize.default.css">
 </%def>
 
 <%def name="javascriptIncludes()">
         <script src="js/libs/jquery.dataTables.1.10.25.min.js"></script>
+        <script src="js/libs/selectize.js"></script>
         <script>
         function changeTest()
         {
@@ -3211,6 +3221,85 @@
 			$( "#tabs" ).tabs();
 		});
 		initActions();
+                $(function selector(){
+                        $.when($.ajax({
+                                type: "GET",
+                                url: "ignore_search_word_listing",
+                                dataType: 'json',
+                                success: function ( response ) {
+                                    results = response;
+                                },
+                                error: function (data) {
+                                    var options = [];
+                                },
+                        })).done(function(data) {
+                            var options = [];
+                            $.each(results, function() {
+                                options.push({
+                                    name : this.name
+                                });
+                            })
+                            //options = [{"name":"publisher name here"}];
+                            try {
+                                items = options.map(x => x.name);
+                            } catch(e) {
+                                const options = [];
+                                items = [];
+                            }
+                        $( "#ignore_words" ).selectize({
+                             valueField: 'name',
+                             labelField: 'name',
+                             options: options,
+                             items: items,
+                             createOnBlur: true,
+                             showAddOptionOnCreate: false,
+                             create: function (input, callback) {
+                                 $.ajax({
+                                     type: "GET",
+                                     url: "ignore_search_word_listing",
+                                     data: { inputvalue: input },
+                                     dataType: 'json',
+                                     success: function ( response ){
+                                          return callback(response);
+                                     }
+                                 });
+                             },
+                             onItemRemove: function (input, callback){
+                                 $.ajax({
+                                     type: "GET",
+                                     url: "ignore_search_word_listing",
+                                     data: { deletevalue: input },
+                                     dataType: 'json',
+                                     success: function ( response ){
+                                          console.log('deleted '+input);
+                                     }
+                                 });
+                             },
+                             render: {
+                                 option: function (item, escape) {
+                                    console.log(item.name);
+                                    return '<div>' + escape(item.name) + '</div>';
+                                 }
+                             },
+                             load: function (query, callback) {
+                                 if (!query.length) return callback();
+                                 $.ajax({
+                                     type: "GET",
+                                     url: "ignore_search_word_listing",
+                                     contentType: "application/json; charset=utf-8",
+                                     dataType: 'json',
+                                     error: function () {
+                                         callback();
+                                     },
+                                     success: function (res) {
+                                         var rspns = eval(res)
+                                         callback(rspns);
+                                    }
+                                 });
+                             },
+                        });
+                   });
+                });
                 changeTest();
                 initConfigCheckbox("#launch_browser");
                 initConfigCheckbox("#enable_https");

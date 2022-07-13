@@ -74,6 +74,7 @@ _CONFIG_DEFINITIONS = OrderedDict({
     'FAILED_DOWNLOAD_HANDLING': (bool, 'General', False),
     'FAILED_AUTO': (bool, 'General',False),
     'PREFERRED_QUALITY': (int, 'General', 0),
+    'IGNORE_SEARCH_WORDS': (str, 'General', []),
     'USE_MINSIZE': (bool, 'General', False),
     'MINSIZE': (str, 'General', None),
     'USE_MAXSIZE': (bool, 'General', False),
@@ -813,7 +814,7 @@ class Config(object):
         Given a big bunch of key value pairs, apply them to the ini.
         """
         for name, value in list(kwargs.items()):
-            if not any([(name.startswith('newznab') and name[-1].isdigit()), name.startswith('torznab') and name[-1].isdigit()]):
+            if not any([(name.startswith('newznab') and name[-1].isdigit()), name.startswith('torznab') and name[-1].isdigit(), name == 'ignore_search_words[]']):
                 key, definition_type, section, ini_key, default = self._define(name)
                 if definition_type == str:
                     try:
@@ -1172,6 +1173,18 @@ class Config(object):
                 except Exception as e:
                     logger.warn('[MASS_PUBLISHERS] Unable to convert publishers [%s]. Error returned: %s' % (self.MASS_PUBLISHERS, e))
         logger.info('[MASS_PUBLISHERS] Auto-add for weekly publishers set to: %s' % (self.MASS_PUBLISHERS,))
+
+        if len(self.IGNORE_SEARCH_WORDS) > 0 and self.IGNORE_SEARCH_WORDS != '[]':
+            if type(self.IGNORE_SEARCH_WORDS) != list:
+                try:
+                    self.IGNORE_SEARCH_WORDS = json.loads(self.IGNORE_SEARCH_WORDS)
+                except Exception as e:
+                    logger.warn('unable to load ignored search words')
+        else:
+            setattr(self, 'IGNORE_SEARCH_WORDS', [".exe", ".iso", "pdf-xpost", "pdf", "ebook"])
+            config.set('General', 'ignore_search_words', json.dumps(self.IGNORE_SEARCH_WORDS))
+
+        logger.info('[IGNORE_SEARCH_WORDS] Words to flag search result as invalid: %s' % (self.IGNORE_SEARCH_WORDS,))
 
         if len(self.PROBLEM_DATES) > 0 and self.PROBLEM_DATES != '[]':
             if type(self.PROBLEM_DATES) != list:

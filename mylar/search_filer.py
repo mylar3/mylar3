@@ -110,6 +110,15 @@ class search_check(object):
                     except Exception:
                         break
 
+                ignored = []
+                for x in mylar.CONFIG.IGNORE_SEARCH_WORDS:
+                    if x.lower() in ComicTitle.lower():
+                        ignored.append(x)
+
+                if ignored:
+                    logger.fdebug('[IGNORE_SEARCH_WORDS] %s exists within the search result (%s). Ignoring this result.' % (ignored, ComicTitle))
+                    continue
+
                 comsize_m = 0
                 if nzbprov != "dognzb":
                     # rss for experimental doesn't have the size constraints embedded.
