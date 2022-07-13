@@ -8717,6 +8717,34 @@ class WebInterface(object):
         return json.dumps(x)
     get_the_pubs.exposed = True
 
+    def ignore_search_word_listing(self, inputvalue=None, deletevalue=None):
+        ignorelist = []
+        new_list = []
+        deleted = False
+        for ts in mylar.CONFIG.IGNORE_SEARCH_WORDS:
+            #logger.fdebug('ts:%s / inputvalue:%s' % (ts, inputvalue))
+            if ts == deletevalue:
+                deleted = True
+            elif ts != inputvalue:
+                ignorelist.append({"name": ts})
+                new_list.append(ts)
+                #logger.fdebug('inputvalue is to be deleted')
+
+        if any([inputvalue, deletevalue]):
+            if inputvalue:
+                ignorelist.append({"name": inputvalue})
+                new_list.append(inputvalue)
+                mylar.CONFIG.IGNORE_SEARCH_WORDS = new_list
+                return json.dumps({"name": inputvalue})
+            else:
+                mylar.CONFIG.IGNORE_SEARCH_WORDS = new_list
+                return json.dumps({"name": deletevalue})
+
+        mylar.CONFIG.writeconfig(values={'ignore_search_words': json.dumps(new_list)})
+        mylar.CONFIG.IGNORE_SEARCH_WORDS = new_list
+        return json.dumps(ignorelist)
+    ignore_search_word_listing.exposed=True
+
     def list_the_directories(self, foldername=None, iDisplayStart=0, iDisplayLength=25, iSortCol_0='1', sSortDir_0="desc", sSearch="", **kwargs):
         if foldername is None or not os.path.exists(foldername):
              return json.dumps({'status': 'fail', 'message': '%s does not exist - please verify!' % (foldername)})
