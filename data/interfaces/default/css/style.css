@@ -1381,6 +1381,7 @@ div#artistheader h2 a {
 }
 #series_table th#have {
   max-width: 80px;
+  min-width: 60px;
   text-align: center;
   vertical-align: middle;
 }
@@ -1783,9 +1784,9 @@ div#artistheader h2 a {
 DIV.progress-container
 {
 	position: relative;
-	width: 100px;
+	/*width: 100px;*/
 	height: 18px;
-	margin: 2px 5px 2px 0;
+	/*margin: 2px 5px 2px 0;*/
 	float: left;
         border:1px solid #ccc;
 	background-color: #F7F7F7;
