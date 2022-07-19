@@ -1377,7 +1377,7 @@ div#artistheader h2 a {
 #series_table {
   background-color: #FFF;
   padding: 20px;
-  width: 100%;
+  width: 960px !important;
 }
 #series_table th#publisher {
   max-width: 120px;
