@@ -131,6 +131,7 @@ table.display td {
        vertical-align: middle;
        padding: 4px 5px;
        font-size: 12px;
+       text-align: center;
 }
 table.display td.center {
 	text-align: center;
