@@ -88,7 +88,7 @@ table.display {
 	margin: 20px auto; 
 	clear: both;
 	border:1px solid #EEE;
-	width: 100%;
+	width: 100% !important;
 	
 	/* Note Firefox 3.5 and before have a bug with border-collapse
 	 * ( https://bugzilla.mozilla.org/show%5Fbug.cgi?id=155955 ) 
