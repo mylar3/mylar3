@@ -124,6 +124,7 @@ table.display tr.heading2 td {
 table.display td {
 	padding: 4px 5px;
 	font-size: 12px;
+	text-align: center;
 }
 table
 table.display td.center {
