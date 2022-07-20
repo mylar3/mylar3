@@ -459,11 +459,11 @@ ul#nav {
   float: right;
   margin: 0;
   padding: 0 0 0 10px;
-  border-left: 1px solid #1c1e22;
-  -moz-box-shadow: -1px 0 0 #e0e0e0;
-  -webkit-box-shadow: -1px 0 0 #e0e0e0;
-  -o-box-shadow: -1px 0 0 #e0e0e0;
-  box-shadow: -1px 0 0 #1c1e22;
+  border-left: 1px solid transparent;
+  -moz-box-shadow: -1px 0 0 transparent;
+  -webkit-box-shadow: -1px 0 0 transparent;
+  -o-box-shadow: -1px 0 0 transparent;
+  box-shadow: -1px 0 0 transparent;
   height: 58px;
 }
 ul#nav li {
@@ -766,11 +766,11 @@ footer {
   border-color: #272b30 #272b30 #272b30;
 }
 div#searchbar {
-  border-left: 1px solid #1c1e22;
-  -moz-box-shadow: -1px 0 0 #e0e0e0;
-  -webkit-box-shadow: -1px 0 0 #e0e0e0;
-  -o-box-shadow: -1px 0 0 #e0e0e0;
-  box-shadow: -1px 0 0 #1c1e22;
+  border-left: 1px solid transparent;
+  -moz-box-shadow: -1px 0 0 transparent;
+  -webkit-box-shadow: -1px 0 0 transparent;
+  -o-box-shadow: -1px 0 0 transparent;
+  box-shadow: -1px 0 0 transparent;
   padding: 17px 0 14px 7px;
   position: absolute;
   left: 90px;
