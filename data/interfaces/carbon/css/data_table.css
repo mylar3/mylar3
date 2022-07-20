@@ -88,7 +88,7 @@ table.display {
 	margin: 20px auto; 
 	clear: both;
 	border:1px solid #1c1e22;
-	width: 100%;
+	width: 100% !important;
 	
 	/* Note Firefox 3.5 and before have a bug with border-collapse
 	 * ( https://bugzilla.mozilla.org/show%5Fbug.cgi?id=155955 ) 
@@ -108,7 +108,7 @@ table.display thead th {
 	padding: 3px 5px 3px 5px;
 	background-color: white;
 	font-weight: bold;
-	font-size: 16px;
+	font-size: 14px;
 	border-bottom: 1px solid #1c1e22;
 	border-bottom-width: 3px;
 	text-align: center;
@@ -131,6 +131,7 @@ table.display td {
        vertical-align: middle;
        padding: 4px 5px;
        font-size: 12px;
+       text-align: center;
 }
 table.display td.center {
 	text-align: center;
