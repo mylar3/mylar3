@@ -86,7 +86,7 @@
 ----------------------------------*/
 
 /* states and images */
-.ui-icon { width: 16px; height: 16px; background-image: url(../../../images/icon_sprite_black.png); }
+.ui-icon { width: 16px; height: 16px; background-image: url(../../../images/icon_sprite_white.png); }
 .ui-widget-content .ui-icon {background-image: url(../../../images/icon_sprite_white.png); }
 .ui-widget-header .ui-icon {background-image: url(../../../images/icon_sprite_white.png); }
 .ui-button.ui-state-hover .ui-icon { background-image: url(../../../images/icon_sprite_white.png); }
