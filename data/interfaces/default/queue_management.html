@@ -21,11 +21,13 @@
              <h2><center><bold>ACTIVE</bold></center></h2>
               <div id="active_message" align="center" style="display:none;">
                   <div id="amessage" align="center"></div>
-                  <div id="btn_container"><div id="btn_menu" style="display:none;"></br>
-                         <a id="arestartddl" name="restartddl" href="#" title="Restart stalled download" data-success="Restarted Download">Restart Download</a>
-                         <a id="aresumeddl" name="resumeddl" href="#" title="Resume download" data-success="Resumed Download">Resume Download</a>
-                         <a id="aabortddl" name="abortddl" href="#" title="Abort download" data-success="Aborted Download">Abort Download</a>
-                  </div></div>
+              </div>
+              <div style="display: flex; justify-content: flex-end">
+              <div id="btn_container"><div id="btn_menu" style="display:none;">
+                  <a id="arestartddl" name="restartddl" href="#" title="Restart stalled download" data-success="Restarted Download">Restart Download</a></br>
+                  <span id="aresume_ddl"><a id="aresumeddl" name="resumeddl" href="#" title="Resume download" data-success="Resumed Download">Resume Download</a></br></span>
+                  <a id="aabortddl" name="abortddl" href="#" title="Abort download" data-success="Aborted Download">Abort Download</a></br>
+              </div></div>
               </div>
               <div id="active_queue" style="display:none;">
                <table width="100%" cellpadding="5" cellspacing="5">
@@ -99,6 +101,7 @@
                             acm.style.display = "none";
                             acq = document.getElementById("active_queue");
                             acq.style.display = "unset";
+                            document.getElementById("aresume_ddl").style.display = "block";
                             document.getElementById("prog_width").style.width=percent;
                             $("#progress").html(percent);
                             document.getElementById("series").innerHTML = obj['a_series'];
@@ -110,7 +113,7 @@
                             $("#qrestartddl").attr('onClick', "ajaxcallit('restart', '"+aid+"')");
                             $("#qresumeddl").attr('onClick', "ajaxcallit('resume', '"+aid+"')");
                             $("#qabortddl").attr('onClick', "ajaxcallit('abort', '"+aid+"')");
-                        } else if ( status.indexOf("File does not exist") > -1){
+                        } else if ( status.indexOf("does not exist") > -1){
                             acm = document.getElementById("active_message");
                             acm.style.display = "inline-block";
                             acq = document.getElementById("active_queue");
@@ -119,7 +122,8 @@
                             qmm = document.getElementById("btn_menu");
                             qmm.style.display = "inline-block";
                             $("#arestartddl").attr('onClick', "ajaxcallit('restart', '"+aid+"')");
-                            $("#aresumeddl").attr('onClick', "ajaxcallit('resume', '"+aid+"')");
+                            //$("#aresumeddl").attr('onClick', "ajaxcallit('resume', '"+aid+"')");
+                            document.getElementById("aresume_ddl").style.display = "none";
                             $("#aabortddl").attr('onClick', "ajaxcallit('abort', '"+aid+"')");
                         } else {
                             acm = document.getElementById("active_message");
@@ -129,6 +133,7 @@
                             qmm = document.getElementById("btn_menu");
                             qmm.style.display = "none";
                             document.getElementById("amessage").innerHTML = status;
+                            document.getElementById("aresume_ddl").style.display = "block";
                         }
                         if (percent == '100%') {
                             clearInterval(ImportTimer);
