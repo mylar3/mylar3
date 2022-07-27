@@ -1814,6 +1814,38 @@ DIV.progress-container > DIV
 	text-align: center;
 	z-index: 900;
 }
+DIV.series-progress-container
+{
+        position: relative;
+        width: 100px;
+        height: 18px;
+        margin: 2px 5px 2px 2px;
+        -border:1px solid #ccc;
+        background-color: #272b30;
+        background-image: -moz-linear-gradient(top, whiteSmoke, #F9F9F9);
+        background-image: -webkit-gradient(linear, 0 0, 0 100%, from(whiteSmoke), to(#F9F9F9));
+        background-image: -webkit-linear-gradient(top, whiteSmoke, #F9F9F9);
+        background-image: -o-linear-gradient(top, whiteSmoke, #F9F9F9);
+        background-image: linear-gradient(to bottom, whiteSmoke, #F9F9F9);
+        background-repeat: repeat-x;
+        -webkit-border-radius: 4px;
+        -moz-border-radius: 4px;
+        border-radius: 4px;
+        filter: progid:DXImageTransform.Microsoft.gradient(startColorstr='#fff5f5f5', endColorstr='#fff9f9f9', GradientType=0);
+        -webkit-box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.1);
+        -moz-box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.1);
+        box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.1);
+        color: #000;
+}
+DIV.series-progress-container > DIV
+{
+        background-color: #0EBEED;
+        height: 18px;
+        -webkit-border-radius: 4px;
+        -moz-border-radius: 4px;
+        text-align: center;
+        z-index: 900;
+}
 .danger > DIV
 {
 	background-color: #DD514C;
