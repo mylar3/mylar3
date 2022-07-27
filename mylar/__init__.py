@@ -172,7 +172,7 @@ DDL_LOCK = False
 CMTAGGER_PATH = None
 STATIC_COMICRN_VERSION = "1.01"
 STATIC_APC_VERSION = "2.04"
-ISSUE_EXCEPTIONS = ['AU', 'AI', 'INH', 'NOW', 'BEY', 'MU', 'HU', 'LR', 'A', 'B', 'C', 'X', 'O','SUMMER', 'SPRING', 'FALL', 'WINTER', 'PREVIEW', 'ALPHA', 'OMEGA', "DIRECTOR'S CUT", "(DC)"]
+ISSUE_EXCEPTIONS = ['AU', 'AI', 'INH', 'NOW', 'BEY', 'MU', 'HU', 'LR', 'A', 'B', 'C', 'X', 'O', 'BLACK', 'WHITE', 'SUMMER', 'SPRING', 'FALL', 'WINTER', 'PREVIEW', 'ALPHA', 'OMEGA', "DIRECTOR'S CUT", "(DC)"]
 SAB_PARAMS = None
 EXT_IP = None
 PROVIDER_START_ID=0
@@ -299,9 +299,10 @@ def initialize(config_file):
         CURRENT_YEAR = todaydate.strftime("%Y")
 
         if SEARCH_TIER_DATE is None:
-            #tier the wanted listed so anything older than 14 days won't trigger the API during searches.
+            #tier the wanted listed so anything older than SEARCH_TIER_CUTOFF (default 14 days)
+            #won't trigger the API during searches.
             #utc_date = datetime.datetime.utcnow()
-            STD = todaydate - timedelta(days = 14)
+            STD = todaydate - timedelta(days = mylar.CONFIG.SEARCH_TIER_CUTOFF)
             SEARCH_TIER_DATE = STD.strftime('%Y-%m-%d')
             logger.fdebug('SEARCH_TIER_DATE set to : %s' % SEARCH_TIER_DATE)
 

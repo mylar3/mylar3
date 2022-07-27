@@ -109,6 +109,7 @@ _CONFIG_DEFINITIONS = OrderedDict({
     'FOLDER_CACHE_LOCATION': (str, 'General', None),
     'SCAN_ON_SERIES_CHANGES': (bool, 'General', True),
     'CLEAR_PROVIDER_TABLE': (bool, 'General', False),
+    'SEARCH_TIER_CUTOFF': (int, 'General', 14), # days
 
     'RSS_CHECKINTERVAL': (int, 'Scheduler', 20),
     'SEARCH_INTERVAL': (int, 'Scheduler', 360),
@@ -1295,6 +1296,15 @@ class Config(object):
             if dcreate is False and self.ENABLE_DDL is True:
                 logger.warn('Unable to create ddl_location specified in config: %s. Reverting to default cache location.' % self.DDL_LOCATION)
                 self.DDL_LOCATION = self.CACHE_DIR
+
+        if self.SEARCH_TIER_CUTOFF is None:
+            self.SEARCH_TIER_CUTOFF = 14
+            config.set('General', 'search_tier_cutoff', str(self.SEARCH_TIER_CUTOFF))
+        else:
+            if not str(self.SEARCH_TIER_CUTOFF).isdigit():
+                self.SEARCH_TIER_CUTOFF = 14
+                config.set('General', 'search_tier_cutoff', str(self.SEARCH_TIER_CUTOFF))
+        logger.info('[Search Tier Cutoff] Setting Tier-1 cutoff point to %s days' % self.SEARCH_TIER_CUTOFF)
 
         if self.MODE_32P is False and self.RSSFEED_32P is not None:
             mylar.KEYS_32P = self.parse_32pfeed(self.RSSFEED_32P)

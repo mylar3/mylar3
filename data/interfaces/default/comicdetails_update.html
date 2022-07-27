@@ -97,11 +97,11 @@
                    </fieldset>
                          <%
                                  if comicConfig['percent'] == 101:
-                                         css = '<div class=\"progress-container warning\">'
+                                         css = '<div class=\"series-progress-container warning\">'
                                  if comicConfig['percent'] == 100:
-                                         css = '<div class=\"progress-container complete\">'
+                                         css = '<div class=\"series-progress-container complete\">'
                                  if comicConfig['percent'] < 100:
-                                         css = '<div class=\"progress-container missing\">'
+                                         css = '<div class=\"series-progress-container missing\">'
                           %>
                    <div style="display:table;position:relative;margin:auto;top:0px;"><span title="${comicConfig['percent']}"></span>${css}<div style="width:${comicConfig['percent']}%"><span class="progressbar-front-text">${comicConfig['haveissues']}/${comicConfig['totalissues']}</span></div></div></div>
                    <%
