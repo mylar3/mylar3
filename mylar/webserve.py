@@ -1400,7 +1400,7 @@ class WebInterface(object):
             imageurl = image
 
         logger.info('imageurl: %s' % imageurl)
-        if imageurl.startswith('http'):
+        if imageurl and imageurl.startswith('http'):
             try:
                 r = requests.get(imageurl, params=None, stream=True, verify=mylar.CONFIG.CV_VERIFY, headers=mylar.CV_HEADERS)
             except Exception as e:
@@ -7148,9 +7148,10 @@ class WebInterface(object):
             return json.dumps({"status": False, "message": "Invalid API Key provided.", "version": str(version)})
 
         mylar.CONFIG.SAB_APIKEY = q_apikey
-        logger.info('APIKey provided is the FULL API Key which is the correct key. You still need to SAVE the config for the changes to be applied.')
+        logger.info('APIKey provided is the FULL API Key which is the correct key.')
         logger.info('Connection to SABnzbd tested sucessfully')
         mylar.CONFIG.SAB_VERSION = version
+        mylar.CONFIG.writeconfig(values={'sab_version': version, 'sab_apikey': q_apikey})
         return json.dumps({"status": True, "message": "Successfully verified API Key.", "version": str(version)})
 
     SABtest.exposed = True
@@ -8716,6 +8717,34 @@ class WebInterface(object):
         return json.dumps(x)
     get_the_pubs.exposed = True
 
+    def ignore_search_word_listing(self, inputvalue=None, deletevalue=None):
+        ignorelist = []
+        new_list = []
+        deleted = False
+        for ts in mylar.CONFIG.IGNORE_SEARCH_WORDS:
+            #logger.fdebug('ts:%s / inputvalue:%s' % (ts, inputvalue))
+            if ts == deletevalue:
+                deleted = True
+            elif ts != inputvalue:
+                ignorelist.append({"name": ts})
+                new_list.append(ts)
+                #logger.fdebug('inputvalue is to be deleted')
+
+        if any([inputvalue, deletevalue]):
+            if inputvalue:
+                ignorelist.append({"name": inputvalue})
+                new_list.append(inputvalue)
+                mylar.CONFIG.IGNORE_SEARCH_WORDS = new_list
+                return json.dumps({"name": inputvalue})
+            else:
+                mylar.CONFIG.IGNORE_SEARCH_WORDS = new_list
+                return json.dumps({"name": deletevalue})
+
+        mylar.CONFIG.writeconfig(values={'ignore_search_words': json.dumps(new_list)})
+        mylar.CONFIG.IGNORE_SEARCH_WORDS = new_list
+        return json.dumps(ignorelist)
+    ignore_search_word_listing.exposed=True
+
     def list_the_directories(self, foldername=None, iDisplayStart=0, iDisplayLength=25, iSortCol_0='1', sSortDir_0="desc", sSearch="", **kwargs):
         if foldername is None or not os.path.exists(foldername):
              return json.dumps({'status': 'fail', 'message': '%s does not exist - please verify!' % (foldername)})
@@ -8924,7 +8953,7 @@ class WebInterface(object):
         storyarcname = None
 
         myDB = db.DBConnection()
-        arcs = myDB.select('Select ComicID, ComicName, SeriesYear, StoryArc FROM storyarcs WHERE storyarcid=? GROUP BY ComicID', [storyarcid])
+        arcs = myDB.select('Select ComicID, ComicName, SeriesYear, StoryArc FROM storyarcs WHERE storyarcid=? AND (Manual IS NOT "deleted" OR Manual IS NULL) GROUP BY ComicID', [storyarcid])
 
         for ac in arcs:
             if storyarcname is None and ac['StoryArc'] is not None:

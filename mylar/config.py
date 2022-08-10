@@ -74,6 +74,7 @@ _CONFIG_DEFINITIONS = OrderedDict({
     'FAILED_DOWNLOAD_HANDLING': (bool, 'General', False),
     'FAILED_AUTO': (bool, 'General',False),
     'PREFERRED_QUALITY': (int, 'General', 0),
+    'IGNORE_SEARCH_WORDS': (str, 'General', []),
     'USE_MINSIZE': (bool, 'General', False),
     'MINSIZE': (str, 'General', None),
     'USE_MAXSIZE': (bool, 'General', False),
@@ -108,6 +109,7 @@ _CONFIG_DEFINITIONS = OrderedDict({
     'FOLDER_CACHE_LOCATION': (str, 'General', None),
     'SCAN_ON_SERIES_CHANGES': (bool, 'General', True),
     'CLEAR_PROVIDER_TABLE': (bool, 'General', False),
+    'SEARCH_TIER_CUTOFF': (int, 'General', 14), # days
 
     'RSS_CHECKINTERVAL': (int, 'Scheduler', 20),
     'SEARCH_INTERVAL': (int, 'Scheduler', 360),
@@ -813,7 +815,7 @@ class Config(object):
         Given a big bunch of key value pairs, apply them to the ini.
         """
         for name, value in list(kwargs.items()):
-            if not any([(name.startswith('newznab') and name[-1].isdigit()), name.startswith('torznab') and name[-1].isdigit()]):
+            if not any([(name.startswith('newznab') and name[-1].isdigit()), name.startswith('torznab') and name[-1].isdigit(), name == 'ignore_search_words[]']):
                 key, definition_type, section, ini_key, default = self._define(name)
                 if definition_type == str:
                     try:
@@ -1173,6 +1175,18 @@ class Config(object):
                     logger.warn('[MASS_PUBLISHERS] Unable to convert publishers [%s]. Error returned: %s' % (self.MASS_PUBLISHERS, e))
         logger.info('[MASS_PUBLISHERS] Auto-add for weekly publishers set to: %s' % (self.MASS_PUBLISHERS,))
 
+        if len(self.IGNORE_SEARCH_WORDS) > 0 and self.IGNORE_SEARCH_WORDS != '[]':
+            if type(self.IGNORE_SEARCH_WORDS) != list:
+                try:
+                    self.IGNORE_SEARCH_WORDS = json.loads(self.IGNORE_SEARCH_WORDS)
+                except Exception as e:
+                    logger.warn('unable to load ignored search words')
+        else:
+            setattr(self, 'IGNORE_SEARCH_WORDS', [".exe", ".iso", "pdf-xpost", "pdf", "ebook"])
+            config.set('General', 'ignore_search_words', json.dumps(self.IGNORE_SEARCH_WORDS))
+
+        logger.info('[IGNORE_SEARCH_WORDS] Words to flag search result as invalid: %s' % (self.IGNORE_SEARCH_WORDS,))
+
         if len(self.PROBLEM_DATES) > 0 and self.PROBLEM_DATES != '[]':
             if type(self.PROBLEM_DATES) != list:
                 try:
@@ -1282,6 +1296,15 @@ class Config(object):
             if dcreate is False and self.ENABLE_DDL is True:
                 logger.warn('Unable to create ddl_location specified in config: %s. Reverting to default cache location.' % self.DDL_LOCATION)
                 self.DDL_LOCATION = self.CACHE_DIR
+
+        if self.SEARCH_TIER_CUTOFF is None:
+            self.SEARCH_TIER_CUTOFF = 14
+            config.set('General', 'search_tier_cutoff', str(self.SEARCH_TIER_CUTOFF))
+        else:
+            if not str(self.SEARCH_TIER_CUTOFF).isdigit():
+                self.SEARCH_TIER_CUTOFF = 14
+                config.set('General', 'search_tier_cutoff', str(self.SEARCH_TIER_CUTOFF))
+        logger.info('[Search Tier Cutoff] Setting Tier-1 cutoff point to %s days' % self.SEARCH_TIER_CUTOFF)
 
         if self.MODE_32P is False and self.RSSFEED_32P is not None:
             mylar.KEYS_32P = self.parse_32pfeed(self.RSSFEED_32P)

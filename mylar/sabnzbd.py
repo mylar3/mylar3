@@ -137,17 +137,11 @@ class SABnzbd(object):
 
         sab_check = None
         if mylar.CONFIG.SAB_VERSION is None:
-            try:
-                sc = mylar.webserve.WebInterface()
-                sab_check = sc.SABtest(sabhost=mylar.CONFIG.SAB_HOST, sabusername=mylar.CONFIG.SAB_USERNAME, sabpassword=mylar.CONFIG.SAB_PASSWORD, sabapikey=mylar.CONFIG.SAB_APIKEY)
-            except Exception as e:
-                logger.warn('[SABNZBD-VERSION-TEST] Exception encountered trying to retrieve SABnzbd version: %s. Setting history length to last 200 items.' % e)
-                hist_params['limit'] = 200
-                sab_check = 'some value'
-            else:
-                sab_check = None
+            sab_check = self.sab_versioncheck()
 
-        if sab_check is None:
+        if sab_check == 'some value':
+            hist_params['limit'] = 200
+        else:
             #set min_sab to 3.2.0 since 3.2.0 beta 1 has the api call for history search by nzo_id
             try:
                 min_sab = '3.2.0'
@@ -277,3 +271,15 @@ class SABnzbd(object):
             return {'status': False, 'failed': False}
 
         return found
+
+    def sab_versioncheck(self):
+        try:
+            sc = mylar.webserve.WebInterface()
+            sab_check = sc.SABtest(sabhost=mylar.CONFIG.SAB_HOST, sabusername=mylar.CONFIG.SAB_USERNAME, sabpassword=mylar.CONFIG.SAB_PASSWORD, sabapikey=mylar.CONFIG.SAB_APIKEY)
+        except Exception as e:
+            logger.warn('[SABNZBD-VERSION-TEST] Exception encountered trying to retrieve SABnzbd version: %s. Setting history length to last 200 items.' % e)
+            sab_check = 'some value'
+        else:
+            sab_check = None
+
+        return sab_check

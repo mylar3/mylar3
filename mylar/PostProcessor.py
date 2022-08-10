@@ -527,17 +527,19 @@ class PostProcessor(object):
                             ssi = myDB.selectone('SELECT ComicID, IssueID, IssueArcID, IssueNumber, ComicName, SeriesYear, StoryArc, StoryArcID, Publisher, Volume, ReadingOrder FROM storyarcs WHERE IssueID=?', [fl['issueid']]).fetchone()
                             if ssi is not None:
                                 annualtype = None
+                                annualseries = None
                                 if mylar.CONFIG.ANNUALS_ON:
                                     if 'Annual' in ssi['ComicName']:
                                         annualtype = 'Annual'
                                     elif 'Special' in ssi['ComicName']:
                                         annualtype = 'Special'
-
+                                    annualseries = ssi['ComicName']
                                 story_the_arcs = True
                                 tmp_the_arc= {"ComicID":         ssi['ComicID'],
                                               "IssueID":         ssi['IssueID'],
                                               "IssueNumber":     ssi['IssueNumber'],
                                               "AnnualType":      annualtype,
+                                              "AnnualSeries":    annualseries,
                                               "StoryArc":        ssi['StoryArc'],
                                               "StoryArcID":      ssi['StoryArcID'],
                                               "IssueArcID":      ssi['IssueArcID'],
@@ -687,11 +689,13 @@ class PostProcessor(object):
 
                                     if csi is not None:
                                         annualtype = None
+                                        annualseries = None
                                         if annchk == 'yes':
                                             if 'Annual' in csi['ReleaseComicName']:
                                                 annualtype = 'Annual'
                                             elif 'Special' in csi['ReleaseComicName']:
                                                 annualtype = 'Special'
+                                            annualseries = csi['ReleaseComicName']
                                         else:
                                             if 'Annual' in csi['ComicName']:
                                                 annualtype = 'Annual'
@@ -703,6 +707,7 @@ class PostProcessor(object):
                                                            "IssueID":         csi['IssueID'],
                                                            "IssueNumber":     csi['Issue_Number'],
                                                            "AnnualType":      annualtype,
+                                                           "AnnualSeries":    annualseries,
                                                            "ComicName":       csi['ComicName'],
                                                            "AgeRating":       csi['AgeRating'],
                                                            "Series":          fl['series_name'],
@@ -2186,6 +2191,11 @@ class PostProcessor(object):
                         if ml:
                             t_comicname = ml['ComicName']
                             t_annualtype = ml['AnnualType']
+                            if t_annualtype is not None:
+                                try:
+                                    t_comicname = ml['AnnualSeries']
+                                except Exception:
+                                    pass
                             t_issuenumber = ml['IssueNumber']
                         else:
                             t_comicname = dspcname
@@ -2848,6 +2858,8 @@ class PostProcessor(object):
             agerating = comicnzb['AgeRating']
             #we need to un-unicode this to make sure we can write the filenames properly for spec.chars
             series = comicnzb['ComicName'] #.encode('ascii', 'ignore').strip()
+            if annchk == 'yes':
+                series = issuenzb['ReleaseComicName']
             self._log("Series: %s" % series)
             logger.fdebug('%s Series: %s' % (module, series))
             if comicnzb['AlternateFileName'] is None or comicnzb['AlternateFileName'] == 'None':
@@ -3238,13 +3250,15 @@ class PostProcessor(object):
             else:
                 updater.foundsearch(comicid, issueid, mode='want_ann', down=downtype, module=module, crc=crcvalue)
                 if 'annual' in issuenzb['ReleaseComicName'].lower(): #series.lower():
-                    dispiss = 'Annual #%s' % issuenumOG
+                    series = issuenzb['ReleaseComicName']
+                    dispiss = '#%s' % issuenumOG
                 elif 'special' in issuenzb['ReleaseComicName'].lower():
-                    dispiss = 'Special #%s' % issuenumOG
+                    series = issuenzb['ReleaseComicName']
+                    dispiss = '#%s' % issuenumOG
                 else:
                     dispiss = '#%s' % issuenumOG
                 updatetable = 'annuals'
-            logger.fdebug('[annchk:%s] issue to update: %s' % (annchk, dispiss))
+            logger.fdebug('[%s][annchk:%s] issue to update: %s' % (series, annchk, dispiss))
 
             #new method for updating status after pp
             if os.path.isfile(dst):

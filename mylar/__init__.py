@@ -40,7 +40,7 @@ from apscheduler.triggers.interval import IntervalTrigger
 
 import cherrypy
 
-from mylar import logger, versioncheckit, rsscheckit, searchit, weeklypullit, PostProcessor, updater, helpers
+from mylar import logger, versioncheckit, rsscheckit, searchit, weeklypullit, PostProcessor, updater, helpers, sabnzbd
 
 import mylar.config
 
@@ -172,7 +172,7 @@ DDL_LOCK = False
 CMTAGGER_PATH = None
 STATIC_COMICRN_VERSION = "1.01"
 STATIC_APC_VERSION = "2.04"
-ISSUE_EXCEPTIONS = ['AU', 'AI', 'INH', 'NOW', 'BEY', 'MU', 'HU', 'LR', 'A', 'B', 'C', 'X', 'O','SUMMER', 'SPRING', 'FALL', 'WINTER', 'PREVIEW', 'ALPHA', 'OMEGA', "DIRECTOR'S CUT", "(DC)"]
+ISSUE_EXCEPTIONS = ['AU', 'AI', 'INH', 'NOW', 'BEY', 'MU', 'HU', 'LR', 'A', 'B', 'C', 'X', 'O', 'BLACK', 'WHITE', 'SUMMER', 'SPRING', 'FALL', 'WINTER', 'PREVIEW', 'ALPHA', 'OMEGA', "DIRECTOR'S CUT", "(DC)"]
 SAB_PARAMS = None
 EXT_IP = None
 PROVIDER_START_ID=0
@@ -299,9 +299,10 @@ def initialize(config_file):
         CURRENT_YEAR = todaydate.strftime("%Y")
 
         if SEARCH_TIER_DATE is None:
-            #tier the wanted listed so anything older than 14 days won't trigger the API during searches.
+            #tier the wanted listed so anything older than SEARCH_TIER_CUTOFF (default 14 days)
+            #won't trigger the API during searches.
             #utc_date = datetime.datetime.utcnow()
-            STD = todaydate - timedelta(days = 14)
+            STD = todaydate - timedelta(days = mylar.CONFIG.SEARCH_TIER_CUTOFF)
             SEARCH_TIER_DATE = STD.strftime('%Y-%m-%d')
             logger.fdebug('SEARCH_TIER_DATE set to : %s' % SEARCH_TIER_DATE)
 
@@ -359,6 +360,12 @@ def initialize(config_file):
 
         if CONFIG.LOCMOVE:
             helpers.updateComicLocation()
+
+        # startup check(s) here so that the config values are already loaded against.
+        if all([mylar.USE_SABNZBD is True, mylar.CONFIG.SAB_HOST is not None]):
+            s_to_the_ab = sabnzbd.SABnzbd(params=None)
+            s_to_the_ab.sab_versioncheck()
+            logger.info('[SAB-VERSION-CHECK] SABnzbd version detected as: %s' % mylar.CONFIG.SAB_VERSION)
 
         # make sure the intLatestIssue field is populated with values...
         # ??helpers.latestissue_update()

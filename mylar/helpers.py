@@ -1026,6 +1026,13 @@ def issuedigits(issnum):
                     int_issnum = (int(issnum[:-2]) * 1000) + ord('h') + ord('u')
                 else:
                     int_issnum = (int(issnum[:-3]) * 1000) + ord('h') + ord('u')
+            elif 'black' in issnum.lower():
+                remdec = issnum.find('.')  #find the decimal position.
+                if remdec != -1:
+                    issnum = '%s %s' % (issnum[:remdec], issnum[remdec+1:])
+                    #int_issnum = (int(issnum[:-2]) * 1000) + ord('b') + ord('l')
+                #else:
+                #    int_issnum = (int(issnum[:-3]) * 1000) + ord('h') + ord('u')
 
         except ValueError as e:
             logger.error('[' + issnum + '] Unable to properly determine the issue number. Error: %s', e)
@@ -1251,7 +1258,7 @@ def urlretrieve(urlfile, fpath):
 def renamefile_readingorder(readorder):
     logger.fdebug('readingorder#: ' + str(readorder))
     if int(readorder) < 10: readord = "00" + str(readorder)
-    elif int(readorder) >= 10 and int(readorder) < 99: readord = "0" + str(readorder)
+    elif int(readorder) >= 10 and int(readorder) <= 99: readord = "0" + str(readorder)
     else: readord = str(readorder)
 
     return readord

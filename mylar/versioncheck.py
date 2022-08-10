@@ -63,13 +63,14 @@ def runGit(args, ptv=None):
         except Exception as e:
             logger.error('Command %s didn\'t work [%s]' % (cmd, e))
             gitworked = False
+            output = None
             continue
         else:
             if all([output.stderr is not None, output.stderr != '', output.returncode > 0]):
                 logger.error('Encountered error: %s' % output.stderr)
                 gitworked = False
 
-        if "not found" in output.stdout or "not recognized as an internal or external command" in output.stdout:
+        if all([gitworked is True, "not found" in output.stdout, "not recognized as an internal or external command" in output.stdout]):
             logger.error('[%s] Unable to find git with command: %s' % (output.stdout, cmd))
             output = None
             gitworked = False

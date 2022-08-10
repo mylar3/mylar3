@@ -677,6 +677,11 @@ class FileChecker(object):
                                               'mod_position': self.char_file_position(modfilename, sf, lastmod_position),
                                               'validcountchk': validcountchk})
 
+                #used to see if the issue is an alpha-numeric (ie. 18.NOW, 50-X, etc)
+                lastissue_position = split_file.index(sf, lastissue_position)
+                lastissue_label = sf
+                lastissue_mod_position = file_length
+
             #now we try to find the series title &/or volume lablel.
             if any( [sf.lower().startswith('v'), sf.lower().startswith('vol'), volumeprior == True, 'volume' in sf.lower(), 'vol' in sf.lower(), 'part' in sf.lower()] ) and sf.lower() not in {'one','two','three','four','five','six'}:
                 if any([ split_file[split_file.index(sf)].isdigit(), split_file[split_file.index(sf)][3:].isdigit(), split_file[split_file.index(sf)][1:].isdigit() ]):

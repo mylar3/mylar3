@@ -1,6 +1,6 @@
 import os
 
-from libs.utorrent.client import UTorrentClient
+from utorrent.client import UTorrentClient
 
 # Only compatible with uTorrent 3.0+
 

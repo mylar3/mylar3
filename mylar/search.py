@@ -1608,14 +1608,14 @@ def verification(verified_matches, is_info):
                     alt_nzbname=alt_nzbname,
                     oneoff=is_info['oneoff'],
                 )
-                updater.foundsearch(
-                    is_info['ComicID'],
-                    is_info['IssueID'],
-                    mode=is_info['smode'], #'series',
-                    provider=tmpprov,
-                    SARC=is_info['SARC'],
-                    IssueArcID=is_info['IssueArcID']
-                )
+            updater.foundsearch(
+                is_info['ComicID'],
+                is_info['IssueID'],
+                mode=is_info['smode'], #'series',
+                provider=tmpprov,
+                SARC=is_info['SARC'],
+                IssueArcID=is_info['IssueArcID']
+            )
 
             # send out the notifications for the snatch.
             if any([is_info['oneoff'] is True, is_info['IssueID'] is None]):
