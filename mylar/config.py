@@ -1104,13 +1104,13 @@ class Config(object):
         if os.path.exists('/.dockerenv') or os.path.isfile(d_path) and any('docker' in line for line in open(d_path)):
             logger.info('[DOCKER-AWARE] Docker installation detected.')
             mylar.INSTALL_TYPE = 'docker'
-            if any([mylar.CONFIG.DESTINATION_DIR is None, mylar.CONFIG.DESTINATION_DIR == '']):
+            if any([self.DESTINATION_DIR is None, self.DESTINATION_DIR == '']):
                 logger.info('[DOCKER-AWARE] Setting default comic location path to /comics')
-                mylar.CONFIG.DESTINATION_DIR = '/comics'
-            if all([mylar.CONFIG.NZB_DOWNLOADER == 0, mylar.CONFIG.SABNZBD_DIRECTORY is None, mylar.CONFIG.SAB_TO_MYLAR is False]):
+                self.DESTINATION_DIR = '/comics'
+            if all([self.NZB_DOWNLOADER == 0, self.SABNZBD_DIRECTORY is None, self.SAB_TO_MYLAR is False]):
                 logger.info('[DOCKER-AWARE] Setting default sabnzbd download directory location to /downloads')
-                mylar.CONFIG.SAB_TO_MYLAR = True
-                mylar.CONFIG.SABNZBD_DIRECTORY = '/downloads'
+                self.SAB_TO_MYLAR = True
+                self.SABNZBD_DIRECTORY = '/downloads'
 
         if all([self.GRABBAG_DIR is None, self.DESTINATION_DIR is not None]):
             self.GRABBAG_DIR = os.path.join(self.DESTINATION_DIR, 'Grabbag')
