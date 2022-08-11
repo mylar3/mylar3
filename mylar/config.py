@@ -220,7 +220,7 @@ _CONFIG_DEFINITIONS = OrderedDict({
     'SLACK_ENABLED': (bool, 'SLACK', False),
     'SLACK_WEBHOOK_URL': (str, 'SLACK', None),
     'SLACK_ONSNATCH': (bool, 'SLACK', False),
-    
+
     'MATTERMOST_ENABLED': (bool, 'MATTERMOST', False),
     'MATTERMOST_WEBHOOK_URL': (str, 'MATTERMOST', None),
     'MATTERMOST_ONSNATCH': (bool, 'MATTERMOST', False),
@@ -1099,6 +1099,18 @@ class Config(object):
                 logger.fdebug('[Cache Cleanup] Cache Cleanup finished. Cleaned %s items' % cntr)
             else:
                 logger.fdebug('[Cache Cleanup] Cache Cleanup finished. Nothing to clean!')
+
+        d_path = '/proc/self/cgroup'
+        if os.path.exists('/.dockerenv') or os.path.isfile(d_path) and any('docker' in line for line in open(d_path)):
+            logger.info('[DOCKER-AWARE] Docker installation detected.')
+            mylar.INSTALL_TYPE = 'docker'
+            if any([mylar.CONFIG.DESTINATION_DIR is None, mylar.CONFIG.DESTINATION_DIR == '']):
+                logger.info('[DOCKER-AWARE] Setting default comic location path to /comics')
+                mylar.CONFIG.DESTINATION_DIR = '/comics'
+            if all([mylar.CONFIG.NZB_DOWNLOADER == 0, mylar.CONFIG.SABNZBD_DIRECTORY is None, mylar.CONFIG.SAB_TO_MYLAR is False]):
+                logger.info('[DOCKER-AWARE] Setting default sabnzbd download directory location to /downloads')
+                mylar.CONFIG.SAB_TO_MYLAR = True
+                mylar.CONFIG.SABNZBD_DIRECTORY = '/downloads'
 
         if all([self.GRABBAG_DIR is None, self.DESTINATION_DIR is not None]):
             self.GRABBAG_DIR = os.path.join(self.DESTINATION_DIR, 'Grabbag')

@@ -119,7 +119,7 @@ class SABnzbd(object):
                     logger.fdebug('status: %s' % queueinfo['status'])
                     logger.fdebug('mbleft: %s' % queueinfo['mbleft'])
                     logger.fdebug('timeleft: %s' % queueinfo['timeleft'])
-                    logger.fdebug('eta: %s' % queueinfo['eta'])
+                    #logger.fdebug('eta: %s' % queueinfo['eta'])
                     time.sleep(5)
             except Exception as e:
                 logger.warn('error: %s' % e)
@@ -130,10 +130,12 @@ class SABnzbd(object):
     def historycheck(self, nzbinfo, roundtwo=False):
         sendresponse = nzbinfo['nzo_id']
         hist_params = {'mode':      'history',
-                       'category':  mylar.CONFIG.SAB_CATEGORY,
                        'failed':    0,
                        'output':    'json',
                        'apikey':    mylar.CONFIG.SAB_APIKEY}
+
+        if mylar.CONFIG.SAB_CATEGORY is not None:
+            hist_params['category'] = mylar.CONFIG.SAB_CATEGORY
 
         sab_check = None
         if mylar.CONFIG.SAB_VERSION is None:
