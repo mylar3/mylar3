@@ -3255,7 +3255,7 @@ class WebInterface(object):
                                         'dateadded': arc['DateAdded']}
 
         if mylar.CONFIG.ANNUALS_ON:
-            annuals_query = "SELECT ComicName, Issue_Number as Issue_Number, ReleaseDate, Status, ComicID, IssueID, DateAdded FROM annuals WHERE NOT Deleted AND %s" % statline
+            annuals_query = "SELECT ReleaseComicName as ComicName, Issue_Number as Issue_Number, ReleaseDate, Status, ComicID, IssueID, DateAdded FROM annuals WHERE NOT Deleted AND %s" % statline
             annuals_list = myDB.select(annuals_query)
 
             issues += annuals_list

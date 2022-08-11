@@ -2196,6 +2196,9 @@ class PostProcessor(object):
                                     t_comicname = ml['AnnualSeries']
                                 except Exception:
                                     pass
+                                else:
+                                    if t_annualtype == 'Annual':
+                                        t_annualtype = None
                             t_issuenumber = ml['IssueNumber']
                         else:
                             t_comicname = dspcname
