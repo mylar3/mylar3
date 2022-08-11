@@ -396,7 +396,23 @@ class Api(object):
         return
 
     def _getWanted(self, **kwargs):
-        self.data = self._resultsFromQuery("SELECT * from issues WHERE Status='Wanted'")
+        iss_query = "SELECT a.ComicName, a.ComicYear, a.ComicVersion, a.Type as BookType, a.ComicPublisher, a.publisherImprint, b.Issue_Number, b.IssueName, b.ReleaseDate, b.IssueDate, b.DigitalDate, b.Status, b.ComicID, b.IssueID, b.DateAdded from comics as a INNER JOIN issues as b ON a.ComicID = b.ComicID WHERE b.Status='Wanted'"
+        issues = self._resultsFromQuery(iss_query)
+        tmp_data = {'issues': issues}
+        if 'story_arcs' in kwargs and kwargs['story_arcs'] == 'true':
+            if mylar.CONFIG.UPCOMING_STORYARCS is True:
+                arcs_query = "SELECT Storyarc, StoryArcID, IssueArcID, ComicName, IssueNumber, IssueName, ReleaseDate, IssueDate, DigitalDate, Status, ComicID, IssueID, DateAdded from storyarcs WHERE Status='Wanted'"
+                arclist = self._resultsFromQuery(arcs_query)
+                tmp_data2 = {**tmp_data, **{'story_arcs': arclist}}
+                tmp_data = tmp_data2
+
+        if mylar.CONFIG.ANNUALS_ON:
+            annuals_query = "SELECT b.ReleaseComicName as ComicName, a.ComicYear, a.ComicVersion, a.Type as BookType, a.ComicPublisher, a.publisherImprint, a.ComicName as SeriesName, b.Issue_Number as Issue_Number, b.IssueName, b.ReleaseDate, b.IssueDate, b.DigitalDate, b.Status, b.ComicID, b.IssueID, b.ReleaseComicID as SeriesComicID, b.DateAdded FROM comics as a INNER JOIN annuals as b ON a.ComicID = b.ComicID WHERE NOT b.Deleted and b.Status='Wanted'"
+            annuals_list = self._resultsFromQuery(annuals_query)
+            tmp_data2 = {**tmp_data, **{'annuals': annuals_list}}
+            tmp_data = tmp_data2
+
+        self.data = tmp_data
         return
 
     def _getLogs(self, **kwargs):
