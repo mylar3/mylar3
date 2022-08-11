@@ -1107,10 +1107,10 @@ class Config(object):
             if any([self.DESTINATION_DIR is None, self.DESTINATION_DIR == '']):
                 logger.info('[DOCKER-AWARE] Setting default comic location path to /comics')
                 self.DESTINATION_DIR = '/comics'
-            if all([self.NZB_DOWNLOADER == 0, self.SABNZBD_DIRECTORY is None, self.SAB_TO_MYLAR is False]):
+            if all([self.NZB_DOWNLOADER == 0, self.SAB_DIRECTORY is None, self.SAB_TO_MYLAR is False]):
                 logger.info('[DOCKER-AWARE] Setting default sabnzbd download directory location to /downloads')
                 self.SAB_TO_MYLAR = True
-                self.SABNZBD_DIRECTORY = '/downloads'
+                self.SAB_DIRECTORY = '/downloads'
 
         if all([self.GRABBAG_DIR is None, self.DESTINATION_DIR is not None]):
             self.GRABBAG_DIR = os.path.join(self.DESTINATION_DIR, 'Grabbag')
