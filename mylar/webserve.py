@@ -6839,7 +6839,21 @@ class WebInterface(object):
         #logger.fdebug('config_folder_format:%s' % (mylar.CONFIG.FOLDER_FORMAT))
         #logger.fdebug('config_format_booktype:%s' % (mylar.CONFIG.FORMAT_BOOKTYPE))
         #logger.fdebug('com_location:%s -- orig_location: %s' % (com_location, orig_location))
-        if any([orig_corr_type != newValues['Corrected_Type'], orig_imprint != newValues['PublisherImprint'] ]):
+        #logger.fdebug('orig_imprint:%s -- publisher_imprint: %s' % (orig_imprint, newValues['PublisherImprint']))
+        if orig_corr_type != newValues['Corrected_Type'] or (orig_imprint != newValues['PublisherImprint'] and all(
+            [
+                orig_imprint != newValues['PublisherImprint'],
+                newValues['PublisherImprint'] is not None,
+                newValues['PublisherImprint'] != 'None',
+            ]
+        ) or all(
+            [
+                orig_imprint != newValues['PublisherImprint'],
+                orig_imprint is not None,
+                orig_imprint != 'None',
+                orig_imprint != '',
+            ]
+        )):
             mod_booktype = orig_corr_type
             mod_imprint = orig_imprint
             if all(['$Type' in mylar.CONFIG.FOLDER_FORMAT, com_location == orig_location, mylar.CONFIG.FORMAT_BOOKTYPE is True]):
