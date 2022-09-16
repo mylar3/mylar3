@@ -23,6 +23,15 @@
 	</div>
 </%def>
 
+<script>
+    $('#banner').load(
+        function () {
+            var myImg = document.getElementById("banner");
+            var bannerw = "${bannerwidth}";
+            myImg.style.width = bannerw + "px";
+    });
+</script>
+
 <%def name="body()">
         <input type="hidden" id="page_name" value="storyarc_detail" />
          </br></br>
@@ -37,17 +46,17 @@
                    <fieldset>
                       <div id="aristImg">
                           %if storyarcbanner is not None:
-                              <img src="${storyarcbanner}" onload="resizeimage('${bannerwidth}')" height="400" width="${bannerwidth}" id="banner" style="text-decoration: none;position: relative;top:0px;right:0px;left:0px;"/>
+                              <img src="${storyarcbanner}" height="400" width="${bannerwidth}" id="banner" style="text-decoration: none;position: relative;top:0px;right:0px;left:0px;"/>
                           %else:
                               </br>
                           %endif
                                  <%
                                          if arcdetail['percent'] == 101:
-                                                 css = '<div class=\"progress-container warning\">'
+                                                 css = '<div class=\"series-progress-container warning\">'
                                          if arcdetail['percent'] == 100:
-                                                 css = '<div class=\"progress-container complete\">'
+                                                 css = '<div class=\"series-progress-container complete\">'
                                          if arcdetail['percent'] < 100:
-                                                 css = '<div class=\"progress-container missing\">'
+                                                 css = '<div class=\"series-progress-container missing\">'
 
                                   %>
                    <div style="display:table;margin:auto;position:relative;top:0px;"><span title="${arcdetail['percent']}"></span>${css}<div style="width:${arcdetail['percent']}%"><span class="progressbar-front-text">${arcdetail['Have']}/${arcdetail['Total']}</span></div></div></div>
@@ -89,7 +98,7 @@
                     </form>
                    </div>
                         <%
-                             optpos = '<div style=\"display:block;float:right;position:relative;right:20px;top:-10px;\">'
+                             optpos = '<div style=\"display:block;float:right;position:relative;right:20px;top:50px;\">'
                          %>
                      ${optpos}
                          <form action="downloadBanner" method="GET">
@@ -101,8 +110,6 @@
                           %if storyarcbanner is not None:
                              <p style="display:inline;float:right;">
                              <input type="hidden" name="height" id="height" value="" />
-                             <button type="button" onclick="zoomin()">Zoom In</button>
-                             <button type="button" onclick="zoomout()">Zoom Out</button>
                              <button type="button" onclick="getWidth('${storyarcid}', 'delete')" data-success="Successfully deleted banner image">Clear</button>
                              <button type="button" onclick="getWidth('${storyarcid}', 'save')" data-success="Saved new height dimensions for banner">Save</button>
                              </p>
@@ -262,14 +269,10 @@
                 }
             });
         });
-        </script>
-        <script type="text/javascript">
         $("#menu_link_scan").click(function() {
             $('#chkoptions').submit();
             return true;
         });
-        </script>
-        <script type="text/javascript">
         function zoomin(){
             var myImg = document.getElementById("banner");
             var currWidth = myImg.clientWidth;
@@ -287,10 +290,6 @@
             } else{
                 myImg.style.width = (currWidth - 50) + "px";
             }
-        }
-        function resizeimage(width) {
-            var myImg = document.getElementById("banner");
-            myImg.style.width = width + "px";
         }
         function getWidth(comicid, action) {
             var myImg = document.getElementById("banner");
@@ -313,8 +312,6 @@
                },
             });
         }            
-        </script>
-	<script>
 	function initThisPage() {
                 $(function() {
                         $( "#tabs" ).tabs();
