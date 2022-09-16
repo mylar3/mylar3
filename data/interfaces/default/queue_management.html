@@ -24,9 +24,9 @@
               </div>
               <div style="display: flex; justify-content: flex-end">
               <div id="btn_container"><div id="btn_menu" style="display:none;">
-                  <a id="arestartddl" name="restartddl" href="#" title="Restart stalled download" data-success="Restarted Download">Restart Download</a></br>
-                  <span id="aresume_ddl"><a id="aresumeddl" name="resumeddl" href="#" title="Resume download" data-success="Resumed Download">Resume Download</a></br></span>
-                  <a id="aabortddl" name="abortddl" href="#" title="Abort download" data-success="Aborted Download">Abort Download</a></br>
+                  <a style="display:none;" id="arestartddl" name="restartddl" href="#" title="Restart stalled download" data-success="Restarted Download">Restart Download</a></br>
+                  <span id="aresume_ddl"><a style="display:none;" id="aresumeddl" name="resumeddl" href="#" title="Resume download" data-success="Resumed Download">Resume Download</a></br></span>
+                  <a style="display:none;" id="aabortddl" name="abortddl" href="#" title="Abort download" data-success="Aborted Download">Abort Download</a></br>
               </div></div>
               </div>
               <div id="active_queue" style="display:none;">
@@ -34,9 +34,9 @@
                <tbody>
                   <div style="display: flex; justify-content: flex-end">
                   <div id="btn_container"><div id="btn_menu">
-                         <a id="qrestartddl" name="restartddl" href="#" title="Restart stalled download" data-success="Restarted Download">Restart Download</a></br>
-                         <a id="qresumeddl" name="resumeddl" href="#" title="Resume download" data-success="Resumed Download">Resume Download</a></br>
-                         <a id="qabortddl" name="abortddl" href="#" title="Abort download" data-success="Aborted Download">Abort Download</a>
+                         <a id="qrestartddl" style="display:none;" name="restartddl" href="#" title="Restart stalled download" data-success="Restarted Download">Restart Download</a></br>
+                         <a id="qresumeddl" style="display:none;" name="resumeddl" href="#" title="Resume download" data-success="Resumed Download">Resume Download</a></br>
+                         <a id="qabortddl" style="display:none;" name="abortddl" href="#" title="Abort download" data-success="Aborted Download">Abort Download</a>
                   </div></div>
                   </div>
                   <tr><td id="series" align="center" style="text-align:center"></td></tr>
@@ -109,7 +109,15 @@
                             document.getElementById("size").innerHTML = obj['a_size'];
                             document.getElementById("status").innerHTML = status;
                             qmm = document.getElementById("btn_menu");
+                            if (qmm.style.display == "inline-block"){
+                                document.getElementById("arestartddl").style.display = "none";
+                                document.getElementById("aresume_ddl").style.display = "none";
+                                document.getElementById("aabortddl").style.display = "none";
+                            }
                             qmm.style.display = "inline-block";
+                            document.getElementById("qrestartddl").style.display = "block";
+                            document.getElementById("qresumeddl").style.display = "block";
+                            document.getElementById("qabortddl").style.display = "block";
                             $("#qrestartddl").attr('onClick', "ajaxcallit('restart', '"+aid+"')");
                             $("#qresumeddl").attr('onClick', "ajaxcallit('resume', '"+aid+"')");
                             $("#qabortddl").attr('onClick', "ajaxcallit('abort', '"+aid+"')");
@@ -120,7 +128,14 @@
                             acq.style.display = "none";
                             document.getElementById("amessage").innerHTML = status;
                             qmm = document.getElementById("btn_menu");
+                            if (qmm.style.display == "inline-block"){
+                                document.getElementById("qresumeddl").style.display = "none";
+                                document.getElementById("qresumeddl").style.display = "none";
+                                document.getElementById("qresumeddl").style.display = "none";
+                            }
                             qmm.style.display = "inline-block";
+                            document.getElementById("arestartddl").style.display = "block";
+                            document.getElementById("aabortddl").style.display = "block";
                             $("#arestartddl").attr('onClick', "ajaxcallit('restart', '"+aid+"')");
                             //$("#aresumeddl").attr('onClick', "ajaxcallit('resume', '"+aid+"')");
                             document.getElementById("aresume_ddl").style.display = "none";
