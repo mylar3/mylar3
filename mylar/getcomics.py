@@ -757,6 +757,7 @@ class GC(object):
                     'oneoff': self.oneoff,
                     'id': mod_id,
                     'site': 'DDL(GetComics)',
+                    'remote_filesize': 0,
                     'resume': None,
                 }
             )
@@ -764,7 +765,7 @@ class GC(object):
 
         return {'success': True}
 
-    def downloadit(self, id, link, mainlink, resume=None, issueid=None):
+    def downloadit(self, id, link, mainlink, resume=None, issueid=None, remote_filesize=0):
         # logger.info('[%s] %s -- mainlink: %s' % (id, link, mainlink))
         if mylar.DDL_LOCK is True:
             logger.fdebug(
@@ -806,62 +807,63 @@ class GC(object):
                     filename = '%s[__%s__]%s' % (file, issueid, ext)
                 logger.info('filename: %s' % filename)
 
-                try:
-                    remote_filesize = int(t.headers['Content-length'])
-                    logger.fdebug('remote filesize: %s' % remote_filesize)
-                except Exception as e:
-                    if 'run.php-urls' not in link:
-                        link = re.sub('run.php-url=', 'run.php-urls', link)
-                        link = re.sub('go.php-url=', 'run.php-urls', link)
-                        #logger.fdebug('session cookies: %s' % (self.session.cookies,))
-                        t = self.session.get(
-                            link,
-                            verify=True,
-                            headers=self.headers,
-                            stream=True,
-                            timeout=30,
-                        )
-                        filename = os.path.basename(
-                            urllib.parse.unquote(t.url)
-                        )  # .decode('utf-8'))
-                        if 'GetComics.INFO' in filename:
-                            filename = re.sub(
-                                'GetComics.INFO', '', filename, re.I
-                            ).strip()
-                        try:
-                            remote_filesize = int(t.headers['Content-length'])
-                            logger.fdebug('remote filesize: %s' % remote_filesize)
-                        except Exception as e:
+                if remote_filesize == 0:
+                    try:
+                        remote_filesize = int(t.headers['Content-length'])
+                        logger.fdebug('remote filesize: %s' % remote_filesize)
+                    except Exception as e:
+                        if 'run.php-urls' not in link:
+                            link = re.sub('run.php-url=', 'run.php-urls', link)
+                            link = re.sub('go.php-url=', 'run.php-urls', link)
+                            #logger.fdebug('session cookies: %s' % (self.session.cookies,))
+                            t = self.session.get(
+                                link,
+                                verify=True,
+                                headers=self.headers,
+                                stream=True,
+                                timeout=30,
+                            )
+                            filename = os.path.basename(
+                                urllib.parse.unquote(t.url)
+                            )  # .decode('utf-8'))
+                            if 'GetComics.INFO' in filename:
+                                filename = re.sub(
+                                    'GetComics.INFO', '', filename, re.I
+                                ).strip()
+                            try:
+                                remote_filesize = int(t.headers['Content-length'])
+                                logger.fdebug('remote filesize: %s' % remote_filesize)
+                            except Exception as e:
+                                logger.warn(
+                                    '[WARNING] Unable to retrieve remote file size - this'
+                                    ' is usually due to the page being behind a different'
+                                    ' click-bait/ad page. Error returned as : %s' % e
+                                )
+                                logger.warn(
+                                    '[WARNING] Considering this particular download as'
+                                    ' invalid and will ignore this result.'
+                                )
+                                remote_filesize = 0
+                                mylar.DDL_LOCK = False
+                                return {
+                                    "success": False,
+                                    "filename": filename,
+                                    "path": None,
+                                }
+
+                        else:
                             logger.warn(
-                                '[WARNING] Unable to retrieve remote file size - this'
-                                ' is usually due to the page being behind a different'
+                                '[WARNING] Unable to retrieve remote file size - this is'
+                                ' usually due to the page being behind a different'
                                 ' click-bait/ad page. Error returned as : %s' % e
                             )
                             logger.warn(
-                                '[WARNING] Considering this particular download as'
-                                ' invalid and will ignore this result.'
+                                '[WARNING] Considering this particular download as invalid'
+                                ' and will ignore this result.'
                             )
                             remote_filesize = 0
                             mylar.DDL_LOCK = False
-                            return {
-                                "success": False,
-                                "filename": filename,
-                                "path": None,
-                            }
-
-                    else:
-                        logger.warn(
-                            '[WARNING] Unable to retrieve remote file size - this is'
-                            ' usually due to the page being behind a different'
-                            ' click-bait/ad page. Error returned as : %s' % e
-                        )
-                        logger.warn(
-                            '[WARNING] Considering this particular download as invalid'
-                            ' and will ignore this result.'
-                        )
-                        remote_filesize = 0
-                        mylar.DDL_LOCK = False
-                        return {"success": False, "filename": filename, "path": None}
+                            return {"success": False, "filename": filename, "path": None}
 
                 # write the filename to the db for tracking purposes...
                 myDB.upsert(

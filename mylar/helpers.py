@@ -3202,8 +3202,15 @@ def ddl_downloader(queue):
             myDB.upsert('ddl_info', val, ctrlval)
 
             if item['site'] == 'DDL(GetComics)':
+                try:
+                    remote_filesize = item['remote_filesize']
+                except Exception:
+                    try:
+                        remote_filesize = helpers.human2bytes(re.sub('/s', '', item['size'][:-1]).strip())
+                    except Exception:
+                        remote_filesize = 0
                 ddz = getcomics.GC()
-                ddzstat = ddz.downloadit(item['id'], item['link'], item['mainlink'], item['resume'], item['issueid'])
+                ddzstat = ddz.downloadit(item['id'], item['link'], item['mainlink'], item['resume'], item['issueid'], remote_filesize)
 
             if ddzstat['success'] is True:
                 tdnow = datetime.datetime.now()
@@ -4474,7 +4481,7 @@ def statusChange(status_from, status_to, comicid=None, bulk=False, api=True):
 
     return rtnline
 
-def file_ops(path,dst,arc=False,one_off=False):
+def file_ops(path,dst,arc=False,one_off=False,multiple=False):
 #    # path = source path + filename
 #    # dst = destination path + filename
 #    # arc = to denote if the file_operation is being performed as part of a story arc or not where the series exists on the watchlist already
@@ -4487,7 +4494,10 @@ def file_ops(path,dst,arc=False,one_off=False):
     softlink_type = 'absolute'
 
     if any([one_off, arc]):
-        action_op = mylar.CONFIG.ARC_FILEOPS
+        if multiple is True:
+            action_op = 'copy'
+        else:
+            action_op = mylar.CONFIG.ARC_FILEOPS
         if mylar.CONFIG.ARC_FILEOPS_SOFTLINK_RELATIVE is True:
             softlink_type = 'relative'
     else:
@@ -4530,7 +4540,7 @@ def file_ops(path,dst,arc=False,one_off=False):
                         logger.warn('[' + str(e) + '] Hardlinking failure. Could not create hardlink - dropping down to copy mode so that this operation can complete. Intervention is required if you wish to continue using hardlinks.')
                         try:
                             shutil.copy( path, dst )
-                            logger.fdebug('Successfully copied file to : ' + dst) 
+                            logger.fdebug('Successfully copied file to : ' + dst)
                             return True
                         except Exception as e:
                             logger.error('[COPY] error : %s' % e)

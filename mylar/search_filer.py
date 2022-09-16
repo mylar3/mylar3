@@ -659,9 +659,10 @@ class search_check(object):
                     )
                     annualize = True
 
+                D_ComicVersion = 1
                 F_ComicVersion = None
 
-                if versionfound == "yes":
+                if versionfound == "yes" or annualize is True:
                     logger.fdebug("volume detection commencing - adjusting length.")
                     logger.fdebug("watch comicversion is %s" % ComicVersion)
                     logger.fdebug("version found: %s" % fndcomicversion)
@@ -676,27 +677,39 @@ class search_check(object):
                             D_ComicVersion = ComVersChk
 
                     # if this is a one-off, SeriesYear will be None and cause errors.
-                    if SeriesYear is None:
-                        S_ComicVersion = 0
-                    else:
+                    S_ComicVersion = 0
+                    if all([SeriesYear is not None, annualize is False]):
                         S_ComicVersion = str(SeriesYear)
 
-                    F_ComicVersion = re.sub("[^0-9]", "", fndcomicversion)
-                    # if found volume is a vol.0, up it to vol.1 (since there is no V0)
-                    if F_ComicVersion == '0':
-                        # need to convert dates to just be yyyy-mm-dd and do comparison,
-                        # time operator in the below calc
+                    if fndcomicversion:
+                        F_ComicVersion = re.sub("[^0-9]", "", fndcomicversion)
+                        # if found volume is a vol.0, up it to vol.1 (since there is no V0)
+                        if F_ComicVersion == '0':
+                            if annualize is True:
+                                F_ComicVersion = parsed_comic['issue_year']
+                            else:
+                                # need to convert dates to just be yyyy-mm-dd and do comparison,
+                                # time operator in the below calc
+                                F_ComicVersion = '1'
+                    else:
                         F_ComicVersion = '1'
 
                     logger.fdebug('FCVersion: %s' % F_ComicVersion)
                     logger.fdebug('DCVersion: %s' % D_ComicVersion)
                     logger.fdebug('SCVersion: %s' % S_ComicVersion)
+                    logger.fdebug('ComicYear: %s' % ComicYear)
 
                     # here's the catch, sometimes annuals get posted as the Pub Year
                     # instead of the Series they belong to (V2012 vs V2013)
-                    if annualize is True and int(ComicYear) == int(F_ComicVersion):
+                    if annualize is True and any(
+                            [
+                                int(ComicYear) == int(F_ComicVersion),
+                                int(ComicYear) == int(parsed_comic['issue_number']),
+                            ]
+                    ):
                         logger.fdebug(
-                            "We matched on versions for annuals %s" % fndcomicversion
+                            "We matched on versions for annuals %s (%s = %s = %s)"
+                            % (ComicYear, fndcomicversion, F_ComicVersion, parsed_comic['issue_number'])
                         )
                     elif all(
                             [
@@ -891,13 +904,19 @@ class search_check(object):
                             ):
                                 intIss = 1000
                             else:
-                                intIss = 9999999999
+                                if annualize is True and len(re.sub('[^0-9]', '', parsed_comic['issue_number']).strip()) == 4:
+                                    intIss = 1000
+                                else:
+                                    intIss = 9999999999
                         if filecomic['justthedigits'] is not None:
                             logger.fdebug(
                                 "issue we found for is : %s"
                                 % filecomic['justthedigits']
                             )
-                            comintIss = helpers.issuedigits(filecomic['justthedigits'])
+                            if annualize is True and len(re.sub('[^0-9]', '', filecomic['justthedigits']).strip()) == 4:
+                                comintIss = 1000
+                            else:
+                                comintIss = helpers.issuedigits(filecomic['justthedigits'])
                             logger.fdebug(
                                 "integer value of issue we have found : %s" % comintIss
                             )
