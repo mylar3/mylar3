@@ -1242,6 +1242,7 @@ class FileChecker(object):
 
         #if the filename is unicoded, it won't match due to the unicode translation. Keep the unicode as well as the decoded.
         series_name_decoded= unicodedata.normalize('NFKD', series_name)
+        og_seriesn = series_name
         #check for annual in title(s) here.
         if not self.justparse and all([mylar.CONFIG.ANNUALS_ON, 'annual' not in self.watchcomic.lower(), 'special' not in self.watchcomic.lower()]):
             if 'annual' in series_name.lower():
@@ -1272,8 +1273,12 @@ class FileChecker(object):
         if (any([issue_number is None, series_name is None]) and booktype == 'issue'):
 
             if all([issue_number is None, booktype == 'issue', issue_volume is not None]):
-                logger.fdebug('Possible UNKNOWN TPB/GN/HC detected - no issue number present, no clarification in filename, but volume present with series title')
-                booktype = 'TPB/GN/HC'
+                if ignore_mod_position != -1:
+                    logger.fdebug('Possible Annual detected - no identifying issue number present, no clarification in filename - assuming year (%s) as issue number' % issue_year)
+                    issue_number = issue_year
+                else:
+                    logger.fdebug('Possible UNKNOWN TPB/GN/HC detected - no issue number present, no clarification in filename, but volume present with series title')
+                    booktype = 'TPB/GN/HC/One-Shot'
             else:
                 logger.fdebug('Cannot parse the filename properly. I\'m going to make note of this filename so that my evil ruler can make it work.')
 
@@ -1377,19 +1382,32 @@ class FileChecker(object):
             pass
         justthedigits = series_info['issue_number']
 
-        if mylar.CONFIG.ANNUALS_ON and 'annual' not in nspace_watchcomic.lower():
-            if 'annual' in series_name.lower():
+        #logger.fdebug('nspace_watchcomic: %s' % nspace_watchcomic)
+        #logger.fdebug('series_name: %s' % series_name)
+        annualisation = False
+        n_name = 'annual'
+        if mylar.CONFIG.ANNUALS_ON:
+            ann_year_check = re.findall(r'(\d{4})(?=[\s]|annual\b|$)', self.watchcomic, flags=re.I)
+            if all(['annual' in nspace_watchcomic.lower(), 'annual' not in series_name.lower()]):
+                annualisation = True
                 justthedigits = 'Annual'
                 if series_info['issue_number'] is not None:
-                    justthedigits += ' %s' % series_info['issue_number']
-                nspace_seriesname = re.sub('2021annual', '', nspace_seriesname.lower()).strip()
+                    if len(justthedigits) == 4:
+                        justthedigits = '%s %s' % (series_info['issue_number'], justthedigits)
+                    else:
+                        justthedigits += ' %s' % series_info['issue_number']
+                if ann_year_check:
+                    n_name = '%s%s' % (ann_year_check[0], 'annual')
+                    nspace_seriesname = re.sub(n_name, '', nspace_seriesname.lower()).strip()
+                    nspace_seriesname_decoded = re.sub(n_name, '', nspace_seriesname_decoded.lower()).strip()
                 nspace_seriesname = re.sub('annual', '', nspace_seriesname.lower()).strip()
-                nspace_seriesname_decoded = re.sub('2021annual', '', nspace_seriesname_decoded.lower()).strip()
                 nspace_seriesname_decoded = re.sub('annual', '', nspace_seriesname_decoded.lower()).strip()
             if alt_series is not None and 'annual' in alt_series.lower():
-                nspace_altseriesname = re.sub('2021annual', '', nspace_altseriesname.lower()).strip()
+                if ann_year_check:
+                    n_name = '%s%s' % (ann_year_check[0], 'annual')
+                    nspace_altseriesname = re.sub(n_name, '', nspace_altseriesname.lower()).strip()
+                    nspace_altseriesname_decoded = re.sub(n_name, '', nspace_altseriesname_decoded.lower()).strip()
                 nspace_altseriesname = re.sub('annual', '', nspace_altseriesname.lower()).strip()
-                nspace_altseriesname_decoded = re.sub('2021annual', '', nspace_altseriesname_decoded.lower()).strip()
                 nspace_altseriesname_decoded = re.sub('annual', '', nspace_altseriesname_decoded.lower()).strip()
         if mylar.CONFIG.ANNUALS_ON and 'special' not in nspace_watchcomic.lower():
             if 'special' in series_name.lower():
@@ -1408,7 +1426,26 @@ class FileChecker(object):
                 seriesalt = True
                 qmatch_chk = 'alt_match'
 
-        if any([seriesalt is True, re.sub('\|','', nspace_seriesname.lower()).strip() == re.sub('\|', '', nspace_watchcomic.lower()).strip(), re.sub('\|','', nspace_seriesname_decoded.lower()).strip() == re.sub('\|', '', nspace_watchname_decoded.lower()).strip()]) or any(re.sub('[\|\s]','', x.lower()).strip() == re.sub('[\|\s]','', nspace_seriesname.lower()).strip() for x in self.AS_Alt):
+        #logger.info('seriesalt: %s' % seriesalt)
+        #logger.info('nspace_seriesname: %s' % nspace_seriesname)
+        #logger.info('nspace_watchcomic: %s' % nspace_watchcomic)
+        #logger.info('nspace_serisname_decoded: %s' % nspace_seriesname_decoded)
+        #logger.info('nspace_watchname_decoded: %s' % nspace_watchname_decoded)
+        #logger.info('self.AS_Alt: %s' % self.AS_Alt)
+        if any(
+                  [
+                       seriesalt is True,
+                       re.sub('\|','', nspace_seriesname.lower()).strip() == re.sub('\|', '', nspace_watchcomic.lower()).strip(),
+                       re.sub('\|','', nspace_seriesname_decoded.lower()).strip() == re.sub('\|', '', nspace_watchname_decoded.lower()).strip(),
+                   ]
+       ) or all(
+                   [
+                       annualisation is True,
+                       re.sub(n_name, '', re.sub('\|', '', nspace_watchcomic.lower()).strip()) == re.sub('\|', '', nspace_seriesname.lower()).strip(),
+                   ]
+       ) or any(
+                   re.sub('[\|\s]','', x.lower()).strip() == re.sub('[\|\s]','', nspace_seriesname.lower()).strip() for x in self.AS_Alt
+       ):
             if qmatch_chk is None:
                 qmatch_chk = 'match'
         if qmatch_chk is not None:
@@ -1433,7 +1470,7 @@ class FileChecker(object):
                     #logger.info('loopchk: ' + str(loopchk))
 
                 #if the names match up, and enable annuals isn't turned on - keep it all together.
-                if re.sub('\|', '', nspace_watchcomic.lower()).strip() == re.sub('\|', '', nspace_seriesname.lower()).strip() and enable_annual == False:
+                if re.sub('\|', '', nspace_watchcomic.lower()).strip() == re.sub('\|', '', nspace_seriesname.lower()).strip() and enable_annual is False:
                     loopchk.append(nspace_watchcomic)
                     if any(['annual' in nspace_seriesname.lower(), 'special' in nspace_seriesname.lower()]):
                         if 'biannual' in nspace_seriesname.lower():
@@ -1444,8 +1481,11 @@ class FileChecker(object):
                         elif 'annual' in nspace_seriesname.lower():
                             if mylar.CONFIG.FOLDER_SCAN_LOG_VERBOSE:
                                 logger.fdebug('[FILECHECKER] Annual detected - proceeding cautiously.')
-                            nspace_seriesname = re.sub('2021annual', '', nspace_seriesname).strip()
-                            nspace_seriesname = re.sub('annual', '', nspace_seriesname).strip()
+                            off_year_check = re.findall(r'(\d{4})(?=[\s]|annual\b|$)', self.watchcomic, flags=re.I)
+                            if off_year_check:
+                                n_name = '%s%s' % (off_year_check[0], 'annual')
+                                nspace_seriesname = re.sub(n_name, '', nspace_seriesname.lower()).strip()
+                            nspace_seriesname = re.sub('annual', '', nspace_seriesname.lower()).strip()
                             enable_annual = False
                         elif 'special' in nspace_seriesname.lower():
                             if mylar.CONFIG.FOLDER_SCAN_LOG_VERBOSE:

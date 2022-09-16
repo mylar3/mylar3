@@ -3524,10 +3524,12 @@ class WebInterface(object):
                 seriesname = item['series']
                 seriessize = item['size']
                 if all([mylar.CONFIG.DDL_AUTORESUME is True, mode == 'resume', item['status'] != 'Completed']):
+                    logger.fdebug('Attempting to resume....')
                     try:
                         filesize = os.stat(os.path.join(mylar.CONFIG.DDL_LOCATION, item['filename'])).st_size
                     except:
                         filesize = 0
+                    logger.fdebug('resume set to resume at: %s bytes' % filesize)
                     resume = filesize
                 elif mode == 'abort':
                     myDB.upsert("ddl_info", {'Status': 'Failed'}, {'id': id}) #DELETE FROM ddl_info where ID=?', [id])
@@ -3537,16 +3539,17 @@ class WebInterface(object):
                     continue
                 else:
                     resume = None
-                mylar.DDL_QUEUE.put({'link':     item['link'],
+                mylar.DDL_QUEUE.put({'link': item['link'],
                                      'mainlink': item['mainlink'],
-                                     'series':   item['series'],
-                                     'year':     item['year'],
-                                     'size':     item['size'],
-                                     'comicid':  item['comicid'],
-                                     'issueid':  item['issueid'],
-                                     'site':     item['site'],
-                                     'id':       item['id'],
-                                     'resume':   resume})
+                                     'series': item['series'],
+                                     'year': item['year'],
+                                     'size': item['size'],
+                                     'remote_filesize': item['remote_filesize'],
+                                     'comicid': item['comicid'],
+                                     'issueid': item['issueid'],
+                                     'site': item['site'],
+                                     'id': item['id'],
+                                     'resume': resume})
 
                 linemessage = '%s successful for %s' % (mode, item['series'])
 
@@ -3572,6 +3575,7 @@ class WebInterface(object):
         resultlist = 'There are currently no items waiting in the Direct Download (DDL) Queue for processing.'
         s_info = myDB.select("SELECT a.ComicName, a.ComicVersion, a.ComicID, a.ComicYear, b.Issue_Number, b.IssueID, c.size, c.status, c.id, c.updated_date, c.issues, c.year FROM comics as a INNER JOIN issues as b ON a.ComicID = b.ComicID INNER JOIN ddl_info as c ON b.IssueID = c.IssueID") # WHERE c.status != 'Downloading'")
         o_info = myDB.select("Select a.ComicName, b.Issue_Number, a.IssueID, a.ComicID, c.size, c.status, c.id, c.updated_date, c.issues, c.year from oneoffhistory a join snatched b on a.issueid=b.issueid join ddl_info c on b.issueid=c.issueid where b.provider like 'DDL%'")
+        tmp_list = {}
         if s_info:
             resultlist = []
             for si in s_info:
@@ -3599,11 +3603,19 @@ class WebInterface(object):
                                    'status':       si['status'],
                                    'updated_date': si['updated_date'],
                                    'progress':     si_status})
+                tmp_list[si['id']] = {
+                                     'comicid': si['comicid'],
+                                     'issueid': si['issueid'],
+                                     'updated_date': si['updated_date']
+                                     }
         if o_info:
             if type(resultlist) is str:
                 resultlist = []
 
             for oi in o_info:
+                if oi['id'] in tmp_list:
+                    continue
+
                 if oi['issues'] is None:
                     issue = oi['Issue_Number']
                     year = oi['year']
@@ -3643,6 +3655,7 @@ class WebInterface(object):
         resultlist = 'There are currently no items waiting in the Direct Download (DDL) Queue for processing.'
         s_info = myDB.select("SELECT a.ComicName, a.ComicVersion, a.ComicID, a.ComicYear, b.Issue_Number, b.IssueID, c.size, c.status, c.id, c.updated_date, c.issues, c.year FROM comics as a INNER JOIN issues as b ON a.ComicID = b.ComicID INNER JOIN ddl_info as c ON b.IssueID = c.IssueID") # WHERE c.status != 'Downloading'")
         o_info = myDB.select("Select a.ComicName, b.Issue_Number, a.IssueID, a.ComicID, c.size, c.status, c.id, c.updated_date, c.issues, c.year from oneoffhistory a join snatched b on a.issueid=b.issueid join ddl_info c on b.issueid=c.issueid where b.provider like 'DDL%'")
+        tmp_list = {}
         if s_info:
             resultlist = []
             for si in s_info:
@@ -3682,11 +3695,20 @@ class WebInterface(object):
                                    'status':       si['status'],
                                    'updated_date': si['updated_date'],
                                    'progress':     si_status})
+                tmp_list[si['id']] = {
+                                     'comicid': si['comicid'],
+                                     'issueid': si['issueid'],
+                                     'updated_date': si['updated_date']
+                                     }
         if o_info:
             if type(resultlist) is str:
                 resultlist = []
 
             for oi in o_info:
+                if oi['id'] in tmp_list:
+                    #logger.fdebug('duplicate entry: %s' % (oi,))
+                    continue
+
                 if oi['issues'] is None:
                     issue = oi['Issue_Number']
                     year = oi['year']
@@ -5114,6 +5136,9 @@ class WebInterface(object):
                                     "destination_location":    dstloc})                  #path to given storyarc / grab-bag directory
                                 matcheroso = "yes"
                                 break
+                    if matcheroso == "yes":
+                        break
+
                 if matcheroso == "no":
                     logger.fdebug('[NO WATCHLIST MATCH] Unable to find a match for %s :#%s' % (arc['ComicName'], arc['IssueNumber']))
                     wantedlist.append({
@@ -5121,63 +5146,63 @@ class WebInterface(object):
                          "IssueNumber":    arc['IssueNumber'],
                          "IssueYear":      arc['IssueYear']})
 
-                    if filelist is not None and mylar.CONFIG.STORYARCDIR:
-                        logger.fdebug('[NO WATCHLIST MATCH] Checking against local Arc directory for given issue.')
-                        fn = 0
-                        valids = [x for x in filelist if re.sub('[\|\s]','', x['dynamic_name'].lower()).strip() == re.sub('[\|\s]','', arc['DynamicComicName'].lower()).strip()]
-                        logger.fdebug('valids: %s' % valids)
-                        if len(valids) > 0:
-                            for tmpfc in valids: #filelist:
-                                haveissue = "no"
-                                issuedupe = "no"
-                                temploc = tmpfc['issue_number'].replace('_', ' ')
-                                fcdigit = helpers.issuedigits(arc['IssueNumber'])
-                                int_iss = helpers.issuedigits(temploc)
-                                if int_iss == fcdigit:
-                                    logger.fdebug('%s Issue #%s already present in StoryArc directory' % (arc['ComicName'], arc['IssueNumber']))
-                                    #update storyarcs db to reflect status.
-                                    rr_rename = False
-                                    if mylar.CONFIG.READ2FILENAME:
-                                        readorder = helpers.renamefile_readingorder(arc['ReadingOrder'])
-                                        if all([tmpfc['reading_order'] is not None, int(readorder) != int(tmpfc['reading_order']['reading_sequence'])]):
-                                            logger.warn('reading order sequence has changed for this issue from %s to %s' % (tmpfc['reading_order']['reading_sequence'], readorder))
-                                            rr_rename = True
-                                            dfilename = '%s-%s' % (readorder, tmpfc['reading_order']['filename'])
-                                        elif tmpfc['reading_order'] is None:
-                                            dfilename = '%s-%s' % (readorder, tmpfc['comicfilename'])
-                                        else:
-                                            dfilename = '%s-%s' % (readorder, tmpfc['reading_order']['filename'])
+                if filelist is not None and mylar.CONFIG.STORYARCDIR:
+                    logger.fdebug('[NO WATCHLIST MATCH] Checking against local Arc directory for given issue.')
+                    fn = 0
+                    valids = [x for x in filelist if re.sub('[\|\s]','', x['dynamic_name'].lower()).strip() == re.sub('[\|\s]','', arc['DynamicComicName'].lower()).strip()]
+                    logger.fdebug('valids: %s' % valids)
+                    if len(valids) > 0:
+                        for tmpfc in valids: #filelist:
+                            haveissue = "no"
+                            issuedupe = "no"
+                            temploc = tmpfc['issue_number'].replace('_', ' ')
+                            fcdigit = helpers.issuedigits(arc['IssueNumber'])
+                            int_iss = helpers.issuedigits(temploc)
+                            if int_iss == fcdigit:
+                                logger.fdebug('%s Issue #%s already present in StoryArc directory' % (arc['ComicName'], arc['IssueNumber']))
+                                #update storyarcs db to reflect status.
+                                rr_rename = False
+                                if mylar.CONFIG.READ2FILENAME:
+                                    readorder = helpers.renamefile_readingorder(arc['ReadingOrder'])
+                                    if all([tmpfc['reading_order'] is not None, int(readorder) != int(tmpfc['reading_order']['reading_sequence'])]):
+                                        logger.warn('reading order sequence has changed for this issue from %s to %s' % (tmpfc['reading_order']['reading_sequence'], readorder))
+                                        rr_rename = True
+                                        dfilename = '%s-%s' % (readorder, tmpfc['reading_order']['filename'])
+                                    elif tmpfc['reading_order'] is None:
+                                        dfilename = '%s-%s' % (readorder, tmpfc['comicfilename'])
                                     else:
-                                        dfilename = tmpfc['comicfilename']
-
-                                    if all([tmpfc['sub'] is not None, tmpfc['sub'] != 'None']):
-                                        loc_path = os.path.join(tmpfc['comiclocation'], tmpfc['sub'], dfilename)
-                                    else:
-                                        loc_path = os.path.join(tmpfc['comiclocation'], dfilename)
-
-                                    if rr_rename:
-                                        logger.fdebug('Now re-sequencing file to : %s' % dfilename)
-                                        os.rename(os.path.join(tmpfc['comiclocation'],tmpfc['comicfilename']), loc_path)
-
-                                    newStatus = 'Downloaded'
-                                    newVal = {"Status":   newStatus,
-                                              "Location": loc_path}    #dfilename}
-                                    ctrlVal = {"IssueArcID":  arc['IssueArcID']}
-                                    myDB.upsert("storyarcs", newVal, ctrlVal)
-                                    break
+                                        dfilename = '%s-%s' % (readorder, tmpfc['reading_order']['filename'])
                                 else:
-                                    newStatus = 'Skipped'
-                                fn+=1
-                            if newStatus == 'Skipped':
-                                #this will set all None Status' to Skipped (at least initially)
-                                newVal = {"Status":   "Skipped"}
+                                    dfilename = tmpfc['comicfilename']
+
+                                if all([tmpfc['sub'] is not None, tmpfc['sub'] != 'None']):
+                                    loc_path = os.path.join(tmpfc['comiclocation'], tmpfc['sub'], dfilename)
+                                else:
+                                    loc_path = os.path.join(tmpfc['comiclocation'], dfilename)
+
+                                if rr_rename:
+                                    logger.fdebug('Now re-sequencing file to : %s' % dfilename)
+                                    os.rename(os.path.join(tmpfc['comiclocation'],tmpfc['comicfilename']), loc_path)
+
+                                newStatus = 'Downloaded'
+                                newVal = {"Status":   newStatus,
+                                          "Location": loc_path}    #dfilename}
                                 ctrlVal = {"IssueArcID":  arc['IssueArcID']}
                                 myDB.upsert("storyarcs", newVal, ctrlVal)
-                            continue
+                                break
+                            else:
+                                newStatus = 'Skipped'
+                            fn+=1
+                        if newStatus == 'Skipped':
+                            #this will set all None Status' to Skipped (at least initially)
+                            newVal = {"Status":   "Skipped"}
+                            ctrlVal = {"IssueArcID":  arc['IssueArcID']}
+                            myDB.upsert("storyarcs", newVal, ctrlVal)
+                        continue
 
-                    newVal = {"Status":   "Skipped"}
-                    ctrlVal = {"IssueArcID":  arc['IssueArcID']}
-                    myDB.upsert("storyarcs", newVal, ctrlVal)
+                newVal = {"Status":   "Skipped"}
+                ctrlVal = {"IssueArcID":  arc['IssueArcID']}
+                myDB.upsert("storyarcs", newVal, ctrlVal)
 
             logger.fdebug('%s issues currently exist on your watchlist that are within this arc. Analyzing...' % len(arc_match))
             for m_arc in arc_match:
@@ -6865,8 +6890,10 @@ class WebInterface(object):
             from . import filers
             x = filers.FileHandlers(ComicID=ComicID)
             newcom_location = x.folder_create(booktype=mod_booktype, imprint=mod_imprint)
-            if newcom_location['comlocation'] is not None:
+            if all([newcom_location['comlocation'] is not None, com_location != orig_location]):
                 com_location = newcom_location['comlocation']
+            else:
+                logger.fdebug('Not renaming as Comic Location path has not changed...')
 
         if allow_packs is None:
             newValues['AllowPacks'] = 0
@@ -8233,12 +8260,21 @@ class WebInterface(object):
          else:
              filelocation = None
              if active['filename'] is not None:
+                 # if this is resumed, we need to use the resume value which holds the filesize of the resume
                  filelocation = os.path.join(mylar.CONFIG.DDL_LOCATION, active['filename'])
                  #logger.fdebug('checking file existance: %s' % filelocation)
                  if os.path.exists(filelocation) is True:
                      filesize = os.stat(filelocation).st_size
-                     cmath = int(float(filesize*100)/int(int(active['remote_filesize'])*100) * 100)
-                     #logger.fdebug('ACTIVE DDL: %s  %s  [%s]' % (active['filename'], cmath, 'Downloading'))
+                     #logger.fdebug('filesize: %s / remote: %s' % (filesize, active['remote_filesize']))
+                     remote_filesize = active['remote_filesize']
+                     cmath = int(float(filesize*100)/int(int(remote_filesize)*100) * 100)
+                     if filesize > int(remote_filesize) and cmath > 102:
+                         logger.fdebug('size calc is incorrect ... correcting...')
+                         remote_filesize = helpers.human2bytes(re.sub('/s', '', active['size'][:-1]).strip())
+                         cmath = int(float(filesize*100)/int(int(remote_filesize)*100) * 100)
+                     #logger.fdebug('remote_filesize: %s' % (remote_filesize))
+                     #logger.fdebug('ACTIVE DDL: %s  %s%s  [%s]' % (active['filename'], cmath, '%', 'Downloading'))
+                     #logger.fdebug('size: %s' % active['size'])
                      return json.dumps({'status':      'Downloading',
                                         'percent':     "%s%s" % (cmath, '%'),
                                         'a_series':    active['series'],

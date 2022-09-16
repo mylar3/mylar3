@@ -1792,7 +1792,10 @@ class PostProcessor(object):
                 delete_arc = []
                 if len(manual_arclist) > 0:
                     logger.info('[STORY-ARC MANUAL POST-PROCESSING] I have found %s issues that belong to Story Arcs. Flinging them into the correct directories.' % len(manual_arclist))
+                    multiple_arcs = None
+                    ml_cnt = 0
                     for ml in manual_arclist:
+                        ml_cnt +=1
                         issueid = ml['IssueID']
                         ofilename = orig_filename = ml['ComicLocation']
                         logger.info('[STORY-ARC POST-PROCESSING] Enabled for %s' % ml['StoryArc'])
@@ -1811,53 +1814,55 @@ class PostProcessor(object):
                             else:
                                 vol_label = ml['Volume']
 
-                            roders = myDB.select('SELECT StoryArc, ReadingOrder from storyarcs WHERE ComicID=? AND IssueID=?', [ml['ComicID'], issueid])
-                            readingorder = None
-                            if roders is not None:
-                                readingorder = []
-                                for rd in roders:
-                                    readingorder.append((rd['StoryArc'], rd['ReadingOrder']))
-                            logger.fdebug('readingorder: %s' % (readingorder))
+                            if not multiple_arcs:
+                                roders = myDB.select('SELECT StoryArc, ReadingOrder from storyarcs WHERE ComicID=? AND IssueID=?', [ml['ComicID'], issueid])
+                                readingorder = None
+                                if roders is not None:
+                                    readingorder = []
+                                    for rd in roders:
+                                        readingorder.append((rd['StoryArc'], rd['ReadingOrder']))
+                                    multiple_arcs = len(readingorder)
 
-                            if any([mylar.CONFIG.ENABLE_META, mylar.CONFIG.CBR2CBZ_ONLY]):
-                                logger.info('[STORY-ARC POST-PROCESSING] Metatagging enabled - proceeding...')
-                                try:
-                                    from . import cmtagmylar
-                                    metaresponse = cmtagmylar.run(self.nzb_folder, issueid=issueid, comversion=vol_label, filename=ofilename, readingorder=readingorder, agerating=None)
-                                except ImportError:
-                                    logger.warn('%s comictaggerlib not found on system. Ensure the ENTIRE lib directory is located within mylar/lib/comictaggerlib/' % module)
-                                    metaresponse = "fail"
+                                logger.fdebug('readingorder: %s' % (readingorder))
 
-                                if metaresponse == "fail":
-                                    logger.fdebug('%s Unable to write metadata successfully - check mylar.log file. Attempting to continue without metatagging...' % module)
-                                elif any([metaresponse == "unrar error", metaresponse == "corrupt"]):
-                                    logger.error('%s This is a corrupt archive - whether CRC errors or it is incomplete. Marking as BAD, and retrying it.' % module)
-                                    continue
-                                    #launch failed download handling here.
-                                elif metaresponse.startswith('file not found'):
-                                    filename_in_error = metaresponse.split('||')[1]
-                                    self._log("The file cannot be found in the location provided for metatagging to be used [%s]. Please verify it exists, and re-run if necessary. Attempting to continue without metatagging..." % (filename_in_error))
-                                    logger.error('%s The file cannot be found in the location provided for metatagging to be used [%s]. Please verify it exists, and re-run if necessary. Attempting to continue without metatagging...' % (module, filename_in_error))
+                                if any([mylar.CONFIG.ENABLE_META, mylar.CONFIG.CBR2CBZ_ONLY]):
+                                    logger.info('[STORY-ARC POST-PROCESSING] Metatagging enabled - proceeding...')
+                                    try:
+                                        from . import cmtagmylar
+                                        metaresponse = cmtagmylar.run(self.nzb_folder, issueid=issueid, comversion=vol_label, filename=ofilename, readingorder=readingorder, agerating=None)
+                                    except ImportError:
+                                        logger.warn('%s comictaggerlib not found on system. Ensure the ENTIRE lib directory is located within mylar/lib/comictaggerlib/' % module)
+                                        metaresponse = "fail"
+
+                                    if metaresponse == "fail":
+                                        logger.fdebug('%s Unable to write metadata successfully - check mylar.log file. Attempting to continue without metatagging...' % module)
+                                    elif any([metaresponse == "unrar error", metaresponse == "corrupt"]):
+                                        logger.error('%s This is a corrupt archive - whether CRC errors or it is incomplete. Marking as BAD, and retrying it.' % module)
+                                        continue
+                                        #launch failed download handling here.
+                                    elif metaresponse.startswith('file not found'):
+                                        filename_in_error = metaresponse.split('||')[1]
+                                        self._log("The file cannot be found in the location provided for metatagging to be used [%s]. Please verify it exists, and re-run if necessary. Attempting to continue without metatagging..." % (filename_in_error))
+                                        logger.error('%s The file cannot be found in the location provided for metatagging to be used [%s]. Please verify it exists, and re-run if necessary. Attempting to continue without metatagging...' % (module, filename_in_error))
+                                    else:
+                                        odir = os.path.split(metaresponse)[0]
+                                        ofilename = os.path.split(metaresponse)[1]
+                                        ext = os.path.splitext(metaresponse)[1]
+                                        logger.info('%s Sucessfully wrote metadata to .cbz (%s) - Continuing..' % (module, ofilename))
+                                        self._log('Sucessfully wrote metadata to .cbz (%s) - proceeding...' % ofilename)
+
+                                    dfilename = ofilename
                                 else:
-                                    odir = os.path.split(metaresponse)[0]
-                                    ofilename = os.path.split(metaresponse)[1]
-                                    ext = os.path.splitext(metaresponse)[1]
-                                    logger.info('%s Sucessfully wrote metadata to .cbz (%s) - Continuing..' % (module, ofilename))
-                                    self._log('Sucessfully wrote metadata to .cbz (%s) - proceeding...' % ofilename)
+                                    dfilename = ml['Filename']
 
-                                dfilename = ofilename
-                            else:
-                                dfilename = ml['Filename']
+                                if metaresponse:
+                                    src_location = odir
+                                    grab_src = os.path.join(src_location, ofilename)
+                                else:
+                                    src_location = ofilename
+                                    grab_src = ofilename
 
-
-                            if metaresponse:
-                                src_location = odir
-                                grab_src = os.path.join(src_location, ofilename)
-                            else:
-                                src_location = ofilename
-                                grab_src = ofilename
-
-                            logger.fdebug('%s Source Path : %s' % (module, grab_src))
+                                logger.fdebug('%s Source Path : %s' % (module, grab_src))
 
                             checkdirectory = filechecker.validateAndCreateDirectory(grdst, True, module=module)
                             if not checkdirectory:
@@ -1875,11 +1880,16 @@ class PostProcessor(object):
 
                             #if from a StoryArc, check to see if we're appending the ReadingOrder to the filename
                             if mylar.CONFIG.READ2FILENAME:
+                                if multiple_arcs > 1:
+                                    # make sure we don't append the previous reading order to the next arc match if belonging to multiple arcs
+                                    new_path_f = dfilename[dfilename.find('-')+1:].strip()
+                                else:
+                                    new_path_f = os.path.split(dfilename)[1]
                                 logger.fdebug('%s readingorder#: %s' % (module, ml['ReadingOrder']))
                                 if int(ml['ReadingOrder']) < 10: readord = "00" + str(ml['ReadingOrder'])
                                 elif int(ml['ReadingOrder']) >= 10 and int(ml['ReadingOrder']) <= 99: readord = "0" + str(ml['ReadingOrder'])
                                 else: readord = str(ml['ReadingOrder'])
-                                dfilename = '%s-%s' % (readord, os.path.split(dfilename)[1])
+                                dfilename = '%s-%s' % (readord, new_path_f)
 
                             grab_dst = os.path.join(grdst, dfilename)
 
@@ -1895,7 +1905,11 @@ class PostProcessor(object):
                                     if all([metaresponse is not None, metaresponse != 'fail']):  # meta was done
                                         self.tidyup(src_location, True, cacheonly=True)
                                     raise OSError
-                                fileoperation = helpers.file_ops(grab_src, grab_dst, one_off=True)
+                                mult_count = False
+                                if ml_cnt != multiple_arcs:
+                                    mult_count = True
+                                logger.fdebug('ml_cnt: %s / multiple_arcs: %s --- multiple arc entry: %s' % (ml_cnt, multiple_arcs, mult_count))
+                                fileoperation = helpers.file_ops(grab_src, grab_dst, one_off=True, multiple=mult_count)
                                 if not fileoperation:
                                     raise OSError
                             except Exception as e:
@@ -1904,8 +1918,10 @@ class PostProcessor(object):
 
                             #tidyup old path
                             if any([mylar.CONFIG.FILE_OPTS == 'move', mylar.CONFIG.FILE_OPTS == 'copy']):
-                                self.tidyup(src_location, True, filename=os.path.basename(orig_filename))
-
+                                if mult_count is False:
+                                    self.tidyup(src_location, True, filename=os.path.basename(orig_filename))
+                                else:
+                                    logger.fdebug('Not deleting %s due to belonging to multiple arcs - will delete in subsequent pass(es)' % os.path.basename(orig_filename))
                             #delete entry from nzblog table
                             #if it was downloaded via mylar from the storyarc section, it will have an 'S' in the nzblog
                             #if it was downloaded outside of mylar and/or not from the storyarc section, it will be a normal issueid in the nzblog
@@ -2009,7 +2025,7 @@ class PostProcessor(object):
                     sarc = nzbiss['SARC']
                     self.oneoff = nzbiss['OneOff']
                     logger.fdebug('sarc: %s / oneoff: %s' % (sarc, self.oneoff))
-                    tmpiss = myDB.selectone('SELECT a.ComicYear, b.* FROM comics as a LEFT JOIN issues as b ON a.ComicID=b.ComicID WHERE IssueID=?', [issueid]).fetchone()
+                    tmpiss = myDB.selectone('SELECT a.ComicYear, a.ComicVersion, b.* FROM comics as a LEFT JOIN issues as b ON a.ComicID=b.ComicID WHERE IssueID=?', [issueid]).fetchone()
                     if tmpiss is None:
                         tmpiss = myDB.selectone('SELECT * FROM annuals WHERE IssueID=? AND NOT Deleted', [issueid]).fetchone()
                     comicid = None
@@ -2020,6 +2036,7 @@ class PostProcessor(object):
                                        'issueid':       issueid,
                                        'comicname':     tmpiss['ComicName'],
                                        'seriesyear':    tmpiss['ComicYear'],
+                                       'seriesvolume':  tmpiss['ComicVersion'],
                                        'issuenumber':   tmpiss['Issue_Number'],
                                        'comiclocation': None,
                                        'publisher':     None,
@@ -2043,6 +2060,7 @@ class PostProcessor(object):
                             ppinfo.append({'comicid':       oneinfo['ComicID'],
                                            'comicname':     oneinfo['ComicName'],
                                            'seriesyear':    oneinfo['SeriesYear'],
+                                           'seriesvolume':  oneinfo['ComicVolume'],
                                            'issuenumber':   oneinfo['IssueNumber'],
                                            'publisher':     oneinfo['IssuePublisher'],
                                            'comiclocation': None,
@@ -2066,15 +2084,18 @@ class PostProcessor(object):
                                 OIssue = oneinfo['IssueNumber']
                                 OPublisher = None
                                 OSeriesYear = oneinfo['year']
+                                OSeriesVolume = oneinfo['year']
                         else:
                             OComicname = oneinfo['COMIC']
                             OIssue = oneinfo['ISSUE']
                             OPublisher = oneinfo['PUBLISHER']
                             OSeriesYear = oneoff['SHIPDATE'][:4]
+                            OSeriesVolume = oneoff['volume']
 
                         ppinfo.append({'comicid':       oneinfo['ComicID'],
                                        'comicname':     OComicname,
                                        'seriesyear':    OSeriesYear,
+                                       'seriesvolume':  OSeriesVolume,
                                        'issuenumber':   OIssue,
                                        'publisher':     OPublisher,
                                        'comiclocation': None,
@@ -2093,6 +2114,7 @@ class PostProcessor(object):
                                 ppinfo.append({'comicid':       oneinfo['ComicID'],
                                                'comicname':     oneinfo['COMIC'],
                                                'seriesyear':    oneinfo['SHIPDATE'][:4],
+                                               'seriesvolume':  oneinfo['volume'],
                                                'issuenumber':   oneinfo['ISSUE'],
                                                'publisher':     oneinfo['PUBLISHER'],
                                                'issueid':       x['IssueID'],
@@ -2255,6 +2277,7 @@ class PostProcessor(object):
             comicid = tinfo['comicid']
             comicname = tinfo['comicname']
             seriesyear = tinfo['seriesyear']
+            seriesvolume = tinfo['seriesvolume']
             issuearcid = None
             issuenumber = tinfo['issuenumber']
             publisher = tinfo['publisher']
@@ -2354,6 +2377,7 @@ class PostProcessor(object):
                         return self.queue.put(self.valreturn)
 
                     rdorder = None
+                    arcdata = None
                     if sandwich is not None and 'S' in sandwich:
                         issuearcid = re.sub('S', '', issueid)
                         logger.fdebug('%s issuearcid:%s' % (module, issuearcid))
@@ -2381,6 +2405,17 @@ class PostProcessor(object):
                         issueid = arcdata['IssueID']
                         rdorder = arcdata['ReadingOrder']
 
+                    if mylar.CONFIG.CMTAG_START_YEAR_AS_VOLUME:
+                        if arcdata:
+                            vol_label = arcdata['SeriesYear']
+                        else:
+                            vol_label = seriesyear
+                    else:
+                        if arcdata:
+                            vol_label = arcdata['ComicVersion']
+                        else:
+                            vol_label = seriesvolume
+
                     if rdorder is not None:
                         roders = myDB.select('SELECT StoryArc, ReadingOrder from storyarcs WHERE ComicID=? AND IssueID=?', [comicid, issueid])
                         readingorder = None
@@ -2391,11 +2426,6 @@ class PostProcessor(object):
                     else:
                         readingorder = rdorder
                     logger.fdebug('readingorder: %s' % (readingorder))
-
-                    if mylar.CONFIG.CMTAG_START_YEAR_AS_VOLUME:
-                        vol_label = arcdata['SeriesYear']
-                    else:
-                        vol_label = arcdata['ComicVersion']
 
                     #tag the meta
                     metaresponse = None
