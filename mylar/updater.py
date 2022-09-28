@@ -2161,20 +2161,27 @@ def watchlist_updater(calledfrom=None, sched=False):
             loaddate = datetime.datetime.strptime(x['last_updated'], '%Y-%m-%d %H:%M:%S')
             loaddate_stamp = calendar.timegm(loaddate.utctimetuple())
 
-        if x['comicid']['id'] in library:
-            #logger.info('matched to %s' % x['comicid']['id'])
-            tm = datetime.datetime.strptime(x['last_updated'], '%Y-%m-%d %H:%M:%S')
-            if all(
-               [
-                   library[x['comicid']['id']]['lastupdated'] < calendar.timegm(tm.utctimetuple()),
-               ]
-            ):
-                x_check = [ yy for yy in to_check if yy['comicid'] == x['comicid']['id'] ]
-                if not x_check:
-                    to_check.append({'comicid': x['comicid']['id'],
-                                     'comicname': library[x['comicid']['id']]['comicname'],
-                                     'seriesyear': library[x['comicid']['id']]['seriesyear']})
-        cntr_chk += 1
+        try:
+            if x['comicid']['id'] in library:
+                #logger.info('matched to %s' % x['comicid']['id'])
+                tm = datetime.datetime.strptime(x['last_updated'], '%Y-%m-%d %H:%M:%S')
+                if all(
+                   [
+                       library[x['comicid']['id']]['lastupdated'] < calendar.timegm(tm.utctimetuple()),
+                   ]
+                ):
+                    x_check = [ yy for yy in to_check if yy['comicid'] == x['comicid']['id'] ]
+                    if not x_check:
+                        to_check.append({'comicid': x['comicid']['id'],
+                                         'comicname': library[x['comicid']['id']]['comicname'],
+                                         'seriesyear': library[x['comicid']['id']]['seriesyear']})
+            cntr_chk += 1
+        except Exception as e:
+            logger.fdebug(
+                '[BACKFILL-UPDATE] Unable to properly determine item [%s] due to invalid CV entry'
+                ' - ignoring (this should be fine)' % (x,)
+            )
+            pass
 
     if len(to_check) > 0:
         logger.info(
