@@ -1094,6 +1094,10 @@ def issuedigits(issnum):
                 except ValueError:
                     #logger.fdebug('This has no issue # for me to get - Either a Graphic Novel or one-shot.')
                     int_issnum = 999999999999999
+            elif all([ '[' in issnum, ']' in issnum ]):
+                issnum_tmp = issnum.find('[')
+                int_issnum = int(issnum[:issnum_tmp].strip()) * 1000
+                legacy_num = issnum[issnum_tmp+1:issnum.find(']')]
             else:
                 try:
                     x = float(issnum)
