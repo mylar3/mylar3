@@ -704,6 +704,7 @@ class WebInterface(object):
                            'Location': issue_location,
                            'Secondary': secondary,
                            'Issue_Number': x['Issue_Number'],
+                           'AltIssueNumber': x['AltIssueNumber'],
                            'IssueDate': x['IssueDate'],
                            'DigitalDate': x['DigitalDate'],
                            'ReleaseDate': x['ReleaseDate'],
@@ -735,7 +736,7 @@ class WebInterface(object):
                 rows = filtered[iDisplayStart:(iDisplayStart + iDisplayLength)]
             else:
                 rows = filtered
-            rows = [[row['Issue_Number'], row['IssueName'], row['IssueDate'], row['Status'], row['IssueID'], row['Location'], row['ComicSize'], row['ComicID'], row['ComicName'], row['DigitalDate'], row['ReleaseDate'], row['Secondary']] for row in rows]
+            rows = [[row['Issue_Number'], row['IssueName'], row['IssueDate'], row['Status'], row['IssueID'], row['Location'], row['ComicSize'], row['ComicID'], row['ComicName'], row['DigitalDate'], row['ReleaseDate'], row['Secondary'], row['AltIssueNumber']] for row in rows]
         else:
             rows = []
 

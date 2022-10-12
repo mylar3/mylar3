@@ -1574,7 +1574,11 @@
                            "targets": [1],
                            "visible": true,
                            "render": function (data,type,full){
-                               return full[0];
+                               if (full[12]){
+                                   return '<span title="Legacy numbering #' + full[12] + '">' + full[0] + '*</span>';
+                               } else {
+                                   return full[0];
+                               }
                            }
                        },
                        {
@@ -1744,6 +1748,7 @@
                          //[9] = digitaldate;
                          //[10] = storedate;
                          //[11] = secondary;
+                         //[12] = alt_issuenumber;
                          return nRow;
                      },
                      "drawCallback": function (settings) {
