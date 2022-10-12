@@ -167,6 +167,12 @@ class FileHandlers(object):
         ccf = chunk_folder_format.find('\ ')
         if ccf != -1:
             chunk_folder_format = chunk_folder_format[:ccf+1] + chunk_folder_format[ccf+2:]
+        ccf = chunk_folder_format.find(' /')
+        if ccf != -1:
+            chunk_folder_format = chunk_folder_format[:ccf] + chunk_folder_format[ccf+1:]
+        ccf = chunk_folder_format.find(' \\')
+        if ccf != -1:
+            chunk_folder_format = chunk_folder_format[:ccf] + chunk_folder_format[ccf+1:]
 
         chunk_folder_format = re.sub(r'\s+', ' ', chunk_folder_format)
 
