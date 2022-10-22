@@ -477,7 +477,7 @@ class PostProcessor(object):
                     if all([fl['series_name'] is not None, fl['series_name'] != '']) and mylar.CONFIG.IGNORE_COVERS is True:
                         cvchk = re.sub('[\s\s+\_\.]', '', fl['series_name']).lower()
                         if any(['coveronly' in cvchk, 'coversonly' in cvchk]):
-                            logger.febug('Cover only detected. Ignoring result.')
+                            logger.fdebug('Cover only detected. Ignoring result.')
                             continue
                     self.matched = False
                     as_d = filechecker.FileChecker()
