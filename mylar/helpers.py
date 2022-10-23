@@ -426,8 +426,11 @@ def rename_param(comicid, comicname, issue, ofilename, comicyear=None, issueid=N
 #                       issue_except = '.NOW'
 
                     issue_except = iss_space + issexcept
-                    logger.fdebug('issue_except denoted as : ' + issue_except)
-                    issuenum = re.sub("[^0-9]", "", issuenum)
+                    logger.fdebug('issue_except denoted as : %s' % issue_except)
+                    if issuenum.lower() != issue_except.lower():
+                        issuenum = re.sub("[^0-9]", "", issuenum)
+                        if any([issuenum == '', issuenum is None]):
+                            issuenum = issue_except
                     break
 
 #            if 'au' in issuenum.lower() and issuenum[:1].isdigit():

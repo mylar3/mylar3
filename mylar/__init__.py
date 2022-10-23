@@ -172,7 +172,31 @@ DDL_LOCK = False
 CMTAGGER_PATH = None
 STATIC_COMICRN_VERSION = "1.01"
 STATIC_APC_VERSION = "2.04"
-ISSUE_EXCEPTIONS = ['AU', 'AI', 'INH', 'NOW', 'BEY', 'MU', 'HU', 'LR', 'A', 'B', 'C', 'X', 'O', 'BLACK', 'WHITE', 'SUMMER', 'SPRING', 'FALL', 'WINTER', 'PREVIEW', 'ALPHA', 'OMEGA', "DIRECTOR'S CUT", "(DC)"]
+ISSUE_EXCEPTIONS = [
+    'ALPHA',
+    'OMEGA',
+    'BLACK',
+    'AU',
+    'AI',
+    'INH',
+    'NOW',
+    'BEY',
+    'MU',
+    'HU',
+    'LR',
+    'A',
+    'B',
+    'C',
+    'X',
+    'O',
+    'WHITE',
+    'SUMMER',
+    'SPRING',
+    'FALL',
+    'WINTER',
+    'PREVIEW',
+    "DIRECTOR'S CUT",
+    "(DC)"]
 SAB_PARAMS = None
 EXT_IP = None
 PROVIDER_START_ID=0
