@@ -1318,6 +1318,11 @@ class Config(object):
                 config.set('General', 'search_tier_cutoff', str(self.SEARCH_TIER_CUTOFF))
         logger.info('[Search Tier Cutoff] Setting Tier-1 cutoff point to %s days' % self.SEARCH_TIER_CUTOFF)
 
+        if all([self.GOTIFY_ENABLED, self.GOTIFY_SERVER_URL is not None]):
+            if not self.GOTIFY_SERVER_URL.endswith('/'):
+                self.GOTIFY_SERVER_URL += '/'
+                config.set('GOTIFY', 'gotify_server_url', self.GOTIFY_SERVER_URL)
+
         if self.MODE_32P is False and self.RSSFEED_32P is not None:
             mylar.KEYS_32P = self.parse_32pfeed(self.RSSFEED_32P)
 
