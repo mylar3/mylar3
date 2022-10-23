@@ -54,7 +54,7 @@
                      <legend>Global StoryArc Options</legend>
                          <div class="row checkbox left clearfix">
                          <%
-                             storyarcdest = os.path.join(mylar.CONFIG.DESTINATION_DIR, 'StoryArcs')
+                             storyarcdest = mylar.CONFIG.STORYARC_LOCATION
                          %>
                              <input type="checkbox" style="vertical-align: middle; margin: 3px; margin-top: -1px;" onclick="getOption(this)" name="storyarcdir" id="storyarcdir" value="1" ${checked(mylar.CONFIG.STORYARCDIR)} /><label>Arcs in StoryArc Directory </br><small>(${storyarcdest})</small></label>
                          </div>

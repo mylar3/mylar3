@@ -367,7 +367,10 @@ def rename_param(comicid, comicname, issue, ofilename, comicyear=None, issueid=N
                 if mylar.CONFIG.REPLACE_SPACES:
                     arcdir = arcdir.replace(' ', mylar.CONFIG.REPLACE_CHAR)
                 if mylar.CONFIG.STORYARCDIR:
-                    storyarcd = os.path.join(mylar.CONFIG.DESTINATION_DIR, "StoryArcs", arcdir)
+                    if mylar.CONFIG.STORYARC_LOCATION is None:
+                        storyarcd = os.path.join(mylar.CONFIG.DESTINATION_DIR, "StoryArcs", arcdir)
+                    else:
+                        storyarcd = os.path.join(mylar.CONFIG.STORYARC_LOCATION, arcdir)
                     logger.fdebug('Story Arc Directory set to : ' + storyarcd)
                 else:
                     logger.fdebug('Story Arc Directory set to : ' + mylar.CONFIG.GRABBAG_DIR)
@@ -2815,7 +2818,10 @@ def arcformat(arc, spanyears, publisher):
         arcpath = arcpath[2:]
 
     if mylar.CONFIG.STORYARCDIR is True:
-        dstloc = os.path.join(mylar.CONFIG.DESTINATION_DIR, 'StoryArcs', arcpath)
+        if mylar.CONFIG.STORYARC_LOCATION is None:
+            dstloc = os.path.join(mylar.CONFIG.DESTINATION_DIR, 'StoryArcs', arcpath)
+        else:
+            dstloc = os.path.join(mylar.CONFIG.STORYARC_LOCATION, arcpath)
     elif mylar.CONFIG.COPY2ARCDIR is True:
         logger.warn('Story arc directory is not configured. Defaulting to grabbag directory: ' + mylar.CONFIG.GRABBAG_DIR)
         dstloc = os.path.join(mylar.CONFIG.GRABBAG_DIR, arcpath)

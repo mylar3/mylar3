@@ -452,7 +452,10 @@ class FileHandlers(object):
                 if mylar.CONFIG.REPLACE_SPACES:
                     arcdir = arcdir.replace(' ', mylar.CONFIG.REPLACE_CHAR)
                 if mylar.CONFIG.STORYARCDIR:
-                    storyarcd = os.path.join(mylar.CONFIG.DESTINATION_DIR, "StoryArcs", arcdir)
+                    if mylar.CONFIG.STORYARC_LOCATION is None:
+                        storyarcd = os.path.join(mylar.CONFIG.DESTINATION_DIR, "StoryArcs", arcdir)
+                    else:
+                        storyarcd = os.path.join(mylar.CONFIG.STORYARC_LOCATION, arcdir)
                     logger.fdebug('Story Arc Directory set to : ' + storyarcd)
                 else:
                     logger.fdebug('Story Arc Directory set to : ' + mylar.CONFIG.GRABBAG_DIR)

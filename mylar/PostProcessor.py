@@ -2158,6 +2158,7 @@ class PostProcessor(object):
                             dspcyear = ml['SeriesYear']
                             annualtype = ml['AnnualType']
                             issuenumOG = ml['IssueNumber']
+                            logger.info('%s[STORY-ARC] Manual post-processing completed for %s issue belonging to %s' % (module, len(manual_arclist), ml['StoryArc']))
                     except Exception:
                         dspcname = None
                         dspcyear = None
@@ -2237,8 +2238,11 @@ class PostProcessor(object):
                                 logger.info('%s direct post-processing of issue completed for %s.' % (module, t_comicname))
                                 global_line = 'Successfully post-processed</br> %s' % (t_comicname)
                     else:
-                        logger.info('%s Manual post-processing completed for %s issues.' % (module, i))
-                        global_line = 'Manual post-processing completed for %s issues' % (i)
+                        if i == 0 and len(manual_arclist) >=1:
+                            global_line = 'Successfully post-processed</br> %s storyarc issues' % len(manual_arclist)
+                        else:
+                            logger.info('%s Manual post-processing completed for %s issues.' % (module, i))
+                            global_line = 'Manual post-processing completed for %s issues' % (i)
                         m_event = 'scheduler_message'
                         dspcname = None
                         dspcyear = None
