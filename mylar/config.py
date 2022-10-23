@@ -324,6 +324,7 @@ _CONFIG_DEFINITIONS = OrderedDict({
     'TAB_DIRECTORY': (str, 'Tablet', None),
 
     'STORYARCDIR': (bool, 'StoryArc', False),
+    'STORYARC_LOCATION': (str, 'StoryArc', None),
     'COPY2ARCDIR': (bool, 'StoryArc', False),
     'ARC_FOLDERFORMAT': (str, 'StoryArc', '$arc ($spanyears)'),
     'ARC_FILEOPS': (str, 'StoryArc', 'copy'),
@@ -1070,6 +1071,19 @@ class Config(object):
                 os.makedirs(self.BACKUP_LOCATION)
             except OSError:
                 logger.error('[Backup Location Check] Could not create backup directory. Check permissions for creation of : %s' % self.BACKUP_LOCATION)
+
+
+        if self.STORYARCDIR is True:
+            if not self.STORYARC_LOCATION:
+                self.STORYARC_LOCATION = os.path.join(self.DESTINATION_DIR, 'StoryArcs')
+
+            if not os.path.exists(self.STORYARC_LOCATION):
+                try:
+                    os.makedirs(self.STORYARC_LOCATION)
+                except OSError as e:
+                    logger.error('[STORYARC LOCATION] Could not create storyarcs directory @ %s. Error returned: %s' % (self.STORYARC_LOCATION, e))
+
+            logger.info('[STORYARC LOCATION] Storyarc Base directory location set to: %s' % (self.STORYARC_LOCATION))
 
         #make sure the cookies.dat file is not in cache
         for f in glob.glob(os.path.join(self.CACHE_DIR, '.32p_cookies.dat')):

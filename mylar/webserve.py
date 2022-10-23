@@ -994,8 +994,8 @@ class WebInterface(object):
             try:
                 searchresults = mb.findComic(name, smode, issue=issue)
                 searchline = {'findComic': True, 'name': name, 'mode': smode, 'issue': issue, 'searchtype': 'comic'}
-            except TypeError:
-                logger.error('Unable to perform required pull-list search for : [name: ' + name + '][issue: ' + issue + '][mode: ' + smode + ']')
+            except TypeError as e:
+                logger.error('[%s] Unable to perform required pull-list search for : [name: %s][issue: %s][mode:%s]' % (e, name, issue, smode))
                 return
         elif search_type == 'comic' and smode == 'series':
             if name.startswith('4050-'):
@@ -7004,7 +7004,10 @@ class WebInterface(object):
 
         #force the check/creation of directory com_location here
         if mylar.CONFIG.STORYARCDIR is True:
-            arcdir = os.path.join(mylar.CONFIG.DESTINATION_DIR, 'StoryArcs')
+            if mylar.CONFIG.STORYARC_LOCATION is not None:
+                arcdir = mylar.CONFIG.STORYARC_LOCATION
+            else:
+                arcdir = os.path.join(mylar.CONFIG.DESTINATION_DIR, 'StoryArcs')
             if os.path.isdir(arcdir):
                 logger.info('Validating Directory (%s). Already exists! Continuing...' % arcdir)
             else:
