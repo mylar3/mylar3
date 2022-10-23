@@ -763,13 +763,18 @@ def ComicSort(comicorder=None, sequence=None, imported=None):
             return comicorder
         elif sequence == 'update':
             mylar.COMICSORT['SortOrder'] = comicorderlist
-            #print ("i:" + str(i))
+            #logger.fdebug('i: %s' % i)
             if i == 0:
                 placemnt = 1
             else:
                 placemnt = int(i -1)
-            mylar.COMICSORT['LastOrderNo'] = placemnt
-            mylar.COMICSORT['LastOrderID'] = mylar.COMICSORT['SortOrder'][placemnt]['ComicID']
+            try:
+                mylar.COMICSORT['LastOrderNo'] = placemnt
+                mylar.COMICSORT['LastOrderID'] = mylar.COMICSORT['SortOrder'][placemnt]['ComicID']
+            except Exception:
+                comicorder['SortOrder'] = ({'ComicID': '99999', 'ComicOrder': 1})
+                mylar.COMICSORT['LastOrderNo'] = 1
+                mylar.COMICSORT['LastOrderID'] = 99999
             return
     else:
         # for new series adds, we already know the comicid, so we set the sortorder to an abnormally high #

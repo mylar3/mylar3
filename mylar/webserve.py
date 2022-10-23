@@ -540,26 +540,33 @@ class WebInterface(object):
             series['Previous'] = None
             series['Next'] = None
         i = 0
-        while (i < skipno):
-            cskip = mylar.COMICSORT['SortOrder'][i]
-            if cskip['ComicID'] == ComicID:
-                cursortnum = cskip['ComicOrder']
-                series['Current'] = cskip['ComicID']
-                if cursortnum == 0:
-                    # if first record, set the Previous record to the LAST record.
-                    previous = lastid
-                else:
-                    previous = mylar.COMICSORT['SortOrder'][i -1]['ComicID']
+        try:
+            cskip = mylar.COMICSORT['SortOrder'][0]
+        except Exception:
+            series['Current'] = None
+            series['Previous'] = None
+            series['Next'] = None
+        else:
+            while (i < skipno):
+                cskip = mylar.COMICSORT['SortOrder'][i]
+                if cskip['ComicID'] == ComicID:
+                    cursortnum = cskip['ComicOrder']
+                    series['Current'] = cskip['ComicID']
+                    if cursortnum == 0:
+                        # if first record, set the Previous record to the LAST record.
+                        previous = lastid
+                    else:
+                        previous = mylar.COMICSORT['SortOrder'][i -1]['ComicID']
 
-                # if last record, set the Next record to the FIRST record.
-                if cursortnum == lastno:
-                    next = mylar.COMICSORT['SortOrder'][0]['ComicID']
-                else:
-                    next = mylar.COMICSORT['SortOrder'][i +1]['ComicID']
-                series['Previous'] = previous
-                series['Next'] = next
-                break
-            i+=1
+                    # if last record, set the Next record to the FIRST record.
+                    if cursortnum == lastno:
+                        next = mylar.COMICSORT['SortOrder'][0]['ComicID']
+                    else:
+                        next = mylar.COMICSORT['SortOrder'][i +1]['ComicID']
+                    series['Previous'] = previous
+                    series['Next'] = next
+                    break
+                i+=1
 
         if mylar.CONFIG.DEFAULT_DATES == 'store_date':
             default_dates = 'Show Store Date'
@@ -898,8 +905,8 @@ class WebInterface(object):
         if not db_results:
             try:
                 results = mb.findComic(query, None, issue=None)
-            except Exception:
-                logger.error('Unable to perform required search for : [name: ' + query + ']')
+            except Exception as e:
+                logger.error('[%s] Unable to perform required search for : [name: %s]' % (e, query))
                 return json.dumps({
                     'iTotalDisplayRecords': 0,
                     'iTotalRecords': 0,
@@ -1001,22 +1008,22 @@ class WebInterface(object):
             try:
                 searchresults = mb.findComic(name, smode, issue=None)
                 searchline = {'findComic': True, 'name': name, 'mode': smode, 'issue': None, 'searchtype': 'comic'}
-            except TypeError:
-                logger.error('Unable to perform required search for : [name: ' + name + '][mode: ' + smode + ']')
+            except TypeError as e:
+                logger.error('[%s] Unable to perform required search for : [name: %s][mode:%s]' % (e, name, smode))
                 return
         elif search_type == 'comic' and smode == 'want':
             try:
                 searchresults = mb.findComic(name, smode, issue)
                 searchline = {'findComic': True, 'name': name, 'mode': smode, 'issue': issue, 'search_type': 'want'}
-            except TypeError:
-                logger.error('Unable to perform required one-off pull-list search for : [name: ' + name + '][issue: ' + issue + '][mode: ' + smode + ']')
+            except TypeError as e:
+                logger.error('[%s] Unable to perform required one-off pull-list search for : [name: %s][issue: %s][mode: %s]' % (e, name, issue, mode))
                 return
         elif search_type == 'story_arc':
             try:
                 searchresults = mb.findComic(name, mode=None, issue=None, search_type='story_arc')
                 searchline = {'findComic': True, 'name': name, 'mode': None, 'issue': issue, 'search_type': 'story_arc'}
-            except TypeError:
-                logger.error('Unable to perform required story-arc search for : [arc: ' + name + '][mode: ' + smode + ']')
+            except TypeError as e:
+                logger.error('[%s] Unable to perform required story-arc search for : [arc: %s][mode: %s]' % (e, name, smode))
                 return
 
         try:
