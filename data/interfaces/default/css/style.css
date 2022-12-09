@@ -1788,8 +1788,7 @@ DIV.progress-container
 	/*width: 100px;*/
 	height: 18px;
 	/*margin: 2px 5px 2px 0;*/
-	float: left;
-        border:1px solid #ccc;
+        -border:1px solid #ccc;
 	background-color: #F7F7F7;
 	background-image: -moz-linear-gradient(top, whiteSmoke, #F9F9F9);
 	background-image: -webkit-gradient(linear, 0 0, 0 100%, from(whiteSmoke), to(#F9F9F9));
@@ -1900,7 +1899,7 @@ DIV.series-progress-container > DIV
 .progressbar-back-text
 {
 	font-size: 12px;
-	vertical-align: middle;
+	vertical-align: text-bottom;
 	background-color: transparent;
 	position: absolute;
 	text-align: center;
@@ -1911,7 +1910,7 @@ DIV.series-progress-container > DIV
 .progressbar-front-text
 {
 	font-size: 12px;
-	vertical-align: text-top;
+	vertical-align: text-bottom;
 	background-color: transparent;
         display: block;
 	width: 100%;

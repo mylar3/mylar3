@@ -109,24 +109,31 @@ table.display thead th {
 	background-color: white;
 	font-weight: bold;
 	font-size: 14px;
+        border-bottom: 1px solid #white;
+        border-bottom-width: 3px;
+        text-align: center;
 }
 
 table.display tfoot th {
 	padding: 3px 18px 3px 10px;
-	border-top: 1px solid black;
+	border-top: 1px solid white;
 	font-weight: bold;
 }
 
 table.display tr.heading2 td {
 	border-bottom: 1px solid #aaa;
+        text-align: center;
+        vertical-align:middle;
 }
 
 table.display td {
+        border-bottom: 1px solid #white;
+        border-right: 1px solid #white;
+        vertical-align: middle;
 	padding: 4px 5px;
 	font-size: 12px;
 	text-align: center;
 }
-table
 table.display td.center {
 	text-align: center;
 }

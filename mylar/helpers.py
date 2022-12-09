@@ -367,7 +367,10 @@ def rename_param(comicid, comicname, issue, ofilename, comicyear=None, issueid=N
                 if mylar.CONFIG.REPLACE_SPACES:
                     arcdir = arcdir.replace(' ', mylar.CONFIG.REPLACE_CHAR)
                 if mylar.CONFIG.STORYARCDIR:
-                    storyarcd = os.path.join(mylar.CONFIG.DESTINATION_DIR, "StoryArcs", arcdir)
+                    if mylar.CONFIG.STORYARC_LOCATION is None:
+                        storyarcd = os.path.join(mylar.CONFIG.DESTINATION_DIR, "StoryArcs", arcdir)
+                    else:
+                        storyarcd = os.path.join(mylar.CONFIG.STORYARC_LOCATION, arcdir)
                     logger.fdebug('Story Arc Directory set to : ' + storyarcd)
                 else:
                     logger.fdebug('Story Arc Directory set to : ' + mylar.CONFIG.GRABBAG_DIR)
@@ -423,8 +426,11 @@ def rename_param(comicid, comicname, issue, ofilename, comicyear=None, issueid=N
 #                       issue_except = '.NOW'
 
                     issue_except = iss_space + issexcept
-                    logger.fdebug('issue_except denoted as : ' + issue_except)
-                    issuenum = re.sub("[^0-9]", "", issuenum)
+                    logger.fdebug('issue_except denoted as : %s' % issue_except)
+                    if issuenum.lower() != issue_except.lower():
+                        issuenum = re.sub("[^0-9]", "", issuenum)
+                        if any([issuenum == '', issuenum is None]):
+                            issuenum = issue_except
                     break
 
 #            if 'au' in issuenum.lower() and issuenum[:1].isdigit():
@@ -763,13 +769,18 @@ def ComicSort(comicorder=None, sequence=None, imported=None):
             return comicorder
         elif sequence == 'update':
             mylar.COMICSORT['SortOrder'] = comicorderlist
-            #print ("i:" + str(i))
+            #logger.fdebug('i: %s' % i)
             if i == 0:
                 placemnt = 1
             else:
                 placemnt = int(i -1)
-            mylar.COMICSORT['LastOrderNo'] = placemnt
-            mylar.COMICSORT['LastOrderID'] = mylar.COMICSORT['SortOrder'][placemnt]['ComicID']
+            try:
+                mylar.COMICSORT['LastOrderNo'] = placemnt
+                mylar.COMICSORT['LastOrderID'] = mylar.COMICSORT['SortOrder'][placemnt]['ComicID']
+            except Exception:
+                comicorder['SortOrder'] = ({'ComicID': '99999', 'ComicOrder': 1})
+                mylar.COMICSORT['LastOrderNo'] = 1
+                mylar.COMICSORT['LastOrderID'] = 99999
             return
     else:
         # for new series adds, we already know the comicid, so we set the sortorder to an abnormally high #
@@ -1094,6 +1105,10 @@ def issuedigits(issnum):
                 except ValueError:
                     #logger.fdebug('This has no issue # for me to get - Either a Graphic Novel or one-shot.')
                     int_issnum = 999999999999999
+            elif all([ '[' in issnum, ']' in issnum ]):
+                issnum_tmp = issnum.find('[')
+                int_issnum = int(issnum[:issnum_tmp].strip()) * 1000
+                legacy_num = issnum[issnum_tmp+1:issnum.find(']')]
             else:
                 try:
                     x = float(issnum)
@@ -2806,7 +2821,10 @@ def arcformat(arc, spanyears, publisher):
         arcpath = arcpath[2:]
 
     if mylar.CONFIG.STORYARCDIR is True:
-        dstloc = os.path.join(mylar.CONFIG.DESTINATION_DIR, 'StoryArcs', arcpath)
+        if mylar.CONFIG.STORYARC_LOCATION is None:
+            dstloc = os.path.join(mylar.CONFIG.DESTINATION_DIR, 'StoryArcs', arcpath)
+        else:
+            dstloc = os.path.join(mylar.CONFIG.STORYARC_LOCATION, arcpath)
     elif mylar.CONFIG.COPY2ARCDIR is True:
         logger.warn('Story arc directory is not configured. Defaulting to grabbag directory: ' + mylar.CONFIG.GRABBAG_DIR)
         dstloc = os.path.join(mylar.CONFIG.GRABBAG_DIR, arcpath)
@@ -3202,8 +3220,15 @@ def ddl_downloader(queue):
             myDB.upsert('ddl_info', val, ctrlval)
 
             if item['site'] == 'DDL(GetComics)':
+                try:
+                    remote_filesize = item['remote_filesize']
+                except Exception:
+                    try:
+                        remote_filesize = helpers.human2bytes(re.sub('/s', '', item['size'][:-1]).strip())
+                    except Exception:
+                        remote_filesize = 0
                 ddz = getcomics.GC()
-                ddzstat = ddz.downloadit(item['id'], item['link'], item['mainlink'], item['resume'], item['issueid'])
+                ddzstat = ddz.downloadit(item['id'], item['link'], item['mainlink'], item['resume'], item['issueid'], remote_filesize)
 
             if ddzstat['success'] is True:
                 tdnow = datetime.datetime.now()
@@ -4474,7 +4499,7 @@ def statusChange(status_from, status_to, comicid=None, bulk=False, api=True):
 
     return rtnline
 
-def file_ops(path,dst,arc=False,one_off=False):
+def file_ops(path,dst,arc=False,one_off=False,multiple=False):
 #    # path = source path + filename
 #    # dst = destination path + filename
 #    # arc = to denote if the file_operation is being performed as part of a story arc or not where the series exists on the watchlist already
@@ -4487,7 +4512,10 @@ def file_ops(path,dst,arc=False,one_off=False):
     softlink_type = 'absolute'
 
     if any([one_off, arc]):
-        action_op = mylar.CONFIG.ARC_FILEOPS
+        if multiple is True:
+            action_op = 'copy'
+        else:
+            action_op = mylar.CONFIG.ARC_FILEOPS
         if mylar.CONFIG.ARC_FILEOPS_SOFTLINK_RELATIVE is True:
             softlink_type = 'relative'
     else:
@@ -4530,7 +4558,7 @@ def file_ops(path,dst,arc=False,one_off=False):
                         logger.warn('[' + str(e) + '] Hardlinking failure. Could not create hardlink - dropping down to copy mode so that this operation can complete. Intervention is required if you wish to continue using hardlinks.')
                         try:
                             shutil.copy( path, dst )
-                            logger.fdebug('Successfully copied file to : ' + dst) 
+                            logger.fdebug('Successfully copied file to : ' + dst)
                             return True
                         except Exception as e:
                             logger.error('[COPY] error : %s' % e)

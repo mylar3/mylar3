@@ -187,6 +187,9 @@ def getVersion(ptv):
         if os.path.exists('/.dockerenv') or os.path.isfile(d_path) and any('docker' in line for line in open(d_path)):
             logger.info('[DOCKER-AWARE] Docker installation detected.')
             mylar.INSTALL_TYPE = 'docker'
+            if any([mylar.CONFIG.DESTINATION_DIR is None, mylar.CONFIG.DESTINATION_DIR == '']):
+                logger.info('[DOCKER-AWARE] Setting default comic location path to /comics')
+                mylar.CONFIG.DESTINATION_DIR = '/comics'
         else:
             logger.info('Not a Docker installation.')
             mylar.INSTALL_TYPE = 'source'

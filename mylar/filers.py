@@ -167,6 +167,12 @@ class FileHandlers(object):
         ccf = chunk_folder_format.find('\ ')
         if ccf != -1:
             chunk_folder_format = chunk_folder_format[:ccf+1] + chunk_folder_format[ccf+2:]
+        ccf = chunk_folder_format.find(' /')
+        if ccf != -1:
+            chunk_folder_format = chunk_folder_format[:ccf] + chunk_folder_format[ccf+1:]
+        ccf = chunk_folder_format.find(' \\')
+        if ccf != -1:
+            chunk_folder_format = chunk_folder_format[:ccf] + chunk_folder_format[ccf+1:]
 
         chunk_folder_format = re.sub(r'\s+', ' ', chunk_folder_format)
 
@@ -446,7 +452,10 @@ class FileHandlers(object):
                 if mylar.CONFIG.REPLACE_SPACES:
                     arcdir = arcdir.replace(' ', mylar.CONFIG.REPLACE_CHAR)
                 if mylar.CONFIG.STORYARCDIR:
-                    storyarcd = os.path.join(mylar.CONFIG.DESTINATION_DIR, "StoryArcs", arcdir)
+                    if mylar.CONFIG.STORYARC_LOCATION is None:
+                        storyarcd = os.path.join(mylar.CONFIG.DESTINATION_DIR, "StoryArcs", arcdir)
+                    else:
+                        storyarcd = os.path.join(mylar.CONFIG.STORYARC_LOCATION, arcdir)
                     logger.fdebug('Story Arc Directory set to : ' + storyarcd)
                 else:
                     logger.fdebug('Story Arc Directory set to : ' + mylar.CONFIG.GRABBAG_DIR)
@@ -501,8 +510,11 @@ class FileHandlers(object):
 #                       issue_except = '.NOW'
 
                     issue_except = iss_space + issexcept
-                    logger.fdebug('issue_except denoted as : ' + issue_except)
-                    issuenum = re.sub("[^0-9]", "", issuenum)
+                    logger.fdebug('issue_except denoted as : %s' % issue_except)
+                    if issuenum.lower() != issue_except.lower():
+                        issuenum = re.sub("[^0-9]", "", issuenum)
+                        if any([issuenum == '', issuenum is None]):
+                            issuenum = issue_except
                     break
 
 #            if 'au' in issuenum.lower() and issuenum[:1].isdigit():

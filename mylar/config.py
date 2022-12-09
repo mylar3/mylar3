@@ -220,7 +220,7 @@ _CONFIG_DEFINITIONS = OrderedDict({
     'SLACK_ENABLED': (bool, 'SLACK', False),
     'SLACK_WEBHOOK_URL': (str, 'SLACK', None),
     'SLACK_ONSNATCH': (bool, 'SLACK', False),
-    
+
     'MATTERMOST_ENABLED': (bool, 'MATTERMOST', False),
     'MATTERMOST_WEBHOOK_URL': (str, 'MATTERMOST', None),
     'MATTERMOST_ONSNATCH': (bool, 'MATTERMOST', False),
@@ -324,6 +324,7 @@ _CONFIG_DEFINITIONS = OrderedDict({
     'TAB_DIRECTORY': (str, 'Tablet', None),
 
     'STORYARCDIR': (bool, 'StoryArc', False),
+    'STORYARC_LOCATION': (str, 'StoryArc', None),
     'COPY2ARCDIR': (bool, 'StoryArc', False),
     'ARC_FOLDERFORMAT': (str, 'StoryArc', '$arc ($spanyears)'),
     'ARC_FILEOPS': (str, 'StoryArc', 'copy'),
@@ -1071,6 +1072,19 @@ class Config(object):
             except OSError:
                 logger.error('[Backup Location Check] Could not create backup directory. Check permissions for creation of : %s' % self.BACKUP_LOCATION)
 
+
+        if self.STORYARCDIR is True:
+            if not self.STORYARC_LOCATION:
+                self.STORYARC_LOCATION = os.path.join(self.DESTINATION_DIR, 'StoryArcs')
+
+            if not os.path.exists(self.STORYARC_LOCATION):
+                try:
+                    os.makedirs(self.STORYARC_LOCATION)
+                except OSError as e:
+                    logger.error('[STORYARC LOCATION] Could not create storyarcs directory @ %s. Error returned: %s' % (self.STORYARC_LOCATION, e))
+
+            logger.info('[STORYARC LOCATION] Storyarc Base directory location set to: %s' % (self.STORYARC_LOCATION))
+
         #make sure the cookies.dat file is not in cache
         for f in glob.glob(os.path.join(self.CACHE_DIR, '.32p_cookies.dat')):
              try:
@@ -1099,6 +1113,18 @@ class Config(object):
                 logger.fdebug('[Cache Cleanup] Cache Cleanup finished. Cleaned %s items' % cntr)
             else:
                 logger.fdebug('[Cache Cleanup] Cache Cleanup finished. Nothing to clean!')
+
+        d_path = '/proc/self/cgroup'
+        if os.path.exists('/.dockerenv') or os.path.isfile(d_path) and any('docker' in line for line in open(d_path)):
+            logger.info('[DOCKER-AWARE] Docker installation detected.')
+            mylar.INSTALL_TYPE = 'docker'
+            if any([self.DESTINATION_DIR is None, self.DESTINATION_DIR == '']):
+                logger.info('[DOCKER-AWARE] Setting default comic location path to /comics')
+                self.DESTINATION_DIR = '/comics'
+            if all([self.NZB_DOWNLOADER == 0, self.SAB_DIRECTORY is None, self.SAB_TO_MYLAR is False]):
+                logger.info('[DOCKER-AWARE] Setting default sabnzbd download directory location to /downloads')
+                self.SAB_TO_MYLAR = True
+                self.SAB_DIRECTORY = '/downloads'
 
         if all([self.GRABBAG_DIR is None, self.DESTINATION_DIR is not None]):
             self.GRABBAG_DIR = os.path.join(self.DESTINATION_DIR, 'Grabbag')
@@ -1305,6 +1331,11 @@ class Config(object):
                 self.SEARCH_TIER_CUTOFF = 14
                 config.set('General', 'search_tier_cutoff', str(self.SEARCH_TIER_CUTOFF))
         logger.info('[Search Tier Cutoff] Setting Tier-1 cutoff point to %s days' % self.SEARCH_TIER_CUTOFF)
+
+        if all([self.GOTIFY_ENABLED, self.GOTIFY_SERVER_URL is not None]):
+            if not self.GOTIFY_SERVER_URL.endswith('/'):
+                self.GOTIFY_SERVER_URL += '/'
+                config.set('GOTIFY', 'gotify_server_url', self.GOTIFY_SERVER_URL)
 
         if self.MODE_32P is False and self.RSSFEED_32P is not None:
             mylar.KEYS_32P = self.parse_32pfeed(self.RSSFEED_32P)

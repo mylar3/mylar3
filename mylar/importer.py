@@ -1030,6 +1030,7 @@ def issue_collection(issuedata, nostatus, serieslast_updated=None):
                             "ReleaseDate":        issue['ReleaseDate'],
                             "DigitalDate":        issue['DigitalDate'],
                             "Int_IssueNumber":    issue['Int_IssueNumber'],
+                            "AltIssueNumber":     issue['AltIssueNumber'],
                             "ImageURL":           issue['ImageURL'],
                             "ImageURL_ALT":       issue['ImageURL_ALT']
                             #"Status":             "Skipped"  #set this to Skipped by default to avoid NULL entries.
@@ -1254,6 +1255,7 @@ def updateissuedata(comicid, comicname=None, issued=None, comicIssues=None, call
     latestissueid = None
     firstiss = "10000000"
     firstdate = "2099-00-00"
+    legacy_num = None
     #print ("total issues:" + str(iscnt))
     logger.info('Now adding/updating issues for ' + comicname)
 
@@ -1337,12 +1339,16 @@ def updateissuedata(comicid, comicname=None, issued=None, comicIssues=None, call
                         logger.fdebug('Trailing decimal located within issue number. Irrelevant to numbering. Obliterating.')
                         issaftdec = issaftdec[:-1]
                     try:
-#                        int_issnum = str(issnum)
+                        #int_issnum = str(issnum)
                         int_issnum = (int(issb4dec) * 1000) + (int(issaftdec) * 10)
                     except ValueError:
                         logger.error('This has no issue # for me to get - Either a Graphic Novel or one-shot.')
                         updater.no_searchresults(comicid)
                         return {'status': 'failure'}
+                elif all([ '[' in issnum, ']' in issnum ]):
+                    issnum_tmp = issnum.find('[')
+                    int_issnum = int(issnum[:issnum_tmp].strip()) * 1000
+                    legacy_num = issnum[issnum_tmp+1:issnum.find(']')]
                 else:
                     try:
                         x = float(issnum)
@@ -1479,6 +1485,7 @@ def updateissuedata(comicid, comicname=None, issued=None, comicIssues=None, call
                               "ReleaseDate":        storedate,
                               "DigitalDate":        digitaldate,
                               "Int_IssueNumber":    int_issnum,
+                              "AltIssueNumber":     legacy_num,
                               "ImageURL":           firstval['Image'],
                               "ImageURL_ALT":       firstval['ImageALT']})
 

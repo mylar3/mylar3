@@ -22,11 +22,19 @@
 	</div>
 </%def>
 
+<script>
+    $('#banner').load(
+        function (height) {
+            var myImg = document.getElementById("banner");
+            var bannerh = "${bannerheight}";
+            myImg.style.height = bannerh + "px";
+    });
+</script>
 <%def name="body()">
         <input type="hidden" id="page_name" value="storyarc_detail" />
          <h1 class="clearfix"><a href="storyarc_main"><img src="${icons['ReadingList-icon']}" height="26" width="26" align="left" alt="Story Arc Management"/></a></h1>
          %if storyarcbanner is not None:
-             <img src="${storyarcbanner}" onload="resizeimage('${bannerheight}')" width="960" height="${bannerheight}" id="banner" style="text-decoration: none; position: relative; top: 40px;"/>
+             <img src="${storyarcbanner}" width="960" height="${bannerheight}" id="banner" style="text-decoration: none; position: relative; top: 40px;"/>
          %else:
              </br>
          %endif
@@ -43,11 +51,11 @@
                 <form action="arcOptions" id="chkoptions" method="GET">
                                  <%
                                          if arcdetail['percent'] == 101:
-                                                 css = '<div class=\"progress-container warning\">'
+                                                 css = '<div class=\"series-progress-container warning\">'
                                          if arcdetail['percent'] == 100:
-                                                 css = '<div class=\"progress-container complete\">'
+                                                 css = '<div class=\"series-progress-container complete\">'
                                          if arcdetail['percent'] < 100:
-                                                 css = '<div class=\"progress-container missing\">'
+                                                 css = '<div class=\"series-progress-container missing\">'
 
                                   %>
                      <fieldset>
@@ -83,13 +91,13 @@
                      </div>
                      <div style="display:block;float:right;position:relative;text-color:black;top:-130px;">
                          <h1><p style="display:inline;float:right;">${storyarcname}</h1>
-                         <div style="display:inline;float:right;"><span title="${arcdetail['percent']}"></span>${css}<div style="width:${arcdetail['percent']}%"><span class="progressbar-front-text">${arcdetail['Have']}/${arcdetail['Total']}</span></div></div></div>
+                         <div style="display:inline;position:relative;float:right;top:7px;"><span title="${arcdetail['percent']}"></span>${css}<div style="width:${arcdetail['percent']}%"><span class="progressbar-front-text">${arcdetail['Have']}/${arcdetail['Total']}</span></div></div></div>
                      </div>
                          <%
                              if storyarcbanner is None:
                                  optpos = '<div style=\"display:block;float:right;position:absolute;right:20px;top:120px;\">'
                              else:
-                                 optpos = '<div style=\"display:block;float:right;position:absolute;right:20px;top:100px;\">'
+                                 optpos = '</br><div style=\"display:block;float:right;position:absolute;right:20px;top:120px;\">'
                          %>
                      ${optpos}
                          <form action="downloadBanner" method="GET">
@@ -259,14 +267,10 @@
                 }
             });
         });
-        </script>
-        <script type="text/javascript">
         $("#menu_link_scan").click(function() {
             $('#chkoptions').submit();
             return true;
         });
-        </script>
-        <script type="text/javascript">
         function zoomin(){
             var myImg = document.getElementById("banner");
             var currHeight = myImg.clientHeight;
@@ -284,10 +288,6 @@
             } else{
                 myImg.style.height = (currHeight - 50) + "px";
             }
-        }
-        function resizeimage(height) {
-            var myImg = document.getElementById("banner");
-            myImg.style.height = height + "px";
         }
         function getHeight(comicid, action) {
             var myImg = document.getElementById("banner");
@@ -310,8 +310,6 @@
                },
             });
         }            
-        </script>
-	<script>
 	function initThisPage() {
                 $(function() {
                         $( "#tabs" ).tabs();
@@ -334,7 +332,6 @@
                         })
 		        resetFilters("item");
 	}
-
 	$(document).ready(function() {
 		initThisPage();
 		initActions();
