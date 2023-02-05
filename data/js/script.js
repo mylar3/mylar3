@@ -194,6 +194,7 @@ function doAjaxCall(url,elem,reload,form) {
 	// Ajax Call
 	$.ajax({
 	  url: url,
+	  method: POST,
 	  data: dataString,
 	  beforeSend: function(jqXHR, settings) {
 	  	// Start loader etc.
