@@ -5163,7 +5163,11 @@ class WebInterface(object):
                         for tmpfc in valids: #filelist:
                             haveissue = "no"
                             issuedupe = "no"
-                            temploc = tmpfc['issue_number'].replace('_', ' ')
+                            temploc = tmpfc['issue_number']
+                            if temploc:
+                                temploc = temploc.replace('_', ' ')
+                            else:
+                                logger.debug('could not parse issue number: %r', tmpfc)
                             fcdigit = helpers.issuedigits(arc['IssueNumber'])
                             int_iss = helpers.issuedigits(temploc)
                             if int_iss == fcdigit:
