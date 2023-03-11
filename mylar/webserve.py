@@ -5885,6 +5885,8 @@ class WebInterface(object):
     deleteimport.exposed = True
 
     def preSearchit(self, ComicName, comiclist=None, mimp=0, volume=None, displaycomic=None, comicid=None, dynamicname=None, displayline=None):
+        logger.fdebug(f'[IMPORT] ComicName: {ComicName} mimp: {mimp} volume: {volume} displaycomic: {displaycomic} ')
+        logger.fdebug(f'[IMPORT] comicid: {comicid} dynamicname: {dynamicname} displayline: {displayline} ')
         if mylar.IMPORTLOCK:
             logger.info('[IMPORT] There is an import already running. Please wait for it to finish, and then you can resubmit this import.')
             return
@@ -6021,7 +6023,8 @@ class WebInterface(object):
                         #logger.fdebug('result: %s' % result)
                         comicstoIMP.append(result['ComicLocation']) #.decode(mylar.SYS_ENCODING, 'replace'))
                         getiss = result['IssueNumber']
-                        #logger.fdebug('getiss: %s' % getiss)
+                        if getiss is None:
+                            continue
                         if 'annual' in getiss.lower():
                             tmpiss = re.sub('[^0-9]','', getiss).strip()
                             if any([tmpiss.startswith('19'), tmpiss.startswith('20')]) and len(tmpiss) == 4:

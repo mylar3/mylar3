@@ -16,11 +16,11 @@
 
 
 
-import os
 import glob
+import os
+import random
 import re
 import shutil
-import random
 import traceback
 
 import mylar
@@ -249,9 +249,9 @@ def libraryScan(dir=None, append=False, ComicID=None, ComicName=None, cron=None,
         if os.path.dirname(comlocation) in cv_location and os.path.dirname(comlocation) != cvscanned_loc:
 
         #if comfilename == 'cvinfo':
-            logger.info('comfilename: ' + comfilename)
-            logger.info('cvscanned_loc: ' + str(cv_location))
-            logger.info('comlocation: ' + os.path.dirname(comlocation))
+            logger.fdebug('comfilename: ' + comfilename)
+            logger.fdebug('cvscanned_loc: ' + str(cv_location))
+            logger.fdebug('comlocation: ' + os.path.dirname(comlocation))
             #if cvscanned_loc != comlocation:
             try:
                 with open(os.path.join(os.path.dirname(comlocation), 'cvinfo')) as f:
@@ -303,7 +303,6 @@ def libraryScan(dir=None, append=False, ComicID=None, ComicName=None, cron=None,
                             logger.fdebug('[IMPORT-CBZ] No series name found within metadata. This is bunk - dropping down to file parsing for usable information.')
                             issueinfo = None
                             issue_number = None
-
                         if issueinfo is not None:
                             try:
                                 issueyear = issueinfo['metadata']['year']
@@ -364,12 +363,19 @@ def libraryScan(dir=None, append=False, ComicID=None, ComicName=None, cron=None,
                                 issuenotes = issueinfo['metadata']['notes']
                                 logger.fdebug('[IMPORT-CBZ] Notes: ' + issuenotes)
                                 if issuenotes is not None and issuenotes != 'None':
-                                    if 'Issue ID' in issuenotes:
-                                        st_find = issuenotes.find('Issue ID')
-                                        tmp_issuenotes_id = re.sub("[^0-9]", " ", issuenotes[st_find:]).strip()
-                                        if tmp_issuenotes_id.isdigit():
-                                            issuenotes_id = tmp_issuenotes_id
-                                            logger.fdebug('[IMPORT-CBZ] Successfully retrieved CV IssueID for ' + comicname + ' #' + issue_number + ' [' + str(issuenotes_id) + ']')
+                                    logger.fdebug('[IMPORT-CBZ] issuenotes is not NONE')
+                                    regex = f'.*\[Issue ID (\d+)].*'
+
+                                    if len(re.findall(regex, issuenotes)) > 0:
+                                        logger.info('[IMPORT-CBZ] found regex in notes')
+                                        try:
+                                            issuenotes_id = int(re.findall(regex, issuenotes)[0])
+                                        except Exception as ex:
+                                            logger.info(f'[IMPORT-CBZ] failed to regex out issuenotes_id crash: {ex}')
+                                        try:
+                                            logger.info('[IMPORT-CBZ] Successfully retrieved CV IssueID for ' + comicname + ' #' + issue_number + ' [' + str(issuenotes_id) + ']')
+                                        except Exception as ex:
+                                            logger.info(f'[IMPORT-CBZ] crash while logging: {ex}')
                                     elif 'CVDB' in issuenotes:
                                         st_find = issuenotes.find('CVDB')
                                         tmp_issuenotes_id = re.sub("[^0-9]", " ", issuenotes[st_find:]).strip()
@@ -378,14 +384,15 @@ def libraryScan(dir=None, append=False, ComicID=None, ComicName=None, cron=None,
                                             logger.fdebug('[IMPORT-CBZ] Successfully retrieved CV IssueID for ' + comicname + ' #' + issue_number + ' [' + str(issuenotes_id) + ']')
                                     else:
                                         logger.fdebug('[IMPORT-CBZ] Unable to retrieve IssueID from meta-tagging. If there is other metadata present I will use that.')
-
                                 logger.fdebug('[IMPORT-CBZ] Adding ' + comicname + ' to the import-queue!')
                                 #impid = comicname + '-' + str(issueyear) + '-' + str(issue_number) #com_NAME + "-" + str(result_comyear) + "-" + str(comiss)
                                 impid = str(random.randint(1000000,99999999))
                                 logger.fdebug('[IMPORT-CBZ] impid: ' + str(impid))
                                 #make sure we only add in those issueid's which don't already have a comicid attached via the cvinfo scan above (this is for reverse-lookup of issueids)
                                 issuepopulated = False
+                                logger.fdebug(f'[IMPORT-CBZ] cvinfo_CID: {cvinfo_CID}')
                                 if cvinfo_CID is None:
+                                    logger.fdebug(f'[IMPORT-CBZ] issuenotes_id: {issuenotes_id}')
                                     if issuenotes_id is None:
                                         logger.info('[IMPORT-CBZ] No ComicID detected where it should be. Bypassing this metadata entry and going the parsing route [' + comfilename + ']')
                                     else:
@@ -401,6 +408,7 @@ def libraryScan(dir=None, append=False, ComicID=None, ComicName=None, cron=None,
                                                                             'comfilename': comfilename,
                                                                             'comlocation': comlocation}
                                                            })
+                                        logger.fdebug(f'[IMPORT-CBZ] issueid_list: {issueid_list}')
                                         mylar.IMPORT_CID_COUNT +=1
                                         issuepopulated = True
 
@@ -502,20 +510,23 @@ def libraryScan(dir=None, append=False, ComicID=None, ComicName=None, cron=None,
                 "comfilename": comfilename,
                 "comlocation": comlocation #helpers.conversion(comlocation)
                                       })
-        cnt+=1
+        cnt =+ 1
     #logger.fdebug('import_by_ids: ' + str(import_by_comicids))
 
     #reverse lookup all of the gathered IssueID's in order to get the related ComicID
+    logger.fdebug(f'issueid_list: {issueid_list}')
     reverse_issueids = []
     for x in issueid_list:
         reverse_issueids.append(x['issueid'])
-
+    logger.fdebug(f'reverse_issueids: {reverse_issueids}')
     vals = []
     if len(reverse_issueids) > 0:
         mylar.IMPORT_STATUS = 'Now Reverse looking up ' + str(len(reverse_issueids)) + ' IssueIDs to get the ComicIDs'
+        logger.fdebug('Now Reverse looking up ' + str(len(reverse_issueids)) + ' IssueIDs to get the ComicIDs')
         vals = mylar.cv.getComic(None, 'import', comicidlist=reverse_issueids)
-        #logger.fdebug('vals returned:' + str(vals))
+        logger.fdebug(f'vals returned: {vals}')
 
+    logger.fdebug(f'watch_kchoice: {watch_kchoice}')
     if len(watch_kchoice) > 0:
         watchchoice['watchlist'] = watch_kchoice
         #logger.fdebug("watchchoice: " + str(watchchoice))
@@ -593,6 +604,10 @@ def libraryScan(dir=None, append=False, ComicID=None, ComicName=None, cron=None,
         if not len(import_by_comicids):
             return "Completed"
 
+    logger.fdebug(f'import_by_comicids: {import_by_comicids}')
+    logger.fdebug(f'vals: {vals}')
+    cvimport_comicids = None
+    import_cv_ids = 0
     if len(import_by_comicids) > 0 or len(vals) > 0:
         #import_comicids['comic_info'] = import_by_comicids
         #if vals:
@@ -605,17 +620,17 @@ def libraryScan(dir=None, append=False, ComicID=None, ComicName=None, cron=None,
         else:
              cvimport_comicids = None
              import_cv_ids = 0
-    else:
-        import_cv_ids = 0
-        cvimport_comicids = None
-                    
-    return {'import_by_comicids':  import_by_comicids, 
-            'import_count':        len(import_by_comicids),
-            'CV_import_comicids':  cvimport_comicids,
-            'import_cv_ids':       import_cv_ids,
-            'issueid_list':        issueid_list,
-            'failure_list':        failure_list,
-            'utter_failure_list':  utter_failure_list}
+
+    logger.fdebug(f'cvimport_comicids: {cvimport_comicids}')
+    logger.fdebug(f'import_cv_ids: {import_cv_ids}')
+    logger.fdebug(f'issueid_list: {issueid_list}')
+    return {'import_by_comicids': import_by_comicids,
+            'import_count': len(import_by_comicids),
+            'CV_import_comicids': cvimport_comicids,
+            'import_cv_ids': import_cv_ids,
+            'issueid_list': issueid_list,
+            'failure_list': failure_list,
+            'utter_failure_list': utter_failure_list}
 
 
 def scanLibrary(scan=None, queue=None):
@@ -654,8 +669,11 @@ def scanLibrary(scan=None, queue=None):
             #first we do the CV ones.
             if int(soma['import_cv_ids']) > 0:
                 for i in soma['CV_import_comicids']:
+                    logger.fdebug(f'[IMPORT-BREAKDOWN] i: {i}')
+                    logger.fdebug(f'[IMPORT-BREAKDOWN] soma["CV_import_comicids"]: {soma["CV_import_comicids"]}')
+                    logger.fdebug(f'[IMPORT-BREAKDOWN] soma["issueid_list"]: {soma["issueid_list"]}')
                     #we need to find the impid in the issueid_list as that holds the impid + other info
-                    abc = [x for x in soma['issueid_list'] if x['issueid'] == i['IssueID']]
+                    abc = [x for x in soma['issueid_list'] if int(x['issueid']) == int(i['IssueID'])]
                     ghi = abc[0]['importinfo']
 
                     nspace_dynamicname = re.sub('[\|\s]', '', ghi['dynamicname'].lower()).strip()                   

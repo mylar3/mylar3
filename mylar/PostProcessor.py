@@ -758,7 +758,17 @@ class PostProcessor(object):
 
                         #check for Paused status /
                         #check for Ended status and 100% completion of issues.
-                        if any([wv['Status'] == 'Paused', bool(wv['ForceContinuing']) is True]) or (wv['Have'] == wv['Total'] and not any(['Present' in wv['ComicPublished'], helpers.now()[:4] in wv['ComicPublished']])):
+
+                        try:
+                            is_completed = wv['Have'] == wv['Total']
+                            is_published = any(['Present' in wv['ComicPublished'], helpers.now()[:4] in wv['ComicPublished']])
+                            is_paused = wv['Status'] == 'Paused'
+                            is_force_continuing = bool(wv['ForceContinuing'])
+                        except Exception as ex:
+                            logger.warn(f'Something went horribly wrong checking data crash: {ex}')
+                            continue
+
+                        if (is_paused or is_force_continuing) or (is_completed and not is_published):
                             dbcheck = myDB.selectone('SELECT Status FROM issues WHERE ComicID=? and Int_IssueNumber=?', [wv['ComicID'], tmp_iss]).fetchone()
                             if not dbcheck and mylar.CONFIG.ANNUALS_ON:
                                 dbcheck = myDB.selectone('SELECT Status FROM annuals WHERE ComicID=? and Int_IssueNumber=?', [wv['ComicID'], tmp_iss]).fetchone()
