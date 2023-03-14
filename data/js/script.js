@@ -138,7 +138,7 @@ function showMsg(msg,loader,timeout,ms) {
 	}
 }
 
-function doAjaxCall(url,elem,reload,form) {
+function doAjaxCall(url,elem,reload,form,method) {
 	// Set Message
 	feedback = $("#ajaxMsg");
 	update = $("#updatebar");
@@ -154,7 +154,13 @@ function doAjaxCall(url,elem,reload,form) {
 	var formID = "#"+url;
 	if ( form == true ) {
 		var dataString = $(formID).serialize();
+                if ( !method ) {
+                    method = 'get';
+                }
+                // jquery > 1.9.0 has 'type' set as an alias for 'method' for backwards compatibility.
+                //alert('method used:'+method);
 	}
+
 	// Loader Image
 	var loader = $("<img src='images/loader_black.gif' alt='loading' class='loader'/>");
 	// Data Success Message
@@ -194,6 +200,7 @@ function doAjaxCall(url,elem,reload,form) {
 	// Ajax Call
 	$.ajax({
 	  url: url,
+          type: method,
 	  data: dataString,
 	  beforeSend: function(jqXHR, settings) {
 	  	// Start loader etc.

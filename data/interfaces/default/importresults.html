@@ -65,9 +65,9 @@
           </div>
      <div class="table_wrapper">
 
-        <form action="markImports" method="get" id="markImports">
+        <form action="markImports" method="post" id="markImports">
         <div id="markcomic">
-                <select name="action" onChange="doAjaxCall('markImports',$(this),'table',true);" data-success="Now running background Import" data-error="You didn't select any comics">
+                <select name="action" onChange="doAjaxCall('markImports',$(this),'table',true,'post');" data-success="Now running background Import" data-error="You didn't select any comics">
                         <option disabled="disabled" selected="selected">Choose...</option>
                         <option value="importselected">Start Import</option>
                         <option value="removeimport">Remove</option>
