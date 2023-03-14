@@ -17,9 +17,9 @@
 	<div id="manageheader" class="title">
 		<h1 class="clearfix">Manage comics</h1>
 	</div>
-	<form action="markComics" method="get" id="markComics">
+	<form action="markComics" method="post" id="markComics">
         <div id="markcomics" style="top:0;">
-		<select name="action" onChange="doAjaxCall('markComics',$(this),'table',true);" data-error="You didn't select any comics">
+		<select name="action" onChange="doAjaxCall('markComics',$(this),'table',true,'post');" data-error="You didn't select any comics">
   			<option disabled="disabled" selected="selected">Choose...</option>
   			<option value="delete">Delete Series</option>
                         <option value="metatag">MetaTag Series</option>

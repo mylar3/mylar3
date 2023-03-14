@@ -22,9 +22,9 @@
 		<h1 class="clearfix"><img src="images/icon_history.png" alt="History"/>History</h1>
 	</div>
 
-        <form action="markissues" method="get" id="markissues">
+        <form action="markissues" method="post" id="markissues">
             <div id="markissue">Mark selected issues as
-                <select name="action" onChange="doAjaxCall('markissues',$(this),'table',true);" data-success="selected issues marked">
+                <select name="action" onChange="doAjaxCall('markissues',$(this),'table',true,'post');" data-success="selected issues marked">
                         <option disabled="disabled" selected="selected">Choose...</option>
                         <option value="Retry">Retry</option>
                         <option value="Clear">Clear</option>
