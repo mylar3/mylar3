@@ -275,8 +275,8 @@ def libraryScan(dir=None, append=False, ComicID=None, ComicName=None, cron=None,
         #    continue
 
         if mylar.CONFIG.IMP_METADATA:
-            #if read tags is enabled during import, check here.
-            if i['ComicLocation'].endswith('.cbz'):
+            # if read tags is enabled during import, check here.
+            if i['ComicLocation'].endswith('.cbz') or i['ComicLocation'].endswith('.cbr'):
                 logger.fdebug('[IMPORT-CBZ] Metatagging checking enabled.')
                 logger.info('[IMPORT-CBZ} Attempting to read tags present in filename: ' + i['ComicLocation'])
                 try:

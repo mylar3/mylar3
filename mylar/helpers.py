@@ -38,6 +38,8 @@ from urllib.parse import urljoin
 from io import StringIO
 from apscheduler.triggers.interval import IntervalTrigger
 
+from lib.rarfile import rarfile
+
 import mylar
 from . import logger
 from mylar import db, sabnzbd, nzbget, process, getcomics, getimage
@@ -1606,21 +1608,40 @@ def IssueDetails(filelocation, IssueID=None, justinfo=False, comicname=None):
             metadata_type = 'comicinfo.xml'
     else:
         IssueImage = "None"
-        try:
-            with zipfile.ZipFile(filelocation, 'r') as inzipfile:
-                for infile in sorted(inzipfile.namelist()):
-                    if infile == 'ComicInfo.xml':
+        if filelocation.endswith('.cbz'):
+            try:
+                with zipfile.ZipFile(filelocation, 'r') as inzipfile:
+                    for infile in sorted(inzipfile.namelist()):
+                        if infile == 'ComicInfo.xml':
+                            logger.fdebug('Found ComicInfo.xml - now retrieving information.')
+                            data = inzipfile.read(infile)
+                            issuetag = 'xml'
+                            break
+            except:
+                metadata_info = {'metadata_source': None,
+                                 'metadata_type': None}
+                logger.info(
+                    'ERROR. Unable to properly retrieve the cover for displaying. It\'s probably best to re-tag this file.')
+                return {'IssueImage': IssueImage, 'datamode': 'file', 'metadata': None,
+                        'metadata_source': metadata_info}
+        else:
+            try:
+                rf = rarfile.RarFile(filelocation)
+                for f in rf.infolist():
+                    if f.filename == 'ComicInfo.xml':
+                        print(rf.read(f))
                         logger.fdebug('Found ComicInfo.xml - now retrieving information.')
-                        data = inzipfile.read(infile)
+                        data = rf.read(f)
                         issuetag = 'xml'
-                        metadata_type = 'comicinfo.xml'
                         break
-        except:
-            metadata_info = {'metadata_source': None,
-                             'metadata_type': None}
-            logger.info('ERROR. Unable to properly retrieve the cover for displaying. It\'s probably best to re-tag this file.')
-            return {'IssueImage': IssueImage, 'datamode': 'file', 'metadata': None, 'metadata_source': metadata_info}
-
+                rf.close()
+            except:
+                metadata_info = {'metadata_source': None,
+                                 'metadata_type': None}
+                logger.info(
+                    'ERROR. Unable to properly retrieve the cover for displaying. It\'s probably best to re-tag this file.')
+                return {'IssueImage': IssueImage, 'datamode': 'file', 'metadata': None,
+                        'metadata_source': metadata_info}
 
     if issuetag is None:
         data = None
