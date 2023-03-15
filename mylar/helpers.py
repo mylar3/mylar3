@@ -1629,7 +1629,6 @@ def IssueDetails(filelocation, IssueID=None, justinfo=False, comicname=None):
                 rf = rarfile.RarFile(filelocation)
                 for f in rf.infolist():
                     if f.filename == 'ComicInfo.xml':
-                        print(rf.read(f))
                         logger.fdebug('Found ComicInfo.xml - now retrieving information.')
                         data = rf.read(f)
                         issuetag = 'xml'
