@@ -208,6 +208,13 @@ SSE_KEY = None
 SESSION_ID = None
 UPDATE_VALUE = {}
 REQS = {}
+IMPRINT_MAPPING = {
+    #ComicVine: imprint.json
+    'Homage': 'Homage Comics',
+    'Mailbu': 'Malibu Comics',
+    'Milestone': 'Milestone Comics',
+    'Skybound': 'Skybound Entertainment',
+    'Top Cow': 'Top Cow Productions'}
 SCHED = BackgroundScheduler({
                              'apscheduler.executors.default': {
                                  'class':  'apscheduler.executors.pool:ThreadPoolExecutor',
