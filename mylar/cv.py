@@ -1579,10 +1579,23 @@ def get_imprint_volume_and_booktype(series, comicyear, publisher, firstissueid, 
                                                 found = True
                                                 break
                                     elif all([f != 'imprints', f != 'publication_run']) and h is not None and found is not True:
-                                        if h.lower() == comic['ComicPublisher'].lower():
-                                            logger.info('imprint matched: %s ---> %s' % (d, h))
-                                            comicPublisher = d
-                                            publisherImprint = h
+                                        imprint_match = False
+                                        for x, y in mylar.IMPRINT_MAPPING.items():
+                                            if all([
+                                                y.lower() == h.lower(),
+                                                x.lower() == comic['ComicPublisher'].lower()
+                                            ]):
+                                                imprint_match = True
+                                                break
+
+                                        if h.lower() == comic['ComicPublisher'].lower() or imprint_match is True:
+                                            if mylar.CONFIG.IMPRINT_MAPPING_TYPE == 'CV':
+                                                comicPublisher = d
+                                                publisherImprint = comic['ComicPublisher']
+                                            else:
+                                                comicPublisher = d
+                                                publisherImprint = h
+                                            logger.fdebug('imprint matching: [PRIORITY:%s] %s ---> %s' % (mylar.CONFIG.IMPRINT_MAPPING_TYPE, comicPublisher, publisherImprint))
                                             chkyear = True
                                             found = True
 
