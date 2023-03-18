@@ -6026,7 +6026,11 @@ class WebInterface(object):
                         comicstoIMP.append(result['ComicLocation']) #.decode(mylar.SYS_ENCODING, 'replace'))
                         getiss = result['IssueNumber']
                         #logger.fdebug('getiss: %s' % getiss)
-                        if 'annual' in getiss.lower():
+                        # Fix if filename is something like:  Batman - Superman Annual 001 (2021).cbr
+                        # Where getiss would result in being None
+                        annual_in_getiss = True if getiss and 'annual' in getiss.lower() else \
+                            (False, logger.fdebug(f'[IMPORT] Failed to search getiss for "annual" as it: {getiss}'))[0]
+                        if annual_in_getiss:
                             tmpiss = re.sub('[^0-9]','', getiss).strip()
                             if any([tmpiss.startswith('19'), tmpiss.startswith('20')]) and len(tmpiss) == 4:
                                 logger.fdebug('[IMPORT] annual detected with no issue [%s]. Skipping this entry for determining series length.' % getiss)
