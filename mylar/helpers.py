@@ -320,14 +320,22 @@ def rename_param(comicid, comicname, issue, ofilename, comicyear=None, issueid=N
                     if all([chkissue is None, annualize is None, not mylar.CONFIG.ANNUALS_ON]):
                         chkissue = myDB.selectone("SELECT * from annuals WHERE ComicID=? AND Issue_Number=? AND NOT Deleted", [comicid, issue]).fetchone()
 
-                if chkissue is None:
-                    #rechk chkissue against int value of issue #
-                    if arc:
-                        chkissue = myDB.selectone("SELECT * from storyarcs WHERE ComicID=? AND Int_IssueNumber=?", [comicid, issuedigits(issue)]).fetchone()
-                    else:
-                        chkissue = myDB.selectone("SELECT * from issues WHERE ComicID=? AND Int_IssueNumber=?", [comicid, issuedigits(issue)]).fetchone()
-                        if all([chkissue is None, annualize == 'yes', mylar.CONFIG.ANNUALS_ON]):
-                            chkissue = myDB.selectone("SELECT * from annuals WHERE ComicID=? AND Int_IssueNumber=? AND NOT Deleted", [comicid, issuedigits(issue)]).fetchone()
+        if chkissue is None:
+            # rechk chkissue against int value of issue #
+            logger.info("============================")
+            logger.info(f"comicid: {comicid}")
+            logger.info(f"issue: {issue}")
+            logger.info("============================")
+            if arc:
+                chkissue = myDB.selectone("SELECT * from storyarcs WHERE ComicID=? AND Int_IssueNumber=?",
+                                          [comicid, issuedigits(issue)]).fetchone()
+            else:
+                chkissue = myDB.selectone("SELECT * from issues WHERE ComicID=? AND Int_IssueNumber=?",
+                                          [comicid, issuedigits(issue)]).fetchone()
+                if all([chkissue is None, annualize == 'yes', mylar.CONFIG.ANNUALS_ON]):
+                    chkissue = myDB.selectone(
+                        "SELECT * from annuals WHERE ComicID=? AND Int_IssueNumber=? AND NOT Deleted",
+                        [comicid, issuedigits(issue)]).fetchone()
 
                     if chkissue is None:
                         logger.error('Invalid Issue_Number - please validate.')
