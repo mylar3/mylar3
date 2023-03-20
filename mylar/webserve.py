@@ -6125,6 +6125,7 @@ class WebInterface(object):
                     else:
                         totalissues = int(results['issues']) / 12
 
+                    result_year = result_year.replace('-', '')
                     totalyear_range = int(result_year) + totalissues    #2000 + (101 / 12) 2000 +8.4 = 2008
                     logger.fdebug('[IMPORT] [%s] Comparing: %s - TO - %s' % (totalyear_range, re.sub('[\|\s]', '', DynamicName.lower()).strip(), re.sub('[\|\s]', '', result_name.lower()).strip()))
                     if any([str(totalyear_range) in results['seriesrange'], result_year in results['seriesrange']]):
@@ -6165,7 +6166,7 @@ class WebInterface(object):
                                 totalissues = (int(results['issues']) / 12) + 1
                             else:
                                 totalissues = int(results['issues']) / 12
-
+                            result_year = result_year.replace('-', '')
                             totalyear_range = int(result_year) + totalissues    #2000 + (101 / 12) 2000 +8.4 = 2008
                             logger.fdebug('[IMPORT][%s] Comparing: %s - TO - %s' % (totalyear_range, re.sub('[\|\s]', '', DynamicName.lower()).strip(), re.sub('[\|\s]', '', result_name.lower()).strip()))
                             if any([str(totalyear_range) in results['seriesrange'], result_year in results['seriesrange']]):
