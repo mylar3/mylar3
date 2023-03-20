@@ -28,26 +28,54 @@ def movefiles(comicid, comlocation, imported):
                 return
 
         for impr in impres:
+            rename_file = True
             srcimp = impr['comiclocation']
             orig_filename = impr['comicfilename']
             #before moving check to see if Rename to Mylar structure is enabled.
             if mylar.CONFIG.IMP_RENAME and mylar.CONFIG.FILE_FORMAT != '':
                 logger.fdebug("Renaming files according to configuration details : " + str(mylar.CONFIG.FILE_FORMAT))
-                renameit = helpers.rename_param(comicid, imported['ComicName'], impr['issuenumber'], orig_filename)
-                nfilename = renameit['nfilename']
-                dstimp = os.path.join(comlocation, nfilename)
+                logger.fdebug(f"impr: {impr}")
+                logger.fdebug(f"comicid: {comicid}")
+                logger.fdebug(f"imported['ComicName']: {imported['ComicName']}")
+                logger.fdebug(f"impr['issuenumber']: {impr['issuenumber']}")
+                logger.fdebug(f"orig_filename: {orig_filename}")
+                if impr['issuenumber'] is None:
+                    logger.fdebug(f"Issue number is not known, trying to use the ComicID to see if single issue.")
+                    try:
+                        db_query = myDB.selectone('SELECT Total FROM comics WHERE ComicID=?', [comicid]).fetchone()
+                        if db_query[0] == 1:
+                            impr['issuenumber'] = 1
+                        else:
+                            logger.fdebug(f"Issue number is not known, Cannot rename.")
+                            rename_file = False
+                    except:
+                        logger.fdebug(f"Issue number is not known, and could not be learned from the ComicID via the DB.")
+                        rename_file = False
+                if rename_file:
+                    logger.info("===============================================")
+                    logger.info(f"comicid: {comicid}")
+                    logger.info(f"imported['ComicName']: {imported['ComicName']}")
+                    logger.info(f"impr['issuenumber']: {impr['issuenumber']}")
+                    logger.info(f"orig_filename: {orig_filename}")
+                    renameit = helpers.rename_param(comicid, imported['ComicName'], impr['issuenumber'], orig_filename)
+                    logger.fdebug(f"renameit contains: {renameit}")
+                    if renameit:
+                        nfilename = renameit['nfilename']
+                        dstimp = os.path.join(comlocation, nfilename)
+                    else:
+                        rename_file = False
             else:
                 logger.fdebug("Renaming files not enabled, keeping original filename(s)")
                 dstimp = os.path.join(comlocation, orig_filename)
-
-            logger.info("moving " + srcimp + " ... to " + dstimp)
-            try:
-                shutil.move(srcimp, dstimp)
-                files_moved.append({'srid':       imported['srid'],
-                                    'filename':   impr['comicfilename'],
-                                    'import_id':  impr['import_id']})
-            except (OSError, IOError):
-                logger.error("Failed to move files - check directories and manually re-run.")
+            if rename_file:
+                try:
+                    logger.info("moving " + srcimp + " ... to " + dstimp)
+                    shutil.move(srcimp, dstimp)
+                    files_moved.append({'srid':       imported['srid'],
+                                        'filename':   impr['comicfilename'],
+                                        'import_id':  impr['import_id']})
+                except (OSError, IOError):
+                    logger.error("Failed to move files - check directories and manually re-run.")
 
         logger.fdebug("all files moved.")
         #now that it's moved / renamed ... we remove it from importResults or mark as completed.
