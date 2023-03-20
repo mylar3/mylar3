@@ -282,15 +282,15 @@ def decimal_issue(iss):
     return deciss, dec_except
 
 def rename_param(comicid, comicname, issue, ofilename, comicyear=None, issueid=None, annualize=None, arc=False):
-            #import db
-            myDB = db.DBConnection()
-            comicid = str(comicid)   # it's coming in unicoded...
+        #import db
+        myDB = db.DBConnection()
+        comicid = str(comicid)   # it's coming in unicoded...
 
-            logger.fdebug(type(comicid))
-            logger.fdebug(type(issueid))
-            logger.fdebug('comicid: %s' % comicid)
-            logger.fdebug('issue# as per cv: %s' % issue)
-            # the issue here is a non-decimalized version, we need to see if it's got a decimal and if not, add '.00'
+        logger.fdebug(type(comicid))
+        logger.fdebug(type(issueid))
+        logger.fdebug('comicid: %s' % comicid)
+        logger.fdebug('issue# as per cv: %s' % issue)
+        # the issue here is a non-decimalized version, we need to see if it's got a decimal and if not, add '.00'
 #            iss_find = issue.find('.')
 #            if iss_find < 0:
 #                # no decimal in issue number
@@ -310,15 +310,15 @@ def rename_param(comicid, comicname, issue, ofilename, comicyear=None, issueid=N
 #            print ("converted issue#: " + str(issue))
 #            logger.fdebug('issueid:' + str(issueid))
 
-            if issueid is None:
-                logger.fdebug('annualize is ' + str(annualize))
-                if arc:
-                    #this has to be adjusted to be able to include story arc issues that span multiple arcs
-                    chkissue = myDB.selectone("SELECT * from storyarcs WHERE ComicID=? AND Issue_Number=?", [comicid, issue]).fetchone()
-                else:
-                    chkissue = myDB.selectone("SELECT * from issues WHERE ComicID=? AND Issue_Number=?", [comicid, issue]).fetchone()
-                    if all([chkissue is None, annualize is None, not mylar.CONFIG.ANNUALS_ON]):
-                        chkissue = myDB.selectone("SELECT * from annuals WHERE ComicID=? AND Issue_Number=? AND NOT Deleted", [comicid, issue]).fetchone()
+        if issueid is None:
+            logger.fdebug('annualize is ' + str(annualize))
+            if arc:
+                #this has to be adjusted to be able to include story arc issues that span multiple arcs
+                chkissue = myDB.selectone("SELECT * from storyarcs WHERE ComicID=? AND Issue_Number=?", [comicid, issue]).fetchone()
+            else:
+                chkissue = myDB.selectone("SELECT * from issues WHERE ComicID=? AND Issue_Number=?", [comicid, issue]).fetchone()
+                if all([chkissue is None, annualize is None, not mylar.CONFIG.ANNUALS_ON]):
+                    chkissue = myDB.selectone("SELECT * from annuals WHERE ComicID=? AND Issue_Number=? AND NOT Deleted", [comicid, issue]).fetchone()
 
         if chkissue is None:
             # rechk chkissue against int value of issue #
@@ -649,7 +649,7 @@ def rename_param(comicid, comicname, issue, ofilename, comicyear=None, issueid=N
             filebad = [':', ',', '/', '?', '!', '\'', '\"', '\*'] #in u_comicname or '/' in u_comicname or ',' in u_comicname or '?' in u_comicname:
             for dbd in filebad:
                 if dbd in seriesfilename:
-                    if any([dbd == '/', dbd == '*']): 
+                    if any([dbd == '/', dbd == '*']):
                         repthechar = '-'
                     else:
                         repthechar = ''
@@ -1371,7 +1371,7 @@ def upgrade_dynamic():
         for ds in dynamic_storylist:
             CtrlVal = {"IssueArcID": ds['IssueArcID']}
             newVal = {"DynamicComicName": ds['DynamicComicName']}
-            myDB.upsert("storyarcs", newVal, CtrlVal)   
+            myDB.upsert("storyarcs", newVal, CtrlVal)
 
     logger.info('Finished updating ' + str(len(dynamic_comiclist)) + ' / ' + str(len(dynamic_storylist)) + ' entries within the db.')
     mylar.CONFIG.DYNAMIC_UPDATE = 4
@@ -2244,7 +2244,7 @@ def duplicate_filecheck(filename, ComicID=None, IssueID=None, StoryArcID=None, r
     series = myDB.selectone("SELECT * FROM comics WHERE ComicID=?", [dupchk['ComicID']]).fetchone()
 
     #if it's a retry and the file was already snatched, the status is Snatched and won't hit the dupecheck.
-    #rtnval will be one of 3: 
+    #rtnval will be one of 3:
     #'write' - write new file
     #'dupe_file' - do not write new file as existing file is better quality
     #'dupe_src' - write new file, as existing file is a lesser quality (dupe)
@@ -2535,7 +2535,7 @@ def crc(filename):
     except UnicodeEncodeError:
        filename = "invalid"
        filename = filename.encode(mylar.SYS_ENCODING)
-    
+
     return hashlib.md5(filename).hexdigest()
 
 def issue_find_ids(ComicName, ComicID, pack, IssueNumber):
@@ -2568,7 +2568,7 @@ def issue_find_ids(ComicName, ComicID, pack, IssueNumber):
         #remove the annuals wording
         tmp_annuals = pack[pack.find('Annual'):]
         tmp_ann = re.sub('[annual/annuals/+]', '', tmp_annuals.lower()).strip()
-        tmp_pack = re.sub('[annual/annuals/+]', '', pack.lower()).strip() 
+        tmp_pack = re.sub('[annual/annuals/+]', '', pack.lower()).strip()
         pack_issues_numbers = re.findall(r'\d+', tmp_pack)
         pack_issues = list(range(int(pack_issues_numbers[0]),int(pack_issues_numbers[1])+1))
         annualize = True
@@ -2924,7 +2924,7 @@ def torrentinfo(issueid=None, torrent_hash=None, download=False, monitor=False):
             torrent_folder = torrent_info['folder']
 
         if all([torrent_status is True, download is True]):
-            if not issueid: 
+            if not issueid:
                 torrent_info['snatch_status'] = 'MONITOR STARTING'
                 #yield torrent_info
 
