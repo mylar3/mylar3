@@ -6074,8 +6074,11 @@ class WebInterface(object):
                                 #logger.info('maxyear:' + str(maxyear))
                                 #logger.info('yeartop:' + str(yearTOP))
                                 for i in range(int(maxyear), int(yearTOP),1):
-                                    if not any(int(x) == int(i) for x in yearRANGE):
-                                        yearRANGE.append(str(i))
+                                    try:
+                                        if not any(int(x) == int(i) for x in yearRANGE):
+                                            yearRANGE.append(str(i))
+                                    except:
+                                        continue
                         else:
                             yearRANGE = None
                     else:
