@@ -18,7 +18,7 @@
 		<h1 class="clearfix">Manage Issues</h1>
 	</div>
 
-        <form action="manageIssues" method="get">
+        <form action="manageIssues" method="post">
         <div>
             <label>Manage Issues with Status&nbsp&nbsp</label><select name="status">
                         %for curStatus in ['Wanted', 'Downloaded', 'Snatched', 'Skipped', 'Archived', 'Ignored', 'Failed']:
@@ -35,9 +35,9 @@
         </div>
         </form>
         </br></br>
-	<form action="markissues" method="get" id="markissues">
+	<form action="markissues" method="post" id="markissues">
         <div id="markissues" style="top:0;">
-		<select name="action" onChange="doAjaxCall('markissues',$(this),'table',true);" data-error="You didn't select any issues">
+		<select name="action" onChange="doAjaxCall('markissues',$(this),'table',true,'post');" data-error="You didn't select any issues">
   			<option disabled="disabled" selected="selected">Choose...</option>
   			<option value="Wanted">Wanted</option>
   			<option value="Archived">Archived</option>

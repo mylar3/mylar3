@@ -363,18 +363,12 @@ def libraryScan(dir=None, append=False, ComicID=None, ComicName=None, cron=None,
                                 # if used by ComicTagger, Notes field will have the IssueID.
                                 issuenotes = issueinfo['metadata']['notes']
                                 logger.fdebug('[IMPORT-CBZ] Notes: ' + issuenotes)
+                                # Attempt to parse the first set of consecutive numbers after either CVDB or Issue ID
                                 if issuenotes is not None and issuenotes != 'None':
-                                    if 'Issue ID' in issuenotes:
-                                        st_find = issuenotes.find('Issue ID')
-                                        tmp_issuenotes_id = re.sub("[^0-9]", " ", issuenotes[st_find:]).strip()
-                                        if tmp_issuenotes_id.isdigit():
-                                            issuenotes_id = tmp_issuenotes_id
-                                            logger.fdebug('[IMPORT-CBZ] Successfully retrieved CV IssueID for ' + comicname + ' #' + issue_number + ' [' + str(issuenotes_id) + ']')
-                                    elif 'CVDB' in issuenotes:
-                                        st_find = issuenotes.find('CVDB')
-                                        tmp_issuenotes_id = re.sub("[^0-9]", " ", issuenotes[st_find:]).strip()
-                                        if tmp_issuenotes_id.isdigit():
-                                            issuenotes_id = tmp_issuenotes_id
+                                    issue_id = re.search("(CVDB|Issue ID)[^0-9]*([0-9]*)", issuenotes)
+                                    if issue_id:
+                                        if issue_id.groups()[1].isdigit():
+                                            issuenotes_id = issue_id.groups()[1]
                                             logger.fdebug('[IMPORT-CBZ] Successfully retrieved CV IssueID for ' + comicname + ' #' + issue_number + ' [' + str(issuenotes_id) + ']')
                                     else:
                                         logger.fdebug('[IMPORT-CBZ] Unable to retrieve IssueID from meta-tagging. If there is other metadata present I will use that.')
