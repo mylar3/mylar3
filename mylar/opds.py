@@ -919,7 +919,7 @@ class OPDS(object):
                             metainfo = issuedetails.get('metadata', None)
                     if not metainfo:
                         metainfo = [{'writer': None,'summary': ''}]
-                    fileloc = os.path.join(comic['ComicLocation'],issue['Location'])
+                    fileloc = issue['fileloc']
                     cb, _ = open_archive(fileloc)
                     if cb is None:
                         self.data = self._error_with_message('Can\'t open archive')
