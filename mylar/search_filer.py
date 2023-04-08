@@ -729,10 +729,19 @@ class search_check(object):
                                    booktype == 'HC',
                                    booktype == 'GN',
                                ]
-                            ) and (
-                                int(F_ComicVersion) == int(findcomiciss)
-                                and filecomic['justthedigits'] is None
-                        ):
+                            ) and any([
+                               all(
+                               [
+                                   int(F_ComicVersion) == int(findcomiciss)
+                                   and filecomic['justthedigits'] is None
+                               ]
+                            ), all(
+                               [
+                                   int(F_ComicVersion) == int(findcomiciss)
+                                   and ComicYear == parsed_comic['issue_year']
+                               ]
+                            )
+                        ]):
                             logger.fdebug(
                                 '%s detected - reassigning volume %s to match as the'
                                 ' issue number based on Volume'
