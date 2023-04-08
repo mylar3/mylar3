@@ -6090,7 +6090,8 @@ class WebInterface(object):
 
                 mode='series'
                 displaycomic = helpers.filesafe(ComicName)
-                displaycomic = re.sub('[\-]','', displaycomic).strip()
+                if 'one-shot' not in displaycomic.lower():
+                    displaycomic = re.sub('[\-]','', displaycomic).strip()
                 displaycomic = re.sub('\s+', ' ', displaycomic).strip()
                 logger.fdebug('[IMPORT] displaycomic : %s' % displaycomic)
                 logger.fdebug('[IMPORT] comicname : %s' % ComicName)
