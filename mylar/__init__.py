@@ -210,7 +210,8 @@ UPDATE_VALUE = {}
 REQS = {}
 IMPRINT_MAPPING = {
     #ComicVine: imprint.json
-    'Homage': 'Homage Comics',
+    'Homage Comics': 'Homage',
+    'Max Comics': 'MAX',
     'Mailbu': 'Malibu Comics',
     'Milestone': 'Milestone Comics',
     'Skybound': 'Skybound Entertainment',
