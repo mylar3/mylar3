@@ -6868,7 +6868,10 @@ class WebInterface(object):
             newValues['AgeRating'] = age_rating
 
         if all([publisher_imprint is not None, publisher_imprint != 'None', publisher_imprint != '']):
-            newValues['PublisherImprint'] = publisher_imprint
+            if re.sub(r'\s', '', publisher_imprint) == '':
+                newValues['PublisherImprint'] = 'None'
+            else:
+                newValues['PublisherImprint'] = publisher_imprint
         else:
             newValues['PublisherImprint'] = 'None'
 
@@ -6915,10 +6918,13 @@ class WebInterface(object):
 
         newValues['TorrentID_32P'] = torrentid_32p
 
-        if alt_filename is None or alt_filename == 'None':
-            newValues['AlternateFileName'] = "None"
+        if alt_filename is not None:
+            if re.sub(r'\s', '', alt_filename) == '':
+                newValues['AlternateFileName'] = "None"
+            else:
+                newValues['AlternateFileName'] = str(alt_filename)
         else:
-            newValues['AlternateFileName'] = str(alt_filename)
+            newValues['AlternateFileName'] = "None"
 
         #force the check/creation of directory com_location here
         updatedir = True
