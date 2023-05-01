@@ -44,7 +44,7 @@ class GC(object):
                 # (ie. http://192.168.2.2:8191/v1 )
                 main_url = mylar.CONFIG.FLARESOLVERR_URL
             else:
-                main_url = 'https://getcomics.info'
+                main_url = mylar.GC_URL
         else:
             flare_test = True
 
@@ -56,7 +56,7 @@ class GC(object):
                 #get the coookies here for use down-below
                 get_cookies = self.session.post(
                               main_url,
-                              json={'url': 'https://getcomics.info', 'cmd': 'request.get'},
+                              json={'url': mylar.GC_URL, 'cmd': 'request.get'},
                               verify=False,
                               headers=self.flare_headers,
                               timeout=30,
@@ -131,14 +131,14 @@ class GC(object):
         self.headers = {
             'Accept-encoding': 'gzip',
             'User-Agent': 'Mozilla/5.0 (Windows NT 6.1; WOW64; rv:40.0) Gecko/20100101 Firefox/40.1',
-            'Referer': 'https://getcomics.info/',
+            'Referer': mylar.GC_URL,
         }
 
         self.session = requests.Session()
 
         self.session_path = session_path if session_path is not None else os.path.join(mylar.CONFIG.SECURE_DIR, ".gc_cookies.dat")
 
-        self.url = 'https://getcomics.info'
+        self.url = mylar.GC_URL
 
         self.query = query  #{'comicname', 'issue', year'}
 
@@ -155,7 +155,7 @@ class GC(object):
         self.headers = {
             'Accept-encoding': 'gzip',
             'User-Agent': 'Mozilla/5.0 (Windows NT 6.1; WOW64; rv:40.0) Gecko/20100101 Firefox/40.1',
-            'Referer': 'https://getcomics.info/',
+            'Referer': mylar.GC_URL,
         }
 
         self.provider_stat = provider_stat
@@ -244,7 +244,7 @@ class GC(object):
                         verify=True,
                         headers=self.headers,
                         stream=True,
-                        timeout=30,
+                        timeout=(30,10)
                     )
 
                     write_time = time.time()
@@ -363,7 +363,7 @@ class GC(object):
             link,
             verify=True,
             stream=True,
-            timeout=30,
+            timeout=(30,10)
         )
 
         with open(title + '.html', 'wb') as f:
@@ -793,7 +793,7 @@ class GC(object):
                     verify=True,
                     headers=self.headers,
                     stream=True,
-                    timeout=30,
+                    timeout=(30,10)
                 )
 
                 filename = os.path.basename(
@@ -805,7 +805,8 @@ class GC(object):
                 if filename is not None:
                     file, ext = os.path.splitext(filename)
                     filename = '%s[__%s__]%s' % (file, issueid, ext)
-                logger.info('filename: %s' % filename)
+
+                logger.fdebug('filename: %s' % filename)
 
                 if remote_filesize == 0:
                     try:
@@ -821,7 +822,7 @@ class GC(object):
                                 verify=True,
                                 headers=self.headers,
                                 stream=True,
-                                timeout=30,
+                                timeout=(30,10)
                             )
                             filename = os.path.basename(
                                 urllib.parse.unquote(t.url)
@@ -917,6 +918,11 @@ class GC(object):
                             if chunk:
                                 f.write(chunk)
                                 f.flush()
+
+        except requests.exceptions.Timeout as e:
+            logger.error('[ERROR] download has timed out due to inactivity...' % e)
+            mylar.DDL_LOCK = False
+            return {"success": False, "filename": filename, "path": None}
 
         except Exception as e:
             logger.error('[ERROR] %s' % e)
