@@ -1660,7 +1660,9 @@ def annual_check(ComicName, SeriesYear, comicid, issuetype, issuechk, annualslis
             for manchk in annload:
                 if manchk['ReleaseComicID'] is not None or manchk['ReleaseComicID'] is not None:  #if it exists, then it's a pre-existing add
                     #print str(manchk['ReleaseComicID']), comic['ComicName'], str(SeriesYear), str(comicid)
-                    annualslist += manualAnnual(manchk['ReleaseComicID'], ComicName, SeriesYear, comicid, manualupd=True, deleted=manchk['Deleted'])
+                    tmp_the_annuals = manualAnnual(manchk['ReleaseComicID'], ComicName, SeriesYear, comicid, manualupd=True, deleted=manchk['Deleted'])
+                    if tmp_the_annuals:
+                        annualslist += tmp_the_annuals
                 annualids.append(manchk['ReleaseComicID'])
 
         annualcomicname = re.sub('[\,\:]', '', ComicName)
