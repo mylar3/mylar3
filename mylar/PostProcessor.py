@@ -758,6 +758,9 @@ class PostProcessor(object):
 
                         #check for Paused status /
                         #check for Ended status and 100% completion of issues.
+                        if wv['ComicPublished'] is None:
+                            logger.fdebug('Publication Run cannot be generated - probably due to an incomplete Refresh. Manually refresh the following series and try again: %s (%s)' % (wv['ComicName'], wv['ComicYear']))
+                            continue
                         if any([wv['Status'] == 'Paused', bool(wv['ForceContinuing']) is True]) or (wv['Have'] == wv['Total'] and not any(['Present' in wv['ComicPublished'], helpers.now()[:4] in wv['ComicPublished']])):
                             dbcheck = myDB.selectone('SELECT Status FROM issues WHERE ComicID=? and Int_IssueNumber=?', [wv['ComicID'], tmp_iss]).fetchone()
                             if not dbcheck and mylar.CONFIG.ANNUALS_ON:
@@ -836,13 +839,17 @@ class PostProcessor(object):
                             ld_check = myDB.selectone('SELECT ReleaseDate, Issue_Number, Int_IssueNumber from issues WHERE ComicID=? order by ReleaseDate DESC', [wv['ComicID']]).fetchone()
                             if ld_check:
                                 #tmplatestdate = latestdate[0]
-                                if ld_check[0][:4] != wv['LatestDate'][:4]:
-                                    if ld_check[0][:4] > wv['LatestDate'][:4]:
-                                        latestdate = ld_check[0]
+                                try:
+                                    if ld_check[0][:4] != wv['LatestDate'][:4]:
+                                        if ld_check[0][:4] > wv['LatestDate'][:4]:
+                                            latestdate = ld_check[0]
+                                        else:
+                                            latestdate = wv['LatestDate']
                                     else:
-                                        latestdate = wv['LatestDate']
-                                else:
-                                    latestdate = ld_check[0]
+                                        latestdate = ld_check[0]
+                                except Exception as e:
+                                    logger.fdebug('Unable to properly attain the Latest Date for series: %s. Cannot check against this series for post-processing.' % wv_comicname)
+                                    continue
                                 tmplatestissue = ld_check[1]
                                 tmplatestissueint = ld_check[2]
                                 logger.fdebug('tmplatestissue: %s' %(tmplatestissue))

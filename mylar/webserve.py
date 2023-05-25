@@ -6026,27 +6026,33 @@ class WebInterface(object):
                         comicstoIMP.append(result['ComicLocation']) #.decode(mylar.SYS_ENCODING, 'replace'))
                         getiss = result['IssueNumber']
                         #logger.fdebug('getiss: %s' % getiss)
-                        if 'annual' in getiss.lower():
-                            tmpiss = re.sub('[^0-9]','', getiss).strip()
-                            if any([tmpiss.startswith('19'), tmpiss.startswith('20')]) and len(tmpiss) == 4:
-                                logger.fdebug('[IMPORT] annual detected with no issue [%s]. Skipping this entry for determining series length.' % getiss)
-                                continue
+                        if getiss is None:
+                            logger.fdebug('[IMPORT] Unable to determine a valid issue number. The import process will currrently only work'
+                                          'with filenames that have an issue number in it. Ignoring this filename for import (you should'
+                                          'probably move it manually. [%s]' % result['ComicLocation'])
+                            continue
                         else:
-                            if (result['ComicYear'] not in yearRANGE) or all([yearRANGE is None, yearRANGE == 'None']):
-                                if result['ComicYear'] != "0000" and result['ComicYear'] is not None:
-                                    yearRANGE.append(str(result['ComicYear']))
-                                    yearTOP = str(result['ComicYear'])
-                            getiss_num = helpers.issuedigits(getiss)
-                            miniss_num = helpers.issuedigits(minISSUE)
-                            startiss_num = helpers.issuedigits(startISSUE)
-                            if int(getiss_num) > int(miniss_num):
-                                logger.fdebug('Minimum issue now set to : %s - it was %s' % (getiss, minISSUE))
-                                minISSUE = getiss
-                            if int(getiss_num) < int(startiss_num):
-                                logger.fdebug('Start issue now set to : %s - it was %s' % (getiss, startISSUE))
-                                startISSUE = str(getiss)
-                                if helpers.issuedigits(startISSUE) == 1000 and result['ComicYear'] is not None:  # if it's an issue #1, get the year and assume that's the start.
-                                    startyear = result['ComicYear']
+                            if 'annual' in getiss.lower():
+                                tmpiss = re.sub('[^0-9]','', getiss).strip()
+                                if any([tmpiss.startswith('19'), tmpiss.startswith('20')]) and len(tmpiss) == 4:
+                                    logger.fdebug('[IMPORT] annual detected with no issue [%s]. Skipping this entry for determining series length.' % getiss)
+                                    continue
+                            else:
+                                if (result['ComicYear'] not in yearRANGE) or all([yearRANGE is None, yearRANGE == 'None']):
+                                    if result['ComicYear'] != "0000" and result['ComicYear'] is not None:
+                                        yearRANGE.append(str(result['ComicYear']))
+                                        yearTOP = str(result['ComicYear'])
+                                getiss_num = helpers.issuedigits(getiss)
+                                miniss_num = helpers.issuedigits(minISSUE)
+                                startiss_num = helpers.issuedigits(startISSUE)
+                                if int(getiss_num) > int(miniss_num):
+                                    logger.fdebug('Minimum issue now set to : %s - it was %s' % (getiss, minISSUE))
+                                    minISSUE = getiss
+                                if int(getiss_num) < int(startiss_num):
+                                    logger.fdebug('Start issue now set to : %s - it was %s' % (getiss, startISSUE))
+                                    startISSUE = str(getiss)
+                                    if helpers.issuedigits(startISSUE) == 1000 and result['ComicYear'] is not None:  # if it's an issue #1, get the year and assume that's the start.
+                                        startyear = result['ComicYear']
 
                 #taking this outside of the transaction in an attempt to stop db locking.
                 if mylar.CONFIG.IMP_MOVE and movealreadyonlist == "yes":

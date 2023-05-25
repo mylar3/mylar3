@@ -188,7 +188,14 @@ def libraryScan(dir=None, append=False, ComicID=None, ComicName=None, cron=None,
         #use the comicname_filesafe to start
         watchdisplaycomic = watch['ComicName']
         # let's clean up the name, just in case for comparison purposes...
-        watchcomic = re.sub('[\_\#\,\/\:\;\.\-\!\$\%\&\+\'\?\@]', '', watch['ComicName_Filesafe'])
+        try:
+            watchcomic = re.sub('[\_\#\,\/\:\;\.\-\!\$\%\&\+\'\?\@]', '', watch['ComicName_Filesafe'])
+        except Exception as e:
+            logger.warn('[IMPORT] Unable to properly retrieve series name from watchlist.'
+                        ' This is due most likely to previous problems refreshing/adding the seriess %s [error: %s]'
+                         % (watch['ComicName_Filesafe'], e)
+            )
+            continue
         #watchcomic = re.sub('\s+', ' ', str(watchcomic)).strip()
 
         if ' the ' in watchcomic.lower():
