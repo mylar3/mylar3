@@ -383,7 +383,7 @@ def libraryScan(dir=None, append=False, ComicID=None, ComicName=None, cron=None,
                                 # If this doesn't work, we can fall back to try and parse from the webpage
                                 webpage = issueinfo['metadata']['webpage']
                                 logger.fdebug('[IMPORT-CBZ] Webpage: ' + webpage)
-                                if webpage is not None and webpage != 'None' and issuenotes_id is None:
+                                if webpage is not None and webpage != 'None' and 'comicvine.gamespot.com' in webpage and issuenotes_id is None:
                                     issue_id = webpage.strip('/').split('/')[-1].split('-')[-1]
                                     if issue_id:
                                         issuenotes_id = issue_id
