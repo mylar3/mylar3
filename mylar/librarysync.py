@@ -380,6 +380,17 @@ def libraryScan(dir=None, append=False, ComicID=None, ComicName=None, cron=None,
                                     else:
                                         logger.fdebug('[IMPORT-CBZ] Unable to retrieve IssueID from meta-tagging. If there is other metadata present I will use that.')
 
+                                # If this doesn't work, we can fall back to try and parse from the webpage
+                                webpage = issueinfo['metadata']['webpage']
+                                logger.fdebug('[IMPORT-CBZ] Webpage: ' + webpage)
+                                if webpage is not None and webpage != 'None' and issuenotes_id is None:
+                                    issue_id = webpage.strip('/').split('/')[-1].split('-')[-1]
+                                    if issue_id:
+                                        issuenotes_id = issue_id
+                                        logger.fdebug('[IMPORT-CBZ] Successfully retrieved CV IssueID for ' + comicname + ' #' + issue_number + ' [' + str(issuenotes_id) + ']')
+                                    else:
+                                        logger.fdebug('[IMPORT-CBZ] Unable to retrieve IssueID from meta-tagging. If there is other metadata present I will use that.')
+
                                 logger.fdebug('[IMPORT-CBZ] Adding ' + comicname + ' to the import-queue!')
                                 #impid = comicname + '-' + str(issueyear) + '-' + str(issue_number) #com_NAME + "-" + str(result_comyear) + "-" + str(comiss)
                                 impid = str(random.randint(1000000,99999999))
