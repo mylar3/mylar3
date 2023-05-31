@@ -6950,7 +6950,7 @@ class WebInterface(object):
                             logger.fdebug('making directory: %s' % os.path.split(com_location)[0])
                             os.mkdir(os.path.split(com_location)[0])
                         logger.info('Renaming directory: %s --> %s' % (orig_location,com_location))
-                        os.rename(orig_location, com_location)
+                        shutil.move(orig_location, com_location)
                     except Exception as e:
                         if 'No such file or directory' in e:
                             checkdirectory = filechecker.validateAndCreateDirectory(com_location, True)
