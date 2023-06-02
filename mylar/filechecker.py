@@ -1597,6 +1597,7 @@ class FileChecker(object):
                         continue
 
                 filename = fname
+                comicsize = 0
                 if os.path.splitext(filename)[1].lower().endswith(comic_ext):
                     if direc is None:
                         try:
@@ -1605,6 +1606,11 @@ class FileChecker(object):
                             logger.warn('error: %s' % e)
                     else:
                         comicsize = os.path.getsize(os.path.join(dir, direc, fname))
+
+                    if comicsize == 0:
+                        # 0-byte size file encountered - ignore it as it's a placeholder most likely
+                        continue
+
                     filelist.append({'directory':  direc,   #subdirectory if it exists
                                      'filename':   filename,
                                      'comicsize':  comicsize})
