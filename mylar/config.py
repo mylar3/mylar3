@@ -858,7 +858,7 @@ class Config(object):
                             if config.has_section(section):
                                 config.remove_option(section, ini_key)
                             if len(dict(config.items(section))) == 0:
-                                config.remove_section(section) 
+                                config.remove_section(section)
                         except configparser.NoSectionError:
                             continue
 
@@ -1116,7 +1116,7 @@ class Config(object):
                 logger.fdebug('[Cache Cleanup] Cache Cleanup finished. Nothing to clean!')
 
         d_path = '/proc/self/cgroup'
-        if os.path.exists('/.dockerenv') or os.path.isfile(d_path) and any('docker' in line for line in open(d_path)):
+        if os.path.exists('/.dockerenv') or 'KUBERNETES_SERVICE_HOST' in os.environ or os.path.isfile(d_path) and any('docker' in line for line in open(d_path)):
             logger.info('[DOCKER-AWARE] Docker installation detected.')
             mylar.INSTALL_TYPE = 'docker'
             if any([self.DESTINATION_DIR is None, self.DESTINATION_DIR == '']):
@@ -1669,7 +1669,7 @@ class Config(object):
                                            "provider":   found['provider'],
                                            "orig_seq":   int(seqnum)})
                 i-=1
- 
+
             #now we reorder based on priority of orig_seq, but use a new_order seq
             xa = 0
             NPROV = []
