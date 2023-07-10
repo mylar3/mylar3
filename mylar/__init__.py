@@ -656,22 +656,30 @@ def start():
         started = True
 
 def queue_schedule(queuetype, mode):
+    def start(pool_attr, target, q_arg, name, before_msg, after_msg):
+        pool = getattr(mylar, pool_attr)
+        try:
+            if pool.is_alive() is True:
+                return
+        except Exception as e:
+            pass
 
-    #global _INITIALIZED
+        logger.info('[%s] %s', name, before_msg)
+        thread = threading.Thread(target=target, args=(q_arg,), name=name)
+        setattr(mylar, pool_attr, thread)
+        thread.start()
+        logger.info('[%s] %s', name, after_msg)
 
     if mode == 'start':
         if queuetype == 'snatched_queue':
-            try:
-                if mylar.SNPOOL.is_alive() is True:
-                    return
-            except Exception as e:
-                pass
-
-            logger.info('[AUTO-SNATCHER] Auto-Snatch of completed torrents enabled & attempting to background load....')
-            mylar.SNPOOL = threading.Thread(target=helpers.worker_main, args=(SNATCHED_QUEUE,), name="AUTO-SNATCHER")
-            mylar.SNPOOL.start()
-            logger.info('[AUTO-SNATCHER] Succesfully started Auto-Snatch add-on - will now monitor for completed torrents on client....')
-
+            start(
+                "SNPOOL",
+                helpers.worker_main,
+                SNATCHED_QUEUE,
+                "AUTO-SNATCHER",
+                'Auto-Snatch of completed torrents enabled & attempting to background load....',
+                'Succesfully started Auto-Snatch add-on - will now monitor for completed torrents on client....',
+            )
         elif queuetype == 'nzb_queue':
             try:
                 if mylar.NZBPOOL.is_alive() is True:
@@ -691,40 +699,32 @@ def queue_schedule(queuetype, mode):
                 logger.info('[AUTO-COMPLETE-NZB] Succesfully started Completed post-processing handling for NZBGet - will now monitor for completed nzbs within nzbget and post-process automatically...')
 
         elif queuetype == 'search_queue':
-            try:
-                if mylar.SEARCHPOOL.is_alive() is True:
-                    return
-            except Exception as e:
-                pass
-
-            logger.info('[SEARCH-QUEUE] Attempting to background load the search queue....')
-            mylar.SEARCHPOOL = threading.Thread(target=helpers.search_queue, args=(SEARCH_QUEUE,), name="SEARCH-QUEUE")
-            mylar.SEARCHPOOL.start()
-            logger.info('[SEARCH-QUEUE] Successfully started the Search Queuer...')
+            start(
+                "SEARCHPOOL",
+                helpers.search_queue,
+                SEARCH_QUEUE,
+                "SEARCH-QUEUE",
+                'Attempting to background load the search queue....',
+                'Successfully started the Search Queuer...',
+            )
         elif queuetype == 'pp_queue':
-            try:
-                if mylar.PPPOOL.is_alive() is True:
-                    return
-            except Exception as e:
-                pass
-
-            logger.info('[POST-PROCESS-QUEUE] Post Process queue enabled & monitoring for api requests....')
-            mylar.PPPOOL = threading.Thread(target=helpers.postprocess_main, args=(PP_QUEUE,), name="POST-PROCESS-QUEUE")
-            mylar.PPPOOL.start()
-            logger.info('[POST-PROCESS-QUEUE] Succesfully started Post-Processing Queuer....')
-
+            start(
+                "PPPOOL",
+                helpers.postprocess_main,
+                PP_QUEUE,
+                "POST-PROCESS-QUEUE",
+                'Post Process queue enabled & monitoring for api requests....',
+                'Succesfully started Post-Processing Queuer....',
+            )
         elif queuetype == 'ddl_queue':
-            try:
-                if mylar.DDLPOOL.is_alive() is True:
-                    return
-            except Exception as e:
-                pass
-
-            logger.info('[DDL-QUEUE] DDL Download queue enabled & monitoring for requests....')
-            mylar.DDLPOOL = threading.Thread(target=helpers.ddl_downloader, args=(DDL_QUEUE,), name="DDL-QUEUE")
-            mylar.DDLPOOL.start()
-            logger.info('[DDL-QUEUE:] Succesfully started DDL Download Queuer....')
-
+            start(
+                "DDLPOOL",
+                helpers.ddl_downloader,
+                DDL_QUEUE,
+                "DDL-QUEUE",
+                'DDL Download queue enabled & monitoring for requests....',
+                'Succesfully started DDL Download Queuer....',
+            )
     else:
         if (queuetype == 'nzb_queue') or mode == 'shutdown':
             try:
