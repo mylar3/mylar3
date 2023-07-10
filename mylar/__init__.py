@@ -670,6 +670,25 @@ def queue_schedule(queuetype, mode):
         thread.start()
         logger.info('[%s] %s', name, after_msg)
 
+    def shutdown(pool, mylar_queue, thread_name):
+        try:
+            if pool.is_alive() is False:
+                return
+        except Exception as e:
+            return
+
+        logger.fdebug(f'Terminating the {thread_name} thread')
+        try:
+            mylar_queue.put('exit')
+            pool.join(5)
+            logger.fdebug('Joined pool for termination -  successful')
+        except KeyboardInterrupt:
+            mylar_queue.put('exit')
+            pool.join(5)
+        except AssertionError:
+            if mode == 'shutdown':
+               os._exit(0)
+
     if mode == 'start':
         if queuetype == 'snatched_queue':
             start(
@@ -727,109 +746,27 @@ def queue_schedule(queuetype, mode):
             )
     else:
         if (queuetype == 'nzb_queue') or mode == 'shutdown':
-            try:
-                if mylar.NZBPOOL.is_alive() is False:
-                    return
-                elif all([mode!= 'shutdown', mylar.CONFIG.POST_PROCESSING is True]) and ( all([mylar.CONFIG.NZB_DOWNLOADER == 0, mylar.CONFIG.SAB_CLIENT_POST_PROCESSING is True]) or all([mylar.CONFIG.NZB_DOWNLOADER == 1, mylar.CONFIG.NZBGET_CLIENT_POST_PROCESSING is True]) ):
-                    return
-            except Exception as e:
+            if all([mode!= 'shutdown', mylar.CONFIG.POST_PROCESSING is True]) and ( all([mylar.CONFIG.NZB_DOWNLOADER == 0, mylar.CONFIG.SAB_CLIENT_POST_PROCESSING is True]) or all([mylar.CONFIG.NZB_DOWNLOADER == 1, mylar.CONFIG.NZBGET_CLIENT_POST_PROCESSING is True]) ):
                 return
-
-            logger.fdebug('Terminating the NZB auto-complete queue thread')
-            try:
-                mylar.NZB_QUEUE.put('exit')
-                mylar.NZBPOOL.join(5)
-                logger.fdebug('Joined pool for termination -  successful')
-            except KeyboardInterrupt:
-                mylar.NZB_QUEUE.put('exit')
-                mylar.NZBPOOL.join(5)
-            except AssertionError:
-                if mode == 'shutdown':
-                   os._exit(0)
-
+            shutdown(mylar.NZBPOOL, mylar.NZB_QUEUE, "NZB auto-complete queue")
 
         if (queuetype == 'snatched_queue') or mode == 'shutdown':
-            try:
-                if mylar.SNPOOL.is_alive() is False:
-                    return
-                elif all([mode != 'shutdown', mylar.CONFIG.ENABLE_TORRENTS is True, mylar.CONFIG.AUTO_SNATCH is True, OS_DETECT != 'Windows']) and any([mylar.CONFIG.TORRENT_DOWNLOADER == 2, mylar.CONFIG.TORRENT_DOWNLOADER == 4]):
-                    return
-            except Exception as e:
+            if all([mode != 'shutdown', mylar.CONFIG.ENABLE_TORRENTS is True, mylar.CONFIG.AUTO_SNATCH is True, OS_DETECT != 'Windows']) and any([mylar.CONFIG.TORRENT_DOWNLOADER == 2, mylar.CONFIG.TORRENT_DOWNLOADER == 4]):
                 return
-
-
-            logger.fdebug('Terminating the auto-snatch thread.')
-            try:
-                mylar.SNATCHED_QUEUE.put('exit')
-                mylar.SNPOOL.join(5)
-                logger.fdebug('Joined pool for termination -  successful')
-            except KeyboardInterrupt:
-                mylar.SNATCHED_QUEUE.put('exit')
-                mylar.SNPOOL.join(5)
-            except AssertionError:
-                if mode == 'shutdown':
-                   os._exit(0)
+            shutdown(mylar.SNPOOL, mylar.SNATCHED_QUEUE, "auto-snatch")
 
         if (queuetype == 'search_queue') or mode == 'shutdown':
-            try:
-                if mylar.SEARCHPOOL.is_alive() is False:
-                    return
-            except Exception as e:
-                return
-
-            logger.fdebug('Terminating the search queue thread.')
-            try:
-                mylar.SEARCH_QUEUE.put('exit')
-                mylar.SEARCHPOOL.join(5)
-                logger.fdebug('Joined pool for termination -  successful')
-            except KeyboardInterrupt:
-                mylar.SEARCH_QUEUE.put('exit')
-                mylar.SEARCHPOOL.join(5)
-            except AssertionError:
-                if mode == 'shutdown':
-                    os._exit(0)
+            shutdown(mylar.SEARCHPOOL, mylar.SEARCH_QUEUE, 'search queue')
 
         if (queuetype == 'pp_queue') or mode == 'shutdown':
-            try:
-                if mylar.PPPOOL.is_alive() is False:
-                    return
-                elif all([mylar.CONFIG.POST_PROCESSING is True, mode != 'shutdown']):
-                    return
-            except Exception as e:
+            if all([mylar.CONFIG.POST_PROCESSING is True, mode != 'shutdown']):
                 return
-
-            logger.fdebug('Terminating the post-processing queue thread.')
-            try:
-                mylar.PP_QUEUE.put('exit')
-                mylar.PPPOOL.join(5)
-                logger.fdebug('Joined pool for termination -  successful')
-            except KeyboardInterrupt:
-                mylar.PP_QUEUE.put('exit')
-                mylar.PPPOOL.join(5)
-            except AssertionError:
-                if mode == 'shutdown':
-                    os._exit(0)
+            shutdown(mylar.PPPOOL, mylar.PP_QUEUE, 'post-processing queue')
 
         if (queuetype == 'ddl_queue') or mode == 'shutdown':
-            try:
-                if mylar.DDLPOOL.is_alive() is False:
-                    return
-                elif all([mylar.CONFIG.ENABLE_DDL is True, mode != 'shutdown']):
-                    return
-            except Exception as e:
+            if all([mylar.CONFIG.ENABLE_DDL is True, mode != 'shutdown']):
                 return
-
-            logger.fdebug('Terminating the DDL download queue thread')
-            try:
-                mylar.DDL_QUEUE.put('exit')
-                mylar.DDLPOOL.join(5)
-                logger.fdebug('Joined pool for termination -  successful')
-            except KeyboardInterrupt:
-                mylar.DDL_QUEUE.put('exit')
-                DDLPOOL.join(5)
-            except AssertionError:
-                if mode == 'shutdown':
-                   os._exit(0)
+            shutdown(mylar.DDLPOOL, mylar.DDL_QUEUE, 'DDL download queue')
 
 
 def sql_db():
