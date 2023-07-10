@@ -920,7 +920,7 @@ class GC(object):
                                 f.flush()
 
         except requests.exceptions.Timeout as e:
-            logger.error('[ERROR] download has timed out due to inactivity...' % e)
+            logger.error('[ERROR] download has timed out due to inactivity...: %s', e)
             mylar.DDL_LOCK = False
             return {"success": False, "filename": filename, "path": None}
 
