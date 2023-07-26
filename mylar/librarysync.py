@@ -188,7 +188,14 @@ def libraryScan(dir=None, append=False, ComicID=None, ComicName=None, cron=None,
         #use the comicname_filesafe to start
         watchdisplaycomic = watch['ComicName']
         # let's clean up the name, just in case for comparison purposes...
-        watchcomic = re.sub('[\_\#\,\/\:\;\.\-\!\$\%\&\+\'\?\@]', '', watch['ComicName_Filesafe'])
+        try:
+            watchcomic = re.sub('[\_\#\,\/\:\;\.\-\!\$\%\&\+\'\?\@]', '', watch['ComicName_Filesafe'])
+        except Exception as e:
+            logger.warn('[IMPORT] Unable to properly retrieve series name from watchlist.'
+                        ' This is due most likely to previous problems refreshing/adding the seriess %s [error: %s]'
+                         % (watch['ComicName_Filesafe'], e)
+            )
+            continue
         #watchcomic = re.sub('\s+', ' ', str(watchcomic)).strip()
 
         if ' the ' in watchcomic.lower():
@@ -370,6 +377,17 @@ def libraryScan(dir=None, append=False, ComicID=None, ComicName=None, cron=None,
                                         if issue_id.groups()[1].isdigit():
                                             issuenotes_id = issue_id.groups()[1]
                                             logger.fdebug('[IMPORT-CBZ] Successfully retrieved CV IssueID for ' + comicname + ' #' + issue_number + ' [' + str(issuenotes_id) + ']')
+                                    else:
+                                        logger.fdebug('[IMPORT-CBZ] Unable to retrieve IssueID from meta-tagging. If there is other metadata present I will use that.')
+
+                                # If this doesn't work, we can fall back to try and parse from the webpage
+                                webpage = issueinfo['metadata']['webpage']
+                                logger.fdebug('[IMPORT-CBZ] Webpage: ' + webpage)
+                                if webpage is not None and webpage != 'None' and 'comicvine.gamespot.com' in webpage and issuenotes_id is None:
+                                    issue_id = webpage.strip('/').split('/')[-1].split('-')[-1]
+                                    if issue_id:
+                                        issuenotes_id = issue_id
+                                        logger.fdebug('[IMPORT-CBZ] Successfully retrieved CV IssueID for ' + comicname + ' #' + issue_number + ' [' + str(issuenotes_id) + ']')
                                     else:
                                         logger.fdebug('[IMPORT-CBZ] Unable to retrieve IssueID from meta-tagging. If there is other metadata present I will use that.')
 
