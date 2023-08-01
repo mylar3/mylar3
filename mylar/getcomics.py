@@ -136,6 +136,12 @@ class GC(object):
 
         self.session = requests.Session()
 
+        if mylar.CONFIG.ENABLE_PROXY:
+            self.session.proxies.update({
+                'http':  mylar.CONFIG.HTTP_PROXY,
+                'https': mylar.CONFIG.HTTPS_PROXY 
+            })
+
         self.session_path = session_path if session_path is not None else os.path.join(mylar.CONFIG.SECURE_DIR, ".gc_cookies.dat")
 
         self.url = mylar.GC_URL
