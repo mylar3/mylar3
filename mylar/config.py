@@ -366,6 +366,9 @@ _CONFIG_DEFINITIONS = OrderedDict({
     'DDL_AUTORESUME': (bool, 'DDL', True),
     'ENABLE_FLARESOLVERR': (bool, 'DDL', False),
     'FLARESOLVERR_URL': (str, 'DDL', None),
+    'ENABLE_PROXY': (bool, 'DDL', False),
+    'HTTP_PROXY': (str, 'DDL', None),
+    'HTTPS_PROXY': (str, 'DDL', None),
 
     'AUTO_SNATCH': (bool, 'AutoSnatch', False),
     'AUTO_SNATCH_SCRIPT': (str, 'AutoSnatch', None),
