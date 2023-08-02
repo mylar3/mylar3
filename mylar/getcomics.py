@@ -184,7 +184,6 @@ class GC(object):
                 self.search_format.insert(0, '%s %s' % (self.query['comicname'], self.query['year']))
 
             for sf in self.search_format:
-                resultset = []
                 verified_matches = []
                 sf_issue = self.query['issue']
                 if is_info['chktpb'] == 1 and self.query['comicname'] == sf:
@@ -230,17 +229,7 @@ class GC(object):
 
                 logger.fdebug('[DDL-QUERY] Query set to: %s' % queryline)
 
-                for x in self.perform_search_queries(queryline):
-                    bb = next((item for item in resultset if item['link'] == x['link']), None)
-                    try:
-                        if 'Weekly' not in self.query['comicname'] and 'Weekly' in x['title']:
-                            continue
-                        elif bb is None:
-                            resultset.append(x)
-                    except Exception as e:
-                        resultset.append(x)
-                    else:
-                        continue
+                resultset = list(self.perform_search_queries(queryline))
 
                 logger.info('resultset: %s' % (resultset,))
                 if len(resultset) >= 1:
@@ -343,6 +332,7 @@ class GC(object):
 
     def perform_search_queries(self, queryline):
         next_url = self.url
+        seen_urls = set()
         while next_url is not None:
             pause_the_search = mylar.CONFIG.DDL_QUERY_DELAY
             diff = mylar.search.check_time(self.provider_stat['lastrun']) # only limit the search queries - the other calls should be direct and not as intensive
@@ -364,7 +354,14 @@ class GC(object):
             mylar.search.last_run_check(write={'DDL(GetComics)': {'id': 200, 'active': True, 'lastrun': write_time, 'type': 'DDL', 'hits': self.provider_stat['hits']+1}})
             self.provider_stat['lastrun'] = write_time
             page_results, next_url = self.parse_search_result(page_html)
-            yield from page_results
+
+            for result in page_results:
+                if 'Weekly' not in self.query.get('comicname', "") and 'Weekly' in result.get('title', ""):
+                    continue
+                if result["link"] in seen_urls:
+                    continue
+                seen_urls.add(result["link"])
+                yield result
 
     def parse_search_result(self, page_html):
         resultlist = []
