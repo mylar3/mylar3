@@ -230,32 +230,7 @@ class GC(object):
 
                 logger.fdebug('[DDL-QUERY] Query set to: %s' % queryline)
 
-                def fetch_page():
-                    pause_the_search = mylar.CONFIG.DDL_QUERY_DELAY #mylar.search.check_the_search_delay()
-                    diff = mylar.search.check_time(self.provider_stat['lastrun']) # only limit the search queries - the other calls should be direct and not as intensive
-                    if diff < pause_the_search:
-                        logger.warn('[PROVIDER-SEARCH-DELAY][DDL] Waiting %s seconds before we search again...' % (pause_the_search - int(diff)))
-                        time.sleep(pause_the_search - int(diff))
-                    else:
-                        logger.fdebug('[PROVIDER-SEARCH-DELAY][DDL] Last search took place %s seconds ago. We\'re clear...' % (int(diff)))
-
-                    gc_url = self.url
-                    page_html = self.session.get(
-                        gc_url + '/',
-                        params={'s': queryline},
-                        verify=True,
-                        headers=self.headers,
-                        timeout=(30,10)
-                    ).text
-
-                    write_time = time.time()
-                    mylar.search.last_run_check(write={'DDL(GetComics)': {'id': 200, 'active': True, 'lastrun': write_time, 'type': 'DDL', 'hits': self.provider_stat['hits']+1}})
-                    self.provider_stat['lastrun'] = write_time
-                    return page_html
-
-                page_html = fetch_page()
-
-                for x in self.parse_search_result(page_html):
+                for x in self.perform_search_queries(queryline):
                     bb = next((item for item in resultset if item['link'] == x['link']), None)
                     try:
                         if 'Weekly' not in self.query['comicname'] and 'Weekly' in x['title']:
@@ -365,6 +340,29 @@ class GC(object):
                 if chunk:  # filter out keep-alive new chunks
                     f.write(chunk)
                     f.flush()
+
+    def perform_search_queries(self, queryline):
+        pause_the_search = mylar.CONFIG.DDL_QUERY_DELAY #mylar.search.check_the_search_delay()
+        diff = mylar.search.check_time(self.provider_stat['lastrun']) # only limit the search queries - the other calls should be direct and not as intensive
+        if diff < pause_the_search:
+            logger.warn('[PROVIDER-SEARCH-DELAY][DDL] Waiting %s seconds before we search again...' % (pause_the_search - int(diff)))
+            time.sleep(pause_the_search - int(diff))
+        else:
+            logger.fdebug('[PROVIDER-SEARCH-DELAY][DDL] Last search took place %s seconds ago. We\'re clear...' % (int(diff)))
+
+        gc_url = self.url
+        page_html = self.session.get(
+            gc_url + '/',
+            params={'s': queryline},
+            verify=True,
+            headers=self.headers,
+            timeout=(30,10)
+        ).text
+
+        write_time = time.time()
+        mylar.search.last_run_check(write={'DDL(GetComics)': {'id': 200, 'active': True, 'lastrun': write_time, 'type': 'DDL', 'hits': self.provider_stat['hits']+1}})
+        self.provider_stat['lastrun'] = write_time
+        return self.parse_search_result(page_html)
 
     def parse_search_result(self, page_html):
         resultlist = []
