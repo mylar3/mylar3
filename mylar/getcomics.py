@@ -255,7 +255,7 @@ class GC(object):
 
                 page_html = fetch_page()
 
-                for x in self.search_results(page_html)['entries']:
+                for x in self.parse_search_result(page_html):
                     bb = next((item for item in resultset if item['link'] == x['link']), None)
                     try:
                         if 'Weekly' not in self.query['comicname'] and 'Weekly' in x['title']:
@@ -366,8 +366,7 @@ class GC(object):
                     f.write(chunk)
                     f.flush()
 
-    def search_results(self, page_html):
-        results = {}
+    def parse_search_result(self, page_html):
         resultlist = []
         soup = BeautifulSoup(page_html, 'html.parser')
 
@@ -523,8 +522,7 @@ class GC(object):
 
             logger.fdebug('%s [%s]' % (title, size))
 
-        results['entries'] = resultlist
-        return results
+        return resultlist
 
     def parse_downloadresults(self, id, mainlink, comicinfo=None):
         try:
