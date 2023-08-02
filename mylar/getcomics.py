@@ -372,9 +372,7 @@ class GC(object):
         resultlist = []
         soup = BeautifulSoup(page_html, 'html.parser')
 
-        resultline = soup.find("span", {"class": "cover-article-count"}).get_text(
-            strip=True
-        )
+        articles = soup.findAll("article")
         page_list = soup.find("ul", {"class": "page-numbers"})
         # A single-page result has "NO MORE ARTICLES" instead of numbers
         page_no = total_pages = "1"
@@ -386,9 +384,9 @@ class GC(object):
             if current_page_span is not None:
                 page_no = current_page_span.text
 
-        logger.info('There are %s results on page %s (of %s)', re.sub('Articles', '', resultline).strip(), page_no, total_pages)
+        logger.info('There are %d results on page %s (of %s)', len(articles), page_no, total_pages)
 
-        for f in soup.findAll("article"):
+        for f in articles:
             id = f['id']
             lk = f.find('a')
             link = lk['href']
