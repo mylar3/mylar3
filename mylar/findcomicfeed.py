@@ -150,7 +150,6 @@ def Startit(searchName, searchIssue, searchYear, ComicVersion, IssDateFix, bookt
             return "no results"
 
     entries = []
-    mres = {}
     totNum = len(feed.entries)
     keyPair = []
     regList = []
@@ -243,8 +242,7 @@ def Startit(searchName, searchIssue, searchYear, ComicVersion, IssDateFix, bookt
             subcnt +=1
 
     if len(entries) >= 1:
-        mres['entries'] = entries
-        return mres
+        return entries
     else:
         logger.fdebug("No Results Found")
         return "no results"

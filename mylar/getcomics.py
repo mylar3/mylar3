@@ -168,7 +168,6 @@ class GC(object):
 
         self.cookie_receipt()
 
-        results = {}
         try:
             reversed_order = True
             if is_info is not None:
@@ -233,9 +232,8 @@ class GC(object):
 
                 logger.info('resultset: %s' % (resultset,))
                 if len(resultset) >= 1:
-                    results['entries'] = resultset
                     sfs = search_filer.search_check()
-                    verified_matches = sfs.checker(results, is_info)
+                    verified_matches = sfs.checker(resultset, is_info)
                     if verified_matches:
                         logger.fdebug('verified_matches: %s' % (verified_matches,))
                         break
