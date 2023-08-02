@@ -1369,7 +1369,7 @@ def NZB_SEARCH(
                     except Exception as e:
                         logger.fdebug('no errors on data retrieval...proceeding')
                         sfs = search_filer.search_check()
-                        verified_matches = sfs.checker(verified_matches, is_info)
+                        verified_matches = sfs.checker(verified_matches["entries"], is_info)
 
             elif nzbprov == 'experimental':
                 logger.info('sending %s to experimental search' % findcomic)
@@ -2328,16 +2328,16 @@ def searchforissue(issueid=None, new=False, rsschecker=None, manual=False):
                         #    rs['entries'] = ddlset
                         #else:
                         # need to do this to make sure we care across the expected data format
-                        rs['entries'] = [{'title': x['title'],
-                                          'link': x['link'],
-                                          'pubdate': x['pubdate'],
-                                          'site': x['site'],
-                                          'length': x['length'],
-                                          'pack': x['pack'],
-                                          'issues': x['issues']}]
+                        entries = [{'title': x['title'],
+                                    'link': x['link'],
+                                    'pubdate': x['pubdate'],
+                                    'site': x['site'],
+                                    'length': x['length'],
+                                    'pack': x['pack'],
+                                    'issues': x['issues']}]
 
                         sfs = search_filer.search_check()
-                        verified_matches =  sfs.checker(rs, is_info)
+                        verified_matches =  sfs.checker(entries, is_info)
                         logger.info('verified_matches_returned: %s' % (verified_matches,))
                         if len(verified_matches) > 0:
                             response = verification(verified_matches, is_info)

@@ -64,7 +64,7 @@ class search_check(object):
             provider_stat = is_info['provider_stat']
 
         #logger.fdebug('entries: %s' % (entries,))
-        for entry in entries['entries']:
+        for entry in entries:
                 alt_match = False
                 #logger.fdebug('entry: %s' % (entry,))
                 # brief match here against 32p since it returns the direct issue number
