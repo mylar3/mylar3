@@ -343,7 +343,6 @@ class GC(object):
 
     def perform_search_queries(self, queryline):
         next_url = self.url
-        results = []
         while next_url is not None:
             pause_the_search = mylar.CONFIG.DDL_QUERY_DELAY
             diff = mylar.search.check_time(self.provider_stat['lastrun']) # only limit the search queries - the other calls should be direct and not as intensive
@@ -365,8 +364,7 @@ class GC(object):
             mylar.search.last_run_check(write={'DDL(GetComics)': {'id': 200, 'active': True, 'lastrun': write_time, 'type': 'DDL', 'hits': self.provider_stat['hits']+1}})
             self.provider_stat['lastrun'] = write_time
             page_results, next_url = self.parse_search_result(page_html)
-            results.extend(page_results)
-        return results
+            yield from page_results
 
     def parse_search_result(self, page_html):
         resultlist = []
