@@ -342,27 +342,31 @@ class GC(object):
                     f.flush()
 
     def perform_search_queries(self, queryline):
-        pause_the_search = mylar.CONFIG.DDL_QUERY_DELAY #mylar.search.check_the_search_delay()
-        diff = mylar.search.check_time(self.provider_stat['lastrun']) # only limit the search queries - the other calls should be direct and not as intensive
-        if diff < pause_the_search:
-            logger.warn('[PROVIDER-SEARCH-DELAY][DDL] Waiting %s seconds before we search again...' % (pause_the_search - int(diff)))
-            time.sleep(pause_the_search - int(diff))
-        else:
-            logger.fdebug('[PROVIDER-SEARCH-DELAY][DDL] Last search took place %s seconds ago. We\'re clear...' % (int(diff)))
+        next_url = self.url
+        results = []
+        while next_url is not None:
+            pause_the_search = mylar.CONFIG.DDL_QUERY_DELAY #mylar.search.check_the_search_delay()
+            diff = mylar.search.check_time(self.provider_stat['lastrun']) # only limit the search queries - the other calls should be direct and not as intensive
+            if diff < pause_the_search:
+                logger.warn('[PROVIDER-SEARCH-DELAY][DDL] Waiting %s seconds before we search again...' % (pause_the_search - int(diff)))
+                time.sleep(pause_the_search - int(diff))
+            else:
+                logger.fdebug('[PROVIDER-SEARCH-DELAY][DDL] Last search took place %s seconds ago. We\'re clear...' % (int(diff)))
 
-        gc_url = self.url
-        page_html = self.session.get(
-            gc_url + '/',
-            params={'s': queryline},
-            verify=True,
-            headers=self.headers,
-            timeout=(30,10)
-        ).text
+            page_html = self.session.get(
+                next_url + '/',
+                params={'s': queryline},
+                verify=True,
+                headers=self.headers,
+                timeout=(30,10)
+            ).text
 
-        write_time = time.time()
-        mylar.search.last_run_check(write={'DDL(GetComics)': {'id': 200, 'active': True, 'lastrun': write_time, 'type': 'DDL', 'hits': self.provider_stat['hits']+1}})
-        self.provider_stat['lastrun'] = write_time
-        return self.parse_search_result(page_html)
+            write_time = time.time()
+            mylar.search.last_run_check(write={'DDL(GetComics)': {'id': 200, 'active': True, 'lastrun': write_time, 'type': 'DDL', 'hits': self.provider_stat['hits']+1}})
+            self.provider_stat['lastrun'] = write_time
+            page_results, next_url = self.parse_search_result(page_html)
+            results.extend(page_results)
+        return results
 
     def parse_search_result(self, page_html):
         resultlist = []
@@ -520,7 +524,7 @@ class GC(object):
 
             logger.fdebug('%s [%s]' % (title, size))
 
-        return resultlist
+        return resultlist, None
 
     def parse_downloadresults(self, id, mainlink, comicinfo=None):
         try:
