@@ -348,10 +348,10 @@ class GC(object):
             pause_the_search = mylar.CONFIG.DDL_QUERY_DELAY
             diff = mylar.search.check_time(self.provider_stat['lastrun']) # only limit the search queries - the other calls should be direct and not as intensive
             if diff < pause_the_search:
-                logger.warn('[PROVIDER-SEARCH-DELAY][DDL] Waiting %s seconds before we search again...' % (pause_the_search - int(diff)))
+                logger.warn('[PROVIDER-SEARCH-DELAY][DDL] Waiting %s seconds before we fetch a search page again...' % (pause_the_search - int(diff)))
                 time.sleep(pause_the_search - int(diff))
             else:
-                logger.fdebug('[PROVIDER-SEARCH-DELAY][DDL] Last search took place %s seconds ago. We\'re clear...' % (int(diff)))
+                logger.fdebug('[PROVIDER-SEARCH-DELAY][DDL] Last search page fetch took place %s seconds ago. We\'re clear...' % (int(diff)))
 
             page_html = self.session.get(
                 next_url + '/',
@@ -375,7 +375,18 @@ class GC(object):
         resultline = soup.find("span", {"class": "cover-article-count"}).get_text(
             strip=True
         )
-        logger.info('There are %s results' % re.sub('Articles', '', resultline).strip())
+        page_list = soup.find("ul", {"class": "page-numbers"})
+        # A single-page result has "NO MORE ARTICLES" instead of numbers
+        page_no = total_pages = "1"
+        if page_list is not None:
+            page_numbers = page_list.find_all("li")
+            if len(page_numbers):
+                total_pages = page_numbers[-1].text
+            current_page_span = page_list.find("span", class_="current")
+            if current_page_span is not None:
+                page_no = current_page_span.text
+
+        logger.info('There are %s results on page %s (of %s)', re.sub('Articles', '', resultline).strip(), page_no, total_pages)
 
         for f in soup.findAll("article"):
             id = f['id']
