@@ -173,8 +173,6 @@ class GC(object):
         results = {}
         try:
             reversed_order = True
-            total_pages = 1
-            pagenumber = 1
             if is_info is not None:
                 if is_info['chktpb'] == 0:
                     logger.debug('removing query from loop that accounts for no issue number')
@@ -240,9 +238,6 @@ class GC(object):
 
                 if queryline:
                     gc_url = self.url
-                    if pagenumber != 1 and pagenumber != total_pages:
-                        gc_url = '%s/page/%s' % (self.url, pagenumber)
-                        logger.fdebug('parsing for page %s' % pagenumber)
                     #logger.fdebug('session cookies: %s' % (self.session.cookies,))
                     t = self.session.get(
                         gc_url + '/',
@@ -263,11 +258,7 @@ class GC(object):
                                 f.write(chunk)
                                 f.flush()
 
-                for x in self.search_results(pagenumber,total_pages)['entries']:
-                    if total_pages != 1:
-                        total_pages = x['total_pages']
-                    if pagenumber != 1:
-                        pagenumber = x['page']
+                for x in self.search_results()['entries']:
                     bb = next((item for item in resultset if item['link'] == x['link']), None)
                     try:
                         if 'Weekly' not in self.query['comicname'] and 'Weekly' in x['title']:
@@ -378,7 +369,7 @@ class GC(object):
                     f.write(chunk)
                     f.flush()
 
-    def search_results(self, pagenumber=1, total_pages=1):
+    def search_results(self):
         results = {}
         resultlist = []
         soup = BeautifulSoup(open(self.local_filename, encoding='utf-8'), 'html.parser')
@@ -387,18 +378,6 @@ class GC(object):
             strip=True
         )
         logger.info('There are %s results' % re.sub('Articles', '', resultline).strip())
-        if pagenumber == 1 and int(re.sub('Articles', '', resultline).strip()) == 12:
-            # get paging (soon)
-            pagelines = soup.findAll("a", {"class": "page-numbers"})
-            logger.fdebug('pagelines: %s' % (pagelines,))
-            if len(pagelines) > 1:
-                page_line = pagelines[len(pagelines)-1]['href']
-                logger.fdebug('page_line: %s' % page_line)
-                pages_ref = urllib.parse.urlsplit(page_line)
-                logger.fdebug('page_url: %s' % (pages_ref,))
-                page_cnt = list(filter(None, pages_ref.path.rsplit('/')))
-                pages = page_cnt[len(page_cnt)-1]
-                logger.fdebug('number of pages: %s' % pages)
 
         for f in soup.findAll("article"):
             id = f['id']
@@ -542,8 +521,6 @@ class GC(object):
                     "year": year,
                     "id": re.sub('post-', '', id).strip(),
                     "site": 'DDL(GetComics)',
-                    "page": pagenumber,
-                    "total_pages": total_pages,
                 }
             )
 
