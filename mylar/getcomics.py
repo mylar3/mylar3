@@ -228,15 +228,12 @@ class GC(object):
 
                 logger.fdebug('[DDL-QUERY] Query set to: %s' % queryline)
 
-                resultset = list(self.perform_search_queries(queryline))
-
-                logger.info('resultset: %s' % (resultset,))
-                if len(resultset) >= 1:
-                    sfs = search_filer.search_check()
-                    verified_matches = sfs.checker(resultset, is_info)
-                    if verified_matches:
-                        logger.fdebug('verified_matches: %s' % (verified_matches,))
-                        break
+                result_generator = self.perform_search_queries(queryline)
+                sfs = search_filer.search_check()
+                verified_matches = sfs.checker(result_generator, is_info)
+                if verified_matches:
+                    logger.fdebug('verified_matches: %s' % (verified_matches,))
+                    break
                 logger.fdebug('sleep...%s%s' % (mylar.CONFIG.DDL_QUERY_DELAY, 's'))
                 time.sleep(mylar.CONFIG.DDL_QUERY_DELAY)
 
