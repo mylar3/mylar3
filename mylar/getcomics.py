@@ -345,7 +345,7 @@ class GC(object):
         next_url = self.url
         results = []
         while next_url is not None:
-            pause_the_search = mylar.CONFIG.DDL_QUERY_DELAY #mylar.search.check_the_search_delay()
+            pause_the_search = mylar.CONFIG.DDL_QUERY_DELAY
             diff = mylar.search.check_time(self.provider_stat['lastrun']) # only limit the search queries - the other calls should be direct and not as intensive
             if diff < pause_the_search:
                 logger.warn('[PROVIDER-SEARCH-DELAY][DDL] Waiting %s seconds before we search again...' % (pause_the_search - int(diff)))
@@ -524,7 +524,12 @@ class GC(object):
 
             logger.fdebug('%s [%s]' % (title, size))
 
-        return resultlist, None
+        older_posts_a = soup.find("a", class_="pagination-older")
+        next_page = None
+        if older_posts_a is not None:
+            next_page = older_posts_a.get("href")
+
+        return resultlist, next_page
 
     def parse_downloadresults(self, id, mainlink, comicinfo=None):
         try:
