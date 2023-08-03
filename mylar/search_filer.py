@@ -1100,3 +1100,10 @@ class search_check(object):
 
         #logger.fdebug('returning hold_the_matches: %s' % (hold_the_matches,))
         return hold_the_matches
+
+    def check_for_first_result(self, entries, is_info):
+        for entry in entries:
+            maybe_value = self._process_entry(entry, is_info)
+            if maybe_value is not None:
+                return maybe_value
+        return None
