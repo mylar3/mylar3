@@ -466,44 +466,43 @@ class GC(object):
             i = 0
             if option_find is None:
                 continue
-            else:
-                while i <= 2 and option_find is not None:
-                    option_find = option_find.findNext(text=True)
-                    if 'Year' in option_find:
-                        year = option_find.findNext(text=True)
-                        year = re.sub(r'\|', '', year).strip()
-                        if pack is True:
-                            title = re.sub(r'\(' + year + r'\)', '', title).strip()
-                    else:
-                        size = option_find.findNext(text=True)
+            while i <= 2 and option_find is not None:
+                option_find = option_find.findNext(text=True)
+                if 'Year' in option_find:
+                    year = option_find.findNext(text=True)
+                    year = re.sub(r'\|', '', year).strip()
+                    if pack is True:
+                        title = re.sub(r'\(' + year + r'\)', '', title).strip()
+                else:
+                    size = option_find.findNext(text=True)
+                    if all(
+                        [
+                            re.sub(':', '', size).strip() != 'Size',
+                            len(re.sub(r'[^0-9]', '', size).strip()) > 0,
+                        ]
+                    ):
                         if all(
-                            [
-                                re.sub(':', '', size).strip() != 'Size',
-                                len(re.sub(r'[^0-9]', '', size).strip()) > 0,
-                            ]
+                                  [
+                                      '-' in size,
+                                      re.sub(r'[^0-9]', '', size).strip() == '',
+                                  ]
                         ):
-                            if all(
-                                      [
-                                          '-' in size,
-                                          re.sub(r'[^0-9]', '', size).strip() == '',
-                                      ]
-                            ):
-                                size = None
-                            if 'MB' in size:
-                                size = re.sub('MB', 'M', size).strip()
-                            if 'GB' in size:
-                                size = re.sub('GB', 'G', size).strip()
-                            if '//' in size:
-                                nwsize = size.find('//')
-                                size = re.sub(r'\[', '', size[:nwsize]).strip()
-                            elif '/' in size:
-                                nwsize = size.find('/')
-                                size = re.sub(r'\[', '', size[:nwsize]).strip()
-                            if '-' in size:
-                                size = None
-                        else:
-                            size = '0M'
-                    i += 1
+                            size = None
+                        if 'MB' in size:
+                            size = re.sub('MB', 'M', size).strip()
+                        if 'GB' in size:
+                            size = re.sub('GB', 'G', size).strip()
+                        if '//' in size:
+                            nwsize = size.find('//')
+                            size = re.sub(r'\[', '', size[:nwsize]).strip()
+                        elif '/' in size:
+                            nwsize = size.find('/')
+                            size = re.sub(r'\[', '', size[:nwsize]).strip()
+                        if '-' in size:
+                            size = None
+                    else:
+                        size = '0M'
+                i += 1
             dateline = f.find('time')
             datefull = dateline['datetime']
             datestamp = time.mktime(time.strptime(datefull, "%Y-%m-%d"))
