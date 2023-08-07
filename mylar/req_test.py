@@ -78,7 +78,11 @@ class Req(object):
                                 p_version = str(line[p_test+2:]).strip()
                                 if p_version == '':
                                     continue
-                                self.req_list.append({'module': p_mod, 'version': p_version, 'arg': p_arg})
+                                if p_mod == 'requests[socks]':
+                                    self.req_list.append({'module': 'requests', 'version': '2.22', 'arg': '>='})
+                                    self.req_list.append({'module': 'PySocks', 'version': '1.5', 'arg': '>='})
+                                else:
+                                    self.req_list.append({'module': p_mod, 'version': p_version, 'arg': p_arg})
                                 break
 
         self.pip_load()
