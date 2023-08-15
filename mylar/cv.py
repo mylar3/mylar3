@@ -70,12 +70,8 @@ def pulldetails(comicid, rtype, issueid=None, offset=1, arclist=None, comicidlis
     else:
         time.sleep(mylar.CONFIG.CVAPI_RATE)
 
-    #download the file:
-    #set payload to None for now...
-    payload = None
-
     try:
-        r = requests.get(PULLURL, params=payload, verify=mylar.CONFIG.CV_VERIFY, headers=mylar.CV_HEADERS)
+        r = requests.get(PULLURL, verify=mylar.CONFIG.CV_VERIFY, headers=mylar.CV_HEADERS)
     except Exception as e:
         logger.warn('Error fetching data from ComicVine: %s' % (e))
         if all(['Expecting value: line 1 column 1' not in str(e), rtype != 'db_updater']):
