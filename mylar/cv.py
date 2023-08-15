@@ -12,20 +12,13 @@
 #  You should have received a copy of the GNU General Public License
 #  along with Mylar.  If not, see <http://www.gnu.org/licenses/>.
 
-
-import sys
-import os
 import re
 import time
 import pytz
 from mylar import logger, helpers
-import string
-import feedparser
 import mylar
-import platform
 from bs4 import BeautifulSoup as Soup
 from xml.parsers.expat import ExpatError
-import http.client
 import requests
 import datetime
 from operator import itemgetter
