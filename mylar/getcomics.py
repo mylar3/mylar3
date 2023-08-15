@@ -462,10 +462,18 @@ class GC(object):
                 ):
                     continue
 
-            option_find = f.find("p", {"style": "text-align: center;"})
+            needle_style = "text-align: center;"
+            option_find = f.find("p", {"style": needle_style})
             i = 0
             if option_find is None:
-                continue
+                # Some search results have the "option_find" HTML as escaped
+                # text instead of actual HTML: try to salvage a option_find in
+                # that case
+                excerpt = f.find("p", class_="post-excerpt")
+                if excerpt is not None and needle_style in excerpt.text:
+                    option_find = BeautifulSoup(excerpt.text, "html.parser").find("p", {"style": needle_style})
+                else:
+                    continue
             while i <= 2 and option_find is not None:
                 option_find = option_find.findNext(text=True)
                 if 'Year' in option_find:
