@@ -116,7 +116,6 @@ def getComic(comicid, rtype, issueid=None, arc=None, arcid=None, arclist=None, c
         issue = {}
         ndic = []
         issuechoice = []
-        comicResults = []
         firstdate = '2099-00-00'
         #let's find out how many results we get from the query...
         if comicid is None:
@@ -332,7 +331,6 @@ def GetComicInfo(comicid, dom, safechk=None, series=False):
     #if str(trackcnt) != str(int(cntit)+2):
     #    cntit = int(cntit) + 1
     comic = {}
-    comicchoice = []
     cntit = int(cntit)
     #retrieve the first xml tag (<tag>data</tag>)
     #that the parser finds with name tagName:
@@ -428,8 +426,6 @@ def GetComicInfo(comicid, dom, safechk=None, series=False):
 
     if all([comic_desc != 'None', 'trade paperback' in comic_desc[:30].lower(), 'collecting' in comic_desc[:40].lower()]):
         #ie. Trade paperback collecting Marvel Team-Up #9-11, 48-51, 72, 110 & 145.
-        first_collect = comic_desc.lower().find('collecting')
-        #logger.info('first_collect: %s' % first_collect)
         #logger.info('comic_desc: %s' % comic_desc)
         #logger.info('desclinks: %s' % desclinks)
         issue_list = []
@@ -497,7 +493,6 @@ def GetComicInfo(comicid, dom, safechk=None, series=False):
                                'comicid':  fc_cid,
                                'issueid':  fc_isid,
                                'issues':   issuerun})
-            #first_collect = cis
 
         logger.info('Collected issues in volume: %s' % issue_list)
         if len(issue_list) == 0:
@@ -846,8 +841,6 @@ def GetSeriesYears(dom):
 
         if all([comic_desc != 'None', 'trade paperback' in comic_desc[:30].lower(), 'collecting' in comic_desc[:40].lower()]):
             #ie. Trade paperback collecting Marvel Team-Up #9-11, 48-51, 72, 110 & 145.
-            first_collect = comic_desc.lower().find('collecting')
-            #logger.info('first_collect: %s' % first_collect)
             #logger.info('comic_desc: %s' % comic_desc)
             #logger.info('desclinks: %s' % desclinks)
             issue_list = []
@@ -913,7 +906,6 @@ def GetSeriesYears(dom):
                                    'comicid':  fc_cid,
                                    'issueid':  fc_isid,
                                    'issues':   issuerun})
-                #first_collect = cis
 
             logger.info('Collected issues in volume: %s' % issue_list)
             tempseries['Issue_List'] = issue_list
@@ -963,7 +955,6 @@ def GetSeriesYears(dom):
                         vfind = comicDes[:v_find]   # if it's fifth volume format
                         basenums = {'zero': '0', 'first': '1', 'second': '2', 'third': '3', 'fourth': '4', 'fifth': '5', 'sixth': '6', 'seventh': '7', 'eighth': '8', 'nineth': '9', 'tenth': '10', 'i': '1', 'ii': '2', 'iii': '3', 'iv': '4', 'v': '5'}
                         logger.fdebug('X volume format - %s: %s' % (i, vfind))
-                    volconv = ''
                     for nums in basenums:
                         if nums in vfind.lower():
                             sconv = basenums[nums]
@@ -1116,7 +1107,6 @@ def singleIssue(results):
 def GetImportList(results):
     importlist = results.getElementsByTagName('issue')
     serieslist = []
-    importids = {}
     tempseries = {}
     for implist in importlist:
         try:
@@ -1455,13 +1445,11 @@ def get_imprint_volume_and_booktype(series, comicyear, publisher, firstissueid, 
                     basenums = {'zero': '0', 'first': '1', 'second': '2', 'third': '3', 'fourth': '4', 'fifth': '5', 'sixth': '6', 'seventh': '7', 'eighth': '8', 'nineth': '9', 'tenth': '10', 'i': '1', 'ii': '2', 'iii': '3', 'iv': '4', 'v': '5'}
                     logger.fdebug('X volume format - ' + str(i) + ': ' + vfind)
                 og_vfind = vfind
-                volconv = ''
                 for nums in basenums:
                     if nums in vfind.lower():
                         sconv = basenums[nums]
                         vfind = re.sub(nums, sconv, vfind.lower())
                         break
-                #logger.info('volconv: ' + str(volconv))
 
                 #now we attempt to find the character position after the word 'volume'
                 if i == 0:
