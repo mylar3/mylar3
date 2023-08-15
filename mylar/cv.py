@@ -56,8 +56,6 @@ def pulldetails(comicid, rtype, issueid=None, offset=1, arclist=None, comicidlis
         PULLURL = mylar.CVURL + 'volumes/?api_key=' + str(comicapi) + '&format=xml&filter=id:' + str(comicidlist) + '&field_list=name,id,start_year,publisher,description,deck,aliases,count_of_issues&offset=' + str(offset)
     elif rtype == 'import':
         PULLURL = mylar.CVURL + 'issues/?api_key=' + str(comicapi) + '&format=xml&filter=id:' + (comicidlist) + '&field_list=cover_date,id,issue_number,name,date_last_updated,store_date,volume' + '&offset=' + str(offset)
-    elif rtype == 'update_dates':
-        PULLURL = mylar.CVURL + 'issues/?api_key=' + str(comicapi) + '&format=xml&filter=id:' + (comicidlist)+ '&field_list=date_last_updated, id, issue_number, store_date, cover_date, name, volume ' + '&offset=' + str(offset)
     elif rtype == 'single_issue':
         #this is used for retrieving single issue metadata for use when displaying metadata information for a selected issue.
         PULLURL = mylar.CVURL + 'issue/4000-' + str(issueid) + '?api_key=' + str(comicapi) + '&format=json'
@@ -213,10 +211,6 @@ def getComic(comicid, rtype, issueid=None, arc=None, arcid=None, arclist=None, c
             id_count +=100
 
         return import_list
-
-    elif rtype == 'update_dates':
-        dom = pulldetails(None, 'update_dates', offset=1, comicidlist=comicidlist)
-        return UpdateDates(dom)
     elif rtype == 'single_issue':
         dom = pulldetails(comicid, 'single_issue', issueid=issueid, offset=1, arclist=None, comicidlist=None)
         return singleIssue(dom)
@@ -1005,72 +999,6 @@ def GetSeriesYears(dom):
                            "Type":       booktype})
 
     return serieslist
-
-def UpdateDates(dom):
-    issues = dom.getElementsByTagName('issue')
-    tempissue = {}
-    issuelist = []
-    for dm in issues:
-        tempissue['ComicID'] = 'None'
-        tempissue['IssueID'] = 'None'
-        try:
-            totids = len(dm.getElementsByTagName('id'))
-            idc = 0
-            while (idc < totids):
-                if dm.getElementsByTagName('id')[idc].parentNode.nodeName == 'volume':
-                    tempissue['ComicID'] = dm.getElementsByTagName('id')[idc].firstChild.wholeText
-                if dm.getElementsByTagName('id')[idc].parentNode.nodeName == 'issue':
-                    tempissue['IssueID'] = dm.getElementsByTagName('id')[idc].firstChild.wholeText
-                idc+=1
-        except:
-            logger.warn('There was a problem retrieving a comicid/issueid for the given issue. This will have to manually corrected most likely.')
-
-        tempissue['SeriesTitle'] = 'None'
-        tempissue['IssueTitle'] = 'None'
-        try:
-            totnames = len(dm.getElementsByTagName('name'))
-            namesc = 0
-            while (namesc < totnames):
-                if dm.getElementsByTagName('name')[namesc].parentNode.nodeName == 'issue':
-                    tempissue['IssueTitle'] = dm.getElementsByTagName('name')[namesc].firstChild.wholeText
-                elif dm.getElementsByTagName('name')[namesc].parentNode.nodeName == 'volume':
-                    tempissue['SeriesTitle'] = dm.getElementsByTagName('name')[namesc].firstChild.wholeText
-                namesc+=1
-        except:
-            logger.warn('There was a problem retrieving the Series Title / Issue Title for a series within the arc. This will have to manually corrected.')
-
-        try:
-            tempissue['CoverDate'] = dm.getElementsByTagName('cover_date')[0].firstChild.wholeText
-        except:
-            tempissue['CoverDate'] = '0000-00-00'
-        try:
-            tempissue['StoreDate'] = dm.getElementsByTagName('store_date')[0].firstChild.wholeText
-        except:
-            tempissue['StoreDate'] = '0000-00-00'
-        try:
-            tempissue['IssueNumber'] = dm.getElementsByTagName('issue_number')[0].firstChild.wholeText
-        except:
-            logger.fdebug('No Issue Number available - Trade Paperbacks, Graphic Novels and Compendiums are not supported as of yet.')
-            tempissue['IssueNumber'] = 'None'
-        else:
-            if 'Issue #' in tempissue['IssueNumber']:
-                tempissue['IssueNumber'] = re.sub('Issue #', '', tempissue['IssueNumber']).strip()
-
-        try:
-            tempissue['date_last_updated'] = dm.getElementsByTagName('date_last_updated')[0].firstChild.wholeText
-        except:
-            tempissue['date_last_updated'] = '0000-00-00'
-
-        issuelist.append({'ComicID':            tempissue['ComicID'],
-                          'IssueID':            tempissue['IssueID'],
-                          'SeriesTitle':        tempissue['SeriesTitle'],
-                          'IssueTitle':         tempissue['IssueTitle'],
-                          'CoverDate':          tempissue['CoverDate'],
-                          'StoreDate':          tempissue['StoreDate'],
-                          'IssueNumber':        tempissue['IssueNumber'],
-                          'Date_Last_Updated':  tempissue['date_last_updated']})
-
-    return issuelist
 
 def singleIssue(results):
     data = results['results']
