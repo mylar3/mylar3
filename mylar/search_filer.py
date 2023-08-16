@@ -1101,9 +1101,17 @@ class search_check(object):
         #logger.fdebug('returning hold_the_matches: %s' % (hold_the_matches,))
         return hold_the_matches
 
-    def check_for_first_result(self, entries, is_info):
+    def check_for_first_result(self, entries, is_info, prefer_pack=False):
+        candidate = None
         for entry in entries:
             maybe_value = self._process_entry(entry, is_info)
             if maybe_value is not None:
-                return maybe_value
-        return None
+                # If we have a value which matches our pack/not-pack
+                # preference, return it: otherwise, store it for return if we
+                # don't find a better candidate
+                is_pack = maybe_value["pack"]
+                if (prefer_pack and is_pack) or (not prefer_pack and not is_pack):
+                    # (This reduces to prefer_pack == is_pack, but that's harder to grok)
+                    return maybe_value
+                candidate = maybe_value
+        return candidate
