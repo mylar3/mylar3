@@ -230,7 +230,9 @@ class GC(object):
 
                 result_generator = self.perform_search_queries(queryline)
                 sfs = search_filer.search_check()
-                match = sfs.check_for_first_result(result_generator, is_info)
+                match = sfs.check_for_first_result(
+                    result_generator, is_info, prefer_pack=mylar.CONFIG.PACK_PRIORITY
+                )
                 if match is not None:
                     verified_matches = [match]
                     logger.fdebug('verified_matches: %s' % (verified_matches,))
