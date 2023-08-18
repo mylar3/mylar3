@@ -136,6 +136,12 @@ class GC(object):
 
         self.session = requests.Session()
 
+        if mylar.CONFIG.ENABLE_PROXY:
+            self.session.proxies.update({
+                'http':  mylar.CONFIG.HTTP_PROXY,
+                'https': mylar.CONFIG.HTTPS_PROXY 
+            })
+
         self.session_path = session_path if session_path is not None else os.path.join(mylar.CONFIG.SECURE_DIR, ".gc_cookies.dat")
 
         self.url = mylar.GC_URL
@@ -147,8 +153,6 @@ class GC(object):
         self.issueid = issueid
 
         self.oneoff = oneoff
-
-        self.local_filename = os.path.join(mylar.CONFIG.CACHE_DIR, "getcomics.html")
 
         self.search_format = ['"%s #%s (%s)"', '%s #%s (%s)', '%s #%s', '%s %s']
 
@@ -167,8 +171,6 @@ class GC(object):
         results = {}
         try:
             reversed_order = True
-            total_pages = 1
-            pagenumber = 1
             if is_info is not None:
                 if is_info['chktpb'] == 0:
                     logger.debug('removing query from loop that accounts for no issue number')
@@ -223,45 +225,12 @@ class GC(object):
                             else:
                                 queryline = sf % (self.query['comicname'])
 
+                if not queryline:
+                    continue
+
                 logger.fdebug('[DDL-QUERY] Query set to: %s' % queryline)
-                pause_the_search = mylar.CONFIG.DDL_QUERY_DELAY #mylar.search.check_the_search_delay()
-                diff = mylar.search.check_time(self.provider_stat['lastrun']) # only limit the search queries - the other calls should be direct and not as intensive
-                if diff < pause_the_search:
-                    logger.warn('[PROVIDER-SEARCH-DELAY][DDL] Waiting %s seconds before we search again...' % (pause_the_search - int(diff)))
-                    time.sleep(pause_the_search - int(diff))
-                else:
-                    logger.fdebug('[PROVIDER-SEARCH-DELAY][DDL] Last search took place %s seconds ago. We\'re clear...' % (int(diff)))
 
-                if queryline:
-                    gc_url = self.url
-                    if pagenumber != 1 and pagenumber != total_pages:
-                        gc_url = '%s/page/%s' % (self.url, pagenumber)
-                        logger.fdebug('parsing for page %s' % pagenumber)
-                    #logger.fdebug('session cookies: %s' % (self.session.cookies,))
-                    t = self.session.get(
-                        gc_url + '/',
-                        params={'s': queryline},
-                        verify=True,
-                        headers=self.headers,
-                        stream=True,
-                        timeout=(30,10)
-                    )
-
-                    write_time = time.time()
-                    mylar.search.last_run_check(write={'DDL(GetComics)': {'id': 200, 'active': True, 'lastrun': write_time, 'type': 'DDL', 'hits': self.provider_stat['hits']+1}})
-                    self.provider_stat['lastrun'] = write_time
-
-                    with open(self.local_filename, 'wb') as f:
-                        for chunk in t.iter_content(chunk_size=1024):
-                           if chunk:  # filter out keep-alive new chunks
-                                f.write(chunk)
-                                f.flush()
-
-                for x in self.search_results(pagenumber,total_pages)['entries']:
-                    if total_pages != 1:
-                        total_pages = x['total_pages']
-                    if pagenumber != 1:
-                        pagenumber = x['page']
+                for x in self.perform_search_queries(queryline):
                     bb = next((item for item in resultset if item['link'] == x['link']), None)
                     try:
                         if 'Weekly' not in self.query['comicname'] and 'Weekly' in x['title']:
@@ -372,29 +341,52 @@ class GC(object):
                     f.write(chunk)
                     f.flush()
 
-    def search_results(self, pagenumber=1, total_pages=1):
-        results = {}
+    def perform_search_queries(self, queryline):
+        next_url = self.url
+        results = []
+        while next_url is not None:
+            pause_the_search = mylar.CONFIG.DDL_QUERY_DELAY
+            diff = mylar.search.check_time(self.provider_stat['lastrun']) # only limit the search queries - the other calls should be direct and not as intensive
+            if diff < pause_the_search:
+                logger.warn('[PROVIDER-SEARCH-DELAY][DDL] Waiting %s seconds before we fetch a search page again...' % (pause_the_search - int(diff)))
+                time.sleep(pause_the_search - int(diff))
+            else:
+                logger.fdebug('[PROVIDER-SEARCH-DELAY][DDL] Last search page fetch took place %s seconds ago. We\'re clear...' % (int(diff)))
+
+            page_html = self.session.get(
+                next_url + '/',
+                params={'s': queryline},
+                verify=True,
+                headers=self.headers,
+                timeout=(30,10)
+            ).text
+
+            write_time = time.time()
+            mylar.search.last_run_check(write={'DDL(GetComics)': {'id': 200, 'active': True, 'lastrun': write_time, 'type': 'DDL', 'hits': self.provider_stat['hits']+1}})
+            self.provider_stat['lastrun'] = write_time
+            page_results, next_url = self.parse_search_result(page_html)
+            results.extend(page_results)
+        return results
+
+    def parse_search_result(self, page_html):
         resultlist = []
-        soup = BeautifulSoup(open(self.local_filename, encoding='utf-8'), 'html.parser')
+        soup = BeautifulSoup(page_html, 'html.parser')
 
-        resultline = soup.find("span", {"class": "cover-article-count"}).get_text(
-            strip=True
-        )
-        logger.info('There are %s results' % re.sub('Articles', '', resultline).strip())
-        if pagenumber == 1 and int(re.sub('Articles', '', resultline).strip()) == 12:
-            # get paging (soon)
-            pagelines = soup.findAll("a", {"class": "page-numbers"})
-            logger.fdebug('pagelines: %s' % (pagelines,))
-            if len(pagelines) > 1:
-                page_line = pagelines[len(pagelines)-1]['href']
-                logger.fdebug('page_line: %s' % page_line)
-                pages_ref = urllib.parse.urlsplit(page_line)
-                logger.fdebug('page_url: %s' % (pages_ref,))
-                page_cnt = list(filter(None, pages_ref.path.rsplit('/')))
-                pages = page_cnt[len(page_cnt)-1]
-                logger.fdebug('number of pages: %s' % pages)
+        articles = soup.findAll("article")
+        page_list = soup.find("ul", {"class": "page-numbers"})
+        # A single-page result has "NO MORE ARTICLES" instead of numbers
+        page_no = total_pages = "1"
+        if page_list is not None:
+            page_numbers = page_list.find_all("li")
+            if len(page_numbers):
+                total_pages = page_numbers[-1].text
+            current_page_span = page_list.find("span", class_="current")
+            if current_page_span is not None:
+                page_no = current_page_span.text
 
-        for f in soup.findAll("article"):
+        logger.info('There are %d results on page %s (of %s)', len(articles), page_no, total_pages)
+
+        for f in articles:
             id = f['id']
             lk = f.find('a')
             link = lk['href']
@@ -536,15 +528,17 @@ class GC(object):
                     "year": year,
                     "id": re.sub('post-', '', id).strip(),
                     "site": 'DDL(GetComics)',
-                    "page": pagenumber,
-                    "total_pages": total_pages,
                 }
             )
 
             logger.fdebug('%s [%s]' % (title, size))
 
-        results['entries'] = resultlist
-        return results
+        older_posts_a = soup.find("a", class_="pagination-older")
+        next_page = None
+        if older_posts_a is not None:
+            next_page = older_posts_a.get("href")
+
+        return resultlist, next_page
 
     def parse_downloadresults(self, id, mainlink, comicinfo=None):
         try:

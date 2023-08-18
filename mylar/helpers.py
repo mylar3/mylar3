@@ -3271,7 +3271,10 @@ def ddl_downloader(queue):
                 except Exception as e:
                     logger.error('process error: %s [%s]' %(e, ddzstat))
             elif all([ddzstat['success'] is True, mylar.CONFIG.POST_PROCESSING is False]):
-                logger.info('File successfully downloaded. Post Processing is not enabled - item retained here: %s' % os.path.join(ddzstat['path'],ddzstat['filename']))
+                path = ddzstat['path']
+                if ddzstat['filename'] is not None:
+                    path = os.path.join(path, ddzstat['filename'])
+                logger.info('File successfully downloaded. Post Processing is not enabled - item retained here: %s' % (path,))
             else:
                 logger.info('[Status: %s] Failed to download: %s ' % (ddzstat['success'], ddzstat))
                 nval = {'status':  'Failed',
