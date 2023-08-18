@@ -664,11 +664,11 @@ def queue_schedule(queuetype, mode):
         except Exception as e:
             pass
 
-        logger.info('[%s] %s', name, before_msg)
+        logger.info('[%s] %s' % (name, before_msg))
         thread = threading.Thread(target=target, args=(q_arg,), name=name)
         setattr(mylar, pool_attr, thread)
         thread.start()
-        logger.info('[%s] %s', name, after_msg)
+        logger.info('[%s] %s' % (name, after_msg))
 
     def shutdown(pool, mylar_queue, thread_name):
         try:
