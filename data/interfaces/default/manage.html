@@ -281,11 +281,12 @@
                         <thead>
                            <tr border="1">
                                 <th style="width: 50px;text-align: center;">Queue Name</th>
+                                <th style="width: 50px;text-align: center;">Queue Length</th>
                                 <th style="width: 50px;text-align: center;">Worker Up/Down</th>
                            </tr>
                         </thead>
                         <tbody>
-                           %for q_name, is_up in queues.items():
+                           %for q_name, (is_up, length) in queues.items():
                               <%
                                     if is_up:
                                         text = "Up"
@@ -299,6 +300,7 @@
                                %>
                               <tr>
                                 <td style="width: 50px;text-align: center;">${q_name}</td>
+                                <td style="width: 50px;text-align: center;">${length}</td>
                                 <td style="width: 50px;text-align: center;color:${grade}">${text}</td>
                               </tr>
                            %endfor
