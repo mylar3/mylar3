@@ -286,17 +286,20 @@
                         </thead>
                         <tbody>
                            %for q_name, is_up in queues.items():
+                              <%
+                                    if is_up:
+                                        text = "Up"
+                                        grade = '#7AEE52'
+                                    elif is_up is not None:
+                                        text = "Down"
+                                        grade = '#EC7564'
+                                    else:
+                                        text = "Never Started"
+                                        grade = '#52A9EE'
+                               %>
                               <tr>
                                 <td style="width: 50px;text-align: center;">${q_name}</td>
-                                <td style="width: 50px;text-align: center;">
-                                %if is_up:
-                                    Up
-                                %elif is_up is not None:
-                                    Down
-                                %else:
-                                    Never Started
-                                %endif
-                                </td>
+                                <td style="width: 50px;text-align: center;color:${grade}">${text}</td>
                               </tr>
                            %endfor
                         </tbody>
