@@ -3962,7 +3962,17 @@ class WebInterface(object):
                             'jobname': jb['JobName'],
                             'status': status})
             jobresults = tmp
-        return serve_template(templatename="manage.html", title="Manage", mylarRoot=mylarRoot, jobs=jobresults, scan_info=scan_info)
+        queues = {
+            queue_name: thread_obj.is_alive() if thread_obj is not None else None
+            for (queue_name, thread_obj) in [
+                ("AUTO-COMPLETE-NZB", mylar.NZBPOOL),
+                ("AUTO-SNATCHER", mylar.SNPOOL),
+                ("DDL-QUEUE", mylar.DDLPOOL),
+                ("POST-PROCESS-QUEUE", mylar.PPPOOL),
+                ("SEARCH-QUEUE", mylar.SEARCHPOOL),
+            ]
+        }
+        return serve_template(templatename="manage.html", title="Manage", mylarRoot=mylarRoot, jobs=jobresults, queues=queues, scan_info=scan_info)
     manage.exposed = True
 
     def jobmanage(self, job, mode):
