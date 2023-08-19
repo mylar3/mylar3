@@ -274,6 +274,33 @@
                         </tbody>
            </table>
            </br><small><center>There could be up to a 60s delay in a given scheduler running due to other processes currently running</center></small>
+           <br/>
+           <table summary="Queue Status" width="100%" cellpadding="6px" cellspacing="2px">
+                      <legend><center><h1>Queues<h1><center></legend>
+                      <br />
+                        <thead>
+                           <tr border="1">
+                                <th style="width: 50px;text-align: center;">Queue Name</th>
+                                <th style="width: 50px;text-align: center;">Worker Up/Down</th>
+                           </tr>
+                        </thead>
+                        <tbody>
+                           %for q_name, is_up in queues.items():
+                              <tr>
+                                <td style="width: 50px;text-align: center;">${q_name}</td>
+                                <td style="width: 50px;text-align: center;">
+                                %if is_up:
+                                    Up
+                                %elif is_up is not None:
+                                    Down
+                                %else:
+                                    Never Started
+                                %endif
+                                </td>
+                              </tr>
+                           %endfor
+                        </tbody>
+           </table>
         </div>
 
 
