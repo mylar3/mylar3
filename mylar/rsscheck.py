@@ -912,6 +912,7 @@ def torrentdbsearch(seriesname, issue, comicid=None, nzbprov=None, oneoff=False)
 def nzbdbsearch(seriesname, issue, comicid=None, nzbprov=None, searchYear=None, ComicVersion=None, oneoff=False, rsslist=None, provider_list=None):
     extensions = ('cbr', 'cbz')
     nzbtheinfo = []
+    nzbinfo = {}
 
     myDB = db.DBConnection()
     seriesname_alt = None
@@ -1066,6 +1067,7 @@ def nzbdbsearch(seriesname, issue, comicid=None, nzbprov=None, searchYear=None, 
                     return "no results"
 
         nzbtheinfo = []
+        nzbinfo = {}
 
         if nzbprov == 'experimental':
             except_list=['releases', 'gold line', 'distribution', '0-day', '0 day']
@@ -1139,7 +1141,8 @@ def nzbdbsearch(seriesname, issue, comicid=None, nzbprov=None, searchYear=None, 
                                  })
                 #logger.fdebug("entered info for " + nzb['Title'])
 
-    return nzbtheinfo
+    nzbinfo['entries'] = nzbtheinfo
+    return nzbinfo
 
 def torsend2client(seriesname, issue, seriesyear, linkit, site, pubhash=None):
     logger.info('matched on ' + seriesname)
