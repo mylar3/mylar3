@@ -1127,7 +1127,7 @@ def NZB_SEARCH(
             else:
                 if len(bb['entries']) > 0:
                     sfs = search_filer.search_check()
-                    verified_matches = sfs.checker(bb, is_info)
+                    verified_matches = sfs.checker(bb['entries'], is_info)
                 else:
                     verified_matches = 'no results'
 
