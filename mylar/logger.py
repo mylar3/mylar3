@@ -123,7 +123,7 @@ if not LOG_LANG.startswith('en'):
                 self.consolehandler = consolehandler
 
         @staticmethod
-        def log(message, level):
+        def log(message, level, *args, **kwargs):
             logger = logging.getLogger('mylar')
 
             threadname = threading.currentThread().getName()
@@ -149,34 +149,34 @@ if not LOG_LANG.startswith('en'):
 
             message = "%s : %s:%s:%s : %s" % (threadname, program, method, lineno, message)
             if level == 'DEBUG':
-                logger.debug(message)
+                logger.debug(message, *args, **kwargs)
             elif level == 'INFO':
-                logger.info(message)
+                logger.info(message, *args, **kwargs)
             elif level == 'WARNING':
-                logger.warning(message)
+                logger.warning(message, *args, **kwargs)
             else:
-                logger.error(message)
+                logger.error(message, *args, **kwargs)
 
     mylar_log = RotatingLogger('mylar.log')
     filename = 'mylar.log'
 
-    def debug(message):
+    def debug(message, *args, **kwargs):
         if mylar.LOG_LEVEL > 1:
-            mylar_log.log(message, level='DEBUG')
+            mylar_log.log(message, 'DEBUG', *args, **kwargs)
 
-    def fdebug(message):
+    def fdebug(message, *args, **kwargs):
         if mylar.LOG_LEVEL > 1:
-            mylar_log.log(message, level='DEBUG')
+            mylar_log.log(message, 'DEBUG', *args, **kwargs)
 
-    def info(message):
+    def info(message, *args, **kwargs):
         if mylar.LOG_LEVEL > 0:
-            mylar_log.log(message, level='INFO')
+            mylar_log.log(message, 'INFO', *args, **kwargs)
 
-    def warn(message):
-        mylar_log.log(message, level='WARNING')
+    def warn(message, *args, **kwargs):
+        mylar_log.log(message, 'WARNING', *args, **kwargs)
 
-    def error(message):
-        mylar_log.log(message, level='ERROR')
+    def error(message, *args, **kwargs):
+        mylar_log.log(message, 'ERROR', *args, **kwargs)
 
     def safe_unicode(obj, *args):
         """ return the unicode representation of obj """

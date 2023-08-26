@@ -353,13 +353,11 @@ _CONFIG_DEFINITIONS = OrderedDict({
     'ENABLE_TORRENTS': (bool, 'Torrents', False),
     'ENABLE_TORRENT_SEARCH': (bool, 'Torrents', False),
     'MINSEEDS': (int, 'Torrents', 0),
-    'ALLOW_PACKS': (bool, 'Torrents', False),
     'ENABLE_PUBLIC': (bool, 'Torrents', False),
     'PUBLIC_VERIFY': (bool, 'Torrents', True),
 
     'ENABLE_DDL': (bool, 'DDL', False),
     'ENABLE_GETCOMICS': (bool, 'DDL', False),
-    'ALLOW_PACKS': (bool, 'DDL', False),
     'PACK_PRIORITY': (bool, 'DDL', False),
     'DDL_QUERY_DELAY': (int, 'DDL', 15),
     'DDL_LOCATION': (str, 'DDL', None),

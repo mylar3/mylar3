@@ -168,7 +168,6 @@ class GC(object):
 
         self.cookie_receipt()
 
-        results = {}
         try:
             reversed_order = True
             if is_info is not None:
@@ -184,7 +183,6 @@ class GC(object):
                 self.search_format.insert(0, '%s %s' % (self.query['comicname'], self.query['year']))
 
             for sf in self.search_format:
-                resultset = []
                 verified_matches = []
                 sf_issue = self.query['issue']
                 if is_info['chktpb'] == 1 and self.query['comicname'] == sf:
@@ -230,26 +228,15 @@ class GC(object):
 
                 logger.fdebug('[DDL-QUERY] Query set to: %s' % queryline)
 
-                for x in self.perform_search_queries(queryline):
-                    bb = next((item for item in resultset if item['link'] == x['link']), None)
-                    try:
-                        if 'Weekly' not in self.query['comicname'] and 'Weekly' in x['title']:
-                            continue
-                        elif bb is None:
-                            resultset.append(x)
-                    except Exception as e:
-                        resultset.append(x)
-                    else:
-                        continue
-
-                logger.info('resultset: %s' % (resultset,))
-                if len(resultset) >= 1:
-                    results['entries'] = resultset
-                    sfs = search_filer.search_check()
-                    verified_matches = sfs.checker(results, is_info)
-                    if verified_matches:
-                        logger.fdebug('verified_matches: %s' % (verified_matches,))
-                        break
+                result_generator = self.perform_search_queries(queryline)
+                sfs = search_filer.search_check()
+                match = sfs.check_for_first_result(
+                    result_generator, is_info, prefer_pack=mylar.CONFIG.PACK_PRIORITY
+                )
+                if match is not None:
+                    verified_matches = [match]
+                    logger.fdebug('verified_matches: %s' % (verified_matches,))
+                    break
                 logger.fdebug('sleep...%s%s' % (mylar.CONFIG.DDL_QUERY_DELAY, 's'))
                 time.sleep(mylar.CONFIG.DDL_QUERY_DELAY)
 
@@ -343,7 +330,7 @@ class GC(object):
 
     def perform_search_queries(self, queryline):
         next_url = self.url
-        results = []
+        seen_urls = set()
         while next_url is not None:
             pause_the_search = mylar.CONFIG.DDL_QUERY_DELAY
             diff = mylar.search.check_time(self.provider_stat['lastrun']) # only limit the search queries - the other calls should be direct and not as intensive
@@ -365,8 +352,14 @@ class GC(object):
             mylar.search.last_run_check(write={'DDL(GetComics)': {'id': 200, 'active': True, 'lastrun': write_time, 'type': 'DDL', 'hits': self.provider_stat['hits']+1}})
             self.provider_stat['lastrun'] = write_time
             page_results, next_url = self.parse_search_result(page_html)
-            results.extend(page_results)
-        return results
+
+            for result in page_results:
+                if 'Weekly' not in self.query.get('comicname', "") and 'Weekly' in result.get('title', ""):
+                    continue
+                if result["link"] in seen_urls:
+                    continue
+                seen_urls.add(result["link"])
+                yield result
 
     def parse_search_result(self, page_html):
         resultlist = []
@@ -469,48 +462,55 @@ class GC(object):
                 ):
                     continue
 
-            option_find = f.find("p", {"style": "text-align: center;"})
+            needle_style = "text-align: center;"
+            option_find = f.find("p", {"style": needle_style})
             i = 0
             if option_find is None:
-                continue
-            else:
-                while i <= 2 and option_find is not None:
-                    option_find = option_find.findNext(text=True)
-                    if 'Year' in option_find:
-                        year = option_find.findNext(text=True)
-                        year = re.sub(r'\|', '', year).strip()
-                        if pack is True:
-                            title = re.sub(r'\(' + year + r'\)', '', title).strip()
-                    else:
-                        size = option_find.findNext(text=True)
+                # Some search results have the "option_find" HTML as escaped
+                # text instead of actual HTML: try to salvage a option_find in
+                # that case
+                excerpt = f.find("p", class_="post-excerpt")
+                if excerpt is not None and needle_style in excerpt.text:
+                    option_find = BeautifulSoup(excerpt.text, "html.parser").find("p", {"style": needle_style})
+                else:
+                    continue
+            while i <= 2 and option_find is not None:
+                option_find = option_find.findNext(text=True)
+                if 'Year' in option_find:
+                    year = option_find.findNext(text=True)
+                    year = re.sub(r'\|', '', year).strip()
+                    if pack is True:
+                        title = re.sub(r'\(' + year + r'\)', '', title).strip()
+                else:
+                    size = option_find.findNext(text=True)
+                    if all(
+                        [
+                            re.sub(':', '', size).strip() != 'Size',
+                            len(re.sub(r'[^0-9]', '', size).strip()) > 0,
+                        ]
+                    ):
                         if all(
-                            [
-                                re.sub(':', '', size).strip() != 'Size',
-                                len(re.sub(r'[^0-9]', '', size).strip()) > 0,
-                            ]
+                                  [
+                                      '-' in size,
+                                      re.sub(r'[^0-9]', '', size).strip() == '',
+                                  ]
                         ):
-                            if all(
-                                      [
-                                          '-' in size,
-                                          re.sub(r'[^0-9]', '', size).strip() == '',
-                                      ]
-                            ):
-                                size = None
-                            if 'MB' in size:
-                                size = re.sub('MB', 'M', size).strip()
-                            if 'GB' in size:
-                                size = re.sub('GB', 'G', size).strip()
-                            if '//' in size:
-                                nwsize = size.find('//')
-                                size = re.sub(r'\[', '', size[:nwsize]).strip()
-                            elif '/' in size:
-                                nwsize = size.find('/')
-                                size = re.sub(r'\[', '', size[:nwsize]).strip()
-                            if '-' in size:
-                                size = None
-                        else:
-                            size = '0M'
-                    i += 1
+                            size = None
+                        if 'MB' in size:
+                            size = re.sub('MB', 'M', size).strip()
+                        if 'GB' in size:
+                            size = re.sub('GB', 'G', size).strip()
+                        if '//' in size:
+                            nwsize = size.find('//')
+                            size = re.sub(r'\[', '', size[:nwsize]).strip()
+                        elif '/' in size:
+                            nwsize = size.find('/')
+                            size = re.sub(r'\[', '', size[:nwsize]).strip()
+                        if '-' in size:
+                            size = None
+                    else:
+                        size = '0M'
+                i += 1
             dateline = f.find('time')
             datefull = dateline['datetime']
             datestamp = time.mktime(time.strptime(datefull, "%Y-%m-%d"))
