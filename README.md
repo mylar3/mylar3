@@ -1,17 +1,20 @@
 ## ![Mylar Logo](https://github.com/mylar3/mylar3/blob/master/data/images/mylarlogo.png) Mylar3
 
+[![GitHub release (latest SemVer)](https://img.shields.io/github/v/release/mylar3/mylar3?color=blue&label=current%20release&sort=semver)](https://github.com/mylar3/mylar3/releases)
+[![Docker Pulls](https://img.shields.io/docker/pulls/linuxserver/mylar3)](https://hub.docker.com/r/linuxserver/mylar3)
+
+[![Discord](https://img.shields.io/discord/678794935368941569?label=Discord&color=blue)](https://discord.gg/6UG94R7E8T)
+
 Mylar is an automated Comic Book (cbr/cbz) downloader program for use with NZB and torrents.
 
 Mylar allows you to create a watchlist of series that it monitors for various things (new issues, updated information, etc). It will grab, sort, and rename downloaded issues.
 It will also allow you to monitor weekly pull-lists for items belonging to said watchlisted series to download, as well as being able to monitor and maintain story-arcs.
 
-## Getting Started
-- [Installation](https://github.com/mylar3/mylar3/wiki/Installation-Instructions)
-- [Upgrading from evilhero/mylar](https://github.com/mylar3/mylar3/wiki/Upgrading-from-the-evilhero-version)
-- [IMPORTANT INFORMATION ABOUT ComicVine Data](https://github.com/mylar3/mylar3/wiki/Where-Mylar-gets-the-metadata-from)
-- [Wiki](https://github.com/mylar3/mylar3/wiki)
-- [FAQ](https://github.com/mylar3/mylar3/wiki/FAQ)
-- [API Documentation](https://github.com/mylar3/mylar3/wiki/API-Documentation)
+## Installation
+Install it via git clone or via [Docker](https://hub.docker.com/r/linuxserver/mylar3)
+
+## Documentation
+Check out our [website](https://mylarcomics.com) for documentation!
 
 ## Support & Discussion
 Please try to limit Github issues to bugs & enhancement requests ONLY
@@ -42,7 +45,7 @@ Please try to limit Github issues to bugs & enhancement requests ONLY
 AND SO MUCH MORE!
 
 ## Contributing
-If you wish to help out, please see the wiki: [contributing](https://github.com/mylar3/mylar3/wiki/Contributing)
+If you wish to help out, please see our website: [contributing](https://mylarcomics.com/docs/contributing)
  
 <p align="center">This project exists thanks to all the people who contribute - whether by code, assisting others or financial donations.</br> 
 To all those who have contributed, we thank you for your support.</p>
