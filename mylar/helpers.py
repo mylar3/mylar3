@@ -3491,7 +3491,7 @@ QueueInfo = namedtuple("QueueInfo", ("name", "is_alive", "size"))
 
 
 def queue_info():
-    return [
+    yield from (
         QueueInfo(queue_name, thread_obj.is_alive() if thread_obj is not None else None, queue.qsize())
         for (queue_name, thread_obj, queue) in [
             ("AUTO-COMPLETE-NZB", mylar.NZBPOOL, mylar.NZB_QUEUE),
@@ -3500,7 +3500,7 @@ def queue_info():
             ("POST-PROCESS-QUEUE", mylar.PPPOOL, mylar.PP_QUEUE),
             ("SEARCH-QUEUE", mylar.SEARCHPOOL, mylar.SEARCH_QUEUE),
         ]
-    ]
+    )
 
 
 def script_env(mode, vars):
