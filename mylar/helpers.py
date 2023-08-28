@@ -34,6 +34,7 @@ import hashlib
 import gzip
 import os, errno
 import urllib
+from collections import namedtuple
 from urllib.parse import urljoin
 from io import StringIO
 from apscheduler.triggers.interval import IntervalTrigger
@@ -3486,9 +3487,12 @@ def cdh_monitor(queue, item, nzstat, readd=False):
     return
 
 
+QueueInfo = namedtuple("QueueInfo", ("name", "is_alive", "size"))
+
+
 def queue_info():
-    return {
-        queue_name: (thread_obj.is_alive() if thread_obj is not None else None, queue.qsize())
+    return [
+        QueueInfo(queue_name, thread_obj.is_alive() if thread_obj is not None else None, queue.qsize())
         for (queue_name, thread_obj, queue) in [
             ("AUTO-COMPLETE-NZB", mylar.NZBPOOL, mylar.NZB_QUEUE),
             ("AUTO-SNATCHER", mylar.SNPOOL, mylar.SNATCHED_QUEUE),
@@ -3496,7 +3500,7 @@ def queue_info():
             ("POST-PROCESS-QUEUE", mylar.PPPOOL, mylar.PP_QUEUE),
             ("SEARCH-QUEUE", mylar.SEARCHPOOL, mylar.SEARCH_QUEUE),
         ]
-    }
+    ]
 
 
 def script_env(mode, vars):
