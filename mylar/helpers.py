@@ -3485,6 +3485,20 @@ def cdh_monitor(queue, item, nzstat, readd=False):
             logger.error('process error: %s' % e)
     return
 
+
+def queue_info():
+    return {
+        queue_name: (thread_obj.is_alive() if thread_obj is not None else None, queue.qsize())
+        for (queue_name, thread_obj, queue) in [
+            ("AUTO-COMPLETE-NZB", mylar.NZBPOOL, mylar.NZB_QUEUE),
+            ("AUTO-SNATCHER", mylar.SNPOOL, mylar.SNATCHED_QUEUE),
+            ("DDL-QUEUE", mylar.DDLPOOL, mylar.DDL_QUEUE),
+            ("POST-PROCESS-QUEUE", mylar.PPPOOL, mylar.PP_QUEUE),
+            ("SEARCH-QUEUE", mylar.SEARCHPOOL, mylar.SEARCH_QUEUE),
+        ]
+    }
+
+
 def script_env(mode, vars):
     #mode = on-snatch, pre-postprocess, post-postprocess
     #var = dictionary containing variables to pass
