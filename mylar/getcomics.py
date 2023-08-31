@@ -956,6 +956,8 @@ class GC(object):
                     new_path = dst_path
                 return {"success": True, "filename": filename, "path": new_path}
 
+        return {"success": False, "filename": filename, "path": None}
+
     def issue_list(self, pack):
         # packlist = [x.strip() for x in pack.split(',)]
         packlist = pack.replace('+', ' ').replace(',', ' ').split()
