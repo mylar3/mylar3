@@ -956,6 +956,7 @@ class GC(object):
                     new_path = dst_path
                 return {"success": True, "filename": filename, "path": new_path}
 
+        mylar.DDL_LOCK = False
         return {"success": False, "filename": filename, "path": None}
 
     def issue_list(self, pack):
