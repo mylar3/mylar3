@@ -129,7 +129,6 @@ class GC(object):
         }
 
         self.headers = {
-            'Accept-encoding': 'gzip',
             'User-Agent': 'Mozilla/5.0 (Windows NT 6.1; WOW64; rv:40.0) Gecko/20100101 Firefox/40.1',
             'Referer': mylar.GC_URL,
         }
@@ -155,12 +154,6 @@ class GC(object):
         self.oneoff = oneoff
 
         self.search_format = ['"%s #%s (%s)"', '%s #%s (%s)', '%s #%s', '%s %s']
-
-        self.headers = {
-            'Accept-encoding': 'gzip',
-            'User-Agent': 'Mozilla/5.0 (Windows NT 6.1; WOW64; rv:40.0) Gecko/20100101 Firefox/40.1',
-            'Referer': mylar.GC_URL,
-        }
 
         self.provider_stat = provider_stat
 
@@ -318,6 +311,7 @@ class GC(object):
         t = self.session.get(
             link,
             verify=True,
+            headers=self.headers,
             stream=True,
             timeout=(30,10)
         )
@@ -773,6 +767,7 @@ class GC(object):
         myDB = db.DBConnection()
         filename = None
         self.cookie_receipt()
+        self.headers['Accept-encoding'] = 'gzip'
         try:
             with requests.Session() as s:
                 if resume is not None:
@@ -787,7 +782,7 @@ class GC(object):
                     verify=True,
                     headers=self.headers,
                     stream=True,
-                    timeout=(30,10)
+                    timeout=(30,30)
                 )
 
                 filename = os.path.basename(
