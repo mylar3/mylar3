@@ -1139,6 +1139,12 @@ class Config(object):
         if any([self.COMICVINE_API is None, self.COMICVINE_API == 'None', self.COMICVINE_API == '']):
             logger.error('No User Comicvine API key specified. I will not work very well due to api limits - http://api.comicvine.com/ and get your own free key.')
             self.COMICVINE_API = None
+        # Check if Comicvine API key starts with None, thus making it invalid
+        elif self.COMICVINE_API[:4] == 'None':
+            # Notify user of what's going on
+            logger.warn('Comicvine API key starts with a None, working around for now, please fix')
+            # Set the actual API key, so mylar does not appear broken from the start
+            self.COMICVINE_API = self.COMICVINE_API[4:]
 
         if self.SEARCH_INTERVAL < 360:
             logger.fdebug('Search interval too low. Resetting to 6 hour minimum')
