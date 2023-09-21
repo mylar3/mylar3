@@ -1410,6 +1410,9 @@ def mass_publishers(publishers, weeknumber, year):
         for wt in watchlist:
             if wt['ComicID'] not in watchlibrary and wt['ComicID'] is not None:
                 if not {"comicid": wt['ComicID'], "comicname": wt['COMIC']} in mylar.ADD_LIST.queue:
+                    if wt['Publisher'] in mylar.CONFIG.IGNORED_PUBLISHERS:
+                        logger.info("[SHIZZLE-WHIZZLE] %s is in your ignored_publishers list skipping %s either it's a configuration issue or a mismatch in the weekly pull-list" % (wt['Publisher'], wt['COMIC']))
+                        continue
                     watch.append({"comicid": wt['ComicID'], "comicname": wt['COMIC'], "seriesyear": wt['seriesyear']})
 
     if len(watch) > 0:
