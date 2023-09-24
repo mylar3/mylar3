@@ -1388,7 +1388,17 @@ class FileChecker(object):
         n_name = 'annual'
         if mylar.CONFIG.ANNUALS_ON:
             ann_year_check = re.findall(r'(\d{4})(?=[\s]|annual\b|$)', self.watchcomic, flags=re.I)
-            if all(['annual' in nspace_watchcomic.lower(), 'annual' not in series_name.lower()]):
+            if all(
+                      [
+                          'annual' in nspace_watchcomic.lower(),
+                          'annual' not in series_name.lower()
+                      ]
+                ) or all(
+                      [
+                          'annual' not in nspace_watchcomic.lower(),
+                          'annual' in series_name.lower()
+                      ]
+                ):
                 annualisation = True
                 justthedigits = 'Annual'
                 if series_info['issue_number'] is not None:
