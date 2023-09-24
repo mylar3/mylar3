@@ -903,8 +903,14 @@ class search_check(object):
                     ):
                         intIss = 1000
                     else:
-                        if annualize is True and len(re.sub('[^0-9]', '', parsed_comic['issue_number']).strip()) == 4:
-                            intIss = 1000
+                        if annualize is True:
+                            if len(re.sub('[^0-9]', '', parsed_comic['issue_number']).strip()) == 4:
+                                intIss = 1000
+                            elif parsed_comic['issue_number'] is not None:
+                                intIss = helpers.issuedigits(parsed_comic['issue_number'])
+                            else:
+                                # if issue_number is None, assume it's #1 of the annual
+                                intIss = 1000
                         else:
                             intIss = 9999999999
                 if filecomic['justthedigits'] is not None:
