@@ -100,10 +100,10 @@
                                  optpos = '</br><div style=\"display:block;float:right;position:absolute;right:20px;top:120px;\">'
                          %>
                      ${optpos}
-                         <form action="downloadBanner" method="GET">
+                         <form name="banner_stuff" onsubmit="return checkValids(event)" action="downloadBanner" method="POST">
                          <label style="display:inline;float:right;">Banner Image Retrieval</label></br>
-                               <input style="display:inline;float:right;" type="text" title="enter full url where image resides" placeholder="full URL where image resides" onfocus="if(this.value==this.defaultValue) this.value='';" name="url" size="25">
-                               <input style="display:inline;float:right;" type="image" src="images/download_icon.png" height="20" width="20" alt="submit"></br>
+                               <input style="display:inline;float:right;" id="banner_url" type="text" title="enter full url where image resides" placeholder="full URL where image resides" name="url" size="25">
+                               <input style="display:inline;float:right;" id="bannner_click" type="image" src="images/download_icon.png" height="20" width="20" alt="submit"></br>
                                <input type="hidden" name="storyarcid" value="${storyarcid}">
                                <input type="hidden" name="storyarcname" value="${storyarcname| u}">
                           %if storyarcbanner is not None:
@@ -310,6 +310,31 @@
                },
             });
         }            
+        function checkValids(e) {
+            var urlchk = document.getElementById("banner_url");
+            if (urlchk.value == ""){
+                e.preventDefault();
+                //alert("1 - no url");
+                urlchk.placeholder = "Invalid URL";
+                timeout = setTimeout(function() {
+                  urlchk.placeholder = "full URL where image resides";
+                }, 5000);
+                return false;
+            } else {
+                if (urlchk.value.startsWith("http")){
+                    //alert("url provided");
+                    return true;
+                }
+            }
+            //alert("2 - no url");
+            e.preventDefault();
+            urlchk.placeholder = "Invalid URL";
+            timeout = setTimeout(function() {
+              urlchk.placeholder = "full URL where image resides";
+            }, 5000);
+            return false;
+        }
+
 	function initThisPage() {
                 $(function() {
                         $( "#tabs" ).tabs();
