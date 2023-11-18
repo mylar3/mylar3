@@ -1033,7 +1033,14 @@ def new_pullcheck(weeknumber, pullyear, comic1off_name=None, comic1off_id=None, 
                 if mylar.CONFIG.ANNUALS_ON is True:
                     annualidmatch = [x for x in weeklylist if week['comicid'] is not None and ([xa for xa in x['AnnualIDs'] if int(xa['ComicID']) == int(week['comicid'])])]
                     if not annualidmatch:
-                        annualidmatch = [x for x in weeklylist if week['annuallink'] is not None and (int(x['ComicID']) == int(week['annuallink']))]
+                        annual_link = week['annuallink']
+                        if annual_link is not None:
+                            try:
+                                annual_link = int(annual_link)
+                            except ValueError:
+                                logger.warn("[WEEKLY-PULL] %s #%s has an invalid annuallink value (%s): walksoftly data may be invalid; skipping", week['ComicName'], week['ISSUE'], week['annuallink'])
+                                continue
+                        annualidmatch = [x for x in weeklylist if annual_link is not None and (int(x['ComicID']) == annual_link)]
 
                 #The above will auto-match against ComicID if it's populated on the pullsite, otherwise do name-matching.
                 namematch = [ab for ab in weeklylist if ab['DynamicName'] == week['dynamicname']]
@@ -1403,6 +1410,9 @@ def mass_publishers(publishers, weeknumber, year):
         for wt in watchlist:
             if wt['ComicID'] not in watchlibrary and wt['ComicID'] is not None:
                 if not {"comicid": wt['ComicID'], "comicname": wt['COMIC']} in mylar.ADD_LIST.queue:
+                    if wt['Publisher'] in mylar.CONFIG.IGNORED_PUBLISHERS:
+                        logger.info("[SHIZZLE-WHIZZLE] %s is in your ignored_publishers list skipping %s either it's a configuration issue or a mismatch in the weekly pull-list" % (wt['Publisher'], wt['COMIC']))
+                        continue
                     watch.append({"comicid": wt['ComicID'], "comicname": wt['COMIC'], "seriesyear": wt['seriesyear']})
 
     if len(watch) > 0:

@@ -3962,16 +3962,7 @@ class WebInterface(object):
                             'jobname': jb['JobName'],
                             'status': status})
             jobresults = tmp
-        queues = {
-            queue_name: (thread_obj.is_alive() if thread_obj is not None else None, queue.qsize())
-            for (queue_name, thread_obj, queue) in [
-                ("AUTO-COMPLETE-NZB", mylar.NZBPOOL, mylar.NZB_QUEUE),
-                ("AUTO-SNATCHER", mylar.SNPOOL, mylar.SNATCHED_QUEUE),
-                ("DDL-QUEUE", mylar.DDLPOOL, mylar.DDL_QUEUE),
-                ("POST-PROCESS-QUEUE", mylar.PPPOOL, mylar.PP_QUEUE),
-                ("SEARCH-QUEUE", mylar.SEARCHPOOL, mylar.SEARCH_QUEUE),
-            ]
-        }
+        queues = helpers.queue_info()
         return serve_template(templatename="manage.html", title="Manage", mylarRoot=mylarRoot, jobs=jobresults, queues=queues, scan_info=scan_info)
     manage.exposed = True
 
@@ -7376,6 +7367,27 @@ class WebInterface(object):
 
     api.exposed = True
 
+    def prometheus_metrics(self):
+        logger.debug("Responding to Prometheus metrics request")
+        cherrypy.response.headers['Content-Type'] = "text/plain"
+        q_metrics = {name: {} for name in ["alive", "size", "started"]}
+        for q in helpers.queue_info():
+            normalised_name = q.name.replace("-", "_")
+
+            q_metrics["size"][normalised_name] = q.size
+            q_metrics["started"][normalised_name] = "1" if q.is_alive is not None else "0"
+            q_metrics["alive"][normalised_name] = "1" if q.is_alive else "0"
+
+        response = ""
+        for metric, items in q_metrics.items():
+            full_metric = f"mylar_queue_{metric}"
+            response += f"# TYPE {full_metric} gauge\n"
+            for name, value in items.items():
+                response += '%s{queue="%s"} %s\n' % (full_metric, name, value)
+            response += "\n"
+        return response
+
+    prometheus_metrics.exposed = True
 
     def opds(self, *args, **kwargs):
         from mylar.opds import OPDS

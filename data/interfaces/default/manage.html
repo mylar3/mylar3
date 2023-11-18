@@ -286,12 +286,12 @@
                            </tr>
                         </thead>
                         <tbody>
-                           %for q_name, (is_up, length) in queues.items():
+                           %for q in queues:
                               <%
-                                    if is_up:
+                                    if q.is_alive:
                                         text = "Up"
                                         grade = '#7AEE52'
-                                    elif is_up is not None:
+                                    elif q.is_alive is not None:
                                         text = "Down"
                                         grade = '#EC7564'
                                     else:
@@ -299,14 +299,14 @@
                                         grade = '#52A9EE'
                                %>
                               <tr>
-                                <td style="width: 50px;text-align: center;">${q_name}</td>
-                                <td style="width: 50px;text-align: center;">${length}</td>
+                                <td style="width: 50px;text-align: center;">${q.name}</td>
+                                <td style="width: 50px;text-align: center;">${q.size}</td>
                                 <td style="width: 50px;text-align: center;color:${grade}">${text}</td>
                               </tr>
                            %endfor
                         </tbody>
            </table>
-           </br><small><center>Workers are only started if your config requires them. The DDL worker can be restarted <a href="/queueManage">here</a>: other workers require a restart of Mylar to repair.</center></small>
+           </br><small><center>Workers are only started if your config requires them. Down workers require a restart of Mylar to repair.</center></small>
         </div>
 
 
