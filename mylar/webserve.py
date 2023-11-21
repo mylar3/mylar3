@@ -7804,6 +7804,9 @@ class WebInterface(object):
                      'meta_dir': cinfo['ComicLocation']}
 
         groupinfo = myDB.select('SELECT IssueID, Location FROM issues WHERE ComicID=? and Location is not NULL', [ComicID])
+        if mylar.CONFIG.ANNUALS_ON:
+            groupinfo += myDB.select('SELECT IssueID, Location FROM annuals WHERE ComicID=? and Location is not NULL', [ComicID])
+
         if groupinfo is None:
             logger.warn('No issues physically exist within the series directory for me to (re)-tag.')
             return
