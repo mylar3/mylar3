@@ -362,6 +362,7 @@ _CONFIG_DEFINITIONS = OrderedDict({
     'DDL_QUERY_DELAY': (int, 'DDL', 15),
     'DDL_LOCATION': (str, 'DDL', None),
     'DDL_AUTORESUME': (bool, 'DDL', True),
+    'DDL_PREFER_UPSCALED': (bool, 'DDL', True),
     'ENABLE_FLARESOLVERR': (bool, 'DDL', False),
     'FLARESOLVERR_URL': (str, 'DDL', None),
     'ENABLE_PROXY': (bool, 'DDL', False),

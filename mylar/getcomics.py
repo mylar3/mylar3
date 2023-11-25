@@ -546,44 +546,174 @@ class GC(object):
         size = None
         title = os.path.join(mylar.CONFIG.CACHE_DIR, 'getcomics-' + id)
         soup = BeautifulSoup(open(title + '.html', encoding='utf-8'), 'html.parser')
-        orig_find = soup.find("p", {"style": "text-align: center;"})
+
         i = 0
-        option_find = orig_find
         possible_more = None
-        while True:  # i <= 10:
-            prev_option = option_find
-            option_find = option_find.findNext(text=True)
-            if i == 0 and series is None:
-                series = option_find
-            elif 'Year' in option_find:
-                year = option_find.findNext(text=True)
-                year = re.sub(r'\|', '', year).strip()
-            else:
-                if 'Size' in prev_option:
-                    size = option_find  # .findNext(text=True)
-                    possible_more = orig_find.next_sibling
+        valid_links = {}
+        multiple_links = None
+        gather_links = []
+        count_bees = 0
+        looped_thru_once = True
+
+        beeswax = soup.findAll("p", {"style": "text-align: center;"})
+        while True:
+            #logger.fdebug('count_bees: %s' % count_bees)
+            f = beeswax[count_bees]
+            option_find = beeswax[count_bees]
+            linkage = f.find("div", {"class": "aio-pulse"})
+            #logger.fdebug('linkage: %s' % linkage)
+            if not linkage:
+                linkage_test = f.text.strip()
+                if 'support and donation' in linkage_test:
+                    logger.fdebug('detected end of links - breaking out here...')
                     break
-            i += 1
+
+                if looped_thru_once and all(
+                    [
+                     'Language' in linkage_test,
+                     'Year' in linkage_test,
+                     'Size' in linkage_test,
+                    ]
+                ):
+                    logger.fdebug('detected headers of title - ignoring this portion...')
+                    while True:
+                        prev_option = option_find
+                        option_find = option_find.findNext(text=True)
+                        if (i == 0 and series is None):
+                            series = option_find
+                            #logger.fdebug('series: %s' % series)
+                            if 'upscaled' in series.lower():
+                                valid_links['HD-Upscaled'] = {'series': re.sub('(hd-upscaled)', '', series, re.IGNORECASE).strip()}
+                                multiple_links = 'HD-Upscaled'
+                            elif 'sd-digital' in series.lower():
+                                valid_links['SD-Digital'] = {'series': re.sub('(sd-digital)', '', series, re.IGNORECASE).strip()}
+                                multiple_links = 'SD-Digital'
+                            elif 'hd-digital' in series.lower():
+                                valid_links['HD-Digital'] = {'series': re.sub('(hd-digital)', '', series, re.IGNORECASE).strip()}
+                                multiple_links = 'HD-Digital'
+                            else:
+                                # if no distinction btwn HD/SD and it's just one section...
+                                valid_links['normal'] = {'series': series}
+                                multiple_links = 'normal'
+                            #logger.fdebug('valid_links : %s' % (valid_links))
+                        elif 'Year' in option_find:
+                            year = option_find.findNext(text=True)
+                            year = re.sub(r'\|', '', year).strip()
+                            if any(
+                                    [
+                                        multiple_links == 'HD-Upscaled',
+                                        multiple_links == 'SD-Digital',
+                                        multiple_links == 'HD-Digital'
+                                    ]
+                            ):
+                                valid_links[multiple_links].update({'year': year})
+                                #logger.fdebug('valid_links [%s] : %s' % (multiple_links, valid_links))
+                        else:
+                            if 'Size' in prev_option:
+                                size = option_find  # .findNext(text=True)
+                                possible_more = f.next_sibling
+                                if any(
+                                        [
+                                            multiple_links == 'HD-Upscaled',
+                                            multiple_links == 'SD-Digital',
+                                            multiple_links == 'HD-Digital'
+                                        ]
+                                ):
+                                    valid_links[multiple_links].update({'size': size})
+                                    #logger.fdebug('valid_links [%s] : %s' % (multiple_links, valid_links))
+
+                                looped_thru_once = False
+                                break
+                        i += 1
+
+            else:
+                lk = f.find('a')
+                #logger.fdebug('lk: %s' % lk)
+                #logger.fdebug('looped_thru_once: %s / lk[title]: %s' % (looped_thru_once, lk['title']))
+                if looped_thru_once is False and lk['title'] == 'Read Online':
+                    #logger.fdebug('read online section discovered...bypassing and ignoring...')
+                    valid_links[multiple_links].update({'links': gather_links})
+                    looped_thru_once = True
+                    gather_links = []
+                    i = 0
+                    series = None
+                else:
+                    logger.info('[DDL-GATHERER-OF-LINKAGE] Now compiling available links...')
+                    gather_links.append({
+                         "series": series,
+                         "site": lk['title'],
+                         "year": year,
+                         "issues": None,
+                         "size": size,
+                         "link": lk['href'],
+                         "pack": comicinfo[0]['pack']
+                    })
+                    #logger.fdebug('gather_links so far: %s' % gather_links)
+            count_bees +=1
+
+        #logger.fdebug('final valid_links: %s' % (valid_links))
+        tmp_links = []
+        tmp_sites = []
+        site_position = {}
+        cntr = 0
+        link = None
+
+        for k,y in valid_links.items():
+           for a in y['links']:
+               if k != 'normal':
+                   # if it's HD-Upscaled / SD-Digital it needs to be handled differently than a straight DL link
+                   if any([a['site'].lower() == 'download now', a['site'].lower() == 'mirror download']): # 'MEGA' in a['site'], 'PIXEL' in a['site']]):
+                       tmp_links.append(a)
+                       tmp_sites.append(k)
+                       site_position[k] = cntr
+                       #logger.fdebug('%s -- %s' % (k, a['series']))
+                       cntr +=1
+               else:
+                   if any([a['site'].lower() == 'download now', a['site'].lower() == 'mirror download']):
+                       tmp_links.append(a)
+                       tmp_sites.append(a['site'].lower())
+                       site_position[a['site'].lower()] = cntr
+                       #logger.fdebug('%s -- %s' % (a['site'], a['series']))
+                       cntr +=1
+
+        #logger.fdebug('tmp_links: %s' % (tmp_links))
+        #logger.fdebug('tmp_sites: %s' % (tmp_sites))
+        if len(tmp_links) == 1:
+            logger.info('only one available item that can be downloaded via main server - %s. Let\'s do this..' % tmp_links[0]['series'])
+            link = tmp_links[0]
+            series = link['series']
+        elif len(tmp_links) > 1:
+            logger.info('Multiple available download options (%s) - checking configuration to see which to grab...' % (" ,".join(tmp_sites)))
+            if any([('HD-Upscaled', 'SD-Digital', 'HD-Digital') in tmp_sites]):
+                if mylar.CONFIG.DDL_PREFER_UPSCALED:
+                    kk = tmp_links[site_position['HD-Upscaled']]
+                    if not kk:
+                        kk = tmp_links[site_position['HD-Digital']]
+                        logger.info('HD-Digital preference detected...attempting %s' % kk['series'])
+                    else:
+                        logger.info('HD-Upscaled preference detected...attempting %s' % kk['series'])
+                else:
+                    kk = tmp_links[site_position['SD-Digital']]
+                    logger.info('SD-Digital preference detected...attempting %s' % kk['series'])
+                link = kk
+                series = link['series']
+                #logger.fdebug('link: %s' % link)
+            else:
+               if 'download now' in tmp_sites:
+                   link = tmp_links[site_position['download now']]
+               elif 'mirror download' in tmp_sites:
+                   link = tmp_links[site_position['mirror download']]
+               else:
+                   link = tmp_links[0]
+                   series = link['series']
+        else:
+            logger.info('No valid items available that I am able to download from. Not downloading...')
+            return {'success': False}
 
         logger.fdebug(
             'Now downloading: %s [%s] / %s ... this can take a while'
             ' (go get some take-out)...' % (series, year, size)
         )
-
-        link = None
-        for f in soup.findAll("div", {"class": "aio-pulse"}):
-            lk = f.find('a')
-            if lk['title'] == 'Download Now':
-                link = {
-                    "series": series,
-                    "site": lk['title'],
-                    "year": year,
-                    "issues": None,
-                    "size": size,
-                    "link": lk['href'],
-                }
-
-                break  # get the first link just to test
 
         links = []
 
