@@ -64,7 +64,7 @@ def dbUpdate(ComicIDList=None, calledfrom=None, sched=False):
         if mylar.CONFIG.UPDATE_ENDED:
             logger.info('Updating only Continuing Series (option enabled) - this might cause problems with the pull-list matching for rebooted series')
             comiclist = []
-            completelist = myDB.select('SELECT LatestDate, ComicPublished, ForceContinuing, NewPublish, LastUpdated, ComicID, ComicName, Corrected_SeriesYear, Corrected_Type, ComicYear from comics WHERE Status="Active" or Status="Loading" order by LastUpdated DESC, LatestDate ASC')
+            completelist = myDB.select('SELECT LatestDate, ComicPublished, ForceContinuing, NewPublish, LastUpdated, ComicID, ComicName, Corrected_SeriesYear, Corrected_Type, ComicYear, Status from comics WHERE Status="Active" or Status="Loading" order by LastUpdated DESC, LatestDate ASC')
             for comlist in completelist:
                 if comlist['LatestDate'] is None:
                     recentstatus = 'Loading'
@@ -93,16 +93,17 @@ def dbUpdate(ComicIDList=None, calledfrom=None, sched=False):
                                       "ComicID":               comlist['ComicID'],
                                       "ComicName":             comlist['ComicName'],
                                       "ComicYear":             comlist['ComicYear'],
+                                      "Status":                comlist['Status'],
                                       "Corrected_SeriesYear":  comlist['Corrected_SeriesYear'],
                                       "Corrected_Type":        comlist['Corrected_Type']})
 
         else:
-            comiclist = myDB.select('SELECT LatestDate, LastUpdated, ComicID, ComicName, ComicYear, Corrected_SeriesYear, Corrected_Type from comics WHERE Status="Active" or Status="Loading" order by LastUpdated DESC, latestDate ASC')
+            comiclist = myDB.select('SELECT LatestDate, LastUpdated, ComicID, ComicName, ComicYear, Corrected_SeriesYear, Corrected_Type, Status from comics WHERE Status="Active" or Status="Loading" order by LastUpdated DESC, latestDate ASC')
     else:
         comiclist = []
         comiclisting = ComicIDList
         for cl in comiclisting:
-            comiclist += myDB.select('SELECT ComicID, ComicName, ComicYear, Corrected_SeriesYear, Corrected_Type, LastUpdated from comics WHERE ComicID=? order by LastUpdated DESC, LatestDate ASC', [cl])
+            comiclist += myDB.select('SELECT ComicID, ComicName, ComicYear, Corrected_SeriesYear, Corrected_Type, LastUpdated, Status from comics WHERE ComicID=? order by LastUpdated DESC, LatestDate ASC', [cl])
 
     if all([sched is False, calledfrom is None]):
         logger.info('Starting update for %i active comics' % len(comiclist))
@@ -147,6 +148,10 @@ def dbUpdate(ComicIDList=None, calledfrom=None, sched=False):
             ComicID = comic['ComicID']
             ComicName = comic['ComicName']
             logger.info('Refreshing/Updating: %s (%s) [%s]' % (ComicName, dspyear, ComicID))
+
+        pause_status = False
+        if comic['Status'] == 'Paused':
+            pause_status = True #Paused / Active
 
         lastupdated = '0000-00-00'
         if comic['LastUpdated'] is not None:
@@ -299,20 +304,24 @@ def dbUpdate(ComicIDList=None, calledfrom=None, sched=False):
                                         else:
                                             datechk = datetime.datetime.strptime(dk, "%Y%m%d")
                                             issue_week = datetime.datetime.strftime(datechk, "%Y%U")
-                                            if mylar.CONFIG.AUTOWANT_ALL:
-                                                newVAL = {"Status": "Wanted"}
-                                            elif lastupdated is None:
-                                                logger.fdebug('serieslast_updated is None. Setting to Skipped')
-                                                newVal = {"Status":"Skipped"}
-                                            elif issue_week >= now_week and mylar.CONFIG.AUTOWANT_UPCOMING:
-                                                logger.fdebug('Issue_week: %s -- now_week: %s' % (issue_week, now_week))
-                                                logger.fdebug('Issue date [%s] is in/beyond current week - marking as Wanted.' % dk)
-                                                newVAL = {"Status": "Wanted"}
-                                            elif all([int(re.sub('-', '', lastupdated).strip()) < int(dk), mylar.CONFIG.AUTOWANT_UPCOMING is True]):
-                                                logger.info('Autowant upcoming triggered for issue #%s' % issuenew['Issue_Number'])
-                                                newVal = {"Status": "Wanted"}
+                                            if pause_status is True:
+                                                newVAL = {"Status": issue['Status']}
+                                                logger.fdebug('[PAUSE-CATCH-STATUS] Series is Paused - keeping status of %s for #%s' % (issue['Status'], issue['Issue_Number']))
                                             else:
-                                                newVAL = {"Status":  "Skipped"}
+                                                if mylar.CONFIG.AUTOWANT_ALL:
+                                                    newVAL = {"Status": "Wanted"}
+                                                elif lastupdated is None:
+                                                    logger.fdebug('serieslast_updated is None. Setting to Skipped')
+                                                    newVAL = {"Status":"Skipped"}
+                                                elif issue_week >= now_week and mylar.CONFIG.AUTOWANT_UPCOMING:
+                                                    logger.fdebug('Issue_week: %s -- now_week: %s' % (issue_week, now_week))
+                                                    logger.fdebug('Issue date [%s] is in/beyond current week - marking as Wanted.' % dk)
+                                                    newVAL = {"Status": "Wanted"}
+                                                elif all([int(re.sub('-', '', lastupdated).strip()) < int(dk), mylar.CONFIG.AUTOWANT_UPCOMING is True]):
+                                                    logger.info('Autowant upcoming triggered for issue #%s' % issuenew['Issue_Number'])
+                                                    newVAL = {"Status": "Wanted"}
+                                                else:
+                                                    newVAL = {"Status":  "Skipped"}
 
                                     if newVAL is not None:
                                         if issue['IssueDate_Edit'] is not None:
@@ -365,22 +374,26 @@ def dbUpdate(ComicIDList=None, calledfrom=None, sched=False):
                             datechk = datetime.datetime.strptime(dk, "%Y%m%d")
                             issue_week = datetime.datetime.strftime(datechk, "%Y%U")
                             logger.info('issue_week: %s' % issue_week)
-                            if mylar.CONFIG.AUTOWANT_ALL:
-                                logger.fdebug('autowant all')
-                                newstatus = "Wanted"
-                            elif lastupdated is None:
-                                logger.fdebug('serieslast_updated is None. Setting to Skipped')
+                            if pause_status is True:
                                 newstatus = "Skipped"
-                            elif issue_week >= now_week and mylar.CONFIG.AUTOWANT_UPCOMING:
-                                logger.fdebug('Issue_week: %s -- now_week: %s' % (issue_week, now_week))
-                                logger.fdebug('Issue date [%s] is in/beyond current week - marking as Wanted.' % dk)
-                                newstatus = "Wanted"
-                            elif all([int(re.sub('-', '', lastupdated).strip()) < int(dk), mylar.CONFIG.AUTOWANT_UPCOMING is True]):
-                                logger.info('Autowant upcoming triggered for issue #%s' % issue['Issue_Number'])
-                                newstatus = "Wanted"
+                                logger.fdebug('[PAUSE-ISSUE-CATCH-STATUS] Series is Paused, but new issue detected - setting status of %s for #%s' % (iss['Status'], iss['Issue_Number']))
                             else:
-                                logger.info('setting to Skipped')
-                                newstatus = "Skipped"
+                                if mylar.CONFIG.AUTOWANT_ALL:
+                                    logger.fdebug('autowant all')
+                                    newstatus = "Wanted"
+                                elif lastupdated is None:
+                                    logger.fdebug('serieslast_updated is None. Setting to Skipped')
+                                    newstatus = "Skipped"
+                                elif issue_week >= now_week and mylar.CONFIG.AUTOWANT_UPCOMING:
+                                    logger.fdebug('Issue_week: %s -- now_week: %s' % (issue_week, now_week))
+                                    logger.fdebug('Issue date [%s] is in/beyond current week - marking as Wanted.' % dk)
+                                    newstatus = "Wanted"
+                                elif all([int(re.sub('-', '', lastupdated).strip()) < int(dk), mylar.CONFIG.AUTOWANT_UPCOMING is True]):
+                                    logger.info('Autowant upcoming triggered for issue #%s' % issue['Issue_Number'])
+                                    newstatus = "Wanted"
+                                else:
+                                    logger.info('setting to Skipped')
+                                    newstatus = "Skipped"
                         logger.fdebug('[#%s]status is : %s' % (iss['Issue_Number'], newstatus))
 
                         newiss.append({"IssueID":      iss['IssueID'],
@@ -402,22 +415,26 @@ def dbUpdate(ComicIDList=None, calledfrom=None, sched=False):
                                 datechk = datetime.datetime.strptime(dk, "%Y%m%d")
                                 issue_week = datetime.datetime.strftime(datechk, "%Y%U")
                                 logger.info('issue_week: %s' % issue_week)
-                                if mylar.CONFIG.AUTOWANT_ALL:
-                                    logger.fdebug('autowant all')
-                                    newstatus = "Wanted"
-                                elif lastupdated is None:
-                                    logger.fdebug('serieslast_updated is None. Setting to Skipped')
-                                    newstatus = "Skipped"
-                                elif issue_week >= now_week and mylar.CONFIG.AUTOWANT_UPCOMING:
-                                    logger.fdebug('Issue_week: %s -- now_week: %s' % (issue_week, now_week))
-                                    logger.fdebug('Issue date [%s] is in/beyond current week - marking as Wanted.' % dk)
-                                    newstatus = "Wanted"
-                                elif all([int(re.sub('-', '', lastupdated).strip()) < int(dk), mylar.CONFIG.AUTOWANT_UPCOMING is True]):
-                                    logger.info('Autowant upcoming triggered for issue #%s' % issue['Issue_Number'])
-                                    newstatus = "Wanted"
+                                if pause_status is True:
+                                    newstatus = ann['Status']
+                                    logger.fdebug('[PAUSE-ANNUAL-CATCH-STATUS] Series is Paused - keeping status of %s for #%s' % (ann['Status'], ann['Issue_Number']))
                                 else:
-                                    logger.info('setting to Skipped')
-                                    newstatus = "Skipped"
+                                    if mylar.CONFIG.AUTOWANT_ALL:
+                                        logger.fdebug('autowant all')
+                                        newstatus = "Wanted"
+                                    elif lastupdated is None:
+                                        logger.fdebug('serieslast_updated is None. Setting to Skipped')
+                                        newstatus = "Skipped"
+                                    elif issue_week >= now_week and mylar.CONFIG.AUTOWANT_UPCOMING:
+                                        logger.fdebug('Issue_week: %s -- now_week: %s' % (issue_week, now_week))
+                                        logger.fdebug('Issue date [%s] is in/beyond current week - marking as Wanted.' % dk)
+                                        newstatus = "Wanted"
+                                    elif all([int(re.sub('-', '', lastupdated).strip()) < int(dk), mylar.CONFIG.AUTOWANT_UPCOMING is True]):
+                                        logger.info('Autowant upcoming triggered for issue #%s' % issue['Issue_Number'])
+                                        newstatus = "Wanted"
+                                    else:
+                                        logger.info('setting to Skipped')
+                                        newstatus = "Skipped"
                             logger.fdebug('[#%s]status is : %s' % (iss['Issue_Number'], newstatus))
 
                             newiss.append({"IssueID":      iss['IssueID'],
@@ -1108,6 +1125,10 @@ def forceRescan(ComicID, archive=None, module=None, recheck=False):
     else:
         altnames = ''
 
+    pause_status = False
+    if rescan['Status'] == 'Paused':
+        pause_status = True
+
     if (all([rescan['Type'] != 'Print', rescan['Type'] != 'Digital', rescan['Type'] != 'None', rescan['Type'] is not None]) and rescan['Corrected_Type'] != 'Print') or any([rescan['Corrected_Type'] == 'TPB', rescan['Corrected_Type'] == 'HC', rescan['Corrected_Type'] == 'GN']):
         if rescan['Type'] == 'One-Shot' and rescan['Corrected_Type'] is None:
             booktype = 'One-Shot'
@@ -1726,17 +1747,21 @@ def forceRescan(ComicID, archive=None, module=None, recheck=False):
 
                 old_status = chk['Status']
 
-                if old_status == "Skipped":
-                    if mylar.CONFIG.AUTOWANT_ALL:
-                        issStatus = "Wanted"
-                    else:
-                        issStatus = "Skipped"
-                #elif old_status == "Archived":
-                #    issStatus = "Archived"
-                elif old_status == "Downloaded":
-                    issStatus = "Archived"
+                if pause_status:
+                    issStatus = old_status
+                    logger.fdebug('[PAUSE_ISSUE_CHECK_STATUS_CHECK] series is paused, keeping status of %s for issue #%s' % (issStatus, chk['Issue_Number']))
                 else:
-                    continue
+                    if old_status == "Skipped":
+                        if mylar.CONFIG.AUTOWANT_ALL:
+                            issStatus = "Wanted"
+                        else:
+                            issStatus = "Skipped"
+                    #elif old_status == "Archived":
+                    #    issStatus = "Archived"
+                    elif old_status == "Downloaded":
+                        issStatus = "Archived"
+                    else:
+                        continue
                 #elif old_status == "Wanted":
                 #    issStatus = "Wanted"
                 #elif old_status == "Ignored":
@@ -1759,15 +1784,19 @@ def forceRescan(ComicID, archive=None, module=None, recheck=False):
 
                 old_status = chk['Status']
 
-                if old_status == "Skipped":
-                    if mylar.CONFIG.AUTOWANT_ALL:
-                        issStatus = "Wanted"
-                    else:
-                        issStatus = "Skipped"
-                elif old_status == "Downloaded":
-                    issStatus = "Archived"
+                if pause_status:
+                    issStatus = old_status
+                    logger.fdefbug('[PAUSE_ANNUAL_CHECK_STATUS_CHECK] series is paused, keeping status of %s for issue #%s' % (issStatus, chk['Issue_Number']))
                 else:
-                    continue
+                    if old_status == "Skipped":
+                        if mylar.CONFIG.AUTOWANT_ALL:
+                            issStatus = "Wanted"
+                        else:
+                            issStatus = "Skipped"
+                    elif old_status == "Downloaded":
+                        issStatus = "Archived"
+                    else:
+                        continue
                 update_ann.append((issStatus, chk['IssueID']))
 
 

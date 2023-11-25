@@ -868,7 +868,12 @@
                                 <div class="config">
                                    <div id="ddl_providers">
                                         <div class="row checkbox left clearfix">
-                                            <input type="checkbox" id="enable_getcomics" name="enable_getcomics" value="1" ${config['enable_getcomics']} /><label>Enable GetComics</label>
+                                            <input type="checkbox" id="enable_getcomics" onclick="initConfigCheckbox($(this));" name="enable_getcomics" value="1" ${config['enable_getcomics']} /><label>Enable GetComics</label>
+                                       </div>
+                                       <div id="gc_options" style="display:none">
+                                           <div class="row checkbox left clearfix" style="display:block;padding-left:1.5em;">
+                                                <input type="checkbox" id="ddl_prefer_upscaled" name="ddl_prefer_upscaled" value="1" ${config['ddl_prefer_upscaled']} /><label>Prefer HD-Upscale/HD-Digital <small>(if available></small></label>
+                                           </div>
                                        </div>
                                    </div>
                                 </div>
@@ -2019,10 +2024,12 @@
                                     document.getElementById("enable_getcomics").setAttribute("disabled", "disabled");
                                 }
                                 $("#ddl_providers").slideDown();
+                                $("#gc_options").slideDown();
                         }
                 else    {
                                 document.getElementById("enable_getcomics").checked = false;
                                 $("#ddl_providers").slideUp();
+                                $("#gc_options").slideUp();
                         }
 
                 $("#enable_ddl").click(function(){
