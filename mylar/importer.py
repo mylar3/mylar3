@@ -1220,6 +1220,8 @@ def manualAnnual(manual_comicid=None, comicname=None, comicyear=None, comicid=No
 def updateissuedata(comicid, comicname=None, issued=None, comicIssues=None, calledfrom=None, issuechk=None, issuetype=None, SeriesYear=None, latestissueinfo=None, serieslast_updated=None, series_status=None):
     annualchk = []
     weeklyissue_check = []
+    db_already_open = False
+
     logger.fdebug('issuedata call references...')
     logger.fdebug('comicid: %s' % comicid)
     logger.fdebug('comicname: %s' % comicname)
@@ -1230,6 +1232,7 @@ def updateissuedata(comicid, comicname=None, issued=None, comicIssues=None, call
     logger.fdebug('issuetype: %s' % issuetype)
 
     if series_status is None and comicid is not None:
+       db_already_open = True
        myDB = db.DBConnection()
        chk_series_status = myDB.selectone('SELECT Status from comics where ComicID=?', [comicid]).fetchone()
        if chk_series_status is not None:
@@ -1619,8 +1622,8 @@ def updateissuedata(comicid, comicname=None, issued=None, comicIssues=None, call
                     "LatestDate":      latestdate,
                     "LastUpdated":     helpers.now()
                    }
-
-    myDB = db.DBConnection()
+    if not db_already_open:
+        myDB = db.DBConnection()
     myDB.upsert("comics", newValueStat, controlValueStat)
 
     importantdates = {}
