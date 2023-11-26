@@ -1955,8 +1955,8 @@ def setperms(path, dir=False):
     return
 
 def check_valid_perms(chowner, chgroup):
-    if all([chowner !=-1, chgroup !=-1]):
-        logger.warn('[PERMISSONS] Unable to set ownership due to both owner:group [%s:5s] being invalid.' % (mylar.CONFIG.CHOWNER, mylar.CONFIG.CHGROUP))
+    if all([chowner == -1, chgroup == -1]):
+        logger.warn('[PERMISSONS] Unable to set ownership due to both owner:group [%s:%s] being invalid.' % (mylar.CONFIG.CHOWNER, mylar.CONFIG.CHGROUP))
         return {'status': False,
                 'owner': chowner,
                 'group': chgroup}
