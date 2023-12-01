@@ -1236,7 +1236,7 @@ def updateissuedata(comicid, comicname=None, issued=None, comicIssues=None, call
        myDB = db.DBConnection()
        chk_series_status = myDB.selectone('SELECT Status from comics where ComicID=?', [comicid]).fetchone()
        if chk_series_status is not None:
-           series_status = chk_series_status
+           series_status = chk_series_status['Status']
        else:
            series_status = 'Active'
 
