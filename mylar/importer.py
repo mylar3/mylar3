@@ -1066,7 +1066,7 @@ def issue_collection(issuedata, nostatus, serieslast_updated=None):
                         datechk = datetime.datetime.strptime(dk, "%Y%m%d")
                         issue_week = datetime.datetime.strftime(datechk, "%Y%U")
                         #logger.info('issue_week: %s' % issue_week)
-                        if issue['SeriesStatus']:
+                        if issue['SeriesStatus'] == 'Paused':
                             newValueDict['Status'] = "Skipped"
                             logger.fdebug('[PAUSE-CHECK-ISSUE-STATUS] Series is paused, setting status for new issue #%s to Skipped' % (issue['Issue_Number']))
                         else:
@@ -1160,7 +1160,7 @@ def manualAnnual(manual_comicid=None, comicname=None, comicyear=None, comicid=No
                 else:
                     datechk = datetime.datetime.strptime(dk, "%Y%m%d")
                     issue_week = datetime.datetime.strftime(datechk, "%Y%U")
-                    if series_status:
+                    if series_status == 'Paused':
                         astatus = "Skipped"
                     else:
                         if mylar.CONFIG.AUTOWANT_ALL:
@@ -1775,7 +1775,7 @@ def annual_check(ComicName, SeriesYear, comicid, issuetype, issuechk, annualslis
                                 else:
                                     datechk = datetime.datetime.strptime(dk, "%Y%m%d")
                                     issue_week = datetime.datetime.strftime(datechk, "%Y%U")
-                                    if series_status:
+                                    if series_status == 'Paused':
                                         astatus = "Skipped"
                                     else:
                                         if mylar.CONFIG.AUTOWANT_ALL:
