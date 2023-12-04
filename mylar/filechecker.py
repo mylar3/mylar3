@@ -25,6 +25,7 @@ import logging
 import unicodedata
 import optparse
 import getpass
+import platform
 from fnmatch import fnmatch
 
 import datetime as dt
@@ -34,6 +35,12 @@ from subprocess import CalledProcessError, check_output
 
 import mylar
 from mylar import logger, helpers
+
+
+if 'windows' not in platform.system():
+    #since these aren't available in windows, we import them now...
+    from pwd import getpwnam
+    from grp import getgrnam
 
 class FileChecker(object):
 
@@ -1875,10 +1882,6 @@ def validateAndCreateDirectory(dir, create=False, module=None, dmode=None):
 def setperms(path, dir=False):
 
     if 'windows' not in mylar.OS_DETECT.lower():
-        #since these aren't available in windows, we import them now...
-        from pwd import getpwnam
-        from grp import getgrnam
-
         try:
             os.umask(0) # this is probably redudant, but it doesn't hurt to clear the umask here.
             if mylar.CONFIG.CHGROUP:
