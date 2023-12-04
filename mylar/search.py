@@ -143,24 +143,32 @@ def search_init(
     logger.fdebug('search provider order is %s' % provider_list['prov_order'])
 
     # fix for issue dates between Nov-Dec/(Jan-Feb-Mar)
-    IssDt = str(IssueDate)[5:7]
-    if any([IssDt == "12", IssDt == "11", IssDt == "01", IssDt == "02", IssDt == "03"]):
-        IssDateFix = IssDt
+    IssDateFix = "no"
+    if StoreDate is not None:
+        StDt = str(StoreDate)[5:7]
+        if any(
+            [
+                StDt == "10",
+                StDt == "12",
+                StDt == "11",
+                StDt == "01",
+                StDt == "02",
+                StDt == "03",
+             ]
+        ):
+            IssDateFix = StDt
     else:
-        IssDateFix = "no"
-        if StoreDate is not None:
-            StDt = str(StoreDate)[5:7]
-            if any(
-                [
-                    StDt == "10",
-                    StDt == "12",
-                    StDt == "11",
-                    StDt == "01",
-                    StDt == "02",
-                    StDt == "03",
-                ]
-            ):
-                IssDateFix = StDt
+        IssDt = str(IssueDate)[5:7]
+        if any(
+            [
+                IssDt == "12",
+                IssDt == "11",
+                IssDt == "01",
+                IssDt == "02",
+                IssDt == "03"
+            ]
+        ):
+            IssDateFix = IssDt
 
     searchcnt = 0
     srchloop = 1

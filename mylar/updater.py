@@ -1751,14 +1751,14 @@ def forceRescan(ComicID, archive=None, module=None, recheck=False):
                     issStatus = old_status
                     logger.fdebug('[PAUSE_ISSUE_CHECK_STATUS_CHECK] series is paused, keeping status of %s for issue #%s' % (issStatus, chk['Issue_Number']))
                 else:
-                    if old_status == "Skipped":
-                        if mylar.CONFIG.AUTOWANT_ALL:
-                            issStatus = "Wanted"
-                        else:
-                            issStatus = "Skipped"
+                    #if old_status == "Skipped":
+                    #    if mylar.CONFIG.AUTOWANT_ALL:
+                    #        issStatus = "Wanted"
+                    #    else:
+                    #        issStatus = "Skipped"
                     #elif old_status == "Archived":
                     #    issStatus = "Archived"
-                    elif old_status == "Downloaded":
+                    if old_status == "Downloaded":
                         issStatus = "Archived"
                     else:
                         continue
@@ -1788,12 +1788,12 @@ def forceRescan(ComicID, archive=None, module=None, recheck=False):
                     issStatus = old_status
                     logger.fdefbug('[PAUSE_ANNUAL_CHECK_STATUS_CHECK] series is paused, keeping status of %s for issue #%s' % (issStatus, chk['Issue_Number']))
                 else:
-                    if old_status == "Skipped":
-                        if mylar.CONFIG.AUTOWANT_ALL:
-                            issStatus = "Wanted"
-                        else:
-                            issStatus = "Skipped"
-                    elif old_status == "Downloaded":
+                    #if old_status == "Skipped":
+                    #    if mylar.CONFIG.AUTOWANT_ALL:
+                    #        issStatus = "Wanted"
+                    #    else:
+                    #        issStatus = "Skipped"
+                    if old_status == "Downloaded":
                         issStatus = "Archived"
                     else:
                         continue
