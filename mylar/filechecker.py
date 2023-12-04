@@ -37,7 +37,7 @@ import mylar
 from mylar import logger, helpers
 
 
-if 'windows' not in platform.system():
+if 'windows' not in platform.system().lower():
     #since these aren't available in windows, we import them now...
     from pwd import getpwnam
     from grp import getgrnam
