@@ -383,6 +383,7 @@ class GC(object):
             filename = title
             issues = None
             pack = False
+
             # see if it's a pack type
             issfind_st = title.find('#')
             issfind_en = title.find('-', issfind_st)
@@ -540,10 +541,17 @@ class GC(object):
         except Exception:
             booktype = None
 
+        try:
+            pack = comicinfo[0]['pack']
+        except Exception:
+            pack = False
+
         myDB = db.DBConnection()
+
         series = None
         year = None
         size = None
+
         title = os.path.join(mylar.CONFIG.CACHE_DIR, 'getcomics-' + id)
         soup = BeautifulSoup(open(title + '.html', encoding='utf-8'), 'html.parser')
 
@@ -566,6 +574,8 @@ class GC(object):
                 linkage_test = f.text.strip()
                 if 'support and donation' in linkage_test:
                     logger.fdebug('detected end of links - breaking out here...')
+                    if looped_thru_once is False:
+                        valid_links[multiple_links].update({'links': gather_links})
                     break
 
                 if looped_thru_once and all(
@@ -645,7 +655,7 @@ class GC(object):
                          "year": year,
                          "issues": None,
                          "size": size,
-                         "link": lk['href'],
+                         "links": lk['href'],
                          "pack": comicinfo[0]['pack']
                     })
                     #logger.fdebug('gather_links so far: %s' % gather_links)
@@ -767,11 +777,12 @@ class GC(object):
                                         "year": year,
                                         "issues": issues,
                                         "size": size,
-                                        "link": linked,
+                                        "links": linked,
+                                        "pack": comicinfo[0]['pack']
                                     }
                                 )
         else:
-            if booktype != 'TPB':
+            if booktype != 'TPB' and pack is False:
                 logger.fdebug('TPB links detected, but booktype set to %s' % booktype)
             else:
                 check_extras = soup.findAll("h3")
@@ -808,7 +819,8 @@ class GC(object):
                                         "year": year,
                                         "issues": issues,
                                         "size": size,
-                                        "link": linked,
+                                        "links": linked,
+                                        "pack": comicinfo[0]['pack']
                                     }
                                 )
 
@@ -855,9 +867,10 @@ class GC(object):
                 'issues': x['issues'],
                 'issueid': self.issueid,
                 'comicid': self.comicid,
-                'link': x['link'],
+                'link': x['links'],
                 'mainlink': mainlink,
                 'site': 'DDL(GetComics)',
+                'pack': x['pack'],
                 'updated_date': datetime.datetime.now().strftime('%Y-%m-%d %H:%M'),
                 'status': 'Queued',
             }
@@ -865,7 +878,7 @@ class GC(object):
 
             mylar.DDL_QUEUE.put(
                 {
-                    'link': x['link'],
+                    'link': x['links'],
                     'mainlink': mainlink,
                     'series': x['series'],
                     'year': x['year'],
