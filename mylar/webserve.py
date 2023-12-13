@@ -373,6 +373,8 @@ class WebInterface(object):
                                 for file in files:
                                     if run_them_down is True:
                                         break
+                                    if file.startswith('._'):
+                                        continue
                                     if file.endswith(tuple(['cbr', 'cbz', 'cb7'])):
                                         mtime = os.path.getmtime(os.path.join(root, file))
                                         if mylar.OS_DETECT == 'Windows':
