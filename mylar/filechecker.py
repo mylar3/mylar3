@@ -1607,6 +1607,9 @@ class FileChecker(object):
                         #Ignoring MAC OS Finder directory of cached files (/.AppleDouble/<name of file(s)>)
                         continue
 
+                if fname.startswith('._'):
+                    continue
+
                 if all([mylar.CONFIG.ENABLE_TORRENTS is True, self.pp_mode is True]):
                     tcrc = helpers.crc(os.path.join(dirname, fname))
                     crcchk = [x for x in pp_crclist if tcrc == x['crc']]
