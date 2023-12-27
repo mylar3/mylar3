@@ -150,6 +150,8 @@ MASS_ADD = None
 ADD_LIST = queue.Queue()
 MASS_REFRESH = None
 REFRESH_QUEUE = queue.Queue()
+DDL_QUEUED = []
+PACK_ISSUEIDS_DONT_QUEUE = {}
 SEARCH_TIER_DATE = None
 COMICSORT = None
 PULLBYFILE = False
@@ -243,7 +245,7 @@ def initialize(config_file):
                MONITOR_SCHEDULER, SEARCH_SCHEDULER, RSS_SCHEDULER, WEEKLY_SCHEDULER, VERSION_SCHEDULER, UPDATER_SCHEDULER, \
                SCHED_RSS_LAST, SCHED_WEEKLY_LAST, SCHED_MONITOR_LAST, SCHED_SEARCH_LAST, SCHED_VERSION_LAST, SCHED_DBUPDATE_LAST, COMICINFO, SEARCH_TIER_DATE, \
                BACKENDSTATUS_CV, BACKENDSTATUS_WS, PROVIDER_STATUS, EXT_IP, ISSUE_EXCEPTIONS, PROVIDER_START_ID, GLOBAL_MESSAGES, CHECK_FOLDER_CACHE, FOLDER_CACHE, SESSION_ID, \
-               MAINTENANCE_UPDATE, MAINTENANCE_DB_COUNT, MAINTENANCE_DB_TOTAL, UPDATE_VALUE, REQS, IMPRINT_MAPPING, GC_URL
+               MAINTENANCE_UPDATE, MAINTENANCE_DB_COUNT, MAINTENANCE_DB_TOTAL, UPDATE_VALUE, REQS, IMPRINT_MAPPING, GC_URL, PACK_ISSUEIDS_DONT_QUEUE, DDL_QUEUED
 
         cc = mylar.config.Config(config_file)
         CONFIG = cc.read(startup=True)
@@ -805,7 +807,7 @@ def dbcheck():
     c.execute('CREATE TABLE IF NOT EXISTS jobhistory (JobName TEXT, prev_run_datetime timestamp, prev_run_timestamp REAL, next_run_datetime timestamp, next_run_timestamp REAL, last_run_completed TEXT, successful_completions TEXT, failed_completions TEXT, status TEXT, last_date timestamp)')
     c.execute('CREATE TABLE IF NOT EXISTS manualresults (provider TEXT, id TEXT, kind TEXT, comicname TEXT, volume TEXT, oneoff TEXT, fullprov TEXT, issuenumber TEXT, modcomicname TEXT, name TEXT, link TEXT, size TEXT, pack_numbers TEXT, pack_issuelist TEXT, comicyear TEXT, issuedate TEXT, tmpprov TEXT, pack TEXT, issueid TEXT, comicid TEXT, sarc TEXT, issuearcid TEXT)')
     c.execute('CREATE TABLE IF NOT EXISTS storyarcs(StoryArcID TEXT, ComicName TEXT, IssueNumber TEXT, SeriesYear TEXT, IssueYEAR TEXT, StoryArc TEXT, TotalIssues TEXT, Status TEXT, inCacheDir TEXT, Location TEXT, IssueArcID TEXT, ReadingOrder INT, IssueID TEXT, ComicID TEXT, ReleaseDate TEXT, IssueDate TEXT, Publisher TEXT, IssuePublisher TEXT, IssueName TEXT, CV_ArcID TEXT, Int_IssueNumber INT, DynamicComicName TEXT, Volume TEXT, Manual TEXT, DateAdded TEXT, DigitalDate TEXT, Type TEXT, Aliases TEXT, ArcImage TEXT)')
-    c.execute('CREATE TABLE IF NOT EXISTS ddl_info (ID TEXT UNIQUE, series TEXT, year TEXT, filename TEXT, size TEXT, issueid TEXT, comicid TEXT, link TEXT, status TEXT, remote_filesize TEXT, updated_date TEXT, mainlink TEXT, issues TEXT, site TEXT, submit_date TEXT)')
+    c.execute('CREATE TABLE IF NOT EXISTS ddl_info (ID TEXT UNIQUE, series TEXT, year TEXT, filename TEXT, size TEXT, issueid TEXT, comicid TEXT, link TEXT, status TEXT, remote_filesize TEXT, updated_date TEXT, mainlink TEXT, issues TEXT, site TEXT, submit_date TEXT, pack INTEGER)')
     c.execute('CREATE TABLE IF NOT EXISTS exceptions_log(date TEXT UNIQUE, comicname TEXT, issuenumber TEXT, seriesyear TEXT, issueid TEXT, comicid TEXT, booktype TEXT, searchmode TEXT, error TEXT, error_text TEXT, filename TEXT, line_num TEXT, func_name TEXT, traceback TEXT)')
     c.execute('CREATE TABLE IF NOT EXISTS tmp_searches (query_id INTEGER, comicid INTEGER, comicname TEXT, publisher TEXT, publisherimprint TEXT, comicyear TEXT, issues TEXT, volume TEXT, deck TEXT, url TEXT, type TEXT, cvarcid TEXT, arclist TEXT, description TEXT, haveit TEXT, mode TEXT, searchtype TEXT, comicimage TEXT, thumbimage TEXT, PRIMARY KEY (query_id, comicid))')
     c.execute('CREATE TABLE IF NOT EXISTS notifs(session_id INT, date TEXT, event TEXT, comicid TEXT, comicname TEXT, issuenumber TEXT, seriesyear TEXT, status TEXT, message TEXT, PRIMARY KEY (session_id, date))')
@@ -1516,6 +1518,11 @@ def dbcheck():
         c.execute('SELECT submit_date from ddl_info')
     except sqlite3.OperationalError:
         c.execute('ALTER TABLE ddl_info ADD COLUMN submit_date TEXT')
+
+    try:
+        c.execute('SELECT pack from ddl_info')
+    except sqlite3.OperationalError:
+        c.execute('ALTER TABLE ddl_info ADD COLUMN pack INTEGER')
 
     ## -- provider_searches Table --
     try:

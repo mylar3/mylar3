@@ -24,6 +24,8 @@ import urllib.request, urllib.parse, urllib.error
 import logging
 import unicodedata
 import optparse
+import getpass
+import platform
 from fnmatch import fnmatch
 
 import datetime as dt
@@ -33,6 +35,12 @@ from subprocess import CalledProcessError, check_output
 
 import mylar
 from mylar import logger, helpers
+
+
+if 'windows' not in platform.system().lower():
+    #since these aren't available in windows, we import them now...
+    from pwd import getpwnam
+    from grp import getgrnam
 
 class FileChecker(object):
 
@@ -1599,6 +1607,9 @@ class FileChecker(object):
                         #Ignoring MAC OS Finder directory of cached files (/.AppleDouble/<name of file(s)>)
                         continue
 
+                if fname.startswith('._'):
+                    continue
+
                 if all([mylar.CONFIG.ENABLE_TORRENTS is True, self.pp_mode is True]):
                     tcrc = helpers.crc(os.path.join(dirname, fname))
                     crcchk = [x for x in pp_crclist if tcrc == x['crc']]
@@ -1874,46 +1885,61 @@ def validateAndCreateDirectory(dir, create=False, module=None, dmode=None):
 def setperms(path, dir=False):
 
     if 'windows' not in mylar.OS_DETECT.lower():
-
         try:
             os.umask(0) # this is probably redudant, but it doesn't hurt to clear the umask here.
             if mylar.CONFIG.CHGROUP:
                 if mylar.CONFIG.CHOWNER is None or mylar.CONFIG.CHOWNER == 'None' or mylar.CONFIG.CHOWNER == '':
-                    import getpass
                     mylar.CONFIG.CHOWNER = getpass.getuser()
 
                 if not mylar.CONFIG.CHOWNER.isdigit():
-                    from pwd import getpwnam
-                    chowner = getpwnam(mylar.CONFIG.CHOWNER)[2]
+                    try:
+                        chowner = getpwnam(mylar.CONFIG.CHOWNER)[2]
+                    except Exception as e:
+                        logger.warn('[PERMISSIONS] %s does not exist on this system as a user' % mylar.CONFIG.CHOWNER)
+                        chowner = -1
                 else:
                     chowner = int(mylar.CONFIG.CHOWNER)
 
                 if not mylar.CONFIG.CHGROUP.isdigit():
-                    from grp import getgrnam
-                    chgroup = getgrnam(mylar.CONFIG.CHGROUP)[2]
+                    try:
+                        chgroup = getgrnam(mylar.CONFIG.CHGROUP)[2]
+                    except Exception as e:
+                        logger.warn('[PERMISSIONS] %s does not exist on this system as a group' % mylar.CONFIG.CHGROUP)
+                        chgroup = -1
                 else:
                     chgroup = int(mylar.CONFIG.CHGROUP)
 
+                validity_perm = check_valid_perms(chowner,chgroup)
+                logger.fdebug('validity_perm: %s' % validity_perm)
+                if validity_perm['status']:
+                    chowner = validity_perm['owner']
+                    chgroup = validity_perm['group']
+
                 if dir:
                     permission = int(mylar.CONFIG.CHMOD_DIR, 8)
+                    if validity_perm['status']:
+                        os.chown(path, chowner, chgroup)
                     os.chmod(path, permission)
-                    os.chown(path, chowner, chgroup)
                 elif os.path.isfile(path):
                     permission = int(mylar.CONFIG.CHMOD_FILE, 8)
-                    os.chown(path, chowner, chgroup)
-                    os.chmod(path, permission)   
+                    if validity_perm['status']:
+                        os.chown(path, chowner, chgroup)
+                    os.chmod(path, permission)
                 else:
                     for root, dirs, files in os.walk(path):
                         for momo in dirs:
                             permission = int(mylar.CONFIG.CHMOD_DIR, 8)
-                            os.chown(os.path.join(root, momo), chowner, chgroup)
+                            if validity_perm['status']:
+                                os.chown(os.path.join(root, momo), chowner, chgroup)
                             os.chmod(os.path.join(root, momo), permission)
                         for momo in files:
                             permission = int(mylar.CONFIG.CHMOD_FILE, 8)
-                            os.chown(os.path.join(root, momo), chowner, chgroup)
+                            if validity_perm['status']:
+                                os.chown(os.path.join(root, momo), chowner, chgroup)
                             os.chmod(os.path.join(root, momo), permission)
 
-                logger.fdebug('Successfully changed ownership and permissions [' + str(mylar.CONFIG.CHOWNER) + ':' + str(mylar.CONFIG.CHGROUP) + '] / [' + str(mylar.CONFIG.CHMOD_DIR) + ' / ' + str(mylar.CONFIG.CHMOD_FILE) + ']')
+                logger.fdebug('Successfully changed ownership and permissions [%s:%s] / [%s/%s]' %
+                              (chowner, chgroup, mylar.CONFIG.CHMOD_DIR, mylar.CONFIG.CHMOD_FILE))
 
             elif os.path.isfile(path):
                     permission = int(mylar.CONFIG.CHMOD_FILE, 8)
@@ -1927,16 +1953,33 @@ def setperms(path, dir=False):
                         permission = int(mylar.CONFIG.CHMOD_FILE, 8)
                         os.chmod(os.path.join(root, momo), permission)
 
-                logger.fdebug('Successfully changed permissions [' + str(mylar.CONFIG.CHMOD_DIR) + ' / ' + str(mylar.CONFIG.CHMOD_FILE) + ']')
+                logger.fdebug('Successfully changed permissions [%s/%s]' % (mylar.CONFIG.CHMOD_DIR, mylar.CONFIG.CHMOD_FILE))
 
         except OSError as e:
             logger.error('[ERROR @ path: %s] %s. Exiting...' % (path, e))
 
     return
 
+def check_valid_perms(chowner, chgroup):
+    if all([chowner == -1, chgroup == -1]):
+        logger.warn('[PERMISSONS] Unable to set ownership due to both owner:group [%s:%s] being invalid.' % (mylar.CONFIG.CHOWNER, mylar.CONFIG.CHGROUP))
+        return {'status': False,
+                'owner': chowner,
+                'group': chgroup}
+    else:
+        ch_problem = None
+        if chowner == -1:
+            ch_problem = 'owner'
+            chownr = getpass.getuser()
+            chowner = getgrnam(chownr)[1]
+        elif chgroup == -1:
+            ch_problem = 'group'
+            chgp = getpass.getuser()
+            chgroup = getgrnam(chgp)[2]
+        if ch_problem:
+            logger.warn('[PERMISSIONS] Partial enforcement of permissions being done due to invalid %s specified.'
+                        ' Perms set to: %s:%s ' % (ch_problem, chowner, chgroup))
 
-#if __name__ == '__main__':
-#    test = FileChecker()
-#    test.getlist()
-
-
+        return {'status': True,
+                'owner': chowner,
+                'group': chgroup}

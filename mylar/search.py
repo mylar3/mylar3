@@ -113,24 +113,6 @@ def search_init(
     else:
         logger.fdebug('Issue Title not found. Setting to None.')
 
-    #if smode == 'want_ann':
-    #    logger.info('Annual/Special issue search detected. Appending to issue #')
-    #    # anything for smode other than None indicates an annual.
-    #    #if all(['annual' not in ComicName.lower(), 'special' not in ComicName.lower()]):
-    #    #    ComicName = '%s Annual' % ComicName
-    #    if '2021 annual' in ComicName.lower():
-    #        AlternateSearch= '%s Annual' % re.sub('2021 annual', '', ComicName, flags=re.I).strip()
-    #        logger.info('Setting alternate search to %s because people are gonna people.' % AlternateSearch)
-
-    #    if all(
-    #        [
-    #            AlternateSearch is not None,
-    #            AlternateSearch != "None",
-    #            'special' not in ComicName.lower(),
-    #        ]
-    #    ):
-    #        AlternateSearch = '%s Annual' % AlternateSearch
-
     if smode == 'pullwant' or IssueID is None:
         # one-off the download.
         logger.fdebug('One-Off Search parameters:')
@@ -148,94 +130,6 @@ def search_init(
     findit = {}
     findit['status'] = False
 
-    #torprovider = []
-    #torp = 0
-    #torznabs = 0
-    #torznab_hosts = []
-
-    #logger.fdebug("Checking for torrent enabled.")
-    #if mylar.CONFIG.ENABLE_TORRENT_SEARCH:
-    #    if mylar.CONFIG.ENABLE_32P and not helpers.block_provider_check('32P'):
-    #        torprovider.append('32p')
-    #        torp += 1
-    #    if mylar.CONFIG.ENABLE_PUBLIC and not helpers.block_provider_check(
-    #        'public torrents'
-    #    ):
-    #        torprovider.append('public torrents')
-    #        torp += 1
-    #    if mylar.CONFIG.ENABLE_TORZNAB is True:
-    #        for torznab_host in mylar.CONFIG.EXTRA_TORZNABS:
-    #            if any([torznab_host[5] == '1', torznab_host[5] == 1]):
-    #                if not helpers.block_provider_check(torznab_host[0]):
-    #                    torznab_hosts.append(torznab_host)
-    #                    torprovider.append('torznab: %s' % torznab_host[0])
-    #                    torznabs += 1
-
-    ## nzb provider selection##
-    ## 'dognzb' or 'nzb.su' or 'experimental'
-    #nzbprovider = []
-    #nzbp = 0
-    #if mylar.CONFIG.NZBSU is True and not helpers.block_provider_check('nzb.su'):
-    #    nzbprovider.append('nzb.su')
-    #    nzbp += 1
-    #if mylar.CONFIG.DOGNZB is True and not helpers.block_provider_check('dognzb'):
-    #    nzbprovider.append('dognzb')
-    #    nzbp += 1
-
-    ## --------
-    ##  Xperimental
-    #if mylar.CONFIG.EXPERIMENTAL is True and not helpers.block_provider_check(
-    #    'experimental'
-    #):
-    #    nzbprovider.append('experimental')
-    #    nzbp += 1
-
-    #newznabs = 0
-
-    #newznab_hosts = []
-
-    #if mylar.CONFIG.NEWZNAB is True:
-    #    for newznab_host in mylar.CONFIG.EXTRA_NEWZNABS:
-    #        if any([newznab_host[5] == '1', newznab_host[5] == 1]):
-    #            if not helpers.block_provider_check(newznab_host[0]):
-    #                newznab_hosts.append(newznab_host)
-    #                nzbprovider.append('newznab: %s' % newznab_host[0])
-    #                newznabs += 1
-
-    #ddls = 0
-    #ddlprovider = []
-
-    #if mylar.CONFIG.ENABLE_DDL is True:
-    #    if all(
-    #       [
-    #            mylar.CONFIG.ENABLE_GETCOMICS is True,
-    #            not helpers.block_provider_check('DDL(GetComics)'),
-    #       ]
-    #    ):
-    #        ddlprovider.append('DDL(GetComics)')
-    #        ddls+=1
-
-    #logger.fdebug('nzbprovider(s): %s' % nzbprovider)
-    ## --------
-    #torproviders = torp + torznabs
-    #logger.fdebug('There are %s torrent providers you have selected.' % torproviders)
-    #torpr = torproviders - 1
-    #if torpr < 0:
-    #    torpr = -1
-    #providercount = int(nzbp + newznabs)
-    #logger.fdebug('There are : %s nzb providers you have selected' % providercount)
-    #if providercount > 0:
-    #    logger.fdebug('Usenet Retention : %s days' % mylar.CONFIG.USENET_RETENTION)
-
-    #if ddls > 0:
-    #    logger.fdebug(
-    #        'there are %s Direct Download providers that are currently enabled.' % ddls
-    #    )
-    #findit = {}
-    #findit['status'] = False
-
-    #totalproviders = providercount + torproviders + ddls
-
     if provider_list['totalproviders'] == 0:
         logger.error(
             '[WARNING] You have %s search providers enabled. I need at least ONE'
@@ -248,32 +142,33 @@ def search_init(
 
     logger.fdebug('search provider order is %s' % provider_list['prov_order'])
 
-    #prov_order, torznab_info, newznab_info = provider_sequence(
-    #    nzbprovider, torprovider, newznab_hosts, torznab_hosts, ddlprovider
-    #
-    #)
-    # end provider order sequencing
-    #logger.fdebug('search provider order is %s' % prov_order)
-
     # fix for issue dates between Nov-Dec/(Jan-Feb-Mar)
-    IssDt = str(IssueDate)[5:7]
-    if any([IssDt == "12", IssDt == "11", IssDt == "01", IssDt == "02", IssDt == "03"]):
-        IssDateFix = IssDt
+    IssDateFix = "no"
+    if StoreDate is not None:
+        StDt = str(StoreDate)[5:7]
+        if any(
+            [
+                StDt == "10",
+                StDt == "12",
+                StDt == "11",
+                StDt == "01",
+                StDt == "02",
+                StDt == "03",
+             ]
+        ):
+            IssDateFix = StDt
     else:
-        IssDateFix = "no"
-        if StoreDate is not None:
-            StDt = str(StoreDate)[5:7]
-            if any(
-                [
-                    StDt == "10",
-                    StDt == "12",
-                    StDt == "11",
-                    StDt == "01",
-                    StDt == "02",
-                    StDt == "03",
-                ]
-            ):
-                IssDateFix = StDt
+        IssDt = str(IssueDate)[5:7]
+        if any(
+            [
+                IssDt == "12",
+                IssDt == "11",
+                IssDt == "01",
+                IssDt == "02",
+                IssDt == "03"
+            ]
+        ):
+            IssDateFix = IssDt
 
     searchcnt = 0
     srchloop = 1
@@ -340,24 +235,27 @@ def search_init(
             tmp_prov_count = len(provider_list['prov_order'])
 
         checked_once = []
-        while cmloopit >= 1:
-            prov_count = 0
-            if cmloopit == 4:
-                tmp_IssueNumber = None
-            else:
-                tmp_IssueNumber = IssueNumber
-            while tmp_prov_count > prov_count:
+        prov_count = 0
+
+        while tmp_prov_count > prov_count:
+            logger.info('tmp_prov_count: %s / prov_count: %s' % (tmp_prov_count,prov_count))
+            tmp_cmloopit = cmloopit
+            while tmp_cmloopit >= 1:
+                if tmp_cmloopit == 4:
+                    tmp_IssueNumber = None
+                else:
+                    tmp_IssueNumber = IssueNumber
+
+
                 prov_order = provider_list['prov_order']
                 logger.info('checked_once: %s' %(checked_once,))
                 if checked_once:
                     if prov_order[prov_count] in checked_once:
-                        prov_count +=1
-                        continue
+                        break
                 provider_blocked = helpers.block_provider_check(prov_order[prov_count])
                 if provider_blocked:
                     logger.warn('provider blocked. Ignoring search on this provider.')
-                    prov_count += 1
-                    continue
+                    break
                 send_prov_count = tmp_prov_count - prov_count
                 newznab_host = None
                 torznab_host = None
@@ -370,7 +268,7 @@ def search_init(
                 #should be DDL(GetComics)
                 if prov_order[prov_count] == 'DDL(GetComics)' and not provider_blocked and 'DDL(GetComics)' not in checked_once:
                     if 'DDL(GetComics)' not in searchprov.keys():
-                        searchprov['DDL(GetComics)'] = ({'id': 200, 'type': 'DDL', 'lastrun': 0, 'active': True, 'hits': 0})
+                       searchprov['DDL(GetComics)'] = ({'id': 200, 'type': 'DDL', 'lastrun': 0, 'active': True, 'hits': 0})
                     else:
                         searchprov['DDL(GetComics)']['active'] = True
                 elif prov_order[prov_count] == '32p' and not provider_blocked:
@@ -398,8 +296,7 @@ def search_init(
                                 'there was an error - torznab information was blank and'
                                 ' it should not be.'
                             )
-                            prov_count +=1
-                            continue
+                            break
                         if all(
                                [
                                    nninfo['provider'] == prov_order[prov_count],
@@ -429,8 +326,7 @@ def search_init(
                                 'there was an error - newznab information was blank and it'
                                 ' should not be.'
                             )
-                            prov_count +=1
-                            continue
+                            break
                         if all(
                                [
                                    nninfo['provider'] == prov_order[prov_count],
@@ -471,19 +367,18 @@ def search_init(
                     # since dognzb could hit the 100 daily api limit during the middle
                     # of a search run, check here on each pass to make sure it's not
                     # disabled (it gets auto-disabled on maxing out the API hits)
-                    prov_count += 1
-                    continue
+                    break
                 elif all(
                          [
-                             not provider_blocked,
+                              not provider_blocked,
                              ''.join(current_prov.keys()) in checked_once,
                          ]
                     ):
-                    prov_count += 1
-                    continue
+                    break
+
+                logger.info('tmp_cmloopit: %s [Issue #:%s]' % (tmp_cmloopit, tmp_IssueNumber))
 
                 scarios = {'tmp_IssueNumber': tmp_IssueNumber,
-                           #'ComicName': ComicName,
                            'ComicYear': ComicYear,
                            'SeriesYear': SeriesYear,
                            'Publisher': Publisher,
@@ -500,9 +395,8 @@ def search_init(
                            'IssueArcID': IssueArcID,
                            'ComicID': ComicID,
                            'issuetitle': issuetitle,
-                           #'unaltered_ComicName': unaltered_ComicName,
                            'oneoff':oneoff,
-                           'cmloopit':cmloopit,
+                           'cmloopit':tmp_cmloopit,
                            'manual':manual,
                            'torznab_host': torznab_host,
                            'digitaldate': digitaldate,
@@ -594,28 +488,29 @@ def search_init(
                                 searchmode,
                             )
                         )
-                prov_count += 1
-                logger.info('attempting to set %s to not being the active provider.'% (list(current_prov.keys())[0]))
-                if findit['lastrun'] != 0:
-                   logger.info('setting last run to: %s' % (findit['lastrun']))
-                   last_run_check(write={''.join(current_prov.keys()): {'active': False, 'lastrun': findit['lastrun'], 'type': current_prov[list(current_prov.keys())[0]]['type'], 'hits': current_prov[list(current_prov.keys())[0]]['hits'], 'id': current_prov[list(current_prov.keys())[0]]['id']}})
-                   #current_prov[list(current_prov.keys())[0]]['lastrun'] = findit['lastrun']
-                current_prov[list(current_prov.keys())[0]]['active'] = False
-                logger.info('setting took. Current provider is: %s' % (current_prov,))
+                if findit['status'] is True:
+                    if current_prov.get('newznab'):
+                        current_prov[newznab_host[0].rstrip() + ' (newznab)'] = current_prov.pop('newznab')
+                    elif current_prov.get('torznab'):
+                        current_prov[torznab_host[0].rstrip() + ' (torznab)'] = current_prov.pop('torznab')
+                    srchloop = 4
+                    break
+                elif srchloop == 2 and (tmp_cmloopit - 1 >= 1) and ''.join(current_prov.keys()) not in checked_once:
+                    # don't think this is needed as we do the check_time btwn searches now
+                    pass
 
-            if findit['status'] is True:
-                if current_prov.get('newznab'):
-                    current_prov[newznab_host[0].rstrip() + ' (newznab)'] = current_prov.pop('newznab')
-                elif current_prov.get('torznab'):
-                    current_prov[torznab_host[0].rstrip() + ' (torznab)'] = current_prov.pop('torznab')
-                srchloop = 4
-                break
-            elif srchloop == 2 and (cmloopit - 1 >= 1) and ''.join(current_prov.keys()) not in checked_once:
-                # don't think this is needed as we do the check_time btwn searches now
-                pass
-                #time.sleep(30)  # pause for 30s to not hammmer api's
+                tmp_cmloopit -= 1
 
-            cmloopit -= 1
+
+            prov_count += 1
+            logger.info('attempting to set %s to not being the active provider.'% (list(current_prov.keys())[0]))
+            if findit['lastrun'] != 0:
+               logger.info('setting last run to: %s' % (findit['lastrun']))
+               last_run_check(write={''.join(current_prov.keys()): {'active': False, 'lastrun': findit['lastrun'], 'type': current_prov[list(current_prov.keys())[0]]['type'], 'hits': current_prov[list(current_prov.keys())[0]]['hits'], 'id': current_prov[list(current_prov.keys())[0]]['id']}})
+               #current_prov[list(current_prov.keys())[0]]['lastrun'] = findit['lastrun']
+            current_prov[list(current_prov.keys())[0]]['active'] = False
+            logger.info('setting took. Current provider is: %s' % (current_prov,))
+
 
         srchloop += 1
 
@@ -2488,10 +2383,20 @@ def searchforissue(issueid=None, new=False, rsschecker=None, manual=False):
                     if any([comic['AllowPacks'] == 1, comic['AllowPacks'] == '1']):
                         allow_packs = True
 
-                if IssueDate is None:
+                if all([IssueDate == '0000-00-00', StoreDate == '0000-00-00']):
                     IssueYear = SeriesYear
                 else:
-                    IssueYear = str(IssueDate)[:4]
+                    if StoreDate == '0000-00-00':
+                        if IssueDate != '0000-00-00':
+                            IssueYear = str(IssueDate)[:4]
+                        else:
+                            logger.fdebug('No valid date found for %s issue %s - defaulting to series year.'
+                                          'You may want to edit the date to correct this.'
+                                          % (ComicName, IssueNumber)
+                            )
+                            IssueYear = SeriesYear
+                    else:
+                        IssueYear = str(StoreDate)[:4]
 
                 foundNZB, prov = search_init(
                     ComicName,

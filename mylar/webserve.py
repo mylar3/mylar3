@@ -373,6 +373,8 @@ class WebInterface(object):
                                 for file in files:
                                     if run_them_down is True:
                                         break
+                                    if file.startswith('._'):
+                                        continue
                                     if file.endswith(tuple(['cbr', 'cbz', 'cb7'])):
                                         mtime = os.path.getmtime(os.path.join(root, file))
                                         if mylar.OS_DETECT == 'Windows':
@@ -3525,7 +3527,19 @@ class WebInterface(object):
             oneitem = myDB.selectone("SELECT * FROM DDL_INFO WHERE ID=?", [id]).fetchone()
             items = [oneitem]
 
-        itemlist = [x for x in items]
+        itemlist = []
+        for x in items:
+            itemlist.append({'link': x['link'],
+                             'mainlink': x['mainlink'],
+                             'series': x['series'],
+                             'status': x['status'],
+                             'year': x['year'],
+                             'size': x['size'],
+                             'remote_filesize': x['remote_filesize'],
+                             'comicid': x['comicid'],
+                             'issueid': x['issueid'],
+                             'site': x['site'],
+                             'id': x['id']})
 
         if itemlist is not None:
             for item in itemlist:
@@ -3566,12 +3580,16 @@ class WebInterface(object):
                 linemessage = 'Successfully restarted Queue'
             elif mode == 'restart':
                 logger.info('[DDL-RESTART] Successfully restarted %s [%s] for downloading..' % (seriesname, seriessize))
+                linemessage = 'Successfully restarted %s [%s]' % (seriesname, seriessize)
             elif mode == 'requeue':
                 logger.info('[DDL-REQUEUE] Successfully requeued %s [%s] for downloading..' % (seriesname, seriessize))
+                linemessage = 'Successfully requeued %s [%s]' % (seriesname, seriessize)
             elif mode == 'abort':
                 logger.info('[DDL-ABORT] Successfully aborted downloading of %s [%s]..' % (seriesname, seriessize))
+                linemessage = 'Successfully aborted downloading %s [%s]' % (seriesname, seriessize)
             elif mode == 'remove':
                 logger.info('[DDL-REMOVE] Successfully removed %s [%s]..' % (seriesname, seriessize))
+                linemessage = 'Successfully removed %s [%s] from queue/history' % (seriesname, seriessize)
         else:
             linemessage = "No items to requeue"
         return json.dumps({'status': True, 'message': linemessage})
@@ -3661,8 +3679,8 @@ class WebInterface(object):
 
         myDB = db.DBConnection()
         resultlist = 'There are currently no items waiting in the Direct Download (DDL) Queue for processing.'
-        s_info = myDB.select("SELECT a.ComicName, a.ComicVersion, a.ComicID, a.ComicYear, b.Issue_Number, b.IssueID, c.size, c.status, c.id, c.updated_date, c.issues, c.year FROM comics as a INNER JOIN issues as b ON a.ComicID = b.ComicID INNER JOIN ddl_info as c ON b.IssueID = c.IssueID") # WHERE c.status != 'Downloading'")
-        o_info = myDB.select("Select a.ComicName, b.Issue_Number, a.IssueID, a.ComicID, c.size, c.status, c.id, c.updated_date, c.issues, c.year from oneoffhistory a join snatched b on a.issueid=b.issueid join ddl_info c on b.issueid=c.issueid where b.provider like 'DDL%'")
+        s_info = myDB.select("SELECT a.ComicName, a.ComicVersion, a.ComicID, a.ComicYear, b.Issue_Number, b.IssueID, c.series as filename, c.size, c.status, c.id, c.updated_date, c.issues, c.year, c.pack FROM comics as a INNER JOIN issues as b ON a.ComicID = b.ComicID INNER JOIN ddl_info as c ON b.IssueID = c.IssueID") # WHERE c.status != 'Downloading'")
+        o_info = myDB.select("Select a.ComicName, b.Issue_Number, a.IssueID, a.ComicID, c.series as filename, c.size, c.status, c.id, c.updated_date, c.issues, c.year, c.pack from oneoffhistory a join snatched b on a.issueid=b.issueid join ddl_info c on b.issueid=c.issueid where b.provider like 'DDL%'")
         tmp_list = {}
         if s_info:
             resultlist = []
@@ -3681,16 +3699,19 @@ class WebInterface(object):
                 else:
                     si_status = ''
 
-                if issue is not None:
-                    if si['ComicVersion'] is not None:
-                        series = '%s %s %s (%s)' % (si['ComicName'], si['ComicVersion'], issue, year)
-                    else:
-                        series = '%s %s (%s)' % (si['ComicName'], issue, year)
+                if si['pack']:
+                    series = si['filename']
                 else:
-                    if si['ComicVersion'] is not None:
-                        series = '%s %s (%s)' % (si['ComicName'], si['ComicVersion'], year)
+                    if issue is not None:
+                        if si['ComicVersion'] is not None:
+                            series = '%s %s %s (%s)' % (si['ComicName'], si['ComicVersion'], issue, year)
+                        else:
+                            series = '%s %s (%s)' % (si['ComicName'], issue, year)
                     else:
-                        series = '%s (%s)' % (si['ComicName'], year)
+                        if si['ComicVersion'] is not None:
+                            series = '%s %s (%s)' % (si['ComicName'], si['ComicVersion'], year)
+                        else:
+                            series = '%s (%s)' % (si['ComicName'], year)
 
                 resultlist.append({'series':       series, #i['ComicName'],
                                    'issue':        issue,
@@ -3731,10 +3752,13 @@ class WebInterface(object):
                 else:
                     oi_status = ''
 
-                if issue is not None:
-                    series = '%s %s (%s)' % (oi['ComicName'], issue, year)
+                if oi['pack']:
+                    series = oi['filename']
                 else:
-                    series = '%s (%s)' % (oi['ComicName'], year)
+                    if issue is not None:
+                        series = '%s %s (%s)' % (oi['ComicName'], issue, year)
+                    else:
+                        series = '%s (%s)' % (oi['ComicName'], year)
 
                 resultlist.append({'series':       series,
                                    'issue':        issue,
@@ -6567,6 +6591,7 @@ class WebInterface(object):
                     "extra_newznabs": sorted(mylar.CONFIG.EXTRA_NEWZNABS, key=itemgetter(5), reverse=True),
                     "enable_ddl": helpers.checked(mylar.CONFIG.ENABLE_DDL),
                     "enable_getcomics": helpers.checked(mylar.CONFIG.ENABLE_GETCOMICS),
+                    "ddl_prefer_upscaled": helpers.checked(mylar.CONFIG.DDL_PREFER_UPSCALED),
                     "enable_rss": helpers.checked(mylar.CONFIG.ENABLE_RSS),
                     "rss_checkinterval": mylar.CONFIG.RSS_CHECKINTERVAL,
                     "rss_last": rss_sclast,
@@ -7054,7 +7079,7 @@ class WebInterface(object):
                            'prowl_enabled', 'prowl_onsnatch', 'pushover_enabled', 'pushover_onsnatch', 'pushover_image', 'mattermost_enabled', 'mattermost_onsnatch', 'boxcar_enabled',
                            'boxcar_onsnatch', 'pushbullet_enabled', 'pushbullet_onsnatch', 'telegram_enabled', 'telegram_onsnatch', 'telegram_image', 'discord_enabled', 'discord_onsnatch', 'slack_enabled', 'slack_onsnatch',
                            'email_enabled', 'email_enc', 'email_ongrab', 'email_onpost', 'gotify_enabled', 'gotify_server_url', 'gotify_token', 'gotify_onsnatch', 'opds_enable', 'opds_authentication', 'opds_metainfo', 'opds_pagesize', 'enable_ddl',
-                           'enable_getcomics', 'deluge_pause'] #enable_public
+                           'enable_getcomics', 'ddl_prefer_upscaled', 'deluge_pause'] #enable_public
 
         for checked_config in checked_configs:
             if checked_config not in kwargs:
@@ -7804,6 +7829,9 @@ class WebInterface(object):
                      'meta_dir': cinfo['ComicLocation']}
 
         groupinfo = myDB.select('SELECT IssueID, Location FROM issues WHERE ComicID=? and Location is not NULL', [ComicID])
+        if mylar.CONFIG.ANNUALS_ON:
+            groupinfo += myDB.select('SELECT IssueID, Location FROM annuals WHERE ComicID=? and Location is not NULL', [ComicID])
+
         if groupinfo is None:
             logger.warn('No issues physically exist within the series directory for me to (re)-tag.')
             return

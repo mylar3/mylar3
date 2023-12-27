@@ -80,7 +80,11 @@ class SABnzbd(object):
         try:
             logger.fdebug('sending now to %s' % self.sab_url)
             tmp_apikey = self.params['queue'].pop('apikey')
-            logger.fdebug('parameters set to %s' % self.params)
+            self.params['queue'].pop('search')
+            self.params['queue']['nzo_ids'] = self.params['nzo_id']
+            if mylar.CONFIG.SAB_CATEGORY is not None:
+                self.params['queue']['category'] = mylar.CONFIG.SAB_CATEGORY
+            logger.fdebug('[SAB-QUEUE] parameters set to %s' % self.params)
             self.params['queue']['apikey'] = tmp_apikey
             time.sleep(5)   #pause 5 seconds before monitoring just so it hits the queue
             h = requests.get(self.sab_url, params=self.params['queue'], verify=False)
@@ -91,36 +95,50 @@ class SABnzbd(object):
             queueresponse = h.json()
             logger.fdebug('successfully queried the queue for status')
             try:
+                if queueresponse['noofslots'] == 1: # 1 means it matched to one instance
+                    queueinfo = queueresponse['queue']['slots'][0]
+                    logger.info('monitoring ... detected download - %s [%s]' % (queueinfo['filename'], queueinfo['status']))
+            except Exception as e:
+                logger.warning('unable to locate item within sabnzbd active queue - it could be finished already?')
                 queueinfo = queueresponse['queue']
-                #logger.fdebug('queue: %s' % queueinfo)
-                logger.fdebug('Queue status : %s' % queueinfo['status'])
-                logger.fdebug('Queue mbleft : %s' % queueinfo['mbleft'])
-
+            try:
+                logger.fdebug('SABnzbd Queued item status : %s' % queueinfo['status'])
+                logger.fdebug('SABnzbd Queued item mbleft : %s' % queueinfo['mbleft'])
                 if str(queueinfo['status']) == 'Paused':
                     logger.warn('[WARNING] SABnzbd has the active queue Paused. CDH will not work in this state.')
                     return {'status': 'queue_paused', 'failed': False}
-                while any([str(queueinfo['status']) == 'Downloading', str(queueinfo['status']) == 'Idle']) and float(queueinfo['mbleft']) > 0:
+                while any([str(queueinfo['status']) == 'Downloading', str(queueinfo['status']) == 'Idle', str(queueinfo['status']) == 'Queued']) and float(queueinfo['mbleft']) > 0:
                     #if 'comicrn' in queueinfo['script'].lower():
                     #    logger.warn('ComicRN has been detected as being active for this category & download. Completed Download Handling will NOT be performed due to this.')
                     #    logger.warn('Either disable Completed Download Handling for SABnzbd within Mylar, or remove ComicRN from your category script in SABnzbd.')
                     #    return {'status': 'double-pp', 'failed': False}
-
-                    logger.fdebug('queue_params: %s' % self.params['queue'])
+                    no_findie = False
                     tmp_queue = self.params['queue']
                     try:
-                        tmp_queue.pop('search')
+                        tmp_queue.pop('nzo_ids')
                     except Exception as e:
-                        logger.fdebug('unable to pop search term - possibly already done/finished/does not exist')
-                    tmp_queue['nzo_ids'] = self.params['nzo_id']
-                    #logger.fdebug('tmp_queue: %s' % (tmp_queue,))
+                        # if this triggers than nzo_id is no longer in the active queue and we can assume it's finished
+                        logger.fdebug('unable to pop nzo_id - possibly already done/finished/does not exist')
+                        no_findie = True
+                    tmp_queue['nzo_ids'] = self.params['nzo_id'] # if it pops, still there - make sure we put it back
                     queue_resp = requests.get(self.sab_url, params=tmp_queue, verify=False)
                     queueresponse = queue_resp.json()
-                    queueinfo = queueresponse['queue']
-                    logger.fdebug('status: %s' % queueinfo['status'])
-                    logger.fdebug('mbleft: %s' % queueinfo['mbleft'])
-                    logger.fdebug('timeleft: %s' % queueinfo['timeleft'])
-                    #logger.fdebug('eta: %s' % queueinfo['eta'])
+                    try:
+                        queueinfo = queueresponse['queue']['slots'][0]
+                    except Exception as e:
+                        try:
+                            tmp_queue.pop('nzo_ids')
+                        except Exception as e:
+                            #logger.fdebug('unable to pop nzo_id - possibly already done/finished/does not exist')
+                            no_findie = True
+                        else:
+                            tmp_queue['nzo_ids'] = self.params['nzo_id']
+                            queueinfo = queueresponse['queue']
+
+                    logger.fdebug('status: %s -- mb_left: %s -- time_left: %s' % (queueinfo['status'], queueinfo['mbleft'], queueinfo['timeleft']))
                     time.sleep(5)
+                    if no_findie:
+                        break
             except Exception as e:
                 logger.warn('error: %s' % e)
 
