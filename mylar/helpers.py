@@ -38,6 +38,7 @@ from collections import namedtuple
 from urllib.parse import urljoin
 from io import StringIO
 from apscheduler.triggers.interval import IntervalTrigger
+from PIL import Image
 
 import mylar
 from . import logger
@@ -4166,6 +4167,14 @@ def getImage(comicid, url, issueid=None, thumbnail_path=None, apicall=False):
 
             statinfo = os.stat(coverfile)
             coversize = statinfo.st_size
+
+        #quick test for image integrity
+        try:
+            im = Image.open(coverfile)
+        except OSError as e:
+            logger.warn('Truncated image retrieved - trying alternate image file.')
+            return {'coversize': coversize,
+                    'status': 'retry'}
 
         return {'coversize': coversize,
                 'status':    'success'}
