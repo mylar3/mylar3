@@ -724,6 +724,8 @@
                 add2readinglist(issueid);
             } else if (action == 'downloadissue'){
                 downloadthisissue(issueid);
+            } else if (action == 'Addurlddl'){
+                add_url(issueid, comicid, issuenumber);
             } else if (action == 'manqueueit' || action == 'amanqueueit'){
                 if (action == 'amanqueueit'){
                     add_wanted(issueid, comicid, issuenumber, 'want_ann', true);
@@ -900,6 +902,43 @@
             });
         }
 
+        function add_url(issueid, comicid, issuenumber) {
+
+            var newDialog = $("<div>", {
+                id: "dialog-form"
+            });
+
+            newDialog.append("<label style='display: block;'>GetComics.info URL:</label><input type='text' id='new_item' />");
+
+            //  JQUERY UI DIALOG
+            newDialog.dialog({
+                resizable: false,
+                title: 'Add URL',
+                height: 170,
+                width: 220,
+                modal: true,
+                autoOpen: false,
+                buttons: [{
+                    text: "Yes",
+                    click: function() {
+                        var urllink = $('#new_item').val();
+                        add_wanted(issueid, comicid, issuenumber, 'want', true, urllink);
+                        $(this).dialog("close");
+                        $('#new_item').val("");
+                        $(this).dialog('destroy').remove()  // Necessary to get new variables
+                    }
+                }, {
+                    text: "Cancel",
+                    click: function() {
+                        $(this).dialog("close");
+                        $('#new_item').val("");
+                        $(this).dialog('destroy').remove()
+                    }
+                }]
+            });
+            newDialog.dialog("open");
+        }
+
         function unqueue_issue(issueid, comicid, smode, rlscomicid){
             $.when($.ajax({
                  type: "GET",
@@ -944,11 +983,11 @@
                  reload_tables();
             });
         }
-        function add_wanted(issueid, comicid, issuenumber, mode, msearch){
+        function add_wanted(issueid, comicid, issuenumber, mode, msearch, urllink){
             $.when($.ajax({
                  type: "GET",
                  url: "queueissue",
-                 data: { IssueID: issueid, mode: mode, ComicIssue: issuenumber, ComicID: comicid, manualsearch: msearch },
+                 data: { IssueID: issueid, mode: mode, ComicIssue: issuenumber, ComicID: comicid, manualsearch: msearch, urllink: urllink },
                  success: function(response) {
                     obj = JSON.parse(response);
                     $('#ajaxMsg').html("<div class='msg'><span class='ui-icon ui-icon-check'></span>"+obj['message']+"</div>");
@@ -1649,8 +1688,10 @@
                                var displayline = '<a id="manqueueit" name="manqueueit" title="Search for issue" href="#"><img src="images/search.png" height="25" width="25" style="margin:2px 1px 3px 3px;" /></a>';
                                if (full[3] == 'Skipped' || full[3] == 'Ignored'){
                                    displayline += '<a id="queueit" name="queueit" title="Mark issue as Wanted" href="#"><img src="images/wanted_icon.png" height="25" width="25" style="margin:2px 1px 3px 3px;" /></a>';
+                                   displayline += '<a id="Addurlddl" name="Addurlddl" title="Add DDL url" href="#"><img src="images/add_url_icon.png" height="25" width="25" style="margin:2px 1px 3px 3px;" /></a>'
                                } else if (full[3] == 'Wanted'){
                                    displayline += '<a id="unqueueit" name="unqueueit" title="Mark issue as Skipped" href="#"><img src="images/skipped_icon.png" height="25" width="25" style="margin:2px 1px 3px 3px;" /></a>';
+                                   displayline += '<a id="Addurlddl" name="Addurlddl" title="Add DDL url" href="#"><img src="images/add_url_icon.png" height="25" width="25" style="margin:2px 1px 3px 3px;" /></a>'
                                } else if (full[3] == 'Snatched'){
                                    displayline += '<a id="queueit" name="queueit" title="Mark issue as Wanted" href="#"><img src="images/wanted_icon.png" height="25" width="25" style="margin:2px 1px 3px 3px;" /></a>';
                                    displayline += '<a id="retryit" name="retryit" title="Retry the same download again" href="#"><img src="images/retry_icon.png" height="25" width="25" style="margin:2px 1px 3px 3px;" /></a>';

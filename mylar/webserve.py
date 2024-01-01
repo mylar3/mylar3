@@ -2467,7 +2467,7 @@ class WebInterface(object):
         threading.Thread(target=self.queueissue, kwargs=kwargs).start()
     queueit.exposed = True
 
-    def queueissue(self, mode, ComicName=None, ComicID=None, ComicYear=None, ComicIssue=None, IssueID=None, new=False, redirect=None, SeriesYear=None, SARC=None, IssueArcID=None, manualsearch=None, Publisher=None, pullinfo=None, pullweek=None, pullyear=None, manual=False, ComicVersion=None, BookType=None):
+    def queueissue(self, mode, ComicName=None, ComicID=None, ComicYear=None, ComicIssue=None, IssueID=None, new=False, redirect=None, SeriesYear=None, SARC=None, IssueArcID=None, manualsearch=None, Publisher=None, pullinfo=None, pullweek=None, pullyear=None, manual=False, ComicVersion=None, BookType=None, urllink=None):
         logger.fdebug('ComicID: %s' % ComicID)
         logger.fdebug('mode: %s' % mode)
         now = datetime.datetime.now()
@@ -2522,7 +2522,8 @@ class WebInterface(object):
                         'seriesyear':  SeriesYear,
                         'comicid':     ComicID,
                         'issuenumber': ComicIssue,
-                        'booktype':    BookType}
+                        'booktype':    BookType,
+                        'urllink':     urllink}
 
         elif mode == 'pullwant':  #and ComicID is None
             #this is for marking individual comics from the pullist to be downloaded.
@@ -2541,7 +2542,8 @@ class WebInterface(object):
                         'seriesyear':  SeriesYear,
                         'comicid':     ComicID,
                         'issuenumber': ComicIssue,
-                        'booktype':    BookType}
+                        'booktype':    BookType,
+                        'urllink':     urllink}
 
         elif mode == 'want' or mode == 'want_ann' or manualsearch:
             cdname = myDB.selectone("SELECT * from comics where ComicID=?", [ComicID]).fetchone()
@@ -2585,7 +2587,8 @@ class WebInterface(object):
                         'seriesyear':  SeriesYear,
                         'comicid':     ComicID,
                         'issuenumber': ComicIssue,
-                        'booktype':    BookType}
+                        'booktype':    BookType,
+                        'urllink':     urllink}
 
 
             if mode == 'want':
