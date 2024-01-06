@@ -99,7 +99,7 @@ class SABnzbd(object):
                     queueinfo = queueresponse['queue']['slots'][0]
                     logger.info('monitoring ... detected download - %s [%s]' % (queueinfo['filename'], queueinfo['status']))
             except Exception as e:
-                logger.warning('unable to locate item within sabnzbd active queue - it could be finished already?')
+                logger.warn('Unable to locate item within sabnzbd active queue - it could be finished already?')
                 queueinfo = queueresponse['queue']
             try:
                 logger.fdebug('SABnzbd Queued item status : %s' % queueinfo['status'])
