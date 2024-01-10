@@ -102,7 +102,7 @@ class Req(object):
             for rq in self.req_list:
                 version_match = False
                 for pl in self.pip_list:
-                    if re.sub('[\-\_]', '', rq['module']).strip() == re.sub('[\-\_]', '', pl['module']).strip():
+                    if re.sub('[\-\_]', '', rq['module'].lower()).strip() == re.sub('[\-\_]', '', pl['module'].lower()).strip():
                         if parse_version(pl['version']) == parse_version(rq['version']):
                             version_match = 'OK'
                         elif parse_version(pl['version']) < parse_version(rq['version']):
@@ -145,6 +145,8 @@ class Req(object):
                             targ = '<'
                         elif x['arg'] == '<=':
                             targ = '>'
+                        else:
+                            targ = '='
                         pip_message = "%s installed %s %s required" % (x['pip_version'], targ, x['req_version'])
                     else:
                         pip_message = "%s %s" % (x['req_version'], x['pip_version'])
