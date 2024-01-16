@@ -2336,7 +2336,9 @@ def searchforissue(issueid=None, new=False, rsschecker=None, manual=False):
                                 )
                                 mylar.SEARCHLOCK = False
                                 return
-
+                if result['Status'] != 'Wanted':
+                    logger.info('Issue is not in wanted status, ignoring search.')
+                    return
                 allow_packs = False
                 ComicID = result['ComicID']
                 if smode == 'story_arc':
