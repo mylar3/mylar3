@@ -94,7 +94,7 @@ _CONFIG_DEFINITIONS = OrderedDict({
     'CREATE_FOLDERS': (bool, 'General', True),
     'ALTERNATE_LATEST_SERIES_COVERS': (bool, 'General', False),
     'SHOW_ICONS': (bool, 'General', False),
-    'FORMAT_BOOKTYPE': (bool, 'General', False),
+    'FORMAT_BOOKTYPE': (bool, 'General', True),
     'CLEANUP_CACHE': (bool, 'General', False),
     'SECURE_DIR': (str, 'General', None),
     'ENCRYPT_PASSWORDS': (bool, 'General', False),
@@ -358,11 +358,16 @@ _CONFIG_DEFINITIONS = OrderedDict({
 
     'ENABLE_DDL': (bool, 'DDL', False),
     'ENABLE_GETCOMICS': (bool, 'DDL', False),
+    'ENABLE_EXTERNAL_SERVER': (bool, 'DDL', False),
+    'EXTERNAL_SERVER': (str, 'DDL', None),
+    'EXTERNAL_USERNAME': (str, 'DDL', None),
+    'EXTERNAL_APIKEY': (str, 'DDL', None),
     'PACK_PRIORITY': (bool, 'DDL', False),
     'DDL_QUERY_DELAY': (int, 'DDL', 15),
     'DDL_LOCATION': (str, 'DDL', None),
     'DDL_AUTORESUME': (bool, 'DDL', True),
     'DDL_PREFER_UPSCALED': (bool, 'DDL', True),
+    'DDL_PRIORITY_ORDER': (str, 'DDL', []),
     'ENABLE_FLARESOLVERR': (bool, 'DDL', False),
     'FLARESOLVERR_URL': (str, 'DDL', None),
     'ENABLE_PROXY': (bool, 'DDL', False),
@@ -1220,7 +1225,7 @@ class Config(object):
             setattr(self, 'IGNORE_SEARCH_WORDS', [".exe", ".iso", "pdf-xpost", "pdf", "ebook"])
             config.set('General', 'ignore_search_words', json.dumps(self.IGNORE_SEARCH_WORDS))
 
-        logger.info('[IGNORE_SEARCH_WORDS] Words to flag search result as invalid: %s' % (self.IGNORE_SEARCH_WORDS,))
+        logger.fdebug('[IGNORE_SEARCH_WORDS] Words to flag search result as invalid: %s' % (self.IGNORE_SEARCH_WORDS,))
 
         if len(self.PROBLEM_DATES) > 0 and self.PROBLEM_DATES != '[]':
             if type(self.PROBLEM_DATES) != list:
@@ -1319,18 +1324,53 @@ class Config(object):
             config.set('General', 'folder_format', ann_remove)
 
         # need to recheck this cause of how enable_ddl and enable_getcomics are now
-        self.ENABLE_GETCOMICS = self.ENABLE_DDL
-        config.set('DDL', 'enable_getcomics', str(self.ENABLE_GETCOMICS))
+        #self.ENABLE_GETCOMICS = self.ENABLE_DDL
+        #config.set('DDL', 'enable_getcomics', str(self.ENABLE_GETCOMICS))
 
         if not self.DDL_LOCATION:
             self.DDL_LOCATION = self.CACHE_DIR
             if self.ENABLE_DDL is True:
                 logger.info('Setting DDL Location set to : %s' % self.DDL_LOCATION)
         else:
-            dcreate = filechecker.validateAndCreateDirectory(self.DDL_LOCATION, create=True, dmode='ddl location')
-            if dcreate is False and self.ENABLE_DDL is True:
+            try:
+                os.makedirs(self.DDL_LOCATION)
+                #dcreate = filechecker.validateAndCreateDirectory(self.DDL_LOCATION, create=True, dmode='ddl location')
+                #if dcreate is False and self.ENABLE_DDL is True:
+            except Exception as e:
                 logger.warn('Unable to create ddl_location specified in config: %s. Reverting to default cache location.' % self.DDL_LOCATION)
                 self.DDL_LOCATION = self.CACHE_DIR
+
+        if self.ENABLE_DDL:
+            #make sure directory for mega downloads is created...
+            mega_ddl_path = os.path.join(self.DDL_LOCATION, 'mega')
+            if not os.path.isdir(mega_ddl_path):
+                try:
+                    os.makedirs(mega_ddl_path)
+                #dcreate = filechecker.validateAndCreateDirectory(mega_ddl_path, create=True)
+                #if dcreate is False:
+                except Exception as e:
+                    logger.error('Unable to create temp download directory [%s] for DDL-External. You will not be able to view the progress of the download.' % mega_ddl_path)
+
+        if len(self.DDL_PRIORITY_ORDER) > 0 and self.DDL_PRIORITY_ORDER != '[]':
+            if type(self.DDL_PRIORITY_ORDER) != list:
+                try:
+                    self.DDL_PRIORITY_ORDER = json.loads(self.DDL_PRIORITY_ORDER)
+                except Exception as e:
+                    logger.warn('[DDL PRIORITY ORDER] Unable to load DDL priority order from setting to default')
+                    setattr(self, 'DDL_PRIORITY_ORDER', ["mega", "mediafire", "pixeldrain", "main"])
+
+            # validate entries
+            ddl_pros = ['mega', 'mediafire', 'pixeldrain', 'main']
+            for dpo in self.DDL_PRIORITY_ORDER:
+                if dpo.lower() not in ddl_pros:
+                    logger.warn('[DDL PRIORITY ORDER] Invalid value detected - removing %s' % dpo)
+                    self.DDL_PRIORITY_ORDER.pop(self.DDL_PRIORITY_ORDER.index(dpo))
+
+        else:
+            setattr(self, 'DDL_PRIORITY_ORDER', ["mega", "mediafire", "pixeldrain", "main"])  #default order
+            config.set('DDL', 'ddl_priority_order', json.dumps(self.DDL_PRIORITY_ORDER))
+
+        logger.info('[DDL PRIORITY ORDER] DDL will attempt to use the following 3rd party sites in this specific download order: %s' % self.DDL_PRIORITY_ORDER)
 
         if self.SEARCH_TIER_CUTOFF is None:
             self.SEARCH_TIER_CUTOFF = 14
@@ -1583,8 +1623,11 @@ class Config(object):
             if self.ENABLE_GETCOMICS:
                 PR.append('DDL(GetComics)')
                 PR_NUM +=1
+            if self.ENABLE_EXTERNAL_SERVER:
+                PR.append('DDL(External)')
+                PR_NUM +=1
 
-        PPR = ['32p', 'nzb.su', 'dognzb', 'Experimental', 'DDL(GetComics)']
+        PPR = ['32p', 'nzb.su', 'dognzb', 'Experimental', 'DDL(GetComics)', 'DDL(External)']
         if self.NEWZNAB:
             for ens in self.EXTRA_NEWZNABS:
                 if str(ens[5]) == '1': # if newznabs are enabled
@@ -1750,6 +1793,8 @@ class Config(object):
                    # id of 0 means it hasn't been assigned - so we need to assign it before we build out the dict
                    if 'DDL(GetComics)' in prov_t:
                        t_id = 200
+                   if 'DDL(External)' in prov_t:
+                       t_id = 201
                    elif any(['experimental' in prov_t, 'Experimental' in prov_t]):
                        t_id = 101
                    elif 'dog' in prov_t:
@@ -1785,6 +1830,9 @@ class Config(object):
                if 'DDL(GetComics)' in tmp_prov:
                    t_type = 'DDL'
                    t_id = 200
+               if 'DDL(External)' in tmp_prov:
+                   t_type = 'DDL(External)'
+                   t_id = 201
                elif any(['experimental' in tmp_prov, 'Experimental' in tmp_prov]):
                    tmp_prov = 'experimental'
                    t_type = 'experimental'

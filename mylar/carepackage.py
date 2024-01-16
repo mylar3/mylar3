@@ -176,8 +176,8 @@ class carePackage(object):
         f.close()
 
     def cleaned_config(self):
-        tmpconfig = configparser.SafeConfigParser()
-        tmpconfig.readfp(codecs.open(self.configpath, 'r', 'utf8'))
+        tmpconfig = configparser.ConfigParser()
+        tmpconfig.read_file(codecs.open(self.configpath, 'r', 'utf8'))
 
         if self.maintenance is True:
             self.log_dir = tmpconfig['Logs']['log_dir']

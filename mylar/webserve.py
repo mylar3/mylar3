@@ -29,7 +29,7 @@ import copy
 import stat
 import ntpath
 from pathlib import Path
-from pkg_resources import parse_version
+from packaging.version import parse as parse_version
 
 from mako.template import Template
 from mako.lookup import TemplateLookup
@@ -1881,7 +1881,7 @@ class WebInterface(object):
                     else:
                         logger.warn('Unable to remove directory as it does not exist in : ' + seriesdir)
                 else:
-                    logger.warn('Unable to remove directory as it does not exist in : ' + seriesdir)
+                    logger.warn('Unable to remove directory as it does not exist.')
             if seriesvol is None:
                 dspline = '%s (%s)' % (ComicName, seriesyear)
             else:
@@ -3535,6 +3535,10 @@ class WebInterface(object):
                              'status': x['status'],
                              'year': x['year'],
                              'size': x['size'],
+                             'link_type': x['link_type'],
+                             'pack': x['pack'],
+                             'oneoff': x['oneoff'],
+                             'filename': x['filename'],
                              'remote_filesize': x['remote_filesize'],
                              'comicid': x['comicid'],
                              'issueid': x['issueid'],
@@ -3566,11 +3570,16 @@ class WebInterface(object):
                                      'series': item['series'],
                                      'year': item['year'],
                                      'size': item['size'],
-                                     'remote_filesize': item['remote_filesize'],
                                      'comicid': item['comicid'],
                                      'issueid': item['issueid'],
-                                     'site': item['site'],
+                                     'oneoff': item['oneoff'],
                                      'id': item['id'],
+                                     'link_type': item['link_type'],
+                                     'filename': item['filename'],
+                                     'comicinfo': None,
+                                     'packinfo': None,
+                                     'site': item['site'],
+                                     'remote_filesize': item['remote_filesize'],
                                      'resume': resume})
 
                 linemessage = '%s successful for %s' % (mode, item['series'])
@@ -3599,8 +3608,8 @@ class WebInterface(object):
         myDB = db.DBConnection()
 
         resultlist = 'There are currently no items waiting in the Direct Download (DDL) Queue for processing.'
-        s_info = myDB.select("SELECT a.ComicName, a.ComicVersion, a.ComicID, a.ComicYear, b.Issue_Number, b.IssueID, c.size, c.status, c.id, c.updated_date, c.issues, c.year FROM comics as a INNER JOIN issues as b ON a.ComicID = b.ComicID INNER JOIN ddl_info as c ON b.IssueID = c.IssueID") # WHERE c.status != 'Downloading'")
-        o_info = myDB.select("Select a.ComicName, b.Issue_Number, a.IssueID, a.ComicID, c.size, c.status, c.id, c.updated_date, c.issues, c.year from oneoffhistory a join snatched b on a.issueid=b.issueid join ddl_info c on b.issueid=c.issueid where b.provider like 'DDL%'")
+        s_info = myDB.select("SELECT a.ComicName, a.ComicVersion, a.ComicID, a.ComicYear, b.Issue_Number, b.IssueID, c.series as filename, c.size, c.status, c.id, c.updated_date, c.issues, c.year, c.pack FROM comics as a INNER JOIN issues as b ON a.ComicID = b.ComicID INNER JOIN ddl_info as c ON b.IssueID = c.IssueID") # WHERE c.status != 'Downloading'")
+        o_info = myDB.select("Select a.ComicName, b.Issue_Number, a.IssueID, a.ComicID, c.series as filename, c.size, c.status, c.id, c.updated_date, c.issues, c.year, c.pack from oneoffhistory a join snatched b on a.issueid=b.issueid join ddl_info c on b.issueid=c.issueid where b.provider like 'DDL%'")
         tmp_list = {}
         if s_info:
             resultlist = []
@@ -3614,11 +3623,16 @@ class WebInterface(object):
                     year = si['year']
                     issue = '#%s' % si['issues']
 
+                if si['pack']:
+                    series = si['filename']
+                else:
+                    series = si['ComicName']
+
                 if si['status'] == 'Completed':
                     si_status = '100%'
                 else:
                     si_status = ''
-                resultlist.append({'series':       si['ComicName'],
+                resultlist.append({'series':       series,
                                    'issue':        issue,
                                    'id':           si['id'],
                                    'volume':       si['ComicVersion'],
@@ -3634,6 +3648,7 @@ class WebInterface(object):
                                      'issueid': si['issueid'],
                                      'updated_date': si['updated_date']
                                      }
+            #logger.info('s_info: %s' % (resultlist))
         if o_info:
             if type(resultlist) is str:
                 resultlist = []
@@ -3651,12 +3666,17 @@ class WebInterface(object):
                     year = oi['year']
                     issue = '#%s' % oi['issues']
 
+                if oi['pack']:
+                    series = oi['filename']
+                else:
+                    series = oi['ComicName']
+
                 if oi['status'] == 'Completed':
                     oi_status = '100%'
                 else:
                     oi_status = ''
 
-                resultlist.append({'series':       oi['ComicName'],
+                resultlist.append({'series':       series,
                                    'issue':        issue,
                                    'id':           oi['id'],
                                    'volume':       None,
@@ -3668,6 +3688,7 @@ class WebInterface(object):
                                    'updated_date': oi['updated_date'],
                                    'progress':     oi_status})
 
+            #logger.info('o_info: %s' % (resultlist))
 
         return serve_template(templatename="queue_management.html", title="Queue Management", resultlist=resultlist) #activelist=activelist, resultlist=resultlist)
     queueManage.exposed = True
@@ -3679,8 +3700,8 @@ class WebInterface(object):
 
         myDB = db.DBConnection()
         resultlist = 'There are currently no items waiting in the Direct Download (DDL) Queue for processing.'
-        s_info = myDB.select("SELECT a.ComicName, a.ComicVersion, a.ComicID, a.ComicYear, b.Issue_Number, b.IssueID, c.series as filename, c.size, c.status, c.id, c.updated_date, c.issues, c.year, c.pack FROM comics as a INNER JOIN issues as b ON a.ComicID = b.ComicID INNER JOIN ddl_info as c ON b.IssueID = c.IssueID") # WHERE c.status != 'Downloading'")
-        o_info = myDB.select("Select a.ComicName, b.Issue_Number, a.IssueID, a.ComicID, c.series as filename, c.size, c.status, c.id, c.updated_date, c.issues, c.year, c.pack from oneoffhistory a join snatched b on a.issueid=b.issueid join ddl_info c on b.issueid=c.issueid where b.provider like 'DDL%'")
+        s_info = myDB.select("SELECT a.ComicName, a.ComicVersion, a.ComicID, a.ComicYear, b.Issue_Number, b.IssueID, c.series as filename, c.size, c.status, c.id, c.updated_date, c.issues, c.year, c.pack, c.link_type FROM comics as a INNER JOIN issues as b ON a.ComicID = b.ComicID INNER JOIN ddl_info as c ON b.IssueID = c.IssueID") # WHERE c.status != 'Downloading'")
+        o_info = myDB.select("Select a.ComicName, b.Issue_Number, a.IssueID, a.ComicID, c.series as filename, c.size, c.status, c.id, c.updated_date, c.issues, c.year, c.pack, c.link_type from oneoffhistory a join snatched b on a.issueid=b.issueid join ddl_info c on b.issueid=c.issueid where b.provider like 'DDL%'")
         tmp_list = {}
         if s_info:
             resultlist = []
@@ -3700,7 +3721,10 @@ class WebInterface(object):
                     si_status = ''
 
                 if si['pack']:
-                    series = si['filename']
+                    if si['year'] not in si['filename']:
+                        series = '%s (%s)' % (si['filename'], si['year'])
+                    else:
+                        series = si['filename']
                 else:
                     if issue is not None:
                         if si['ComicVersion'] is not None:
@@ -3716,6 +3740,7 @@ class WebInterface(object):
                 resultlist.append({'series':       series, #i['ComicName'],
                                    'issue':        issue,
                                    'queueid':      si['id'],
+                                   'linktype':     si['link_type'],
                                    'volume':       si['ComicVersion'],
                                    'year':         year,
                                    'size':         si['size'].strip(),
@@ -3729,6 +3754,7 @@ class WebInterface(object):
                                      'issueid': si['issueid'],
                                      'updated_date': si['updated_date']
                                      }
+            #logger.info('s_info: %s' % (resultlist))
         if o_info:
             if type(resultlist) is str:
                 resultlist = []
@@ -3753,7 +3779,10 @@ class WebInterface(object):
                     oi_status = ''
 
                 if oi['pack']:
-                    series = oi['filename']
+                    if oi['year'] not in oi['filename']:
+                        series = '%s (%s)' % (oi['filename'], oi['year'])
+                    else:
+                        series = oi['filename']
                 else:
                     if issue is not None:
                         series = '%s %s (%s)' % (oi['ComicName'], issue, year)
@@ -3764,6 +3793,7 @@ class WebInterface(object):
                                    'issue':        issue,
                                    'queueid':      oi['id'],
                                    'volume':       None,
+                                   'linktype':     oi['link_type'],
                                    'year':         year,
                                    'size':         oi['size'].strip(),
                                    'comicid':      oi['ComicID'],
@@ -3772,6 +3802,7 @@ class WebInterface(object):
                                    'updated_date': oi['updated_date'],
                                    'progress':     oi_status})
 
+            #logger.info('o_info: %s' % (resultlist))
 
         if sSearch == "" or sSearch == None:
             filtered = resultlist[::]
@@ -3793,7 +3824,7 @@ class WebInterface(object):
             rows = filtered[iDisplayStart:(iDisplayStart + iDisplayLength)]
         else:
             rows = filtered
-        rows = [[row['comicid'], row['series'], row['size'], row['progress'], row['status'], row['updated_date'], row['queueid'], row['issueid']] for row in rows]
+        rows = [[row['series'], row['size'], row['progress'], row['status'], row['updated_date'], row['queueid'], row['issueid'], row['comicid'], row['linktype']] for row in rows]
         #rows = [{'comicid': row['comicid'], 'series': row['series'], 'size': row['size'], 'progress': row['progress'], 'status': row['status'], 'updated_date': row['updated_date']} for row in rows]
         #logger.info('rows: %s' % rows)
         return json.dumps({
@@ -6592,6 +6623,10 @@ class WebInterface(object):
                     "enable_ddl": helpers.checked(mylar.CONFIG.ENABLE_DDL),
                     "enable_getcomics": helpers.checked(mylar.CONFIG.ENABLE_GETCOMICS),
                     "ddl_prefer_upscaled": helpers.checked(mylar.CONFIG.DDL_PREFER_UPSCALED),
+                    "enable_external_server": helpers.checked(mylar.CONFIG.ENABLE_EXTERNAL_SERVER),
+                    "external_server": mylar.CONFIG.EXTERNAL_SERVER,
+                    "external_username": mylar.CONFIG.EXTERNAL_USERNAME,
+                    "external_apikey": mylar.CONFIG.EXTERNAL_APIKEY,
                     "enable_rss": helpers.checked(mylar.CONFIG.ENABLE_RSS),
                     "rss_checkinterval": mylar.CONFIG.RSS_CHECKINTERVAL,
                     "rss_last": rss_sclast,
@@ -7079,7 +7114,7 @@ class WebInterface(object):
                            'prowl_enabled', 'prowl_onsnatch', 'pushover_enabled', 'pushover_onsnatch', 'pushover_image', 'mattermost_enabled', 'mattermost_onsnatch', 'boxcar_enabled',
                            'boxcar_onsnatch', 'pushbullet_enabled', 'pushbullet_onsnatch', 'telegram_enabled', 'telegram_onsnatch', 'telegram_image', 'discord_enabled', 'discord_onsnatch', 'slack_enabled', 'slack_onsnatch',
                            'email_enabled', 'email_enc', 'email_ongrab', 'email_onpost', 'gotify_enabled', 'gotify_server_url', 'gotify_token', 'gotify_onsnatch', 'opds_enable', 'opds_authentication', 'opds_metainfo', 'opds_pagesize', 'enable_ddl',
-                           'enable_getcomics', 'ddl_prefer_upscaled', 'deluge_pause'] #enable_public
+                           'enable_getcomics', 'enable_external_server', 'ddl_prefer_upscaled', 'deluge_pause'] #enable_public
 
         for checked_config in checked_configs:
             if checked_config not in kwargs:
@@ -7200,8 +7235,11 @@ class WebInterface(object):
         try:
             v = requests.get(querysab, params={'mode': 'version'}, verify=verify)
             if str(v.status_code) == '200':
-                logger.fdebug('sabnzbd version: %s' % v.content)
-                version = v.text
+                try:
+                    version = v.json()['version']
+                except Exception as e:
+                    version = v.text.strip()
+                logger.fdebug('sabnzbd version: %s' % version)
             r = requests.get(querysab, params=payload, verify=verify)
         except Exception as e:
             logger.warn('Error fetching data from %s: %s' % (querysab, e))
@@ -7218,8 +7256,11 @@ class WebInterface(object):
                 try:
                     v = requests.get(querysab, params={'mode': 'version'}, verify=verify)
                     if str(v.status_code) == '200':
-                        logger.fdebug('sabnzbd version: %s' % v.text)
-                        version = v.text
+                        try:
+                            version = v.json()['version']
+                        except Exception as e:
+                            version = v.text.strip()
+                        logger.fdebug('sabnzbd version: %s' % version)
                     r = requests.get(querysab, params=payload, verify=verify)
                 except Exception as e:
                     logger.warn('Error fetching data from %s: %s' % (sabhost, e))
@@ -8340,7 +8381,14 @@ class WebInterface(object):
              if active['filename'] is not None:
                  # if this is resumed, we need to use the resume value which holds the filesize of the resume
                  filelocation = os.path.join(mylar.CONFIG.DDL_LOCATION, active['filename'])
-                 #logger.fdebug('checking file existance: %s' % filelocation)
+                 #logger.fdebug('b4-checking file existance: %s' % filelocation)
+                 if all(['External' in active['site'], active['link_type'] == 'DDL-Ext']):
+                     filelocation = active['tmp_filename']
+                 elif 'DDL' in active['site'] and any([active['link_type'] == 'GC-Mega', active['link_type'] == 'GC-Pixel']):
+                     filelocation = active['tmp_filename']
+                 else:
+                     filelocation = os.path.join(mylar.CONFIG.DDL_LOCATION, active['filename'])
+                 #logger.fdebug('after-checking file existance: %s' % filelocation)
                  if os.path.exists(filelocation) is True:
                      filesize = os.stat(filelocation).st_size
                      #logger.fdebug('filesize: %s / remote: %s' % (filesize, active['remote_filesize']))
@@ -9011,7 +9059,7 @@ class WebInterface(object):
             else:
                 comicImage = None
 
-            if all([comlocation is None, booktype is None]):
+            if any([comlocation is None, booktype is None]):
                 #this recreates the diretory structure
                 if results['ComicVersion'] is not None:
                     if results['ComicVersion'].isdigit():

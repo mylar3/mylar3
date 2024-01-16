@@ -939,11 +939,11 @@ def GetSeriesYears(dom):
                     #sometimes it's volume 5 and ocassionally it's fifth volume.
                     if i == 0:
                         vfind = comicDes[v_find:v_find +15]   #if it's volume 5 format
-                        basenums = {'zero': '0', 'one': '1', 'two': '2', 'three': '3', 'four': '4', 'five': '5', 'six': '6', 'seven': '7', 'eight': '8', 'nine': '9', 'ten': '10', 'i': '1', 'ii': '2', 'iii': '3', 'iv': '4', 'v': '5'}
+                        basenums = basenum_mapping(ordinal=False)
                         logger.fdebug('volume X format - %s: %s' % (i, vfind))
                     else:
                         vfind = comicDes[:v_find]   # if it's fifth volume format
-                        basenums = {'zero': '0', 'first': '1', 'second': '2', 'third': '3', 'fourth': '4', 'fifth': '5', 'sixth': '6', 'seventh': '7', 'eighth': '8', 'nineth': '9', 'tenth': '10', 'i': '1', 'ii': '2', 'iii': '3', 'iv': '4', 'v': '5'}
+                        basenums = basenum_mapping(ordinal=True)
                         logger.fdebug('X volume format - %s: %s' % (i, vfind))
                     for nums in basenums:
                         if nums in vfind.lower():
@@ -1263,7 +1263,7 @@ def get_imprint_volume_and_booktype(series, comicyear, publisher, firstissueid, 
 
     #sometimes the deck has volume labels
     try:
-        comic_deck = deck
+        comic_deck = deck.strip()
         desdeck +=1
     except:
         comic_deck = 'None'
@@ -1357,17 +1357,20 @@ def get_imprint_volume_and_booktype(series, comicyear, publisher, firstissueid, 
                         # check to see if it matches the existing volume and if so replace it with any new
                         # values since the incorrect volume is incorrect.
                         incorrect_volume = comicDes[v_find:v_find+15]
-                if comicDes[v_find+7:comicDes.find(' ', v_find+7)].isdigit():
-                    comic['ComicVersion'] = re.sub("[^0-9]", "", comicDes[v_find+7:comicDes.find(' ', v_find+7)]).strip()
+                cbd = comicDes.find(' ', v_find+7)
+                if comicDes.find(' ', v_find+7) == -1:
+                    cbd = len(comicDes)
+                if comicDes[v_find+7:cbd].isdigit():
+                    comic['ComicVersion'] = re.sub("[^0-9]", "", comicDes[v_find+7:cbd]).strip()
                     break
                 elif i == 0:
                     vfind = comicDes[v_find:v_find +15]   #if it's volume 5 format
-                    basenums = {'zero': '0', 'one': '1', 'two': '2', 'three': '3', 'four': '4', 'five': '5', 'six': '6', 'seven': '7', 'eight': '8', 'nine': '9', 'ten': '10', 'i': '1', 'ii': '2', 'iii': '3', 'iv': '4', 'v': '5'}
-                    logger.fdebug('volume X format - ' + str(i) + ': ' + vfind)
+                    basenums = basenum_mapping(ordinal=False)
+                    logger.fdebug('volume X format - %s: %s' % (i, vfind))
                 else:
-                    vfind = comicDes[:v_find]   # if it's fifth volume format
-                    basenums = {'zero': '0', 'first': '1', 'second': '2', 'third': '3', 'fourth': '4', 'fifth': '5', 'sixth': '6', 'seventh': '7', 'eighth': '8', 'nineth': '9', 'tenth': '10', 'i': '1', 'ii': '2', 'iii': '3', 'iv': '4', 'v': '5'}
-                    logger.fdebug('X volume format - ' + str(i) + ': ' + vfind)
+                    vfind = comicDes[:v_find] # if it's fifth volume format
+                    basenums = basenum_mapping(ordinal=True)
+                    logger.fdebug('X volume format - %s: %s' % (i, vfind))
                 og_vfind = vfind
                 for nums in basenums:
                     if nums in vfind.lower():
@@ -1417,3 +1420,59 @@ def get_imprint_volume_and_booktype(series, comicyear, publisher, firstissueid, 
     logger.info('comic_values: %s' % (comic,))
 
     return comic
+
+def basenum_mapping(ordinal=False):
+    if not ordinal:
+        basenums = {'zero': '0',
+                    'one': '1',
+                    'two': '2',
+                    'three': '3',
+                    'four': '4',
+                    'five': '5',
+                    'six': '6',
+                    'seven': '7',
+                    'eight': '8',
+                    'nine': '9',
+                    'ten': '10',
+                    'eleven': '11',
+                    'twelve': '12',
+                    'thirteen': '13',
+                    'fourteen': '14',
+                    'fifteen': '15',
+                    'i': '1',
+                    'ii': '2',
+                    'iii': '3',
+                    'iv': '4',
+                    'v': '5',
+                    'vi': '6',
+                    'vii': '7',
+                    'viii': '8',
+                    'xi': '9'}
+    else:
+        basenums = {'zero': '0',
+                    'first': '1',
+                    'second': '2',
+                    'third': '3',
+                    'fourth': '4',
+                    'fifth': '5',
+                    'sixth': '6',
+                    'seventh': '7',
+                    'eighth': '8',
+                    'nineth': '9',
+                    'tenth': '10',
+                    'eleventh': '11',
+                    'twelfth': '12',
+                    'thirteenth': '13',
+                    'fourteenth': '14',
+                    'fifteenth': '15',
+                    'i': '1',
+                    'ii': '2',
+                    'iii': '3',
+                    'iv': '4',
+                    'v': '5',
+                    'vi': '6',
+                    'vii': '7',
+                    'viii': '8',
+                    'xi': '9'}
+
+    return basenums

@@ -43,6 +43,7 @@ from PIL import Image
 import mylar
 from . import logger
 from mylar import db, sabnzbd, nzbget, process, getcomics, getimage
+from mylar.downloaders import mega, pixeldrain, mediafire
 
 def multikeysort(items, columns):
 
@@ -1460,7 +1461,7 @@ def havetotals(refreshit=None):
 #                    totalissues += comic['TotalAnnuals']
                 haveissues = comic['Have']
             except TypeError:
-                logger.warning('[Warning] ComicID: ' + str(comic['ComicID']) + ' is incomplete - Removing from DB. You should try to re-add the series.')
+                logger.warn('[Warning] ComicID: ' + str(comic['ComicID']) + ' is incomplete - Removing from DB. You should try to re-add the series.')
                 myDB.action("DELETE from COMICS WHERE ComicID=? AND ComicName LIKE 'Comic ID%'", [comic['ComicID']])
                 myDB.action("DELETE from ISSUES WHERE ComicID=? AND ComicName LIKE 'Comic ID%'", [comic['ComicID']])
                 continue
@@ -2228,7 +2229,7 @@ def duplicate_filecheck(filename, ComicID=None, IssueID=None, StoryArcID=None, r
     series = myDB.selectone("SELECT * FROM comics WHERE ComicID=?", [dupchk['ComicID']]).fetchone()
 
     #if it's a retry and the file was already snatched, the status is Snatched and won't hit the dupecheck.
-    #rtnval will be one of 3: 
+    #rtnval will be one of 3:
     #'write' - write new file
     #'dupe_file' - do not write new file as existing file is better quality
     #'dupe_src' - write new file, as existing file is a lesser quality (dupe)
@@ -2273,8 +2274,34 @@ def duplicate_filecheck(filename, ComicID=None, IssueID=None, StoryArcID=None, r
 
             #keywords to force keep / delete
             #this will be eventually user-controlled via the GUI once the options are enabled.
+            fixed = False
+            fixed_file = re.findall(r'[(]f\d{1}[)]', filename.lower())
+            fixed_db_file = re.findall(r'[(]f\d{1}[)]', dupchk['Location'].lower())
+            if all([fixed_file, not fixed_db_file]):
+                logger.info('[DUPECHECK] %s is a "Fixed" version that should be retained over existing version. Bypassing filesize/filetype check.' % filename)
+                fixed = True
+                rtnval = {'action':  "dupe_src",
+                              'to_dupe': os.path.join(series['ComicLocation'], dupchk['Location'])}
+            elif all([fixed_db_file, not fixed_file]):
+                logger.info('[DUPECHECK] %s is a "Fixed" version that should be retained over newly aquired version. Bypassing filesize/filetype check.' % filename)
+                fixed = True
+                rtnval = {'action':  "dupe_file",
+                              'to_dupe': filename}
+            elif all([fixed_file, fixed_db_file]):
+                ff_int = int(re.sub('[^0-9]', '', fixed_file).strip())
+                fdf_int = int(re.sub('[^0-9]', '', fixed_db_file).strip())
+                if ff_int > fdf_int:
+                    logger.info('[DUPECHECK] %s is a higher "Fixed" version (%s) that should be retained over existing version(%s). Bypassing filesize/filetype check.' % (fixed_file, fixed_db_file, filename))
+                    fixed = True
+                    rtnval = {'action':  "dupe_src",
+                              'to_dupe': os.path.join(series['ComicLocation'], dupchk['Location'])}
+                else:
+                    logger.info('[DUPECHECK] %s is a higher "Fixed" version (%s) that should be retained over existing version(%s). Bypassing filesize/filetype check.' % (fixed_db_file, fixed_file, os.path.join(series['ComicLocation'], dupehk['Location'])))
+                    fixed = True
+                    rtnval = {'action':  "dupe_file",
+                              'to_dupe': filename}
 
-            if int(dupsize) == 0:
+            elif int(dupsize) == 0:
                 logger.info('[DUPECHECK] Existing filesize is 0 as I cannot locate the original entry.')
                 if dupchk['Status'] == 'Archived':
                     logger.info('[DUPECHECK] Assuming issue is Archived.')
@@ -2288,7 +2315,7 @@ def duplicate_filecheck(filename, ComicID=None, IssueID=None, StoryArcID=None, r
 
             tmp_dupeconstraint = mylar.CONFIG.DUPECONSTRAINT
 
-            if any(['cbr' in mylar.CONFIG.DUPECONSTRAINT, 'cbz' in mylar.CONFIG.DUPECONSTRAINT]):
+            if any(['cbr' in mylar.CONFIG.DUPECONSTRAINT, 'cbz' in mylar.CONFIG.DUPECONSTRAINT]) and not fixed:
                 if 'cbr' in mylar.CONFIG.DUPECONSTRAINT:
                     if filename.endswith('.cbr'):
                         #this has to be configured in config - either retain cbr or cbz.
@@ -2330,7 +2357,7 @@ def duplicate_filecheck(filename, ComicID=None, IssueID=None, StoryArcID=None, r
                             rtnval = {'action':  "dupe_src",
                                       'to_dupe': os.path.join(series['ComicLocation'], dupchk['Location'])}
 
-            if mylar.CONFIG.DUPECONSTRAINT == 'filesize' or tmp_dupeconstraint == 'filesize':
+            if not fixed and (mylar.CONFIG.DUPECONSTRAINT == 'filesize' or tmp_dupeconstraint == 'filesize'):
                 if filesz <= int(dupsize) and int(dupsize) != 0:
                     logger.info('[DUPECHECK-FILESIZE PRIORITY] [#' + dupchk['Issue_Number'] + '] Retaining currently scanned in filename : ' + dupchk['Location'])
                     rtnval = {'action':  "dupe_file",
@@ -2519,25 +2546,39 @@ def crc(filename):
     except UnicodeEncodeError:
        filename = "invalid"
        filename = filename.encode(mylar.SYS_ENCODING)
-    
+
     return hashlib.md5(filename).hexdigest()
 
-def issue_find_ids(ComicName, ComicID, pack, IssueNumber):
-    #import db
+def issue_find_ids(ComicName, ComicID, pack, IssueNumber, pack_id):
 
+    #logger.fdebug('pack: %s' % pack)
     myDB = db.DBConnection()
 
     issuelist = myDB.select("SELECT * FROM issues WHERE ComicID=?", [ComicID])
 
     if 'Annual' not in pack:
-        packlist = [x.strip() for x in pack.split(',')]
+        if ',' not in pack:
+            packlist = pack.split(' ')
+            pack = re.sub('#', '', pack).strip()
+        else:
+            packlist = [x.strip() for x in pack.split(',')]
         plist = []
         pack_issues = []
+        logger.fdebug('packlist: %s' % packlist)
         for pl in packlist:
+            pl = re.sub('#', '', pl).strip()
             if '-' in pl:
-                plist.append(list(range(int(pl[:pl.find('-')]),int(pl[pl.find('-')+1:])+1)))
+                le_range = list(range(int(pack[:pack.find('-')]),int(pack[pack.find('-')+1:])+1))
+                for x in le_range:
+                    if not [y for y in plist if y == x]:
+                        plist.append(int(x))
+                #logger.fdebug('plist: %s' % plist)
             else:
-                plist.append(int(pl))
+                #logger.fdebug('starting single: %s' % pl)
+                if not [x for x in plist if x == int(pl)]:
+                    #logger.fdebug('single not present')
+                    plist.append(int(pl))
+            #logger.fdebug('plist:%s' % plist)
 
         for pi in plist:
             if type(pi) == list:
@@ -2552,42 +2593,62 @@ def issue_find_ids(ComicName, ComicID, pack, IssueNumber):
         #remove the annuals wording
         tmp_annuals = pack[pack.find('Annual'):]
         tmp_ann = re.sub('[annual/annuals/+]', '', tmp_annuals.lower()).strip()
-        tmp_pack = re.sub('[annual/annuals/+]', '', pack.lower()).strip() 
+        tmp_pack = re.sub('[annual/annuals/+]', '', pack.lower()).strip()
         pack_issues_numbers = re.findall(r'\d+', tmp_pack)
         pack_issues = list(range(int(pack_issues_numbers[0]),int(pack_issues_numbers[1])+1))
         annualize = True
 
     issues = {}
     issueinfo = []
+    write_valids = []  # to keep track of snatched packs already downloading so we don't re-queue/download again
 
     Int_IssueNumber = issuedigits(IssueNumber)
     valid = False
 
     for iss in pack_issues:
-       int_iss = issuedigits(iss)
+       int_iss = issuedigits(str(iss))
        for xb in issuelist:
            if xb['Status'] != 'Downloaded':
                if xb['Int_IssueNumber'] == int_iss:
+                   if Int_IssueNumber == xb['Int_IssueNumber']:
+                       valid = True
                    issueinfo.append({'issueid':      xb['IssueID'],
                                      'int_iss':      int_iss,
                                      'issuenumber':  xb['Issue_Number']})
-                   break
 
-    for x in issueinfo:
-       if Int_IssueNumber == x['int_iss']:
-           valid = True
-           break
+                   write_valids.append({'issueid': xb['IssueID'],
+                                        'pack_id': pack_id})
+                   break
+           else:
+               logger.info('issue #%s exists in the pack and is already in a Downloaded state. Mark the issue as anything'
+                           'other than Wanted if you want the pack to be downloaded.' % iss)
+    if valid:
+        for wv in write_valids:
+            mylar.PACK_ISSUEIDS_DONT_QUEUE[wv['issueid']] = wv['pack_id']
 
     issues['issues'] = issueinfo
+    logger.fdebug('pack_issueids_dont_queue: %s' % mylar.PACK_ISSUEIDS_DONT_QUEUE)
 
     if len(issues['issues']) == len(pack_issues):
-        logger.info('Complete issue count of ' + str(len(pack_issues)) + ' issues are available within this pack for ' + ComicName)
+        logger.fdebug('Complete issue count of %s issues are available within this pack for %s' % (len(pack_issues), ComicName))
     else:
-        logger.info('Issue counts are not complete (not a COMPLETE pack) for ' + ComicName)
+        logger.fdebug('Issue counts are not complete (not a COMPLETE pack) for %s' % ComicName)
 
     issues['issue_range'] = pack_issues
     issues['valid'] = valid
     return issues
+
+def reverse_the_pack_snatch(pack_id, comicid):
+    logger.info('[REVERSE UNO] Reversal of issues marked as Snatched via pack download reversing due to invalid link retrieval..')
+    #logger.fdebug(mylar.PACK_ISSUEIDS_DONT_QUEUE)
+    reverselist = [issueid for issueid, packid in mylar.PACK_ISSUEIDS_DONT_QUEUE.items() if pack_id == packid]
+    myDB = db.DBConnection()
+    for x in reverselist:
+        myDB.upsert("issues", {"Status": "Skipped"}, {"IssueID": x})
+    if reverselist:
+        logger.info('[REVERSE UNO] Reversal completed for %s issues' % len(reverselist))
+        mylar.GLOBAL_MESSAGES = {'status': 'success', 'comicid': comicid, 'tables': 'both', 'message': 'Successfully changed status of %s issues to %s' % (len(reverselist), 'Skipped')}
+
 
 def conversion(value):
     if type(value) == str:
@@ -3220,9 +3281,19 @@ def ddl_downloader(queue):
 
         elif mylar.DDL_LOCK is False and queue.qsize() >= 1:
             item = queue.get(True)
+
             if item == 'exit':
                 logger.info('Cleaning up workers for shutdown')
                 break
+
+            if item['id'] not in mylar.DDL_QUEUED:
+                mylar.DDL_QUEUED.append(item['id'])
+
+            try:
+                link_type_failure = item['link_type_failure']
+            except Exception as e:
+                link_type_failure = []
+
             logger.info('Now loading request from DDL queue: %s' % item['series'])
 
             #write this to the table so we have a record of what's going on.
@@ -3239,8 +3310,23 @@ def ddl_downloader(queue):
                         remote_filesize = helpers.human2bytes(re.sub('/s', '', item['size'][:-1]).strip())
                     except Exception:
                         remote_filesize = 0
-                ddz = getcomics.GC()
-                ddzstat = ddz.downloadit(item['id'], item['link'], item['mainlink'], item['resume'], item['issueid'], remote_filesize)
+
+                if any([item['link_type'] == 'GC-Main', item['link_type'] == 'GC_Mirror']):
+                    ddz = getcomics.GC()
+                    ddzstat = ddz.downloadit(item['id'], item['link'], item['mainlink'], item['resume'], item['issueid'], remote_filesize)
+                elif item['link_type'] == 'GC-Mega':
+                    meganz = mega.MegaNZ()
+                    ddzstat = meganz.ddl_download(item['link'], None, item['id'], item['issueid'], item['link_type']) #item['filename'], item['id'])
+                elif item['link_type'] == 'GC-Media':
+                    mediaf = mediafire.MediaFire()
+                    ddzstat = mediaf.ddl_download(item['link'], item['id'], item['issueid']) #item['filename'], item['id'])
+                elif item['link_type'] == 'GC-Pixel':
+                    pdrain = pixeldrain.PixelDrain()
+                    ddzstat = pdrain.ddl_download(item['link'], item['id'], item['issueid']) #item['filename'], item['id'])
+
+            elif item['site'] == 'DDL(External)':
+                meganz = mega.MegaNZ()
+                ddzstat = meganz.ddl_download(item['link'], item['filename'], item['id'], item['issueid'], item['link_type'])
 
             if ddzstat['success'] is True:
                 tdnow = datetime.datetime.now()
@@ -3272,16 +3358,41 @@ def ddl_downloader(queue):
                                             'download_info': {'provider': 'DDL', 'id': item['id']}})
                 except Exception as e:
                     logger.error('process error: %s [%s]' %(e, ddzstat))
+
+                #logger.fdebug('mylar.ddl_queued: %s' % mylar.DDL_QUEUED)
+                mylar.DDL_QUEUED.remove(item['id'])
+                #logger.fdebug('before-pack_issueids: %s' % mylar.PACK_ISSUEIDS_DONT_QUEUE)
+                pck_cnt = 0
+                if item['comicinfo'][0]['pack'] is True:
+                    logger.fdebug('[PACK DETECTION] Attempting to remove issueids from the pack dont-queue list')
+                    for x,y in dict(mylar.PACK_ISSUEIDS_DONT_QUEUE).items():
+                        if y == item['id']:
+                            pck_cnt +=1
+                            del mylar.PACK_ISSUEIDS_DONT_QUEUE[x]
+
+                #logger.fdebug('after-pack_issueids: %s' % mylar.PACK_ISSUEIDS_DONT_QUEUE)
+                logger.fdebug('Successfully removed %s issueids from pack queue list as download is completed.' % pck_cnt)
+
             elif all([ddzstat['success'] is True, mylar.CONFIG.POST_PROCESSING is False]):
                 path = ddzstat['path']
                 if ddzstat['filename'] is not None:
                     path = os.path.join(path, ddzstat['filename'])
                 logger.info('File successfully downloaded. Post Processing is not enabled - item retained here: %s' % (path,))
             else:
-                logger.info('[Status: %s] Failed to download: %s ' % (ddzstat['success'], ddzstat))
-                nval = {'status':  'Failed',
-                        'updated_date': datetime.datetime.now().strftime('%Y-%m-%d %H:%M')}
-                myDB.upsert('ddl_info', nval, ctrlval)
+                try:
+                    ltf = ddzstat['links_exhausted']
+                except Exception as e:
+                    logger.info('[Status: %s] Failed to download item from %s : %s ' % (ddzstat['success'], item['link_type'], ddzstat))
+                    link_type_failure.append(item['link_type'])
+                    ggc = getcomics.GC()
+                    ggc.parse_downloadresults(item['id'], item['mainlink'], item['comicinfo'], item['packinfo'], link_type_failure)
+                else:
+                    logger.info('[REDO] Exhausted all available links [%s] for issueid %s and was not able to download anything' % (link_type_failure, item['issueid']))
+                    nval = {'status':  'Failed',
+                            'updated_date': datetime.datetime.now().strftime('%Y-%m-%d %H:%M')}
+                    myDB.upsert('ddl_info', nval, ctrlval)
+                    #undo all snatched items, to previous status via item['id'] - this will be set to Skipped currently regardless of previous status
+                    reverse_the_pack_snatch(item['id'], item['comicid'])
         else:
             time.sleep(5)
 
@@ -3329,30 +3440,39 @@ def search_queue(queue):
                 logger.info('[SEARCH-QUEUE] Cleaning up workers for shutdown')
                 break
 
-            logger.info('[SEARCH-QUEUE] Now loading item from search queue: %s' % item)
-            if mylar.SEARCHLOCK is False:
-                arcid = None
-                comicid = item['comicid']
-                issueid = item['issueid']
-                if issueid is not None:
-                    if '_' in issueid:
-                        arcid = issueid
-                        comicid = None # required for storyarcs to work
-                        issueid = None # required for storyarcs to work
-                mofo = mylar.filers.FileHandlers(ComicID=comicid, IssueID=issueid, arcID=arcid)
-                local_check = mofo.walk_the_walk()
-                if local_check['status'] is True:
-                    mylar.PP_QUEUE.put({'nzb_name':     local_check['filename'],
-                                        'nzb_folder':   local_check['filepath'],
-                                        'failed':       False,
-                                        'issueid':      item['issueid'],
-                                        'comicid':      item['comicid'],
-                                        'apicall':      True,
-                                        'ddl':          False,
-                                        'download_info': None})
-                else:
-                    ss_queue = mylar.search.searchforissue(item['issueid'])
-                time.sleep(5) #arbitrary sleep to let the process attempt to finish pp'ing
+            gumbo_line = True
+            #logger.fdebug('pack_issueids_dont_queue: %s' % mylar.PACK_ISSUEIDS_DONT_QUEUE)
+            #logger.fdebug('ddl_queued: %s' % mylar.DDL_QUEUED)
+            if item['issueid'] in mylar.PACK_ISSUEIDS_DONT_QUEUE:
+                if mylar.PACK_ISSUEIDS_DONT_QUEUE[item['issueid']] in mylar.DDL_QUEUED:
+                    logger.fdebug('[SEARCH-QUEUE-PACK-DETECTION] %s already queued to download via pack...Ignoring' % item['issueid'])
+                    gumbo_line = False
+
+            if gumbo_line:
+                logger.fdebug('[SEARCH-QUEUE] Now loading item from search queue: %s' % item)
+                if mylar.SEARCHLOCK is False:
+                    arcid = None
+                    comicid = item['comicid']
+                    issueid = item['issueid']
+                    if issueid is not None:
+                        if '_' in issueid:
+                            arcid = issueid
+                            comicid = None # required for storyarcs to work
+                            issueid = None # required for storyarcs to work
+                    mofo = mylar.filers.FileHandlers(ComicID=comicid, IssueID=issueid, arcID=arcid)
+                    local_check = mofo.walk_the_walk()
+                    if local_check['status'] is True:
+                        mylar.PP_QUEUE.put({'nzb_name':     local_check['filename'],
+                                            'nzb_folder':   local_check['filepath'],
+                                            'failed':       False,
+                                            'issueid':      item['issueid'],
+                                            'comicid':      item['comicid'],
+                                            'apicall':      True,
+                                            'ddl':          False,
+                                            'download_info': None})
+                    else:
+                        ss_queue = mylar.search.searchforissue(item['issueid'])
+                    time.sleep(5) #arbitrary sleep to let the process attempt to finish pp'ing
 
             if mylar.SEARCHLOCK is True:
                 logger.fdebug('[SEARCH-QUEUE] Another item is currently being searched....')

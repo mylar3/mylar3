@@ -22,7 +22,7 @@ import os
 import sys
 import re
 import time
-from pkg_resources import parse_version
+from packaging.version import parse as parse_version
 import mylar
 from mylar import logger, cdh_mapping
 
@@ -166,10 +166,6 @@ class SABnzbd(object):
             try:
                 min_sab = '3.2.0'
                 sab_vers = mylar.CONFIG.SAB_VERSION
-                if 'beta' in sab_vers:
-                    sab_vers = re.sub('[^0-9]', '', sab_vers)
-                    if len(sab_vers) > 3:
-                        sab_vers = sab_vers[:-1] # remove beta value entirely...
                 if parse_version(sab_vers) >= parse_version(min_sab):
                     logger.fdebug('SABnzbd version is higher than 3.2.0. Querying history based on nzo_id directly.')
                     hist_params['nzo_ids'] = sendresponse

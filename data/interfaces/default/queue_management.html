@@ -59,9 +59,9 @@
               <table class="display" id="queue_table">
                <thead>
                  <tr>
-                  <th id="qcomicid">ComicID</th>
                   <th id="qseries">Series</th>
                   <th id="qsize">Size</th>
+                  <th id="qlinktype">Link</th>
                   <th id="qprogress">%</th>
                   <th id="qstatus">Status</th>
                   <th id="qdate">Updated</th>
@@ -193,26 +193,69 @@
                 $('#queue_table').DataTable().ajax.reload(null, false);
             } else {
                 $('#queue_table').DataTable( {
+                    "preDrawCallback": function (settings){
+                        pageScrollPos = $('#queue_table div.datatables_scrollBody').scrollTop();
+                    },
                     "processing": true,
                     "serverSide": true,
                     "ajaxSource": 'queueManageIt',
                     "paginationType": "full_numbers",
                     "displayLength": 25,
                     "sorting": [[5, 'desc']],
-                    "stateSave": false,
+                    "stateSave": true,
                     "columnDefs": [
+//                        {
+//                           "sortable": false,
+//                           "targets": [ 0 ],
+//                           "visible": false,
+//                        },
                         {
-                           "sortable": false,
+                           "sortable": true,
                            "targets": [ 0 ],
-                           "visible": false,
+                           "visible": true,
+                           "data": "Series",
+                           "render":function (data,type,full) {
+                                return '<span title="' + full[0] + '"></span><a href="comicDetails?ComicID=' + full[7] + '">' + full[0] + '</a>';
+                           }
                         },
                         {
                            "sortable": true,
                            "targets": [ 1 ],
                            "visible": true,
-                           "data": "Series",
                            "render":function (data,type,full) {
-                                return '<span title="' + full[1] + '"></span><a href="comicDetails?ComicID=' + full[0] + '">' + full[1] + '</a>';
+                                return full[1];
+                           }
+                        },
+                        {
+                           "sortable": true,
+                           "targets": [ 2 ],
+                           "visible": true,
+                           "render":function (data,type,full) {
+                                return full[8];
+                           }
+                        },
+                        {
+                           "sortable": true,
+                           "targets": [ 3 ],
+                           "visible": true,
+                           "render":function (data,type,full) {
+                                return full[2];
+                           }
+                        },
+                        {
+                           "sortable": true,
+                           "targets": [ 4 ],
+                           "visible": true,
+                           "render":function (data,type,full) {
+                                return full[3];
+                           }
+                        },
+                        {
+                           "sortable": true,
+                           "targets": [ 5 ],
+                           "visible": true,
+                           "render":function (data,type,full) {
+                                return full[4];
                            }
                         },
                         {
@@ -220,10 +263,10 @@
                            "targets": [ 6 ],
                            "visible": true,
                            "render":function (data,type,full) {
-                                    val = full[4]
-                                    var restartline = "('ddl_requeue?mode=restart&id="+String(full[6])+"',$(this));"
-                                    var resumeline = "('ddl_requeue?mode=resume&id="+String(full[6])+"',$(this));"
-                                    var removeline = "('ddl_requeue?mode=remove&id="+String(full[6])+"',$(this));"
+                                    val = full[3]
+                                    var restartline = "('ddl_requeue?mode=restart&id="+String(full[5])+"',$(this));"
+                                    var resumeline = "('ddl_requeue?mode=resume&id="+String(full[5])+"',$(this));"
+                                    var removeline = "('ddl_requeue?mode=remove&id="+String(full[5])+"',$(this));"
                                     if (val == 'Completed' || val == 'Failed' || val == 'Downloading'){
                                         return '<span title="Restart"></span><a href="#" onclick="doAjaxCall'+restartline+'">Restart</a><span title="Remove"></span><a href="#" onclick="doAjaxCall'+removeline+'"><span class="ui-icon ui-icon-plus"></span>Remove</a>';
                                     } else if (val == 'Incomplete') {
@@ -243,24 +286,25 @@
                          "infoFiltered":"(filtered from _MAX_ total items)"
                      },
                     "rowCallback": function (nRow, aData, iDisplayIndex, iDisplayIndexFull) {
-                         if (aData[4] === "Completed") {
+                         if (aData[3] === "Completed") {
                             $('td', nRow).closest('tr').addClass("gradeA");
-                         } else if (aData[4] === "Queued") {
+                         } else if (aData[3] === "Queued") {
                             $('td', nRow).closest('tr').addClass("gradeC");
-                         } else if (aData[4] === "Incomplete" || aData[4] == "Failed") {
+                         } else if (aData[3] === "Incomplete" || aData[3] == "Failed") {
                             $('td', nRow).closest('tr').addClass("gradeX");
                          }
-                         nRow.children[0].id = 'qcomicid';
-                         nRow.children[1].id = 'qseries';
-                         nRow.children[2].id = 'qsize';
-                         nRow.children[3].id = 'qprogress';
-                         nRow.children[4].id = 'qstatus';
-                         nRow.children[5].id = 'qdate';
+                         //nRow.children[0].id = 'qcomicid';
+                         nRow.children[0].id = 'qseries';
+                         nRow.children[1].id = 'qsize';
+                         nRow.children[2].id = 'qprogress';
+                         nRow.children[3].id = 'qstatus';
+                         nRow.children[4].id = 'qdate';
                          return nRow;
                      },
                      "drawCallback": function (o) {
                          // Jump to top of page
                          $('html,body').scrollTop(0);
+                         $('#queue_table div.dataTables_scrollBody').scrollTop(pageScrollPos);
                      },
                      "serverData": function ( sSource, aoData, fnCallback ) {
                                 /* Add some extra data to the sender */
