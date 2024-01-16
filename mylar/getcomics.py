@@ -910,7 +910,7 @@ class GC(object):
         myDB = db.DBConnection()
         filename = None
         self.cookie_receipt()
-        self.headers['Accept-encoding'] = 'gzip'
+        #self.headers['Accept-encoding'] = 'gzip'
         try:
             with requests.Session() as s:
                 if resume is not None:
@@ -956,6 +956,7 @@ class GC(object):
                                 stream=True,
                                 timeout=(30,10)
                             )
+                            t.headers['Accept-encoding'] = 'gzip'
                             filename = os.path.basename(
                                 urllib.parse.unquote(t.url)
                             )  # .decode('utf-8'))
