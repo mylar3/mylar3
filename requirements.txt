@@ -6,6 +6,7 @@
 #### ESSENTIAL LIBRARIES FOR MAIN FUNCTIONALITY ####
 APScheduler>=3.6.3
 beautifulsoup4>=4.8.2
+cfscrape>=2.0.8
 cheroot>=8.2.1
 CherryPy>=18.5.0
 configparser>=4.0.2
