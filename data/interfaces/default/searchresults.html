@@ -217,11 +217,11 @@
                                 }
                             }
 
-                            var dropdown = "<select name='booktype' id='booktype' onchange='update_location("+comicid+",null, booktype)' style='font-size:14px;'>"+
+                            var dropdown = "<select name='booktype' id='booktype' onChange='update_location("+comicid+",null, booktype)' style='font-size:14px;'>"+
                                "<option value='Print' selected='selected'>Print</option>" +
                                "<option value='TPB'>TPB</option>" +
                                "<option value='HC'>HC</option>" +
-                               "<option value='GC'>GC</option>" +
+                               "<option value='GN'>GN</option>" +
                                "<option value='One-Shot'>One-Shot</option>" +
                                "<option value='Digital'>Digital</option>" +
                                "</select>";
@@ -255,7 +255,6 @@
             var bktype = document.getElementById("booktype");
             var booktype = bktype.options[bktype.selectedIndex];
             var query_id = retrieve_searchquery();
-            console.log(location.value + ' --- '+ booktype.text);
             if (comlocation){
                 cloc = location.value;
             } else {
@@ -275,6 +274,7 @@
                 }
                 if (btype) {
                     bktype.text = dc.booktype;
+                    location.value = dc.comlocation;
                 }
            });
         }

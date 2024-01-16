@@ -1096,7 +1096,7 @@ def issue_collection(issuedata, nostatus, serieslast_updated=None):
                 #logger.fdebug("Not changing the status at this time - reverting to previous module after to re-append existing status")
                 pass #newValueDict['Status'] = "Skipped"
 
-            logger.info('issue_collection results: [%s] %s' % (controlValueDict, newValueDict))
+            #logger.fdebug('issue_collection results: [%s] %s' % (controlValueDict, newValueDict))
             try:
                 myDB.upsert(dbwrite, newValueDict, controlValueDict)
             except sqlite3.InterfaceError as e:

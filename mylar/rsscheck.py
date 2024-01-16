@@ -26,7 +26,7 @@ import time
 import random
 from bs4 import BeautifulSoup
 from io import StringIO
-from pkg_resources import parse_version
+from packaging.version import parse as parse_version
 
 import mylar
 from mylar import db, logger, ftpsshup, helpers, auth32p, utorrent, helpers, filechecker

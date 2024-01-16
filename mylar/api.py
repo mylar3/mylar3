@@ -26,8 +26,8 @@ import re
 import shutil
 import queue
 import urllib.request, urllib.error, urllib.parse
+from PIL import Image
 from . import cache
-import imghdr
 from operator import itemgetter
 from cherrypy.lib.static import serve_file, serve_download
 import datetime
@@ -40,7 +40,7 @@ cmd_list = ['getIndex', 'getComic', 'getUpcoming', 'getWanted', 'getHistory',
             'getComicInfo', 'getIssueInfo', 'getArt', 'downloadIssue', 'regenerateCovers',
             'refreshSeriesjson', 'seriesjsonListing', 'checkGlobalMessages',
             'listProviders', 'changeProvider', 'addProvider', 'delProvider',
-            'downloadNZB', 'getReadList', 'getStoryArc', 'addStoryArc']
+            'downloadNZB', 'getReadList', 'getStoryArc', 'addStoryArc', 'listAnnualSeries']
 
 class Api(object):
 
@@ -1032,7 +1032,8 @@ class Api(object):
         # Checks if its a valid path and file
         if os.path.isfile(image_path):
             # check if its a valid img
-            if imghdr.what(image_path):
+            imghdr = Image.open(image_path)
+            if imghdr.get_format_mimetype():
                 self.img = image_path
                 return
         else:
@@ -1050,7 +1051,8 @@ class Api(object):
 
             if img:
                 # verify the img stream
-                if imghdr.what(None, img):
+                imghdr = Image.open(img)
+                if imghdr.get_format_mimetype():
                     with open(image_path, 'wb') as f:
                         f.write(img)
                     self.img = image_path
@@ -1198,6 +1200,75 @@ class Api(object):
         logger.info("arclist: %s - arcid: %s - storyarcname: %s - storyarcissues: %s" % (arclist, self.id, storyarcname, issuecount))
         wi.addStoryArc_thread(arcid=self.id, storyarcname=storyarcname, storyarcissues=issuecount, arclist=arclist, **kwargs)
         self.data = self._successResponse('Adding %s issue(s) to %s' % (issuecount, storyarcname))
+        return
+
+    def _listAnnualSeries(self, **kwargs):
+        # list_issues = true/false
+        # group_series = true/false
+        # show_downloaded_only = true/false
+        # - future: recreate as individual series (annual integration off after was enabled) = true/false
+        if all(['list_issues' not in kwargs, 'group_series' not in kwargs]): #, 'recreate' not in kwargs]):
+            self.data = self._failureResponse('Missing parameter(s): Must specify either `list_issues` or `group_series`')
+            return
+        else:
+            list_issues = True
+            group_series = True
+            show_downloaded = True
+            #recreate_from_annuals = True
+            try:
+                listissues = kwargs['list_issues']
+            except Exception:
+                list_issues = False
+            try:
+                groupseries = kwargs['group_series']
+            except Exception:
+                group_series = False
+            try:
+                showdownloaded = kwargs['show_downloaded']
+            except Exception:
+                show_downloaded = False
+
+            if group_series:
+                annual_listing = {}
+            else:
+                annual_listing = []
+
+            #try:
+            #    recreatefromannuals = kwargs['recreate']
+            #except Exception:
+            #    recreate_from_annuals = False
+
+        try:
+            myDB = db.DBConnection()
+            las = myDB.select('SELECT * from Annuals WHERE NOT Deleted')
+        except Exception as e:
+            self.data = self._failureResponse('Unable to query Annuals table - possibly no annuals have been detected as being integrated.')
+            return
+
+        if las is None:
+            self.data = self._failureResponse('No annuals have been detected as ever being integrated.')
+            return
+
+        annuals = {}
+        for lss in las:
+            if show_downloaded is False or all([show_downloaded is True, lss['Status'] == 'Downloaded']):
+                annuals = {'series': lss['ComicName'],
+                           'annualname': lss['ReleaseComicName'],
+                           'annualcomicid': lss['ReleaseComicID'],
+                           'issueid': int(lss['IssueID']),
+                           'filename': lss['Location'],
+                           'issuenumber': lss['Issue_Number']}
+
+                if group_series is True:
+                    if int(lss['ComicID']) not in annual_listing.keys():
+                        annual_listing[int(lss['comicid'])] = [annuals]
+                    else:
+                        annual_listing[int(lss['comicid'])] += [annuals]
+                else:
+                    annuals['comicid'] = int(lss['ComicID'])
+                    annual_listing.append(annuals)
+
+        self.data = self._successResponse(annual_listing)
         return
 
     def _checkGlobalMessages(self, **kwargs):

@@ -875,6 +875,28 @@
                                                 <input type="checkbox" id="ddl_prefer_upscaled" name="ddl_prefer_upscaled" value="1" ${config['ddl_prefer_upscaled']} /><label>Prefer HD-Upscale/HD-Digital <small>(if available></small></label>
                                            </div>
                                        </div>
+                                       %if mylar.EXT_SERVER:
+                                       <div class="row checkbox left clearfix">
+                                            <input type="checkbox" id="enable_external_server" onclick="initConfigCheckbox($this));" name="enable_external_server" value="1" ${config['enable_external_server']} /><label>Enable External Server</label>
+                                       </div>
+                                       <div class="config">
+                                           <div id="external_options">
+                                               <div class="row">
+                                                  <label>External Api server</label>
+                                                  <input type="text" name="external_server" id="external_server" value="${config['external_server']}" size="30">
+                                                  <small>(ie. http://private.server)</small>
+                                               </div>
+                                               <div class="row">
+                                                   <label>Username</label>
+                                                   <input type="text" name="external_username" id="external_username" value="${config['external_username']}" size="20">
+                                               </div>
+                                               <div class="row">
+                                                   <label>ApiKey</label>
+                                                   <input type="text" name="external_apikey" id="external_apikey" value="${config['external_apikey']}" size="20">
+                                               </div>
+                                          </div>
+                                       </div>
+                                       %endif
                                    </div>
                                 </div>
                         </fieldset>
@@ -2020,14 +2042,16 @@
                 if ($("#enable_ddl").is(":checked"))
                         {
                                 if ( document.getElementById("enable_getcomics").checked == false ){
-                                    document.getElementById("enable_getcomics").checked = true;
-                                    document.getElementById("enable_getcomics").setAttribute("disabled", "disabled");
+                                //    document.getElementById("enable_getcomics").checked = true;
+                                //    document.getElementById("enable_getcomics").setAttribute("disabled", "disabled");
+                                    $("#gc_options").slideUp();
+                                } else {
+                                    $("#gc_options").slideDown();
                                 }
                                 $("#ddl_providers").slideDown();
-                                $("#gc_options").slideDown();
                         }
                 else    {
-                                document.getElementById("enable_getcomics").checked = false;
+                                //document.getElementById("enable_getcomics").checked = false;
                                 $("#ddl_providers").slideUp();
                                 $("#gc_options").slideUp();
                         }
@@ -2036,15 +2060,49 @@
                         if ($("#enable_ddl").is(":checked"))
                         {
                                 if ( document.getElementById("enable_getcomics").checked == false ){
-                                    document.getElementById("enable_getcomics").checked = true;
-                                    document.getElementById("enable_getcomics").setAttribute("disabled", "disabled");
+                                //    document.getElementById("enable_getcomics").checked = true;
+                                //    document.getElementById("enable_getcomics").setAttribute("disabled", "disabled");
+                                //}
+                                    $("#gc_options").slideUp();
+                                } else {
+                                    $("#gc_options").slideDown();
                                 }
                                 $("#ddl_providers").slideDown();
                         }
                         else
                         {
-                                document.getElementById("enable_getcomics").checked = false;
+                                //document.getElementById("enable_getcomics").checked = false;
                                 $("#ddl_providers").slideUp();
+                                $("#gc_options").slideUp();
+                        }
+                });
+
+                if ($("#enable_external_server").is(":checked"))
+                        {
+                                //if ( document.getElementById("enable_getcomics").checked == false ){
+                                //    document.getElementById("enable_getcomics").checked = true;
+                                //    document.getElementById("enable_getcomics").setAttribute("disabled", "disabled");
+                                //}
+                                $("#external_options").slideDown();
+                        }
+                else    {
+                                //document.getElementById("enable_getcomics").checked = false;
+                                $("#external_options").slideUp();
+                        }
+
+                $("#enable_external_server").click(function(){
+                        if ($("#enable_external_server").is(":checked"))
+                        {
+                                //if ( document.getElementById("enable_getcomics").checked == false ){
+                                //    document.getElementById("enable_getcomics").checked = true;
+                                //    document.getElementById("enable_getcomics").setAttribute("disabled", "disabled");
+                                //}
+                                $("#external_options").slideDown();
+                        }
+                        else
+                        {
+                                //document.getElementById("enable_getcomics").checked = false;
+                                $("#external_options").slideUp();
                         }
                 });
 

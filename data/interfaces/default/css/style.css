@@ -1707,20 +1707,20 @@ div#artistheader h2 a {
   min-width: 95px;
   vertical-align: middle;
 }
-#queue_table th#qcomicid {
-  max-width: 10px;
-  text-align: center;
-}
 #queue_table th#qseries {
-  max-width: 475px;
+  max-width: 200px;
   text-align: center;
 }
 #queue_table th#qsize {
-  max-width: 35px;
+  max-width: 40px;
+  text-align: center;
+}
+#queue_table th#qlinktype {
+  max-width: 45px;
   text-align: center;
 }
 #queue_table th#qprogress {
-  max-width: 25px;
+  max-width: 20px;
   text-align: center;
 }
 #queue_table th#qstatus {
@@ -1728,27 +1728,27 @@ div#artistheader h2 a {
   text-align: center;
 }
 #queue_table th#qdate {
-  max-width: 90px;
+  max-width: 75px;
   text-align: center;
 }
 #queue_table th#qoptions {
-  max-width: 160px;
+  max-width: 100px;
   text-align: center;
 }
-#queue_table td#qcomicid {
-  max-width: 10px;
-  text-align: left;
-}
 #queue_table td#qseries {
-  max-width: 475px;
+  max-width: 200px;
   text-align: left;
 }
 #queue_table td#qsize {
-  max-width: 35px;
+  max-width: 40px;
+  text-align: center;
+}
+#queue_table td#qlinktype {
+  max-width: 45px;
   text-align: center;
 }
 #queue_table td#qprogress {
-  max-width: 25px;
+  max-width: 20px;
   text-align: center;
 }
 #queue_table td#qstatus {
@@ -1756,11 +1756,11 @@ div#artistheader h2 a {
   text-align: center;
 }
 #queue_table td#qdate {
-  min-width: 90px;
+  max-width: 75px;
   text-align: center;
 }
 #queue_table td#qoptions {
-  max-width: 160px;
+  max-width: 100px;
   text-align: center;
 }
 
