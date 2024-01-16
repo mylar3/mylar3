@@ -16,6 +16,7 @@ natsort>=3.5.2
 packaging>=22.0
 Pillow>=10.1
 portend>=2.6
+pycryptodome>=3.19.0
 pystun>=0.1.0
 pytz>=2019.3
 rarfile>=4.0
