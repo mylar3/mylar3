@@ -60,9 +60,13 @@ class search_check(object):
             chktpb = is_info['chktpb']
             provider_stat = is_info['provider_stat']
 
+        try:
+            pack = entry['pack']
+        except Exception:
+            pack = False
+
         alt_match = False
         #logger.fdebug('entry: %s' % (entry,))
-        # brief match here against 32p since it returns the direct issue number
 
         logger.fdebug("checking search result: %s" % entry['title'])
         # some nzbsites feel that comics don't deserve a nice regex to strip
@@ -420,7 +424,7 @@ class search_check(object):
                 ' is not necessary: %s' % cleantitle
             )
         # only send it to parser if it's not a DDL + pack (already parsed)
-        if entry['pack'] is True and 'DDL' in entry['site']:
+        if pack is True and 'DDL' in entry['site']:
             logger.fdebug('parsing pack...')
             ffc = filechecker.FileChecker()
             dnr = ffc.dynamic_replace(entry['series'])
@@ -670,7 +674,7 @@ class search_check(object):
         elif UseFuzzy == "1":
             yearmatch = True
 
-        if yearmatch is False and entry['pack'] is False:
+        if yearmatch is False and pack is False:
             return None
 
         annualize = False
@@ -795,12 +799,7 @@ class search_check(object):
 
         downloadit = False
 
-        try:
-            pack_test = entry['pack']
-        except Exception:
-            pack_test = False
-
-        if all(['DDL' in nzbprov, pack_test is True]):
+        if all(['DDL' in nzbprov, pack is True]):
             logger.fdebug(
                 '[PACK-QUEUE] %s Pack detected for %s.'
                 % (nzbprov, entry['filename'])
