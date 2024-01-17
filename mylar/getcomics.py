@@ -627,8 +627,7 @@ class GC(object):
                     t_site = re.sub('link', '', lk['title'].lower()).strip()
                     ltf = False
                     if link_type_failure is not None:
-                        logger.fdebug('link_type_failure: %s' % link_type_failure)
-                        if [True for tst in link_type_failure if t_site.lower() in tst.lower()]:
+                        if [True for tst in link_type_failure if t_site[:4].lower() in tst.lower()]:
                             logger.fdebug('[REDO-FAILURE-DETECTION] detected previous invalid link for %s - ignoring this result'
                                         ' and seeing if anything else can be downloaded.' % t_site)
                             ltf = True

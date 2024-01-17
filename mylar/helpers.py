@@ -3275,6 +3275,7 @@ def latestissue_update():
 
 def ddl_downloader(queue):
     myDB = db.DBConnection()
+    link_type_failure = {}
     while True:
         if mylar.DDL_LOCK is True:
             time.sleep(5)
@@ -3290,9 +3291,11 @@ def ddl_downloader(queue):
                 mylar.DDL_QUEUED.append(item['id'])
 
             try:
-                link_type_failure = item['link_type_failure']
-            except Exception as e:
-                link_type_failure = []
+                link_type_failure[item['id']].append(item['link_type_failure'])
+            except Exception:
+                pass
+
+            #logger.info('[%s] link_type_failure: %s' % (item['id'], link_type_failure))
 
             logger.info('Now loading request from DDL queue: %s' % item['series'])
 
@@ -3361,6 +3364,7 @@ def ddl_downloader(queue):
 
                 #logger.fdebug('mylar.ddl_queued: %s' % mylar.DDL_QUEUED)
                 mylar.DDL_QUEUED.remove(item['id'])
+                link_type_failure.pop(item['id'])
                 #logger.fdebug('before-pack_issueids: %s' % mylar.PACK_ISSUEIDS_DONT_QUEUE)
                 pck_cnt = 0
                 if item['comicinfo'][0]['pack'] is True:
@@ -3381,18 +3385,23 @@ def ddl_downloader(queue):
             else:
                 try:
                     ltf = ddzstat['links_exhausted']
-                except Exception as e:
+                except KeyError:
                     logger.info('[Status: %s] Failed to download item from %s : %s ' % (ddzstat['success'], item['link_type'], ddzstat))
-                    link_type_failure.append(item['link_type'])
+                    try:
+                        link_type_failure[item['id']].append(item['link_type'])
+                    except KeyError:
+                        link_type_failure[item['id']] = [item['link_type']]
+                    logger.fdebug('[%s] link_type_failure: %s' % (item['id'], link_type_failure))
                     ggc = getcomics.GC()
-                    ggc.parse_downloadresults(item['id'], item['mainlink'], item['comicinfo'], item['packinfo'], link_type_failure)
+                    ggc.parse_downloadresults(item['id'], item['mainlink'], item['comicinfo'], item['packinfo'], link_type_failure[item['id']])
                 else:
-                    logger.info('[REDO] Exhausted all available links [%s] for issueid %s and was not able to download anything' % (link_type_failure, item['issueid']))
+                    logger.info('[REDO] Exhausted all available links [%s] for issueid %s and was not able to download anything' % (link_type_failure[item['id']], item['issueid']))
                     nval = {'status':  'Failed',
                             'updated_date': datetime.datetime.now().strftime('%Y-%m-%d %H:%M')}
                     myDB.upsert('ddl_info', nval, ctrlval)
                     #undo all snatched items, to previous status via item['id'] - this will be set to Skipped currently regardless of previous status
                     reverse_the_pack_snatch(item['id'], item['comicid'])
+                    link_type_failure.pop(item['id'])
         else:
             time.sleep(5)
 
@@ -3471,7 +3480,11 @@ def search_queue(queue):
                                             'ddl':          False,
                                             'download_info': None})
                     else:
-                        ss_queue = mylar.search.searchforissue(item['issueid'])
+                        try:
+                            manual = item['manual']
+                        except Exception as e:
+                            manual = False
+                        ss_queue = mylar.search.searchforissue(item['issueid'], manual=manual)
                     time.sleep(5) #arbitrary sleep to let the process attempt to finish pp'ing
 
             if mylar.SEARCHLOCK is True:

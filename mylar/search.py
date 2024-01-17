@@ -2337,6 +2337,26 @@ def searchforissue(issueid=None, new=False, rsschecker=None, manual=False):
                                 mylar.SEARCHLOCK = False
                                 return
 
+                #if it's not manually initiated, make sure it's not already downloaded/snatched.
+                if not manual:
+                    checkit = searchforissue_checker(
+                                result['IssueID'],
+                                result['ReleaseDate'],
+                                result['IssueDate'],
+                                result['DigitalDate'],
+                                {'ComicName': result['ComicName'],
+                                 'Issue_Number': result['Issue_Number'],
+                                 'ComicID': result['ComicID']
+                                }
+                              )
+                    if checkit['status'] is False:
+                        logger.fdebug(
+                              'Issue is already in a Downloaded / Snatched status. If this is'
+                              ' still wanted, perform a Manual search or mark issue as Skipped'
+                              ' or Wanted.'
+                        )
+                        return
+
                 allow_packs = False
                 ComicID = result['ComicID']
                 if smode == 'story_arc':

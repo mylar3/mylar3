@@ -2580,12 +2580,13 @@ class WebInterface(object):
                     logger.info('Marking %s : %s as wanted...' % (ComicName, ComicIssue))
                     myDB.upsert("annuals", newStatus, controlValueDict)
             moduletype = '[WANTED-SEARCH]'
-            passinfo = {'issueid':     IssueID,
-                        'comicname':   ComicName,
-                        'seriesyear':  SeriesYear,
-                        'comicid':     ComicID,
+            passinfo = {'issueid': IssueID,
+                        'comicname': ComicName,
+                        'seriesyear': SeriesYear,
+                        'comicid': ComicID,
                         'issuenumber': ComicIssue,
-                        'booktype':    BookType}
+                        'booktype': BookType,
+                        'manual': manualsearch}
 
 
             if mode == 'want':
