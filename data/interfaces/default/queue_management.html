@@ -267,13 +267,16 @@
                                     var restartline = "('ddl_requeue?mode=restart&id="+String(full[5])+"',$(this));"
                                     var resumeline = "('ddl_requeue?mode=resume&id="+String(full[5])+"',$(this));"
                                     var removeline = "('ddl_requeue?mode=remove&id="+String(full[5])+"',$(this));"
+                                    tbl_options = '';
                                     if (val == 'Completed' || val == 'Failed' || val == 'Downloading'){
-                                        return '<span title="Restart"></span><a href="#" onclick="doAjaxCall'+restartline+'">Restart</a><span title="Remove"></span><a href="#" onclick="doAjaxCall'+removeline+'"><span class="ui-icon ui-icon-plus"></span>Remove</a>';
+                                        tbl_options += '<span title="Restart"></span><a href="#" onclick="doAjaxCall'+restartline+'">Restart</a>';
                                     } else if (val == 'Incomplete') {
-                                        return '<span title="Restart"></span><a href="#" onclick="doAjaxCall'+restartline+'">Restart</a><span title="Resume"></span><a href="#" onclick="doAjaxCall'+resumeline+'"><span class="ui-icon ui-icon-plus"></span>Resume</a>';
+                                        tbl_options += '<span title="Restart"></span><a href="#" onclick="doAjaxCall'+restartline+'">Restart</a><span title="Resume"></span><a href="#" onclick="doAjaxCall'+resumeline+'"><span class="ui-icon ui-icon-plus"></span>Resume</a>';
                                     } else if (val == 'Queued') {
-                                        return '<span title="Start"></span><a href="#" onclick="doAjaxCall'+restartline+'">Start</a>';
+                                        tbl_options += '<span title="Start"></span><a href="#" onclick="doAjaxCall'+restartline+'">Start</a>';
                                     }
+                                    tbl_options += '<span title="Remove"></span><a href="#" onclick="doAjaxCall'+removeline+'"><span class="ui-icon ui-icon-plus"></span>Remove</a>';
+                                    return tbl_options;
                            }         
                         },
                     ],
