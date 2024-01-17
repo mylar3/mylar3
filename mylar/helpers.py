@@ -3364,15 +3364,22 @@ def ddl_downloader(queue):
 
                 #logger.fdebug('mylar.ddl_queued: %s' % mylar.DDL_QUEUED)
                 mylar.DDL_QUEUED.remove(item['id'])
-                link_type_failure.pop(item['id'])
-                #logger.fdebug('before-pack_issueids: %s' % mylar.PACK_ISSUEIDS_DONT_QUEUE)
-                pck_cnt = 0
-                if item['comicinfo'][0]['pack'] is True:
-                    logger.fdebug('[PACK DETECTION] Attempting to remove issueids from the pack dont-queue list')
-                    for x,y in dict(mylar.PACK_ISSUEIDS_DONT_QUEUE).items():
-                        if y == item['id']:
-                            pck_cnt +=1
-                            del mylar.PACK_ISSUEIDS_DONT_QUEUE[x]
+                try:
+                    link_type_failure.pop(item['id'])
+                except KeyError:
+                    pass
+
+                try:
+                    #logger.fdebug('before-pack_issueids: %s' % mylar.PACK_ISSUEIDS_DONT_QUEUE)
+                    pck_cnt = 0
+                    if item['comicinfo'][0]['pack'] is True:
+                        logger.fdebug('[PACK DETECTION] Attempting to remove issueids from the pack dont-queue list')
+                        for x,y in dict(mylar.PACK_ISSUEIDS_DONT_QUEUE).items():
+                            if y == item['id']:
+                                pck_cnt +=1
+                                del mylar.PACK_ISSUEIDS_DONT_QUEUE[x]
+                except Exception:
+                    pass
 
                 #logger.fdebug('after-pack_issueids: %s' % mylar.PACK_ISSUEIDS_DONT_QUEUE)
                 logger.fdebug('Successfully removed %s issueids from pack queue list as download is completed.' % pck_cnt)
@@ -4245,7 +4252,7 @@ def sizeof_fmt(num, suffix='B'):
         num /= 1024.0
     return "%.1f%s%s" % (num, 'Yi', suffix)
 
-def getImage(comicid, url, issueid=None, thumbnail_path=None, apicall=False):
+def getImage(comicid, url, issueid=None, thumbnail_path=None, apicall=False, overwrite=False):
 
     if thumbnail_path is None:
         if os.path.exists(mylar.CONFIG.CACHE_DIR):
@@ -4292,6 +4299,12 @@ def getImage(comicid, url, issueid=None, thumbnail_path=None, apicall=False):
                 logger.warn('Unable to download image from CV URL link: %s [Status Code returned: %s]' % (url, statuscode))
             coversize = 0
         else:
+            if os.path.exists(coverfile) and overwrite:
+                try:
+                    os.remove(coverfile)
+                except Exception:
+                    pass
+
             with open(coverfile, 'wb') as f:
                 for chunk in r.iter_content(chunk_size=1024):
                     if chunk: # filter out keep-alive new chunks

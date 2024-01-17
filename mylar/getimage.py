@@ -18,6 +18,7 @@ from lib.rarfile import rarfile
 import requests
 import zipfile
 from io import BytesIO
+from pathlib import Path
 
 try:
     from PIL import Image
@@ -214,7 +215,28 @@ def load_image(filename, resize=600):
     # used to load an image from file for display using the getimage method (w/out extracting) ie. series detail cover page
     with open(filename, 'rb') as i:
         imagefile = i.read()
-    img = Image.open( BytesIO( imagefile) )
+    try:
+        img = Image.open( BytesIO( imagefile) )
+    except Exception as e:
+        if filename.startswith(mylar.CONFIG.CACHE_DIR):
+            logger.warn('possible corrupt image - cannot open/retrieve properly. Deleteing existing entry and redownloading.')
+            comicid = Path(filename).stem
+            fullcomicid = '4050-' + str(comicid)
+            imageurl = mylar.cv.getComic(fullcomicid, 'image')
+            coverchk = helpers.getImage(comicid, imageurl['image'], overwrite=True)
+            if coverchk['status'] == 'retry':
+                coverchk = helpers.getImage(comicid, imageurl['image_alt'], overwrite=True)
+            if coverchk['status'] == 'success':
+                logger.info('successfully retrieved new image...')
+                with open(filename, 'rb') as i:
+                    imagefile = i.read()
+                try:
+                    img = Image.open( BytesIO( imagefile) )
+                except Exception as e:
+                    #maybe force-load here a random image of donkeys in a field or somethin
+                    return
+            else:
+                return
     imdata = scale_image(img, "JPEG", resize)
     try:
         ComicImage = str(base64.b64encode(imdata), 'utf-8')

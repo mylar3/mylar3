@@ -49,7 +49,10 @@ def pulldetails(comicid, rtype, issueid=None, offset=1, arclist=None, comicidlis
         PULLURL = mylar.CVURL + str(cv_rtype) + '/?api_key=' + str(comicapi) + '&format=xml&' + str(searchset) + '&offset=' + str(offset)
     elif any([rtype == 'image', rtype == 'firstissue', rtype == 'imprints_first']):
         #this is used ONLY for CV_ONLY
-        PULLURL = mylar.CVURL + 'issues/?api_key=' + str(comicapi) + '&format=xml&filter=id:' + str(issueid) + '&field_list=cover_date,store_date,image'
+        if issueid:
+            PULLURL = mylar.CVURL + 'issues/?api_key=' + str(comicapi) + '&format=xml&filter=id:' + str(issueid) + '&field_list=cover_date,store_date,image'
+        else:
+            PULLURL = mylar.CVURL + 'volume/' + str(comicid) + '/?api_key=' + str(comicapi) + '&format=xml' + '&field_list=image'
     elif rtype == 'storyarc':
         PULLURL = mylar.CVURL + 'story_arcs/?api_key=' + str(comicapi) + '&format=xml&filter=name:' + str(issueid) + '&field_list=cover_date'
     elif rtype == 'comicyears':
