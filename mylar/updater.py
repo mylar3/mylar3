@@ -2224,7 +2224,10 @@ def watchlist_updater(calledfrom=None, sched=False):
             '[BACKFILL-UPDATE] [%s] series need to be updated due to previous'
             ' failures: %s' % (len(prev_failed_updates), prev_failed_updates)
         )
-        to_check = dict(to_check, **prev_failed_updates)
+        try:
+            to_check = dict(to_check, **prev_failed_updates)
+        except Exception as e:
+            to_check = prev_failed_updates
         #to_check.extend(prev_failed_updates)
     else:
         logger.info(

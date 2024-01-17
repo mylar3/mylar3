@@ -3187,7 +3187,15 @@ def searcher(
             ggc = getcomics.GC(issueid=tmp_issueid, comicid=ComicID)
             ggc.loadsite(nzbid, link)
             ddl_it = ggc.parse_downloadresults(nzbid, link, comicinfo, pack_info)
-            tnzbprov = ddl_it['site']
+            tnzbprov = nzbprov
+            if ddl_it['success'] is True:
+                logger.info(
+                    '[%s] Successfully snatched %s from DDL site. It is currently being queued'
+                    ' to download in position %s' % (tnzbprov, nzbname, mylar.DDL_QUEUE.qsize())
+                )
+            else:
+                logger.info('[%s] Failed to retrieve %s from the DDL site.' % (tnzbprov, nzbname))
+                return "ddl-fail"
         else:
             cinfo = {'id': nzbid,
                      'series': comicinfo[0]['ComicName'],
@@ -3203,16 +3211,16 @@ def searcher(
 
             meganz = exs.MegaNZ(provider_stat=provider_stat)
             ddl_it = meganz.queue_the_download(cinfo, comicinfo, pack_info)
-            tnzbprov = 'Mega'
+            tnzbprov = 'DDL(External)'
 
-        if ddl_it['success'] is True:
-            logger.info(
-                '[%s] Successfully snatched %s from DDL site. It is currently being queued'
-                ' to download in position %s' % (tnzbprov, nzbname, mylar.DDL_QUEUE.qsize())
-            )
-        else:
-            logger.info('[%s] Failed to retrieve %s from the DDL site.' % (tnzbprov, nzbname))
-            return "ddl-fail"
+            if ddl_it['success'] is True:
+                logger.info(
+                    '[%s] Successfully snatched %s from DDL site. It is currently being queued'
+                    ' to download in position %s' % (tnzbprov, nzbname, mylar.DDL_QUEUE.qsize())
+                )
+            else:
+                logger.info('[%s] Failed to retrieve %s from the DDL site.' % (tnzbprov, nzbname))
+                return "ddl-fail"
 
         sent_to = "is downloading it directly via %s" % tnzbprov
 

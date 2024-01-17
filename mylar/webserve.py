@@ -3414,7 +3414,11 @@ class WebInterface(object):
         else:
             reverse_order = False
 
-        final_filtered = sorted(filtered, key=itemgetter(sortcolumn), reverse=reverse_order)
+        try:
+            final_filtered = sorted(filtered, key=itemgetter(sortcolumn), reverse=reverse_order)
+        except Exception as e:
+            final_filtered = sorted(filtered, key=itemgetter(0), reverse=reverse_order)
+
         #filtered = sorted(issues_tmp, key=lambda x: x if isinstance(x[0], str) else "", reverse=True)
 
         if iDisplayLength == -1:
@@ -3530,6 +3534,19 @@ class WebInterface(object):
 
         itemlist = []
         for x in items:
+            OneOff = False
+            comic = myDB.selectone(
+                "SELECT * from comics WHERE ComicID=? AND ComicName != 'None'",
+                [x['comicid']],
+            ).fetchone()
+            if comic is None:
+                comic = myDB.selectone(
+                    "SELECT * from storyarcs WHERE IssueID=?",
+                    [x['issueid']],
+                ).fetchone()
+                if comic is None:
+                    OneOff = True
+
             itemlist.append({'link': x['link'],
                              'mainlink': x['mainlink'],
                              'series': x['series'],
@@ -3538,7 +3555,7 @@ class WebInterface(object):
                              'size': x['size'],
                              'link_type': x['link_type'],
                              'pack': x['pack'],
-                             'oneoff': x['oneoff'],
+                             'oneoff': OneOff,
                              'filename': x['filename'],
                              'remote_filesize': x['remote_filesize'],
                              'comicid': x['comicid'],
@@ -3550,11 +3567,25 @@ class WebInterface(object):
             for item in itemlist:
                 seriesname = item['series']
                 seriessize = item['size']
-                if all([mylar.CONFIG.DDL_AUTORESUME is True, mode == 'resume', item['status'] != 'Completed']):
+                if any(
+                        [
+                            item['link_type'] is None,
+                            item['link_type'] == 'GC-Main',
+                            item['link_type'] == 'GC-Mirror'
+                        ]
+                    ) and all(
+                        [
+                            mylar.CONFIG.DDL_AUTORESUME is True,
+                            mode == 'resume',
+                            item['status'] != 'Completed'
+                        ]
+                    ):
                     logger.fdebug('Attempting to resume....')
                     try:
                         filesize = os.stat(os.path.join(mylar.CONFIG.DDL_LOCATION, item['filename'])).st_size
-                    except:
+                    except Exception as e:
+                        logger.warn('[DDL-REQUEUE] Unable to retrieve previous filesize (file was deleted/moved maybe).'
+                                    ' Resume unavailable - will restart download.')
                         filesize = 0
                     logger.fdebug('resume set to resume at: %s bytes' % filesize)
                     resume = filesize
