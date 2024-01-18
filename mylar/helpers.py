@@ -3381,6 +3381,9 @@ def ddl_downloader(queue):
                 except Exception:
                     pass
 
+                # remove html file from cache if it's successful
+                ddl_cleanup(item['id'])
+
                 #logger.fdebug('after-pack_issueids: %s' % mylar.PACK_ISSUEIDS_DONT_QUEUE)
                 logger.fdebug('Successfully removed %s issueids from pack queue list as download is completed.' % pck_cnt)
 
@@ -3389,6 +3392,7 @@ def ddl_downloader(queue):
                 if ddzstat['filename'] is not None:
                     path = os.path.join(path, ddzstat['filename'])
                 logger.info('File successfully downloaded. Post Processing is not enabled - item retained here: %s' % (path,))
+                ddl_cleanup(item['id'])
             else:
                 try:
                     ltf = ddzstat['links_exhausted']
@@ -3409,8 +3413,20 @@ def ddl_downloader(queue):
                     #undo all snatched items, to previous status via item['id'] - this will be set to Skipped currently regardless of previous status
                     reverse_the_pack_snatch(item['id'], item['comicid'])
                     link_type_failure.pop(item['id'])
+                    ddl_cleanup(item['id'])
         else:
             time.sleep(5)
+
+def ddl_cleanup(id):
+   # remove html file from cache if it's successful
+   tlnk = 'getcomics-%s.html' % id
+   try:
+       os.remove(os.path.join(mylar.CONFIG.CACHE_DIR, 'html_cache', tlnk))
+   except Exception as e:
+       logger.fdebug('[HTML-cleanup] Unable to remove html used for item from html_cache folder.'
+                     ' Manual removal required or set `cleanup_cache=True` in the config.ini to'
+                     ' clean cache items on every startup. If this was a Retry - ignore this.')
+
 
 def postprocess_main(queue):
     while True:
