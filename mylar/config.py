@@ -170,7 +170,7 @@ _CONFIG_DEFINITIONS = OrderedDict({
     'CHECK_GITHUB' : (bool, 'Git', False),
     'CHECK_GITHUB_ON_STARTUP' : (bool, 'Git', False),
 
-    'ENFORCE_PERMS': (bool, 'Perms', True),
+    'ENFORCE_PERMS': (bool, 'Perms', False),
     'CHMOD_DIR': (str, 'Perms', '0777'),
     'CHMOD_FILE': (str, 'Perms', '0660'),
     'CHOWNER': (str, 'Perms', None),
@@ -267,7 +267,7 @@ _CONFIG_DEFINITIONS = OrderedDict({
     'FOLDER_CACHE_LOCATION': (str, 'PostProcess', None),
 
     'PROVIDER_ORDER': (str, 'Providers', None),
-    'USENET_RETENTION': (int, 'Providers', 1500),
+    'USENET_RETENTION': (int, 'Providers', 3500),
 
     'NZB_DOWNLOADER': (int, 'Client', 0),  #0': sabnzbd, #1': nzbget, #2': blackhole
     'TORRENT_DOWNLOADER': (int, 'Client', 0),  #0': watchfolder, #1': uTorrent, #2': rTorrent, #3': transmission, #4': deluge, #5': qbittorrent
@@ -347,7 +347,7 @@ _CONFIG_DEFINITIONS = OrderedDict({
     'CT_NOTES_FORMAT': (str, 'Metatagging', 'Issue ID'),
     'CT_SETTINGSPATH': (str, 'Metatagging', None),
     'CMTAG_VOLUME': (bool, 'Metatagging', True),
-    'CMTAG_START_YEAR_AS_VOLUME': (bool, 'Metatagging', False),
+    'CMTAG_START_YEAR_AS_VOLUME': (bool, 'Metatagging', True),
     'SETDEFAULTVOLUME': (bool, 'Metatagging', False),
 
     'ENABLE_TORRENTS': (bool, 'Torrents', False),
@@ -1104,7 +1104,7 @@ class Config(object):
 
         if self.CLEANUP_CACHE is True:
             logger.fdebug('[Cache Cleanup] Cache Cleanup initiated. Will delete items from cache that are no longer needed.')
-            cache_types = ['*.nzb', '*.torrent', '*.zip', '*.html', 'mylar_*']
+            cache_types = ['*.nzb', '*.torrent', '*.zip', '*.html', 'mylar_*', 'html_cache']
             cntr = 0
             for x in cache_types:
                 for f in glob.glob(os.path.join(self.CACHE_DIR,x)):
@@ -1343,13 +1343,17 @@ class Config(object):
         if self.ENABLE_DDL:
             #make sure directory for mega downloads is created...
             mega_ddl_path = os.path.join(self.DDL_LOCATION, 'mega')
+            html_cache_path = os.path.join(self.CACHE_DIR, 'html_cache')
             if not os.path.isdir(mega_ddl_path):
                 try:
                     os.makedirs(mega_ddl_path)
-                #dcreate = filechecker.validateAndCreateDirectory(mega_ddl_path, create=True)
-                #if dcreate is False:
                 except Exception as e:
                     logger.error('Unable to create temp download directory [%s] for DDL-External. You will not be able to view the progress of the download.' % mega_ddl_path)
+            if not os.path.isdir(html_cache_path):
+                try:
+                    os.makedirs(html_cache_path)
+                except Exception as e:
+                    logger.error('Unable to create html_cache folder within the cache folder location [%s]. DDL will not work until this is corrected.' % html_cache_path)
 
         if len(self.DDL_PRIORITY_ORDER) > 0 and self.DDL_PRIORITY_ORDER != '[]':
             if type(self.DDL_PRIORITY_ORDER) != list:

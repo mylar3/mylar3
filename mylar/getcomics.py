@@ -304,18 +304,18 @@ class GC(object):
                 return sorted(verified_matches, key=itemgetter('pack'), reverse=False)
 
     def loadsite(self, id, link):
-        self.cookie_receipt()
 
-        title = os.path.join(mylar.CONFIG.CACHE_DIR, 'getcomics-' + id)
+        title = os.path.join(mylar.CONFIG.CACHE_DIR, 'html_cache', 'getcomics-' + id)
         logger.fdebug('now loading info from local html to resolve via url: %s' % link)
 
+        self.cookie_receipt()
         #logger.fdebug('session cookies: %s' % (self.session.cookies,))
         t = self.session.get(
             link,
             verify=True,
             headers=self.headers,
             stream=True,
-            timeout=(30,30)
+           timeout=(30,30)
         )
 
         with open(title + '.html', 'wb') as f:
@@ -524,10 +524,12 @@ class GC(object):
         series = None
         year = None
         size = None
-        title = os.path.join(mylar.CONFIG.CACHE_DIR, 'getcomics-' + id)
+        title = os.path.join(mylar.CONFIG.CACHE_DIR, 'html_cache', 'getcomics-' + id)
+
         if not os.path.exists(title):
             logger.fdebug('Unable to locate local cached html file - attempting to retrieve page results again..')
             self.loadsite(id, mainlink)
+
         soup = BeautifulSoup(open(title + '.html', encoding='utf-8'), 'html.parser')
 
         i = 0
@@ -627,21 +629,29 @@ class GC(object):
                     t_site = re.sub('link', '', lk['title'].lower()).strip()
                     ltf = False
                     if link_type_failure is not None:
-                        if [True for tst in link_type_failure if t_site[:4].lower() in tst.lower()]:
+                        if [
+                            True
+                            for tst in link_type_failure
+                            if t_site[:4].lower() in tst.lower()
+                            or all(["main" in tst.lower(), "download" in t_site.lower()])
+                            or all(["mirror" in tst.lower(), "mirror" in t_site.lower()])
+                        ]:
                             logger.fdebug('[REDO-FAILURE-DETECTION] detected previous invalid link for %s - ignoring this result'
                                         ' and seeing if anything else can be downloaded.' % t_site)
                             ltf = True
+
                     if not ltf:
-                        gather_links.append({
-                             "series": series,
-                             "site": t_site,
-                             "year": year,
-                             "issues": None,
-                             "size": size,
-                             "links": lk['href'],
-                             "pack": comicinfo[0]['pack']
-                        })
-                        #logger.fdebug('gather_links so far: %s' % gather_links)
+                        if 'sh.st' not in lk['href']:
+                            gather_links.append({
+                                 "series": series,
+                                 "site": t_site,
+                                 "year": year,
+                                 "issues": None,
+                                 "size": size,
+                                 "links": lk['href'],
+                                 "pack": comicinfo[0]['pack']
+                            })
+                            #logger.fdebug('gather_links so far: %s' % gather_links)
             count_bees +=1
 
         #logger.fdebug('final valid_links: %s' % (valid_links))
@@ -843,6 +853,7 @@ class GC(object):
                            force_title = True
                        if 'sh.st' in link:
                            logger.fdebug('[Paywall-link detected] this is not a valid link')
+                           link_matched = False
                        else:
                            if force_title:
                                series = link['series']
