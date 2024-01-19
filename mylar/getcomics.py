@@ -784,21 +784,21 @@ class GC(object):
                         if not link_matched and site_lp == 'mega':
                             sub_site_chk = [y for y in tmp_sites if 'mega' in y]
                             if sub_site_chk:
-                                kk = tmp_links[site_position['SD-Digtal:mega']]
+                                kk = tmp_links[site_position['SD-Digital:mega']]
                                 logger.info('[MEGA] SD-Digital preference detected...attempting %s' % kk['series'])
                                 link_matched = True
 
                         elif not link_matched and site_lp == 'pixeldrain':
                             sub_site_chk = [y for y in tmp_sites if 'pixel' in y]
                             if sub_site_chk:
-                                kk = tmp_links[site_position['SD-Digtal:pixeldrain']]
+                                kk = tmp_links[site_position['SD-Digital:pixeldrain']]
                                 logger.info('[PixelDrain] SD-Digital preference detected...attempting %s' % kk['series'])
                                 link_matched = True
 
                         elif not link_matched and site_lp == 'mediafire':
                             sub_site_chk = [y for y in tmp_sites if 'mediafire' in y]
                             if sub_site_chk:
-                                kk = tmp_links[site_position['SD-Digtal:mediafire']]
+                                kk = tmp_links[site_position['SD-Digital:mediafire']]
                                 logger.info('[mediafire] SD-Digital preference detected...attempting %s' % kk['series'])
                                 link_matched = True
 
@@ -812,9 +812,10 @@ class GC(object):
                                 logger.info('[MIRROR-SERVER] SD-Digital preference detected...attempting %s' % kk['series'])
                                 link_matched = True
 
-                    link = kk
-                    series = link['series']
-                    #logger.fdebug('link: %s' % link)
+                    if link_matched:
+                        link = kk
+                        series = link['series']
+                        #logger.fdebug('link: %s' % link)
                 else:
                    if not link_matched and site_lp == 'mega':
                        sub_site_chk = [y for y in tmp_sites if 'mega' in y]
