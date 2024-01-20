@@ -3548,9 +3548,9 @@ class FolderCheck():
             mylar.MONITOR_STATUS = 'Paused'
             helpers.job_management(write=True)
         else:
-            if mylar.API_LOCK is True:
+            if mylar.APILOCK is True:
                 logger.info('%s Unable to initiate folder monitor as another process is currently using it or using post-processing.' % self.module)
-                return
+                return {'status': 'IN PROGRESS'}
             helpers.job_management(write=True, job='Folder Monitor', current_run=helpers.utctimestamp(), status='Running')
             mylar.MONITOR_STATUS = 'Running'
             logger.info('%s Checking folder %s for newly snatched downloads' % (self.module, mylar.CONFIG.CHECK_FOLDER))

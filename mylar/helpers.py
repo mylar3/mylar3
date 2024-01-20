@@ -2605,6 +2605,7 @@ def issue_find_ids(ComicName, ComicID, pack, IssueNumber, pack_id):
     Int_IssueNumber = issuedigits(IssueNumber)
     valid = False
 
+    ignores = []
     for iss in pack_issues:
        int_iss = issuedigits(str(iss))
        for xb in issuelist:
@@ -2620,8 +2621,12 @@ def issue_find_ids(ComicName, ComicID, pack, IssueNumber, pack_id):
                                         'pack_id': pack_id})
                    break
            else:
-               logger.info('issue #%s exists in the pack and is already in a Downloaded state. Mark the issue as anything'
-                           'other than Wanted if you want the pack to be downloaded.' % iss)
+               ignores.append(iss)
+
+    if ignores:
+        logger.info('[%s] These issues already exist in the pack and is already in a Downloaded state. Mark the issue as anything'
+                    'other than Wanted if you want the pack to be downloaded.' % ignores)
+
     if valid:
         for wv in write_valids:
             mylar.PACK_ISSUEIDS_DONT_QUEUE[wv['issueid']] = wv['pack_id']
