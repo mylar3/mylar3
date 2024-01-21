@@ -3375,7 +3375,6 @@ def ddl_downloader(queue):
                     pass
 
                 try:
-                    #logger.fdebug('before-pack_issueids: %s' % mylar.PACK_ISSUEIDS_DONT_QUEUE)
                     pck_cnt = 0
                     if item['comicinfo'][0]['pack'] is True:
                         logger.fdebug('[PACK DETECTION] Attempting to remove issueids from the pack dont-queue list')
@@ -3383,14 +3382,12 @@ def ddl_downloader(queue):
                             if y == item['id']:
                                 pck_cnt +=1
                                 del mylar.PACK_ISSUEIDS_DONT_QUEUE[x]
+                        logger.fdebug('Successfully removed %s issueids from pack queue list as download is completed.' % pck_cnt)
                 except Exception:
                     pass
 
                 # remove html file from cache if it's successful
                 ddl_cleanup(item['id'])
-
-                #logger.fdebug('after-pack_issueids: %s' % mylar.PACK_ISSUEIDS_DONT_QUEUE)
-                logger.fdebug('Successfully removed %s issueids from pack queue list as download is completed.' % pck_cnt)
 
             elif all([ddzstat['success'] is True, mylar.CONFIG.POST_PROCESSING is False]):
                 path = ddzstat['path']
@@ -3399,26 +3396,31 @@ def ddl_downloader(queue):
                 logger.info('File successfully downloaded. Post Processing is not enabled - item retained here: %s' % (path,))
                 ddl_cleanup(item['id'])
             else:
-                try:
-                    ltf = ddzstat['links_exhausted']
-                except KeyError:
-                    logger.info('[Status: %s] Failed to download item from %s : %s ' % (ddzstat['success'], item['link_type'], ddzstat))
+                if item['site'] == 'DDL(GetComics)':
                     try:
-                        link_type_failure[item['id']].append(item['link_type'])
+                        ltf = ddzstat['links_exhausted']
                     except KeyError:
-                        link_type_failure[item['id']] = [item['link_type']]
-                    logger.fdebug('[%s] link_type_failure: %s' % (item['id'], link_type_failure))
-                    ggc = getcomics.GC()
-                    ggc.parse_downloadresults(item['id'], item['mainlink'], item['comicinfo'], item['packinfo'], link_type_failure[item['id']])
+                        logger.info('[Status: %s] Failed to download item from %s : %s ' % (ddzstat['success'], item['link_type'], ddzstat))
+                        try:
+                            link_type_failure[item['id']].append(item['link_type'])
+                        except KeyError:
+                            link_type_failure[item['id']] = [item['link_type']]
+                        logger.fdebug('[%s] link_type_failure: %s' % (item['id'], link_type_failure))
+                        ggc = getcomics.GC()
+                        ggc.parse_downloadresults(item['id'], item['mainlink'], item['comicinfo'], item['packinfo'], link_type_failure[item['id']])
+                    else:
+                        logger.info('[REDO] Exhausted all available links [%s] for issueid %s and was not able to download anything' % (link_type_failure[item['id']], item['issueid']))
+                        nval = {'status':  'Failed',
+                                'updated_date': datetime.datetime.now().strftime('%Y-%m-%d %H:%M')}
+                        myDB.upsert('ddl_info', nval, ctrlval)
+                        #undo all snatched items, to previous status via item['id'] - this will be set to Skipped currently regardless of previous status
+                        reverse_the_pack_snatch(item['id'], item['comicid'])
+                        link_type_failure.pop(item['id'])
+                        ddl_cleanup(item['id'])
                 else:
-                    logger.info('[REDO] Exhausted all available links [%s] for issueid %s and was not able to download anything' % (link_type_failure[item['id']], item['issueid']))
-                    nval = {'status':  'Failed',
-                            'updated_date': datetime.datetime.now().strftime('%Y-%m-%d %H:%M')}
-                    myDB.upsert('ddl_info', nval, ctrlval)
-                    #undo all snatched items, to previous status via item['id'] - this will be set to Skipped currently regardless of previous status
-                    reverse_the_pack_snatch(item['id'], item['comicid'])
-                    link_type_failure.pop(item['id'])
-                    ddl_cleanup(item['id'])
+                    logger.info('[Status: %s] Failed to download item from %s : %s ' % (ddzstat['success'], item['site'], ddzstat))
+                    myDB.action('DELETE FROM ddl_info where id=?', [item['id']])
+                    mylar.search.FailedMark(item['issueid'], item['comicid'], item['id'], ddzstat['filename'], item['site'])
         else:
             time.sleep(5)
 
