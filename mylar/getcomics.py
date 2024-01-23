@@ -734,7 +734,7 @@ class GC(object):
                 logger.fdebug('priority ddl enabled - checking %s' % site_lp)
                 if site_check: #any([('HD-Upscaled', 'SD-Digital', 'HD-Digital') in tmp_sites]):
                     if mylar.CONFIG.DDL_PREFER_UPSCALED:
-                        if site_lp == 'mega':
+                        if not link_matched and site_lp == 'mega':
                             sub_site_chk = [y for y in tmp_sites if 'mega' in y]
                             if sub_site_chk:
                                 if any('HD-Upscaled' in ssc for ssc in sub_site_chk):
@@ -780,37 +780,37 @@ class GC(object):
                                 kk = tmp_links[site_position['HD-Digital:download now']]
                                 logger.info('[MAIN-SERVER] HD-Digital preference detected...attempting %s' % kk['series'])
                                 link_matched = True
-                    else:
-                        if not link_matched and site_lp == 'mega':
-                            sub_site_chk = [y for y in tmp_sites if 'mega' in y]
-                            if sub_site_chk:
-                                kk = tmp_links[site_position['SD-Digital:mega']]
-                                logger.info('[MEGA] SD-Digital preference detected...attempting %s' % kk['series'])
-                                link_matched = True
 
-                        elif not link_matched and site_lp == 'pixeldrain':
-                            sub_site_chk = [y for y in tmp_sites if 'pixel' in y]
-                            if sub_site_chk:
-                                kk = tmp_links[site_position['SD-Digital:pixeldrain']]
-                                logger.info('[PixelDrain] SD-Digital preference detected...attempting %s' % kk['series'])
-                                link_matched = True
+                    if not link_matched and site_lp == 'mega':
+                        sub_site_chk = [y for y in tmp_sites if 'mega' in y]
+                        if sub_site_chk:
+                            kk = tmp_links[site_position['SD-Digital:mega']]
+                            logger.info('[MEGA] SD-Digital preference detected...attempting %s' % kk['series'])
+                            link_matched = True
 
-                        elif not link_matched and site_lp == 'mediafire':
-                            sub_site_chk = [y for y in tmp_sites if 'mediafire' in y]
-                            if sub_site_chk:
-                                kk = tmp_links[site_position['SD-Digital:mediafire']]
-                                logger.info('[mediafire] SD-Digital preference detected...attempting %s' % kk['series'])
-                                link_matched = True
+                    elif not link_matched and site_lp == 'pixeldrain':
+                        sub_site_chk = [y for y in tmp_sites if 'pixel' in y]
+                        if sub_site_chk:
+                            kk = tmp_links[site_position['SD-Digital:pixeldrain']]
+                            logger.info('[PixelDrain] SD-Digital preference detected...attempting %s' % kk['series'])
+                            link_matched = True
 
-                        elif not link_matched and site_lp == 'main':
-                            try:
-                                kk = tmp_links[site_position['SD-Digital:download now']]
-                                logger.info('[MAIN-SERVER] SD-Digital preference detected...attempting %s' % kk['series'])
-                                link_matched = True
-                            except Exception as e:
-                                kk = tmp_links[site_position['SD-Digital:mirror download']]
-                                logger.info('[MIRROR-SERVER] SD-Digital preference detected...attempting %s' % kk['series'])
-                                link_matched = True
+                    elif not link_matched and site_lp == 'mediafire':
+                        sub_site_chk = [y for y in tmp_sites if 'mediafire' in y]
+                        if sub_site_chk:
+                            kk = tmp_links[site_position['SD-Digital:mediafire']]
+                            logger.info('[mediafire] SD-Digital preference detected...attempting %s' % kk['series'])
+                            link_matched = True
+
+                    elif not link_matched and site_lp == 'main':
+                        try:
+                            kk = tmp_links[site_position['SD-Digital:download now']]
+                            logger.info('[MAIN-SERVER] SD-Digital preference detected...attempting %s' % kk['series'])
+                            link_matched = True
+                        except Exception as e:
+                            kk = tmp_links[site_position['SD-Digital:mirror download']]
+                            logger.info('[MIRROR-SERVER] SD-Digital preference detected...attempting %s' % kk['series'])
+                            link_matched = True
 
                     if link_matched:
                         link = kk
