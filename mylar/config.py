@@ -246,7 +246,7 @@ _CONFIG_DEFINITIONS = OrderedDict({
     'GOTIFY_TOKEN': (str, 'GOTIFY', None),
     'GOTIFY_ONSNATCH': (bool, 'GOTIFY', False),
 
-    'POST_PROCESSING': (bool, 'PostProcess', False),
+    'POST_PROCESSING': (bool, 'PostProcess', True),
     'FILE_OPTS': (str, 'PostProcess', 'move'),
     'SNATCHEDTORRENT_NOTIFY': (bool, 'PostProcess', False),
     'LOCAL_TORRENT_PP': (bool, 'PostProcess', False),
@@ -1081,17 +1081,18 @@ class Config(object):
                 logger.error('[Backup Location Check] Could not create backup directory. Check permissions for creation of : %s' % self.BACKUP_LOCATION)
 
 
-        if self.STORYARCDIR is True:
-            if not self.STORYARC_LOCATION:
-                self.STORYARC_LOCATION = os.path.join(self.DESTINATION_DIR, 'StoryArcs')
+        if all([self.STORYARCDIR is True, self.DESTINATION_DIR is not None]):
+            if os.path.exists(self.DESTINATION_DIR):
+                if not self.STORYARC_LOCATION:
+                    self.STORYARC_LOCATION = os.path.join(self.DESTINATION_DIR, 'StoryArcs')
 
-            if not os.path.exists(self.STORYARC_LOCATION):
-                try:
-                    os.makedirs(self.STORYARC_LOCATION)
-                except OSError as e:
-                    logger.error('[STORYARC LOCATION] Could not create storyarcs directory @ %s. Error returned: %s' % (self.STORYARC_LOCATION, e))
+                if not os.path.exists(self.STORYARC_LOCATION):
+                    try:
+                        os.makedirs(self.STORYARC_LOCATION)
+                    except OSError as e:
+                        logger.error('[STORYARC LOCATION] Could not create storyarcs directory @ %s. Error returned: %s' % (self.STORYARC_LOCATION, e))
 
-            logger.info('[STORYARC LOCATION] Storyarc Base directory location set to: %s' % (self.STORYARC_LOCATION))
+                logger.info('[STORYARC LOCATION] Storyarc Base directory location set to: %s' % (self.STORYARC_LOCATION))
 
         #make sure the cookies.dat file is not in cache
         for f in glob.glob(os.path.join(self.CACHE_DIR, '.32p_cookies.dat')):
@@ -1173,6 +1174,12 @@ class Config(object):
             #default dupecontraint to filesize
             setattr(self, 'DUPECONSTRAINT', 'filesize')
             config.set('Duplicates', 'dupeconstraint', 'filesize')
+
+        if self.MINSIZE is not None:
+            self.MINSIZE = re.sub(r'[^0-9]', '', self.MINSIZE).strip()
+
+        if self.MAXSIZE is not None:
+            self.MAXSIZE = re.sub(r'[^0-9]', '', self.MAXSIZE).strip()
 
         if not helpers.is_number(self.CHMOD_DIR):
             logger.fdebug("CHMOD Directory value is not a valid numeric - please correct. Defaulting to 0777")

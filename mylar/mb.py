@@ -27,7 +27,14 @@ import requests
 
 import mylar
 from mylar import logger, db, cv
-from mylar.helpers import multikeysort, replace_all, cleanName, listLibrary, listStoryArcs
+from mylar.helpers import (
+  multikeysort,
+  replace_all,
+  cleanName,
+  listLibrary,
+  listStoryArcs,
+  ignored_publisher_check,
+)
 import http.client
 
 mb_lock = threading.Lock()
@@ -382,8 +389,7 @@ def findComic(name, mode, issue, limityear=None, search_type=None, annual_check=
                                 xmlpub = "Unknown"
 
                             #ignore specific publishers on a global scale here.
-                            if mylar.CONFIG.IGNORED_PUBLISHERS is not None and any([x for x in mylar.CONFIG.IGNORED_PUBLISHERS if x.lower() == xmlpub.lower()]):
-                                logger.fdebug('Ignored publisher [%s]. Ignoring this result.' % xmlpub)
+                            if ignored_publisher_check(xmlpub):
                                 continue
 
                             try:

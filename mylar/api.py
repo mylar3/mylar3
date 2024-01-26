@@ -94,6 +94,11 @@ class Api(object):
                     data = '\nevent: scheduler_message\ndata: {\ndata: "status": "' + results['status'] + '",\ndata: "message": "' + results['message'] + '"\ndata: }\n\n'
                 except Exception:
                     data = '\nevent: scheduler_message\ndata: {\ndata: "status": "' + results['status'] + '",\ndata: "message": "' + results['message'] + '"\ndata: }\n\n'
+            elif results['event'] == 'config_check':
+                try:
+                    data = '\nevent: config_check\ndata: {\ndata: "status": "' + results['status'] + '",\ndata: "message": "' + results['message'] + '"\ndata: }\n\n'
+                except Exception:
+                    data = '\nevent: config_check\ndata: {\ndata: "status": "' + results['status'] + '",\ndata: "message": "' + results['message'] + '"\ndata: }\n\n'
             elif results['event'] == 'shutdown':
                 try:
                     data = '\nevent: shutdown\ndata: {\ndata: "status": "' + results['status'] + '",\ndata: "message": "' + results['message'] + '"\ndata: }\n\n'
@@ -1279,7 +1284,7 @@ class Api(object):
             except Exception:
                 event = None
 
-            if event is not None and event == 'shutdown':
+            if event is not None and any([event == 'shutdown', event == 'config_check']):
                 the_message = {'status': mylar.GLOBAL_MESSAGES['status'], 'event': event, 'message': mylar.GLOBAL_MESSAGES['message']}
             elif event is not None and event == 'check_update':
                 the_message = {'status': mylar.GLOBAL_MESSAGES['status'], 'event': event, 'current_version': mylar.GLOBAL_MESSAGES['current_version'], 'latest_version': mylar.GLOBAL_MESSAGES['latest_version'], 'commits_behind': str(mylar.GLOBAL_MESSAGES['commits_behind']), 'docker': mylar.GLOBAL_MESSAGES['docker'], 'message': mylar.GLOBAL_MESSAGES['message']}
@@ -1295,7 +1300,10 @@ class Api(object):
                 myDB = db.DBConnection()
                 tmp_message = dict(the_message, **{'session_id': mylar.SESSION_ID})
                 if event != 'check_update':
-                    tmp_message.pop('tables')
+                    try:
+                        tmp_message.pop('tables')
+                    except Exception:
+                        pass
                 else:
                     tmp_message.pop('current_version')
                     tmp_message.pop('latest_version')

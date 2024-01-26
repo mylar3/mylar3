@@ -19,6 +19,7 @@ import datetime
 import re
 import mylar
 from mylar import logger, db
+from mylar.helpers import ignored_publisher_check
 
 def locg(pulldate=None,weeknumber=None,year=None):
 
@@ -79,6 +80,10 @@ def locg(pulldate=None,weeknumber=None,year=None):
             pull = []
 
             for x in data:
+                #ignore specific publishers on a global scale here.
+                if ignored_publisher_check(x['publisher']):
+                    continue
+
                 pull.append({'series':     x['series'],
                              'alias':      x['alias'],
                              'issue':      x['issue'],

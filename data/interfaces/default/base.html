@@ -141,6 +141,9 @@
                                     ${prov}:${st_image} &nbsp
                                 %endfor
                         </div>
+                        <div id="config_messages_dialog" title="configuration checks / warnings" style="display:none">
+                           <span id="mbody"></span>
+                        </div>
                         <div style="text-align:right;position:relative;top:${bottom_foot}">
                             <a id="notifs" title="View Latest Notifications" href="javascript:void(0)" onclick="manageNotifications()"><img src="images/notif.png" height="31" width="25" /></a>
                             <div id="notifs_dialog" title="Notifications" style="display:none">
@@ -266,6 +269,18 @@
                 } else {
                     $('#ajaxMsg').addClass('error').fadeIn().delay(3000).fadeOut();
                 }
+            }
+        }, false);
+
+        evtSource.addEventListener("config_check", function(e){
+            if (e.data){
+                var data = JSON.parse(e.data);
+                console.log('config_check:'+data.status,data.message);
+                $("#mbody").html(data.message);
+                $("#config_messages_dialog").dialog({
+                  modal: true,
+                  width: "50%",
+                });
             }
         }, false);
 
