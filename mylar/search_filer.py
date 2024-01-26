@@ -377,12 +377,14 @@ class search_check(object):
                         '[CONV] %s is after store date of %s'
                         % (pubdate, stdate)
                     )
-            except Exception:
+            except Exception as e:
                 # if the above fails, drop down to the integer compare method
                 # as a failsafe.
-                if (
-                    digitaldate != '0000-00-00'
-                    and postdate_int >= digitaldate_int
+                if digitaldate is not None and all(
+                    [
+                        digitaldate != '0000-00-00',
+                        postdate_int >= digitaldate_int
+                    ]
                 ):
                     logger.fdebug(
                         '%s is after DIGITAL store date of %s'
