@@ -2339,13 +2339,17 @@ def searchforissue(issueid=None, new=False, rsschecker=None, manual=False):
 
                 #if it's not manually initiated, make sure it's not already downloaded/snatched.
                 if not manual:
+                    if smode == 'story_arc':
+                        issnumb = result['IssueNumber']
+                    else:
+                        issnumb = result['Issue_Number']
                     checkit = searchforissue_checker(
                                 result['IssueID'],
                                 result['ReleaseDate'],
                                 result['IssueDate'],
                                 result['DigitalDate'],
                                 {'ComicName': result['ComicName'],
-                                 'Issue_Number': result['Issue_Number'],
+                                 'Issue_Number': issnumb,
                                  'ComicID': result['ComicID']
                                 }
                               )
@@ -2504,7 +2508,7 @@ def searchforissue(issueid=None, new=False, rsschecker=None, manual=False):
                     'err': str(err),
                     'err_text': err_text,
                     'traceback': tracebackline,
-                    'comicname': comic['ComicName'],
+                    'comicname': result['ComicName'],
                     'issuenumber': result['Issue_Number'],
                     #'seriesyear': SeriesYear,
                     'issueid': result['IssueID'],
