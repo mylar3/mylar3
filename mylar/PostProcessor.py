@@ -2073,7 +2073,7 @@ class PostProcessor(object):
                             ppinfo.append({'comicid':       oneinfo['ComicID'],
                                            'comicname':     oneinfo['ComicName'],
                                            'seriesyear':    oneinfo['SeriesYear'],
-                                           'seriesvolume':  oneinfo['ComicVolume'],
+                                           'seriesvolume':  oneinfo['Volume'],
                                            'issuenumber':   oneinfo['IssueNumber'],
                                            'publisher':     oneinfo['IssuePublisher'],
                                            'comiclocation': None,

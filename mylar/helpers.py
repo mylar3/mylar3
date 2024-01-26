@@ -4652,6 +4652,21 @@ def lookupthebitches(filelist, folder, nzbname, nzbid, prov, hash, pulldate):
             mylar.updater.nzblog(x['issueid'], nzbname, x['comicname'], id=nzbid, prov=prov, oneoff=oneoff)
             mylar.updater.foundsearch(x['comicid'], x['issueid'], mode=mode, provider=prov, hash=hash)
 
+def ignored_publisher_check(publisher):
+    if publisher is not None:
+        if mylar.CONFIG.IGNORED_PUBLISHERS is not None and any(
+          [
+            x for x in mylar.CONFIG.IGNORED_PUBLISHERS if any(
+              [
+                 x.lower() == publisher.lower(),
+                 ('*' in x and re.sub(r'\*', '', x.lower()).strip() in publisher.lower()),
+              ]
+            )
+          ]
+        ):
+            logger.fdebug('Ignored publisher [%s]. Ignoring this result.' % publisher)
+            return True
+    return False
 
 def DateAddedFix():
     #import db

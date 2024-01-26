@@ -21,8 +21,107 @@ import time
 import re
 import threading
 import signal
+import importlib
 
 sys.path.insert(1, os.path.join(os.path.dirname(__file__), 'lib'))
+
+class test_the_requires(object):
+
+    def __init__(self):
+        if hasattr(sys, 'frozen'):
+            full_path = os.path.abspath(sys.executable)
+        else:
+            full_path = os.path.abspath(__file__)
+
+        prog_dir = os.path.dirname(full_path)
+        data_dir = prog_dir
+        if len(sys.argv) > 0:
+            ddir = [x for x in sys.argv if 'datadir' in sys.argv]
+            if ddir:
+                ddir = re.sub('--datadir=', ''.join(ddir)).strip()
+                data_dir = re.sub('--datadir ', ddir).strip()
+
+        docker = False
+        d_path = '/proc/self/cgroup'
+        if os.path.exists('/.dockerenv') or 'KUBERNETES_SERVICE_HOST' in os.environ or os.path.isfile(d_path) and any('docker' in line for line in open(d_path)):
+            print('[DOCKER-AWARE] Docker installation detected.')
+            docker = True
+
+        self.req_file_present = True
+        self.reqfile = os.path.join(data_dir, 'requirements.txt')
+
+        if any([docker, data_dir != prog_dir]) and not os.path.isfile(self.reqfile):
+            self.reqfile = os.path.join(prog_dir, 'requirements.txt')
+
+        if not os.path.isfile(self.reqfile):
+            self.req_file_present = False
+
+        self.nfo_file = os.path.join(data_dir, 'ascii_logo.nfo')
+        if not self.nfo_file:
+            self.nfo_file = os.path.join(prog_dir, 'ascii_logo.nfo')
+
+        if not self.nfo_file:
+            print('[WARNING] Unable to load ascii_logo. You\'re missing something cool...')
+        else:
+            with open(self.nfo_file, 'r') as f:
+                for line in f:
+                    print(line.rstrip())
+            print(f'{"-":-<60}')
+
+        self.ops = ['==', '>=', '<=']
+        self.mod_list = {}
+        self.mappings = {'APScheduler': 'apscheduler',
+                         'beautifulsoup4': 'bs4',
+                         'Pillow': 'PIL',
+                         'pycryptodome': 'Crypto',
+                         'pystun': 'stun',
+                         'PySocks': 'socks'}
+
+    def check_it(self):
+        if not self.req_file_present:
+            print('[REQUIREMENTS MISSING] Unable to locate requirements.txt in %s. Make sure it exists, or use --data-dir to specify location' % self.reqfile)
+            sys.exit()
+
+        with open(self.reqfile, 'r') as file:
+            for line in file.readlines():
+                operator = [x for x in self.ops if x in line]
+                if operator:
+                    operator = ''.join(operator)
+                    lf = line.find(operator)
+                    module_name = line[:lf].strip()
+                    module_version = line[lf+len(operator):].strip()
+                    if module_name == 'requests[socks]':
+                        self.mod_list['requests'] = module_version
+                        module_name = 'PySocks'
+                    self.mod_list[module_name] = {'version': module_version, 'operator': operator}
+
+        failures = {}
+        for key,value in self.mod_list.items():
+            try:
+                module = key
+                if key in self.mappings:
+                    module = self.mappings[key]
+                try:
+                    importlib.import_module(module, package=None)
+                except Exception:
+                    importlib.import_module(module.lower(), package=None)
+            except (ModuleNotFoundError) as e:
+                failures[key] = value
+
+        if failures:
+            if 'PySocks' in failures:
+                print('[MODULES UNAVAILABLE] Some modules are missing and may need to be installed via pip before proceeding. PySocks is required only if using proxies.')
+            else:
+                print('[MODULES UNAVAILABLE] Required modules are missing and need to be installed via pip before proceeding.')
+            print('[MODULES UNAVAILABLE] Reinstall each of the listed module(s) below or reinstall the included requirements.txt file')
+            print('[MODULES UNAVAILABLE] The following modules are missing:')
+            for modname, modreq in failures.items():
+                print('[MODULES UNAVAILABLE]  %s %s%s' % (modname, modreq['operator'], modreq['version']))
+            if all(['PySocks' in failures, len(failures)>1]) or 'PySocks' not in failures:
+                sys.exit()
+
+t = test_the_requires()
+t.check_it()
 
 import mylar
 

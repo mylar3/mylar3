@@ -1901,11 +1901,16 @@ def validateAndCreateDirectory(dir, create=False, module=None, dmode=None):
                         if mylar.CONFIG.ENFORCE_PERMS:
                             permission = int(mylar.CONFIG.CHMOD_DIR, 8)
                             os.makedirs(dir.rstrip(), permission)
-                            setperms(dir.rstrip(), True)
+                            s_perms = setperms(dir.rstrip(), True)
+                            if not s_perms:
+                                raise OSError
                         else:
                             os.makedirs(dir.rstrip())
                     except OSError as e:
-                        logger.warn('%s Could not create directory: %s [%s]. Aborting' % (module, dir, e))
+                        if not s_perms:
+                            logger.warn('%s Unable to set permissions for : %s [%s]' % (module, dir, e))
+                        else:
+                            logger.warn('%s Could not create directory: %s [%s]. Aborting' % (module, dir, e))
                         return False
                     else:
                         return True
@@ -1992,8 +1997,9 @@ def setperms(path, dir=False):
 
         except OSError as e:
             logger.error('[ERROR @ path: %s] %s. Exiting...' % (path, e))
+            return False
 
-    return
+    return True
 
 def check_valid_perms(chowner, chgroup):
     if all([chowner == -1, chgroup == -1]):
