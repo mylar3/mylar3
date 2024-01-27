@@ -1807,7 +1807,7 @@ class PostProcessor(object):
                         ofilename = orig_filename = ml['ComicLocation']
                         logger.info('[STORY-ARC POST-PROCESSING] Enabled for %s' % ml['StoryArc'])
 
-                        if all([mylar.CONFIG.STORYARCDIR is True, mylar.CONFIG.COPY2ARCDIR is True]):
+                        if all([mylar.CONFIG.STORYARCDIR is True, mylar.CONFIG.ONEOFF2ARCDIR is True]):
                             grdst = helpers.arcformat(ml['StoryArc'], helpers.spantheyears(ml['StoryArcID']), ml['Publisher'])
                             logger.info('grdst: %s' % grdst)
 
@@ -1946,7 +1946,7 @@ class PostProcessor(object):
                         logger.fdebug('writing: %s -- %s' % (newVal, ctrlVal))
                         myDB.upsert("storyarcs", newVal, ctrlVal)
                         updater.foundsearch(ComicID=ml['ComicID'], mode='story_arc', IssueID=ml['IssueID'], IssueArcID=ml['IssueArcID'], down='PP', module=module)
-                        if all([mylar.CONFIG.STORYARCDIR is True, mylar.CONFIG.COPY2ARCDIR is True]):
+                        if all([mylar.CONFIG.STORYARCDIR is True, mylar.CONFIG.ONEOFF2ARCDIR is True]):
                             logger.fdebug('%s [%s] Post-Processing completed for: %s' % (module, ml['StoryArc'], grab_dst))
                         else:
                             logger.fdebug('%s [%s] Post-Processing completed for: %s' % (module, ml['StoryArc'], ml['ComicLocation']))

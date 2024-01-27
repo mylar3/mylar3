@@ -2837,7 +2837,7 @@ def arcformat(arc, spanyears, publisher):
             dstloc = os.path.join(mylar.CONFIG.DESTINATION_DIR, 'StoryArcs', arcpath)
         else:
             dstloc = os.path.join(mylar.CONFIG.STORYARC_LOCATION, arcpath)
-    elif mylar.CONFIG.COPY2ARCDIR is True:
+    elif any([mylar.CONFIG.COPY2ARCDIR is True, mylar.CONFIG.ONEOFF2ARCDIR is True]):
         logger.warn('Story arc directory is not configured. Defaulting to grabbag directory: ' + mylar.CONFIG.GRABBAG_DIR)
         dstloc = os.path.join(mylar.CONFIG.GRABBAG_DIR, arcpath)
     else:

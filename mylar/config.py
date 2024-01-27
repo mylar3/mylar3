@@ -327,6 +327,7 @@ _CONFIG_DEFINITIONS = OrderedDict({
     'STORYARCDIR': (bool, 'StoryArc', False),
     'STORYARC_LOCATION': (str, 'StoryArc', None),
     'COPY2ARCDIR': (bool, 'StoryArc', False),
+    'ONEOFF2ARCDIR': (bool, 'StoryArc', False),
     'ARC_FOLDERFORMAT': (str, 'StoryArc', '$arc ($spanyears)'),
     'ARC_FILEOPS': (str, 'StoryArc', 'copy'),
     'ARC_FILEOPS_SOFTLINK_RELATIVE': (bool, 'StoryArc', False),
