@@ -77,6 +77,9 @@
                                    carcdir = 'GrabBag'
                          %>
                          <input type="checkbox" style="vertical-align: middle; margin: 3px; margin-top: -1px;" name="copy2arcdir" id="copy2arcdir" value="1" ${checked(mylar.CONFIG.COPY2ARCDIR)} disabled /><label>Copy watchlisted issues to ${carcdir} Directory</label>
+                         <div>
+                             <input type="checkbox" style="vertical-align: middle; margin: 3px; margin-top: -1px;" name="oneoff2arcdir" id="oneoff2arcdir" value="1" ${checked(mylar.CONFIG.ONEOFF2ARCDIR)} disabled /><label>Process one-off issues</label>
+                         </div>
 
                        <input type="hidden" name="StoryArcID" value="${storyarcid}">
                        <input type="hidden" name="StoryArcName" value="${storyarcname| u}">
