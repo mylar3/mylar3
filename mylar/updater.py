@@ -1129,7 +1129,7 @@ def forceRescan(ComicID, archive=None, module=None, recheck=False):
     if rescan['Status'] == 'Paused':
         pause_status = True
 
-    if (all([rescan['Type'] != 'Print', rescan['Type'] != 'Digital', rescan['Type'] != 'None', rescan['Type'] is not None]) and rescan['Corrected_Type'] != 'Print') or any([rescan['Corrected_Type'] == 'TPB', rescan['Corrected_Type'] == 'HC', rescan['Corrected_Type'] == 'GN']):
+    if (all([rescan['Type'] != 'Print', rescan['Type'] != 'Digital', rescan['Type'] != 'None', rescan['Type'] is not None]) and rescan['Corrected_Type'] != 'Print') or any([rescan['Corrected_Type'] == 'TPB', rescan['Corrected_Type'] == 'HC', rescan['Corrected_Type'] == 'GN', rescan['Corrected_Type'] == 'One-Shot']):
         if rescan['Type'] == 'One-Shot' and rescan['Corrected_Type'] is None:
             booktype = 'One-Shot'
         else:
@@ -1140,7 +1140,7 @@ def forceRescan(ComicID, archive=None, module=None, recheck=False):
             else:
                 booktype = 'TPB'
     else:
-        booktype = None
+        booktype = 'Print'
 
     annscan = myDB.select('SELECT * FROM annuals WHERE ComicID=? AND NOT Deleted', [ComicID])
     if annscan is None:
