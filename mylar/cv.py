@@ -1276,7 +1276,7 @@ def get_imprint_volume_and_booktype(series, comicyear, publisher, firstissueid, 
     comic['ComicVersion'] = 'None' #noversion'
 
     #figure out if it's a print / digital edition.
-    comic['Type'] = 'None'
+    comic['Type'] = 'Print'
     if comic_deck != 'None':
         if any(['print' in comic_deck.lower(), 'digital' in comic_deck.lower(), 'paperback' in comic_deck.lower(), 'one shot' in re.sub('-', '', comic_deck.lower()).strip(), 'hardcover' in comic_deck.lower()]):
             if all(['print' in comic_deck.lower(), 'reprint' not in comic_deck.lower()]):
