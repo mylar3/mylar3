@@ -454,10 +454,17 @@
                                 </div>
                                 </br>
 
-                               <div class="row checkbox left clearfix">
-                                    <input type="checkbox" id="sab_client_post_processing" name="sab_client_post_processing" value="1" ${config['sab_client_post_processing']} /><label>Enable Completed Download Handling</label>
+                                <div class="row">
+                                    <div class="row checkbox left clearfix">
+                                        <input type="checkbox" id="sab_client_post_processing" name="sab_client_post_processing" onClick="initConfigCheckbox($(this));" value="1" ${config['sab_client_post_processing']} /><label>Enable Completed Download Handling</label>
+                                    </div>
+                                    <div class="config">
+                                        <div class="row checkbox left clearfix" style="display:block;padding-left:1.5em;">
+                                            <input type="checkbox" id="sab_remove_completed" name="sab_remove_completed" value="1" ${config['sab_remove_completed']} /><label>Remove completed downloads</label>
+                                            <input type="checkbox" id="sab_remove_failed" name="sab_remove_failed" value="1" ${config['sab_remove_failed']} /><label>Remove Failed downloads <small>(includes files)</small></label>
+                                        </div>
+                                    </div>
                                 </div>
-
                                 <div class="row">
                                     <div class="row checkbox left clearfix">
                                        <input id="sab_to_mylar" type="checkbox" name="sab_to_mylar" onClick="initConfigCheckbox($(this));" value="1" ${config['sab_to_mylar']} /><label>Are Mylar / SABnzbd on separate machines</label>

@@ -192,6 +192,7 @@ class SABnzbd(object):
                     if 'comicrn' in hq['script'].lower():
                         logger.warn('ComicRN has been detected as being active for this category & download. Completed Download Handling will NOT be performed due to this.')
                         logger.warn('Either disable Completed Download Handling for SABnzbd within Mylar, or remove ComicRN from your category script in SABnzbd.')
+                        self.remove_history(hq['nzo_id'], hq['status'])
                         return {'status': 'double-pp', 'failed': False}
 
                     if os.path.isfile(hq['storage']):
@@ -205,6 +206,7 @@ class SABnzbd(object):
                                  'apicall':  True,
                                  'ddl':      False,
                                  'download_info': nzbinfo['download_info']}
+                        self.remove_history(hq['nzo_id'], hq['status'])
                         break
 
                     elif all([mylar.CONFIG.SAB_TO_MYLAR, mylar.CONFIG.SAB_DIRECTORY is not None, mylar.CONFIG.SAB_DIRECTORY != 'None']):
@@ -213,13 +215,16 @@ class SABnzbd(object):
                             new_path = np.the_sequence()
                         except Exception as e:
                             logger.warn('[ERROR] error returned during attempt to map [%s] --> root dir:[%s]. Error: %s' % (hq['storage'], mylar.CONFIG.SAB_DIRECTORY, e))
+                            self.remove_history(hq['nzo_id'], hq['status'])
                             return {'status': 'file not found', 'failed': False}
                         else:
                             if new_path is None:
                                 logger.warn('[ERROR] Unable to remap the directory from SAB to Mylar\'s configuration.')
+                                self.remove_history(hq['nzo_id'], hq['status'])
                                 return {'status': 'file not found', 'failed': False}
                             elif not os.path.isfile(new_path):
                                 logger.fdebug('[ERROR] Unable to locate path (%s) on the machine that is running Mylar. If Mylar and sabnzbd are on separate machines, you need to set a directory location that is accessible to both' % (new_path))
+                                self.remove_history(hq['nzo_id'], hq['status'])
                                 return {'status': 'file not found', 'failed': False}
 
                         logger.fdebug('location found @ %s' % new_path)
@@ -232,10 +237,12 @@ class SABnzbd(object):
                                  'apicall':  True,
                                  'ddl':      False,
                                  'download_info': nzbinfo['download_info']}
+                        self.remove_history(hq['nzo_id'], hq['status'])
                         break
 
                     else:
                         logger.error('no file found where it should be @ %s - is there another script that moves things after completion ?' % hq['storage'])
+                        self.remove_history(hq['nzo_id'], hq['status'])
                         return {'status': 'file not found', 'failed': False}
 
                 elif hq['nzo_id'] == sendresponse and hq['status'] == 'Failed':
@@ -259,8 +266,10 @@ class SABnzbd(object):
                                              'apicall':  True,
                                              'ddl':      False,
                                              'download_info': nzbinfo['download_info']}
+                            self.remove_history(hq['nzo_id'], hq['status'])
                             break
                     if found['status'] is False:
+                        self.remove_history(hq['nzo_id'], hq['status'])
                         return {'status': 'failed_in_sab', 'failed': False}
                     else:
                         break
@@ -272,6 +281,7 @@ class SABnzbd(object):
                         time.sleep(mylar.CONFIG.SAB_MOVING_DELAY)
                         return self.historycheck(nzbinfo, roundtwo=True)
                     else:
+                        self.remove_history(hq['nzo_id'], hq['status'])
                         return {'failed': False, 'status': 'unhandled status of: %s' %( hq['status'])}
 
             if not nzo_exists:
@@ -284,9 +294,33 @@ class SABnzbd(object):
                     return {'status': 'nzb removed', 'failed': False}
         except Exception as e:
             logger.warn('error %s' % (e,))
+            self.remove_history(hq['nzo_id'], hq['status'])
             return {'status': False, 'failed': False}
 
         return found
+
+    def remove_history(self, nzo_id, status):
+        logger.info('[Sabnzbd Completed History Removal] Download is complete - removing item from history..')
+        if all([status == 'Failed', mylar.CONFIG.SAB_REMOVE_FAILED]) or mylar.CONFIG.SAB_REMOVE_COMPLETED:
+            hist_params = {'mode': 'history',
+                           'name': 'delete',
+                           'value': nzo_id,
+                           'output': 'json',
+                           'apikey': mylar.CONFIG.SAB_APIKEY}
+
+            if mylar.CONFIG.SAB_REMOVE_FAILED:
+                hist_params['del_files'] = 1
+
+            try:
+                rh = requests.get(self.sab_url, params=hist_params, verify=False)
+                rhistory = rh.json()
+            except Exception as e:
+                logger.warn('[Sabnzbd Completed History Removal] Unable to remove item - error returned: %s' % e)
+            else:
+                if rhistory['status'] is True:
+                    logger.info('[Sabnzbd Completed History Removal] Item successfully removed from history..')
+                else:
+                    logger.warn('[Sabnzbd Completed History Removal] Unable to remove item from history..')
 
     def sab_versioncheck(self):
         try:
