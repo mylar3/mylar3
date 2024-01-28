@@ -283,6 +283,9 @@ _CONFIG_DEFINITIONS = OrderedDict({
     'SAB_VERSION': (str, 'SABnzbd', None),
     'SAB_MOVING_DELAY': (int, 'SABnzbd', 5),
     'SAB_CLIENT_POST_PROCESSING': (bool, 'SABnzbd', False),   #0/False: ComicRN.py, #1/True: Completed Download Handling
+    'SAB_REMOVE_COMPLETED': (bool, 'SABnzbd', False),
+    'SAB_REMOVE_FAILED': (bool, 'SABnzbd', False),
+
 
     'NZBGET_HOST': (str, 'NZBGet', None),
     'NZBGET_PORT': (str, 'NZBGet', None),
