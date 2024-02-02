@@ -1561,6 +1561,7 @@ def havetotals(refreshit=None):
                            "ComicYear":       comic['ComicYear'],
                            "ComicImage":      comicImage,
                            "LatestIssue":     comic['LatestIssue'],
+                           "IntLatestIssue":  comic['IntLatestIssue'],
                            "LatestDate":      comic['LatestDate'],
                            "ComicVolume":     cversion,
                            "ComicPublished":  cpub,

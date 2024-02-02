@@ -358,6 +358,8 @@ class WebInterface(object):
             filtered.sort(key=lambda x: (x['percent'] is None, x['percent'] == '', x['percent']), reverse=sSortDir_0 == "desc")
             filtered.sort(key=lambda x: (x['haveissues'] is None, x['haveissues'] == '', x['haveissues']), reverse=sSortDir_0 == "desc")
             filtered.sort(key=lambda x: (x['percent'] is None, x['percent'] == '', x['percent']), reverse=sSortDir_0 == "desc")
+        elif sortcolumn == 'LatestIssue':
+            filtered.sort(key=lambda x: (x['IntLatestIssue'] is None, x['IntLatestIssue'] == '', x['IntLatestIssue']), reverse=sSortDir_0 == "asc")
         else:
             filtered.sort(key=lambda x: (x[sortcolumn] is None, x[sortcolumn] == '', x[sortcolumn]), reverse=sSortDir_0 == "desc")
         if iDisplayLength != -1:
@@ -3370,25 +3372,29 @@ class WebInterface(object):
         if mylar.CONFIG.FAILED_DOWNLOAD_HANDLING is True:
             statline += " OR Status='Failed'"
 
-        iss_query = "SELECT ComicName, Issue_Number, ReleaseDate, Status, ComicID, IssueID, DateAdded from issues WHERE %s" % statline
+        iss_query = "SELECT ComicName, Issue_Number, Int_IssueNumber, ReleaseDate, Status, ComicID, IssueID, DateAdded from issues WHERE %s" % statline
         issues = myDB.select(iss_query)
         arcs = {}
         if mylar.CONFIG.UPCOMING_STORYARCS is True:
-            arcs_query = "SELECT Storyarc, StoryArcID, IssueArcID, ComicName, IssueNumber, ReleaseDate, Status, ComicID, IssueID, DateAdded from storyarcs WHERE %s" % statline
+            arcs_query = "SELECT Storyarc, StoryArcID, IssueArcID, ComicName, IssueNumber, Int_IssueNumber, ReleaseDate, Status, ComicID, IssueID, DateAdded from storyarcs WHERE %s" % statline
             arclist = myDB.select(arcs_query)
             for arc in arclist:
+                arc_int_number = arc['Int_IssueNumber']
+                if arc_int_number is None:
+                    arc_int_number = 0
                 arcs[arc['IssueID']] = {'storyarc': arc['Storyarc'],
                                         'storyarcid': arc['StoryArcID'],
                                         'issuearcid': arc['IssueArcID'],
                                         'comicid': arc['ComicID'],
                                         'comicname': arc['ComicName'],
                                         'issuenumber': arc['IssueNumber'],
+                                        'int_issuenumber': arc_int_number,
                                         'releasedate': arc['ReleaseDate'],
                                         'status': arc['Status'],
                                         'dateadded': arc['DateAdded']}
 
         if mylar.CONFIG.ANNUALS_ON:
-            annuals_query = "SELECT ReleaseComicName as ComicName, Issue_Number as Issue_Number, ReleaseDate, Status, ComicID, IssueID, DateAdded FROM annuals WHERE NOT Deleted AND %s" % statline
+            annuals_query = "SELECT ReleaseComicName as ComicName, Issue_Number as Issue_Number, Int_IssueNumber, ReleaseDate, Status, ComicID, IssueID, DateAdded FROM annuals WHERE NOT Deleted AND %s" % statline
             annuals_list = myDB.select(annuals_query)
 
             issues += annuals_list
@@ -3462,10 +3468,10 @@ class WebInterface(object):
                     watcharc = None
 
                 try:
-                    filtered.append([row['ComicName'], row['Issue_Number'], row['ReleaseDate'], row['IssueID'], tier, row['ComicID'], row['Status'], storyarc, storyarcid, issuearcid, watcharc])
+                    filtered.append([row['ComicName'], row['Issue_Number'], row['ReleaseDate'], row['IssueID'], tier, row['ComicID'], row['Status'], storyarc, storyarcid, issuearcid, watcharc, row['Int_IssueNumber']])
                 except Exception as e:
                     #logger.warn('danger Wil Robinson: %s' % (e,))
-                    filtered.append([row['ComicName'], row['Issue_Number'], row['ReleaseDate'], row['IssueID'], tier, row['ComicID'], row['Status'], None, None, None, watcharc])
+                    filtered.append([row['ComicName'], row['Issue_Number'], row['ReleaseDate'], row['IssueID'], tier, row['ComicID'], row['Status'], None, None, None, watcharc, row['Int_IssueNumber']])
 
         if mylar.CONFIG.UPCOMING_STORYARCS is True:
             for key, ark in arcs.items():
@@ -3514,7 +3520,7 @@ class WebInterface(object):
                         matched = True
 
                 if matched is True:
-                    filtered.append([ark['comicname'], ark['issuenumber'], ark['releasedate'], key, tier, ark['comicid'], ark['status'], ark['storyarc'], ark['storyarcid'], ark['issuearcid'], "oneoff"])
+                    filtered.append([ark['comicname'], ark['issuenumber'], ark['releasedate'], key, tier, ark['comicid'], ark['status'], ark['storyarc'], ark['storyarcid'], ark['issuearcid'], "oneoff", ark['int_issuenumber']])
 
         #logger.fdebug('[%s] one-off arcs: %s' % (len(arcs), arcs,))
 
@@ -3523,7 +3529,7 @@ class WebInterface(object):
         if iSortCol_0 == '1':
             sortcolumn = 0 #'comicame'
         elif iSortCol_0 == '2':
-            sortcolumn = 1 #'issuenumber'
+            sortcolumn = 11 #'issuenumber'
         elif iSortCol_0 == '3':
             sortcolumn = 2 #'releasedate'
         elif iSortCol_0 == '4':
@@ -3540,8 +3546,6 @@ class WebInterface(object):
             final_filtered = sorted(filtered, key=itemgetter(sortcolumn), reverse=reverse_order)
         except Exception as e:
             final_filtered = sorted(filtered, key=itemgetter(0), reverse=reverse_order)
-
-        #filtered = sorted(issues_tmp, key=lambda x: x if isinstance(x[0], str) else "", reverse=True)
 
         if iDisplayLength == -1:
             rows = final_filtered
