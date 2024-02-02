@@ -22,6 +22,7 @@
                                 <th id="status">Status</th>
                                 <th id="active">Active</th>
                                 <th class="hidden" id="activestatus">ActiveSt</th>
+                                <th class="hidden" id="int_issue">int</th>
 			</tr>
 		</thead>
 		<tbody>
@@ -109,6 +110,7 @@
                                 %endif
                                 </td>
                                 <td class="hidden" id="activestatus">${comic['Status']}</td>
+                                <td class="hidden" id="int_iss">${comic['IntLatestIssue']}</td>
                          </tr>
 		%endfor
 		</tbody>
@@ -135,12 +137,14 @@
                         "destroy": true,
                         "sDom": '<"clear"Af><"clear"lp><"clear">rt<"clear"ip>',
                         "columnDefs": [
-                             { "orderable": false, "targets": [5, 7, 10] },
-                             { "visible": false, "targets": [5, 7, 10] },
+                             { "orderable": false, "targets": [5, 7, 10, 11] },
+                             { "visible": false, "targets": [5, 7, 10, 11] },
                              { "type": 'num', "targets": 5 },
                              { "type": 'num', "targets": 7 },
+                             { "type": 'num', "targets": 11 },
                              { "orderData": [ 5, 7 ], "targets": 6 },
                              { "orderData": 10, "targets": 9 },
+                             { "orderData": 11, "targets": 3 },
                              { "order": [[7, 'asc'],[1, 'asc']] }
                         ],
                         "lengthMenu": [[10, 15, 25, 50, 100, 200, -1], [10, 15, 25, 50, 100, 200, 'All' ]],
@@ -163,12 +167,14 @@
                          "destroy": true,
                          "sDom": '<"clear"f><"clear"lp><"clear">rt<"clear"ip>',
                          "columnDefs": [
-                              { "orderable": false, "targets": [5, 7, 10] },
-                              { "visible": false, "targets": [5, 7, 10] },
+                              { "orderable": false, "targets": [5, 7, 10, 11] },
+                              { "visible": false, "targets": [5, 7, 10, 11] },
                               { "type": 'num', "targets": 5 },
                               { "type": 'num', "targets": 7 },
+                              { "type": 'num', "targets": 11 },
                               { "orderData": [ 5, 7 ], "targets": 6 },
                               { "orderData": 10, "targets": 9 },
+                              { "orderData": 11, "targets": 3 },
                               { "order": [[7, 'asc'],[1, 'asc']] }
                          ],
                          "lengthMenu": [[10, 15, 25, 50, 100, 200, -1], [10, 15, 25, 50, 100, 200, 'All' ]],
