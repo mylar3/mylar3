@@ -1429,12 +1429,6 @@ class Config(object):
             elif self.SAB_PRIORITY == "4": self.SAB_PRIORITY = "Paused"
             else: self.SAB_PRIORITY = "Default"
 
-        if self.SAB_VERSION is not None:
-            config.set('SABnzbd', 'sab_version', self.SAB_VERSION)
-            if int(re.sub("[^0-9]", '', self.SAB_VERSION).strip()) < int(re.sub("[^0-9]", '', '0.8.0').strip()) and self.SAB_CLIENT_POST_PROCESSING is True:
-                logger.warn('Your SABnzbd client is less than 0.8.0, and does not support Completed Download Handling which is enabled. Disabling CDH.')
-                self.SAB_CLIENT_POST_PROCESSING = False
-
         mylar.USE_WATCHDIR = False
         mylar.USE_UTORRENT = False
         mylar.USE_RTORRENT = False
