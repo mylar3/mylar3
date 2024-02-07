@@ -860,10 +860,11 @@ class GC(object):
                                series = link['series']
                            link_matched = True
 
-            dl_selection = link['site']
         else:
             logger.info('No valid items available that I am able to download from. Not downloading...')
             return {'success': False, 'links_exhausted': link_type_failure}
+
+        dl_selection = link['site']
 
         logger.fdebug(
             '[%s] Now downloading: %s [%s] / %s ... this can take a while'
