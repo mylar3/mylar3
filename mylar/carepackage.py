@@ -52,6 +52,7 @@ class carePackage(object):
                             ('PUSHBULLET', 'pushbullet_apikey'),
                             ('NMA', 'nma_apikey'),
                             ('TELEGRAM', 'telegram_token'),
+                            ('GOTIFY', 'gotify_token'),
                             ('CV', 'comicvine_api'),
                             ('Seedbox', 'seedbox_user'),
                             ('Seedbox', 'seedbox_pass'),
@@ -63,7 +64,9 @@ class carePackage(object):
                             ('AutoSnatch', 'pp_sshport'),
                             ('Email', 'email_password'),
                             ('Email', 'email_user'),
-                            ('DISCORD', 'discord_webhook_url')
+                            ('DISCORD', 'discord_webhook_url'),
+                            ('DDL', 'external_username'),
+                            ('DDL', 'external_apikey'),
                             }
         self.hostname_list = {
                             ('SABnzbd', 'sab_host'),
@@ -78,7 +81,12 @@ class carePackage(object):
                             ('AutoSnatch', 'pp_sshhost'),
                             ('Tablet', 'tab_host'),
                             ('Seedbox', 'seedbox_host'),
-                            ('Email', 'email_server')
+                            ('GOTIFY', 'gotify_server_url'),
+                            ('Email', 'email_server'),
+                            ('DDL', 'external_server'),
+                            ('DDL', 'flaresolverr_url'),
+                            ('DDL', 'http_proxy'),
+                            ('DDL', 'https_proxy'),
                              }
 
     def loaders(self):
