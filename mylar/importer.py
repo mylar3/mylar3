@@ -113,6 +113,11 @@ def addComictoDB(comicid, mismatch=None, pullupd=None, imported=None, ogcname=No
                     logger.warn('Error trying to validate/create directory. Aborting this process at this time.')
                     return {'status': 'incomplete'}
             oldcomversion = dbcomic['ComicVersion'] #store the comicversion and chk if it exists before hammering.
+            db_check_values = {'comicname': dbcomic['ComicName'],
+                               'comicyear': dbcomic['ComicYear'],
+                               'publisher': dbcomic['ComicPublisher'],
+                               'detailurl': dbcomic['DetailURL'],
+                               'total_count': dbcomic['Total']}
 
     if dbcomic is None or bypass is False:
         newValueDict = {"ComicName":   "Comic ID: %s" % (comicid),
@@ -131,6 +136,7 @@ def addComictoDB(comicid, mismatch=None, pullupd=None, imported=None, ogcname=No
         aliases = None
         FirstImageSize = 0
         old_description = None
+        db_check_values = None
 
     myDB.upsert("comics", newValueDict, controlValueDict)
 
@@ -158,6 +164,17 @@ def addComictoDB(comicid, mismatch=None, pullupd=None, imported=None, ogcname=No
         sortname = comic['ComicName'][4:]
     else:
         sortname = comic['ComicName']
+
+    if db_check_values is not None:
+        if comic['ComicURL'] != db_check_values['detailurl']:
+            logger.warn('[CORRUPT-COMICID-DETECTION-ENABLED] ComicID may have been removed from CV'
+                        ' and replaced with an entirely different series/volume. Checking some values'
+                        ' to make sure before proceeding...'
+            )
+            i_choose_violence = cv.check_that_biatch(comicid, db_check_values, comic)
+            if i_choose_violence:
+                myDB.upsert("comics", {'Status': 'Paused', 'cv_removed': 1}, {'ComicID': comicid})
+                return {'status': 'incomplete'}
 
     comic['Corrected_Type'] = fixed_type
     if fixed_type is not None and fixed_type != comic['Type']:

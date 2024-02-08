@@ -47,14 +47,16 @@
 
                                 comic_percent = comic['percent']
 
-				if comic['Status'] == 'Paused':
+                                if comic['cv_removed'] == 1:
+                                        grade = 'U'
+				elif comic['Status'] == 'Paused':
 					grade = 'T'
 				elif comic['Status'] == 'Loading':
 			        	grade = 'L'
                                 elif comic['Status'] == 'Error':
                                         grade = 'X'
                                 else:
-                                        grade = 'A'
+                                        grade = 'Z'
 
                                 comicpub = comic['ComicPublisher']
                                 try:
@@ -64,12 +66,14 @@
                                     pass
 
                                 comicname = comic['ComicSortName']
-                                try:
-                                    if len(comic['ComicSortName']) > 55:
-                                        comicname = comic['ComicSortName'][:55] + '...'
-                                except:
-                                    pass
-
+                                if comicname is not None:
+                                    try:
+                                        if len(comic['ComicSortName']) > 55:
+                                            comicname = comic['ComicSortName'][:55] + '...'
+                                    except:
+                                        pass
+                                else:
+                                    comicname = comic['ComicName']
                                 comicline = comicname
 
                                 comictype = comic['Type']
@@ -116,6 +120,17 @@
 		</tbody>
 	</table>
       </div>
+      <div>
+            <table style="float: right; border-spacing:3px;border-collapse:separate;">
+              <tr>
+                <td id="legend_removed" style="float:left;margin-left:2px;vertical-align:middle;"><span style="border:1px solid#ccc;float:left;width:30px;height:12px;margin:4px;background:${legend_colors['removed']};" title="Series has been removed from CV"></span> CV removed</td>
+                <td id="legend_paused" style="float:left;margin-left:2px;vertical-align:middle;"><span style="border:1px solid#ccc;float:left;width:30px;height:12px;margin:4px;background:${legend_colors['paused']};" title="Series is Paused"></span> Paused series</td>
+                <td id="legend_failed" style="float:left;margin-left:2px;vertical-align:middle;"><span style="border:1px solid#ccc;float:left;width:30px;height:12px;margin:4px;background:${legend_colors['failed']};" title="Series was unable to complete adding/refreshing"></span> Failed/Error</td>
+                <td id="legend_loading" style="float:left;margin-left:2px;vertical-align:middle;"><span style="border:1px solid#ccc;float:left;width:30px;height:12px;margin:4px;background:${legend_colors['loading']};" title="Loading information state"></span> Loading</td>
+              </tr>
+            </table>
+     </div>
+
 </%def>
 
 <%def name="headIncludes()">

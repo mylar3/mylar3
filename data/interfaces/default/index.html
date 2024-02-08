@@ -7,7 +7,7 @@
 
 <%def name="body()">
         <input type="hidden" id="page_name" value="index" />
-        <div class="table_wrapper">
+        <div class="table_wrapper" id="series_table_wrapper">
 	<table class="display" id="series_table">
 	    <thead>
 	        <tr>
@@ -25,6 +25,16 @@
             </tbody>
 	</table>
       </div>
+      <div>
+            <table style="float: right; border-spacing:3px;border-collapse:separate;">
+              <tr>
+                <td id="legend_removed" style="float:left;margin-left:2px;vertical-align:middle;"><span style="border:1px solid#ccc;float:left;width:30px;height:12px;margin:4px;background:${legend_colors['removed']};" title="Series has been removed from CV"></span> CV removed</td>
+                <td id="legend_paused" style="float:left;margin-left:2px;vertical-align:middle;"><span style="border:1px solid#ccc;float:left;width:30px;height:12px;margin:4px;background:${legend_colors['paused']};" title="Series is Paused"></span> Paused series</td>
+                <td id="legend_failed" style="float:left;margin-left:2px;vertical-align:middle;"><span style="border:1px solid#ccc;float:left;width:30px;height:12px;margin:4px;background:${legend_colors['failed']};" title="Series was unable to complete adding/refreshing"></span> Failed/Error</td>
+                <td id="legend_loading" style="float:left;margin-left:2px;vertical-align:middle;"><span style="border:1px solid#ccc;float:left;width:30px;height:12px;margin:4px;background:${legend_colors['loading']};" title="Loading information state"></span> Loading</td>
+              </tr>
+            </table>
+     </div>
 </%def>
 
 <%def name="headIncludes()">
@@ -37,7 +47,6 @@
 	<script>
         $.fn.DataTable.ext.pager.numbers_length = 3;
         function initThisPage() {
-            initActions();
             $('#series_table').dataTable( {
                 "preDrawCallback": function (settings){
                     pageScrollPos = $('#series_table div.datatables_scrollBody').scrollTop();
@@ -182,14 +191,18 @@
                      "infoFiltered":"(filtered from _MAX_ total items)"
                 },
                 "rowCallback": function (nRow, aData, iDisplayIndex, iDisplayIndexFull) {
-                     if (aData[6] === "Paused") {
-                        $('td', nRow).closest('tr').addClass("gradeT");
-                     } else if (aData[6] === "Loading") {
-                        $('td', nRow).closest('tr').addClass("gradeL");
-                     } else if (aData[6] === "Error" || aData[6] == "Failed") {
-                        $('td', nRow).closest('tr').addClass("gradeX");
+                     if (aData[13] === 1){
+                        $('td', nRow).closest('tr').addClass("gradeU");
                      } else {
-                        $('td', nRow).closest('tr').addClass("gradeA");
+                        if (aData[6] === "Paused") {
+                           $('td', nRow).closest('tr').addClass("gradeT");
+                        } else if (aData[6] === "Loading") {
+                           $('td', nRow).closest('tr').addClass("gradeL");
+                        } else if (aData[6] === "Error" || aData[6] == "Failed") {
+                           $('td', nRow).closest('tr').addClass("gradeX");
+                       } else {
+                           $('td', nRow).closest('tr').addClass("gradeZ");
+                        }
                      }
                      nRow.children[0].id = 'publisher';
                      nRow.children[1].id = 'name';
@@ -201,7 +214,7 @@
                      nRow.children[7].id = 'active';
                      return nRow;
                  },
-                 "drawCallback": function (o) {
+                 "drawCallback": function (settings) {
                      // Jump to top of page
                      $('#series_table div.dataTables_scrollBody').scrollTop(pageScrollPos);
                  },
@@ -215,9 +228,11 @@
                  {
                  },
             });
+
         };
         $(document).ready(function(){
             initThisPage();
+            initActions();
         });
 	</script>
 	

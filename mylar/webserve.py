@@ -274,11 +274,23 @@ class WebInterface(object):
     def home(self, **kwargs):
         if mylar.START_UP is True:
             self.config_check()
+        # pass the proper table colors here
+        if mylar.CONFIG.INTERFACE == 'default':
+            legend_colors = {'paused': '#f9cbe6',
+                             'removed': '#ddd',
+                             'loading': '#ebf5ff',
+                             'failed': '#ffdddd'}
+        else:
+            legend_colors = {'paused': '#bd915a',
+                             'removed': '#382f64',
+                             'loading': '#1c5188',
+                             'failed': '#641716'}
+
         if mylar.CONFIG.ALPHAINDEX == True:
             comics = helpers.havetotals()
-            return serve_template(templatename="index-alphaindex.html", title="Home", comics=comics, alphaindex=mylar.CONFIG.ALPHAINDEX)
+            return serve_template(templatename="index-alphaindex.html", title="Home", comics=comics, alphaindex=mylar.CONFIG.ALPHAINDEX, legend_colors=legend_colors)
         else:
-            return serve_template(templatename="index.html", title="Home")
+            return serve_template(templatename="index.html", title="Home", legend_colors=legend_colors)
     home.exposed = True
 
     def loadhome(self, iDisplayStart=0, iDisplayLength=100, iSortCol_0=5, sSortDir_0="desc", sSearch="", **kwargs):
@@ -366,7 +378,7 @@ class WebInterface(object):
             rows = filtered[iDisplayStart:(iDisplayStart + iDisplayLength)]
         else:
             rows = filtered
-        rows = [[row['ComicPublisher'], row['ComicName'], row['ComicYear'], row['LatestIssue'], row['LatestDate'], row['recentstatus'], row['Status'], row['percent'], row['haveissues'], row['totalissues'], row['ComicID'], row['displaytype'], row['ComicVolume']] for row in rows]
+        rows = [[row['ComicPublisher'], row['ComicName'], row['ComicYear'], row['LatestIssue'], row['LatestDate'], row['recentstatus'], row['Status'], row['percent'], row['haveissues'], row['totalissues'], row['ComicID'], row['displaytype'], row['ComicVolume'], row['cv_removed']] for row in rows]
         return json.dumps({
             'iTotalDisplayRecords': len(filtered),
             'iTotalRecords': len(resultlist),
@@ -9315,3 +9327,72 @@ class WebInterface(object):
 
         return json.dumps(mylar.REQS)
     return_checks.exposed = True
+
+    def fix_cv_removed(self, comicid, opts, delete_dir=False):
+        if delete_dir == 1:
+            delete_dir = True
+        else:
+            delete_dir = False
+        myDB = db.DBConnection()
+        cc = myDB.selectone('SELECT comicname, comicyear, comiclocation from comics where ComicID=?', [comicid]).fetchone()
+        comicname = cc['comicname']
+        comicyear = cc['comicyear']
+        seriesdir = cc['comiclocation']
+
+        if opts == 'delete':
+            if not cc:
+                logger.warn('[CV-REMOVAL-DETECTION] Unable to locate comicid in db - this series does not exist currently..')
+                return json.dumps({'status': 'failure', 'message': 'Series has already been removed from the watchlist'})
+
+            myDB.action("DELETE FROM comics WHERE ComicID=?", [comicid])
+            myDB.action("DELETE FROM issues WHERE ComicID=?", [comicid])
+            if mylar.CONFIG.ANNUALS_ON:
+                myDB.action("DELETE FROM annuals WHERE ComicID=?", [comicid])
+            myDB.action('DELETE from upcoming WHERE ComicID=?', [comicid])
+            myDB.action('DELETE from readlist WHERE ComicID=?', [comicid])
+            myDB.action('UPDATE weekly SET Status="Skipped" WHERE ComicID=? AND Status="Wanted"', [comicid])
+            warnings = 0
+            if delete_dir:
+                logger.fdebug('Remove directory on series removal enabled.')
+                if seriesdir is not None:
+                    if os.path.exists(seriesdir):
+                        logger.fdebug('Attempting to remove the directory and contents of : %s' % seriesdir)
+                        try:
+                            shutil.rmtree(seriesdir)
+                        except:
+                            logger.warn('Unable to remove directory after removing series from Mylar.')
+                            warnings += 1
+                        else:
+                            logger.info('Successfully removed directory: %s' % (seriesdir))
+                    else:
+                        logger.warn('Unable to remove directory as it does not exist in : %s' % seriesdir)
+                        warnings += 1
+                else:
+                    logger.warn('Unable to remove directory as it does not exist.')
+                    warnings += 1
+
+            helpers.ComicSort(sequence='update')
+
+            c_image = os.path.join(mylar.CONFIG.CACHE_DIR, comicid + '.jpg')
+            if os.path.exists(c_image):
+                try:
+                    os.remove(c_image)
+                except Exception as e:
+                    warnings += 1
+                    logger.warn('[CV-REMOVAL-DETECTION] Unable to remove the image file from the cache (%s).'
+                                ' You may have to delete the file manually' % c_image)
+            else:
+                logger.fdebug('image file already removed from cache for %s (%s) - [%s]' % (comicname, comicyear, comicid))
+
+            linemsg = 'Successfully removed %s (%s) from the watchlist' % (comicname, comicyear)
+            if warnings > 0:
+                linemsg += '[%s warnings]' % warnings
+
+            return json.dumps({'status': 'success', 'message': linemsg})
+
+        else:
+            myDB.upsert("comics", {'Status': 'Paused', 'cv_removed': 2}, {'ComicID': comicid})
+            logger.info('[CV-REMOVAL-DETECTION] Successfully retained %s (%s) and is now in a Paused status' % (comicname, comicyear))
+            linemsg = 'Successfully Paused %s (%s) due to CV removal' % (comicname, comicyear)
+            return json.dumps({'status': 'success', 'message': linemsg})
+    fix_cv_removed.exposed = True

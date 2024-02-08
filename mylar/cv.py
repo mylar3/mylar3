@@ -15,7 +15,7 @@
 import re
 import time
 import pytz
-from mylar import logger, helpers
+from mylar import db, logger, helpers
 import mylar
 from bs4 import BeautifulSoup as Soup
 from xml.parsers.expat import ExpatError
@@ -1479,3 +1479,28 @@ def basenum_mapping(ordinal=False):
                     'xi': '9'}
 
     return basenums
+
+def check_that_biatch(comicid, oldinfo, newinfo):
+    failures = 0
+    if newinfo['ComicName'] is not None:
+        if newinfo['ComicName'].lower() != oldinfo['comicname'].lower():
+            failures +=1
+    if newinfo['ComicYear'] is not None:
+        if newinfo['ComicYear'] != oldinfo['comicyear']:
+            failures +=1
+    if newinfo['ComicPublisher'] is not None:
+        if newinfo['ComicPublisher'] != oldinfo['publisher']:
+            failures +=1
+    if newinfo['ComicURL'] is not None:
+        if newinfo['ComicURL'] != oldinfo['detailurl']:
+            failures +=1
+
+    if failures > 2:
+        # if > 50% failure (> 2/4 mismatches) assume removed...
+        logger.warn('[%s] Detected CV removing existing data for series [%s (%s)] and replacing it with [%s (%s)].'
+                    'This is a failure for this series and will be paused until fixed manually' %
+                    (failures, oldinfo['comicname'], oldinfo['comicyear'], newinfo['ComicName'], newinfo['ComicYear'])
+        )
+        return True
+
+    return False
