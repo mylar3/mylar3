@@ -1376,7 +1376,6 @@ div#artistheader h2 a {
   vertical-align: middle;
 }
 #series_table {
-  background-color: #FFF;
   padding: 20px;
   width: 960px !important;
 }
@@ -1430,19 +1429,16 @@ div#artistheader h2 a {
   text-align: center;
   vertical-align: middle;
   font-size: 12px;
-  background-color: #353a41;
 }
 #series_table td#name {
   min-width: 290px;
   text-align: center;
   vertical-align: middle;
-  background-color: #353a41;
 }
 #series_table td#year {
   max-width: 25px;
   text-align: center;
   vertical-align: middle;
-  background-color: #353a41;
 }
 #series_table td#havepercent,
 #series_table td#totalcount {
@@ -1461,31 +1457,26 @@ div#artistheader h2 a {
   max-width: 35px;
   text-align: center;
   vertical-align: middle;
-  background-color: #353a41;
 }
 #series_table td#issue {
   max-width: 30px;
   text-align: center;
   vertical-align: middle;
-  background-color: #353a41;
 }
 #series_table td#status {
   max-width: 50px;
   text-align: center;
   vertical-align: middle;
-  background-color: #353a41;
 }
 #series_table td#published {
   max-width: 55px;
   text-align: center;
   vertical-align: middle;
-  background-color: #353a41;
 }
 #series_table td#have {
   max-width: 80px;
   text-align: center;
   vertical-align: middle;
-  background-color: #353a41;
 }
 #manageheader {
   margin-top: 45px;
@@ -2600,4 +2591,12 @@ img.mylarload.lastbad {
 }
 .py_vers {
   color: #EE3232;
+}
+.cv_row {
+  display: flex;
+  text-align: center;
+}
+.cv_column {
+  flex: 50%;
+  text-align: center;
 }

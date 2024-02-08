@@ -1528,7 +1528,8 @@ def havetotals(refreshit=None):
                 try:
                     cpub = re.sub('(N)', '', comic['ComicPublished']).strip()
                 except Exception as e:
-                    logger.warn('[Error: %s] No Publisher found for %s - you probably want to Refresh the series when you get a chance.' % (e, comic['ComicName']))
+                    if comic['cv_removed'] == 0:
+                        logger.warn('[Error: %s] No Publisher found for %s - you probably want to Refresh the series when you get a chance.' % (e, comic['ComicName']))
                     cpub = None
 
             comictype = comic['Type']
@@ -1553,6 +1554,9 @@ def havetotals(refreshit=None):
             else:
                 comicImage = comic['ComicImage']
 
+            #cv_removed: 0 = series is present on CV
+            #            1 = series has been removed from CV
+            #            2 = series has been removed from CV but retaining what mylar has in it's db
 
             comics.append({"ComicID":         comic['ComicID'],
                            "ComicName":       comic['ComicName'],
@@ -1574,7 +1578,8 @@ def havetotals(refreshit=None):
                            "DateAdded":       comic['LastUpdated'],
                            "Type":            comic['Type'],
                            "Corrected_Type":  comic['Corrected_Type'],
-                           "displaytype":     comictype})
+                           "displaytype":     comictype,
+                           "cv_removed":      comic['cv_removed']})
         return comics
 
 def filesafe(comic):

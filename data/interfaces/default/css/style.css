@@ -1337,7 +1337,6 @@ div#artistheader h2 a {
   vertical-align: middle;
 }
 #series_table {
-  background-color: #FFF;
   padding: 20px;
   width: 960px !important;
 }
@@ -2480,4 +2479,12 @@ img.mylarload.lastbad {
 }
 .py_vers {
   color: #EE3232;
+}
+.cv_row {
+  display: flex;
+  text-align: center;
+}
+.cv_column {
+  flex: 50%;
+  text-align: center;
 }
