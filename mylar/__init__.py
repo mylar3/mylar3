@@ -179,6 +179,8 @@ ISSUE_EXCEPTIONS = [
     'ALPHA',
     'OMEGA',
     'BLACK',
+    'DARK',
+    'LIGHT',
     'AU',
     'AI',
     'INH',

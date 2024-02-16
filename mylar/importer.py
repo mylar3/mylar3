@@ -1384,9 +1384,22 @@ def updateissuedata(comicid, comicname=None, issued=None, comicIssues=None, call
                         #int_issnum = str(issnum)
                         int_issnum = (int(issb4dec) * 1000) + (int(issaftdec) * 10)
                     except ValueError:
-                        logger.error('This has no issue # for me to get - Either a Graphic Novel or one-shot.')
-                        updater.no_searchresults(comicid)
-                        return {'status': 'failure'}
+                        try:
+                            ordtot = 0
+                            if any(ext == issaftdec.upper() for ext in mylar.ISSUE_EXCEPTIONS):
+                                logger.fdebug('issue_exception detected..')
+                                inu = 0
+                                while (inu < len(issaftdec)):
+                                    ordtot += ord(issaftdec[inu].lower())  #lower-case the letters for simplicty
+                                    inu+=1
+                                int_issnum = (int(issb4dec) * 1000) + ordtot
+                        except Exception as e:
+                                logger.warn('error: %s' % e)
+                                ordtot = 0
+                        if ordtot == 0:
+                            logger.error('This has no issue # for me to get - Either a Graphic Novel or one-shot.')
+                            updater.no_searchresults(comicid)
+                            return {'status': 'failure'}
                 elif all([ '[' in issnum, ']' in issnum ]):
                     issnum_tmp = issnum.find('[')
                     int_issnum = int(issnum[:issnum_tmp].strip()) * 1000
