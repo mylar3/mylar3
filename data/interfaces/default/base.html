@@ -354,7 +354,7 @@
                     if (data.status == 'success'){
                         $('#ajaxMsg').addClass('success').fadeIn().delay(3000).fadeOut();
                         console.log('data.comicid:'+data.comicid)
-                        if ( (data.tables == 'both' || data.tables == 'tables') && ( document.body.innerHTML.search(data.comicid) || tt.value == 'history' || tt.value == 'search_results') ){
+                        if ( ( tt.value != "config" ) && (data.tables == 'both' || data.tables == 'tables') && ( document.body.innerHTML.search(data.comicid) || tt.value == "history" || tt.value == "search_results") ){
                             console.log('reloading table1...');
                             reload_table();
                         }
@@ -362,7 +362,7 @@
                             console.log('reloading table2...');
                             reload_table();
                         }
-                        if (data.tables == 'both' || data.tables == 'tabs'){
+                        if ( (data.tables == 'both' || data.tables == 'tabs') && ( tt.value != "config") ) {
                             reload_tabs();
                         }
                         if( data.comicid == cid && document.getElementById("page_name").value == 'series_detail'){
@@ -424,7 +424,7 @@
             var tables = $('table.display').DataTable();
             var tt = document.getElementById("page_name");
             if(typeof(tt) != 'undefined' && tt != null){
-                if (tt.value != "weekly" && tt.value != "import_results" && tt.value != "manage_comics" && tt.value != "manage_issues" && tt.value != "manage_failed" && tt.value != "reading_list" && tt.value != "storyarcs_index" && tt.value != "storyarc_detail") {
+                if (tt.value != "weekly" && tt.value != "import_results" && tt.value != "manage_comics" && tt.value != "manage_issues" && tt.value != "manage_failed" && tt.value != "reading_list" && tt.value != "storyarcs_index" && tt.value != "storyarc_detail" && tt.value != "config") {
                     // this is required so it doesn't error if on the weekly page
                     // once weekly & other pages are converted to dynamic loading, this if can be removed
                     tables.ajax.reload(null,false);

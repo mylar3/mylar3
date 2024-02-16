@@ -786,15 +786,18 @@ class FileChecker(object):
                             lastissue_label = sf
                             lastissue_mod_position = file_length
                         elif x > 0:
-                            logger.fdebug('I have encountered a decimal issue #: %s' % sf)
-                            possible_issuenumbers.append({'number':       sf,
-                                                          'position':     split_file.index(sf, lastissue_position), #modfilename.find(sf)})
-                                                          'mod_position': self.char_file_position(modfilename, sf, lastmod_position),
-                                                          'validcountchk': validcountchk})
+                            if x == float('inf') and split_file.index(sf, lastissue_position) <= 2:
+                                logger.fdebug('infinity wording detected - position places it within series title boundaries..')
+                            else:
+                                logger.fdebug('I have encountered a decimal issue #: %s' % sf)
+                                possible_issuenumbers.append({'number':       sf,
+                                                              'position':     split_file.index(sf, lastissue_position), #modfilename.find(sf)})
+                                                              'mod_position': self.char_file_position(modfilename, sf, lastmod_position),
+                                                              'validcountchk': validcountchk})
 
-                            lastissue_position = split_file.index(sf, lastissue_position)
-                            lastissue_label = sf
-                            lastissue_mod_position = file_length
+                                lastissue_position = split_file.index(sf, lastissue_position)
+                                lastissue_label = sf
+                                lastissue_mod_position = file_length
                         else:
                             raise ValueError
                     except ValueError as e:
@@ -1501,7 +1504,7 @@ class FileChecker(object):
             if qmatch_chk is None:
                 qmatch_chk = 'match'
         if qmatch_chk is not None:
-            #logger.fdebug('[MATCH: ' + series_info['series_name'] + '] ' + filename)
+            #logger.fdebug('[%s][MATCH: %s][seriesALT: %s] %s' % (qmatch_chk, seriesalt, series_info['series_name'], filename))
             enable_annual = False
             annual_comicid = None
             if any(re.sub('[\|\s]','', x.lower()).strip() == re.sub('[\|\s]','', nspace_seriesname.lower()).strip() for x in self.AS_Alt):

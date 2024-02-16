@@ -1116,8 +1116,20 @@ def issuedigits(issnum):
                 try:
                     int_issnum = (int(issb4dec) * 1000) + (int(issaftdec) * 10)
                 except ValueError:
-                    #logger.fdebug('This has no issue # for me to get - Either a Graphic Novel or one-shot.')
-                    int_issnum = 999999999999999
+                    try:
+                        ordtot = 0
+                        if any(ext == issaftdec.upper() for ext in mylar.ISSUE_EXCEPTIONS):
+                            inu = 0
+                            while (inu < len(issaftdec)):
+                                ordtot += ord(issaftdec[inu].lower())  #lower-case the letters for simplicty
+                                inu+=1
+                            int_issnum = (int(issb4dec) * 1000) + ordtot
+                    except Exception as e:
+                            logger.warn('error: %s' % e)
+                            ordtot = 0
+                    if ordtot == 0:
+                        #logger.error('This has no issue # for me to get - Either a Graphic Novel or one-shot.')
+                        int_issnum = 999999999999999
             elif all([ '[' in issnum, ']' in issnum ]):
                 issnum_tmp = issnum.find('[')
                 int_issnum = int(issnum[:issnum_tmp].strip()) * 1000

@@ -431,6 +431,7 @@ class WebInterface(object):
                      'ComicLocation': None,
                      'AlternateSearch': None,
                      'AlternateFileName': None,
+                     'cv_removed': 0,
                      'DetailURL': 'https://comicvine.com/volume/4050-%s' % ComicID}
         else:
             secondary_folders = None

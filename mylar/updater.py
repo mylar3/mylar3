@@ -1787,7 +1787,7 @@ def forceRescan(ComicID, archive=None, module=None, recheck=False):
 
                 if pause_status:
                     issStatus = old_status
-                    logger.fdefbug('[PAUSE_ANNUAL_CHECK_STATUS_CHECK] series is paused, keeping status of %s for issue #%s' % (issStatus, chk['Issue_Number']))
+                    logger.fdebug('[PAUSE_ANNUAL_CHECK_STATUS_CHECK] series is paused, keeping status of %s for issue #%s' % (issStatus, chk['Issue_Number']))
                 else:
                     #if old_status == "Skipped":
                     #    if mylar.CONFIG.AUTOWANT_ALL:
