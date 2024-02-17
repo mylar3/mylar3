@@ -48,18 +48,21 @@ if platform.python_version() == '2.7.6':
 
 def pullsearch(comicapi, comicquery, offset, search_type):
 
-    cnt = 1
-    for x in comicquery:
-       if cnt == 1:
-           filterline = '%s' % x
-       else:
-           filterline+= ',name:%s' % x
-       cnt+=1
-
-    PULLURL = mylar.CVURL + str(search_type) + 's?api_key=' + str(comicapi) + '&filter=name:' + filterline + '&field_list=id,name,start_year,site_detail_url,count_of_issues,image,publisher,deck,description,first_issue,last_issue&format=xml&sort=date_last_updated:desc&offset=' + str(offset) # 2012/22/02 - CVAPI flipped back to offset instead of page
+    pull_url = mylar.CVURL
+    if search_type is 'volume':
+        pull_url = pull_url + 'search?api_key=' + str(comicapi) + '&query=name:' + comicquery + '&resources=' + str(search_type) + '&field_list=id,name,start_year,site_detail_url,count_of_issues,image,publisher,deck,description,first_issue,last_issue&format=xml&sort=date_last_updated:desc&offset=' + str(offset) # 2012/22/02 - CVAPI flipped back to offset instead of page
+    else:
+        cnt = 1
+        for x in comicquery:
+            if cnt == 1:
+                filterline = '%s' % x
+            else:
+                filterline+= ',name:%s' % x
+            cnt+=1
+        pull_url = pull_url + str(search_type) + 's?api_key=' + str(comicapi) + '&filter=name:' + filterline + '&field_list=id,name,start_year,site_detail_url,count_of_issues,image,publisher,deck,description,first_issue,last_issue&format=xml&sort=date_last_updated:desc&offset=' + str(offset) # 2012/22/02 - CVAPI flipped back to offset instead of page
 
     #all these imports are standard on most modern python implementations
-    #logger.info('MB.PULLURL:' + PULLURL)
+    #logger.info('MB.pull_url:' + pull_url)
 
     #new CV API restriction - one api request / second.
     if mylar.CONFIG.CVAPI_RATE is None or mylar.CONFIG.CVAPI_RATE < 2:
@@ -71,7 +74,7 @@ def pullsearch(comicapi, comicquery, offset, search_type):
     payload = None
 
     try:
-        r = requests.get(PULLURL, params=payload, verify=mylar.CONFIG.CV_VERIFY, headers=mylar.CV_HEADERS)
+        r = requests.get(pull_url, params=payload, verify=mylar.CONFIG.CV_VERIFY, headers=mylar.CV_HEADERS)
     except Exception as e:
         logger.warn('Error fetching data from ComicVine: %s' % e)
         return
@@ -99,33 +102,36 @@ def findComic(name, mode, issue, limityear=None, search_type=None, annual_check=
     comiclist = []
     arcinfolist = []
 
-    commons = ['and', 'the', '&', '-']
-    for x in commons:
-        cnt = 0
-        for m in re.finditer(x, name.lower()):
-            cnt +=1
-            tehstart = m.start()
-            tehend = m.end()
-            if any([x == 'the', x == 'and']):
-                if len(name) == tehend:
-                    tehend =-1
-                if not all([tehstart == 0, name[tehend] == ' ']) or not all([tehstart != 0, name[tehstart-1] == ' ', name[tehend] == ' ']):
-                    continue
-            else:
-                name = name.replace(x, ' ', cnt)
+    if search_type is not None:
+        commons = ['and', 'the', '&', '-']
+        for x in commons:
+            cnt = 0
+            for m in re.finditer(x, name.lower()):
+                cnt +=1
+                tehstart = m.start()
+                tehend = m.end()
+                if any([x == 'the', x == 'and']):
+                    if len(name) == tehend:
+                        tehend =-1
+                    if not all([tehstart == 0, name[tehend] == ' ']) or not all([tehstart != 0, name[tehstart-1] == ' ', name[tehend] == ' ']):
+                        continue
+                else:
+                    name = name.replace(x, ' ', cnt)
 
-    originalname = name
-    if '+' in name:
-       name = re.sub('\+', 'PLUS', name)
+        originalname = name
+        if '+' in name:
+            name = re.sub('\+', 'PLUS', name)
 
-    pattern = re.compile(r'\w+', re.UNICODE)
-    name = pattern.findall(name)
+        pattern = re.compile(r'\w+', re.UNICODE)
+        name = pattern.findall(name)
 
-    if '+' in originalname:
-        y = []
-        for x in name:
-            y.append(re.sub("PLUS", "%2B", x))
-        name = y
+        if '+' in originalname:
+            y = []
+            for x in name:
+                y.append(re.sub("PLUS", "%2B", x))
+            name = y
+    else:
+        search_type = 'volume'
 
     if limityear is None: limityear = 'None'
 
@@ -136,9 +142,6 @@ def findComic(name, mode, issue, limityear=None, search_type=None, annual_check=
         return
     else:
         comicapi = mylar.CONFIG.COMICVINE_API
-
-    if search_type is None:
-        search_type = 'volume'
 
     #let's find out how many results we get from the query...
     searched = pullsearch(comicapi, comicquery, 0, search_type)
