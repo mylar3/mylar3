@@ -40,7 +40,7 @@ class metadata_Series(object):
         for cid in self.comiclist:
 
             if self.refreshSeries is True:
-                updater.dbupdate(cid, calledfrom='json_api')
+                updater.dbUpdate(cid, calledfrom='json_api')
 
             myDB = db.DBConnection()
             comic = myDB.selectone('SELECT * FROM comics WHERE ComicID=?', [cid]).fetchone()
