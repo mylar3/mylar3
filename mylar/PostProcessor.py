@@ -767,7 +767,18 @@ class PostProcessor(object):
                         if wv['ComicPublished'] is None:
                             logger.fdebug('Publication Run cannot be generated - probably due to an incomplete Refresh. Manually refresh the following series and try again: %s (%s)' % (wv['ComicName'], wv['ComicYear']))
                             continue
-                        if any([wv['Status'] == 'Paused', bool(wv['ForceContinuing']) is True]) or (wv['Have'] == wv['Total'] and not any(['Present' in wv['ComicPublished'], helpers.now()[:4] in wv['ComicPublished']])):
+                        if (wv['Status'] == 'Paused' and any(
+                                [
+                                  wv['cv_removed'] == 2,
+                                  bool(wv['ForceContinuing']) is True
+                                ]
+                            )) or (wv['Have'] == wv['Total'] and not any(
+                                [
+                                  'Present' in wv['ComicPublished'],
+                                  helpers.now()[:4] in wv['ComicPublished']
+                                ]
+                            )
+                        ):
                             dbcheck = myDB.selectone('SELECT Status FROM issues WHERE ComicID=? and Int_IssueNumber=?', [wv['ComicID'], tmp_iss]).fetchone()
                             if not dbcheck and mylar.CONFIG.ANNUALS_ON:
                                 dbcheck = myDB.selectone('SELECT Status FROM annuals WHERE ComicID=? and Int_IssueNumber=?', [wv['ComicID'], tmp_iss]).fetchone()

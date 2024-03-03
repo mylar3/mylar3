@@ -503,7 +503,7 @@ def nzbs(provider=None, forcerss=False):
             if str(newznab_host[5]) == '1':
                 newznab_hosts.append(newznab_host)
 
-    providercount = len(newznab_hosts) + int(mylar.CONFIG.EXPERIMENTAL is True) + int(mylar.CONFIG.NZBSU is True) + int(mylar.CONFIG.DOGNZB is True)
+    providercount = len(newznab_hosts) + int(mylar.CONFIG.EXPERIMENTAL is True)
     logger.fdebug('[RSS] You have enabled ' + str(providercount) + ' NZB RSS search providers.')
 
     if providercount > 0:
@@ -527,29 +527,6 @@ def nzbs(provider=None, forcerss=False):
             check = _parse_feed('experimental', 'https://nzbindex.nl/search/rss', True, params)
             if check == 'disable':
                 helpers.disable_provider('experimental')
-
-        if mylar.CONFIG.NZBSU is True:
-            num_items = "&num=100" if forcerss else ""  # default is 25
-            params = {'t':        '7030',
-                      'dl':        '1',
-                      'i':         mylar.CONFIG.NZBSU_UID,
-                      'r':         mylar.CONFIG.NZBSU_APIKEY,
-                      'num_items': num_items}
-            check = _parse_feed('nzb.su', 'https://api.nzb.su/rss', bool(int(mylar.CONFIG.NZBSU_VERIFY)), params)
-            if check == 'disable':
-                helpers.disable_provider(site)
-
-        if mylar.CONFIG.DOGNZB is True:
-            #default is 100
-            params = {'cat':        '7030',
-                      'o':          'xml',
-                      'apikey':     mylar.CONFIG.DOGNZB_APIKEY,
-                      't':          'search',
-                      'dl':         '1'}
-
-            check = _parse_feed('dognzb', 'https://api.dognzb.cr/api', bool(int(mylar.CONFIG.DOGNZB_VERIFY)), params)
-            if check == 'disable':
-                helpers.disable_provider(site)
 
         for newznab_host in newznab_hosts:
             site = newznab_host[0].rstrip()
@@ -602,24 +579,19 @@ def nzbs(provider=None, forcerss=False):
                         continue
                 else:
                     titlename = entry.title
-                    if site == 'dognzb':
-                        #because the rss of dog doesn't carry the enclosure item, we'll use the newznab size value
-                        size = 0
+                    size = 0
+                    try:
+                        # experimental, newznab
+                        size = entry.enclosures[0]['length']
+                    except Exception as e:
                         if 'newznab' in entry and 'size' in entry['newznab']:
                             size = entry['newznab']['size']
-                    else:
-                        # experimental, nzb.su, newznab
-                        size = entry.enclosures[0]['length']
 
                     # Link
-                    # dognzb, nzb.su, newznab
                     link = entry.link
 
                     #Remove the API keys from the url to allow for possible api key changes
-                    if site == 'dognzb':
-                        link = re.sub(mylar.CONFIG.DOGNZB_APIKEY, '', link).strip()
-                    else:
-                        link = link[:link.find('&i=')].strip()
+                    link = link[:link.find('&i=')].strip()
 
                 feeddata.append({'Site': site,
                                  'Title': titlename,
@@ -1551,11 +1523,15 @@ def ddlrss_pack_detect(title, link):
     # if it's a pack - remove the issue-range and the possible issue years
     # (cause it most likely will span) and pass thru as separate items
     if pack is True:
-        title = re.sub(issues, '', title).strip()
+        try:
+            title = re.sub(issues, '', title).strip()
         # kill any brackets in the issue line here.
-        issues = re.sub(r'[\(\)\[\]]', '', issues).strip()
-        if title.endswith('#'):
-            title = title[:-1].strip()
+            issues = re.sub(r'[\(\)\[\]]', '', issues).strip()
+        except Exception as e:
+            return
+        else:
+            if title.endswith('#'):
+                title = title[:-1].strip()
 
         return {'title': title, 'issues': issues, 'pack': pack, 'link': link}
     else:

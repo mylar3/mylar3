@@ -155,7 +155,7 @@ _CONFIG_DEFINITIONS = OrderedDict({
     'CV_ONLY': (bool, 'CV', True),
     'CV_ONETIMER': (bool, 'CV', True),
     'CVINFO': (bool, 'CV', False),
-    'CV_USER_AGENT': (str, 'CV', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/42.0.2311.135 Safari/537.36 Edge/12.246'),
+    'CV_USER_AGENT': (str, 'CV', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36'),
     'IMPRINT_MAPPING_TYPE': (str, 'CV', 'CV'),  # either 'CV' for ComicVine or 'JSON' for imprints.json to choose which naming to use for imprints
 
     'LOG_DIR' : (str, 'Logs', None),
@@ -297,15 +297,6 @@ _CONFIG_DEFINITIONS = OrderedDict({
     'NZBGET_CLIENT_POST_PROCESSING': (bool, 'NZBGet', False),   #0/False: ComicRN.py, #1/True: Completed Download Handling
 
     'BLACKHOLE_DIR': (str, 'Blackhole', None),
-
-    'NZBSU': (bool, 'NZBsu', False),
-    'NZBSU_UID': (str, 'NZBsu', None),
-    'NZBSU_APIKEY': (str, 'NZBsu', None),
-    'NZBSU_VERIFY': (bool, 'NZBsu', True),
-
-    'DOGNZB': (bool, 'DOGnzb', False),
-    'DOGNZB_APIKEY': (str, 'DOGnzb', None),
-    'DOGNZB_VERIFY': (bool, 'DOGnzb', True),
 
     'NEWZNAB': (bool, 'Newznab', False),
     'EXTRA_NEWZNABS': (str, 'Newznab', ""),
@@ -461,6 +452,13 @@ _BAD_DEFINITIONS = OrderedDict({
     'ENABLE_PUBLIC': ('Torrents', 'ENABLE_TPSE'),
     'PUBLIC_VERIFY': ('Torrents', 'TPSE_VERIFY'),
     'IGNORED_PUBLISHERS': ('CV', 'BLACKLISTED_PUBLISHERS'),
+    'NZBSU': ('NZBsu', 'nzbsu', bool, None),
+    'NZBSU_UID': ('NZBsu', 'nzbsu_uid', str, None),
+    'NZBSU_APIKEY': ('NZBsu', 'nzbsu_apikey', str, None),
+    'NZBSU_VERIFY': ('NZBsu', 'nzbsu_verify', bool, None),
+    'DOGNZB': ('DOGnzb', 'dognzb', bool, None),
+    'DOGNZB_APIKEY': ('DOGnzb', 'dognzb_apikey', str, None),
+    'DOGNZB_VERIFY': ('DOGnzb', 'dognzb_verify', bool, None),
 })
 
 class Config(object):
@@ -480,7 +478,7 @@ class Config(object):
                 count = 0
 
             #this is the current version at this particular point in time.
-            self.newconfig = 12
+            self.newconfig = 14
 
             OLDCONFIG_VERSION = 0
             if count == 0:
@@ -504,6 +502,7 @@ class Config(object):
         setattr(self, 'MINIMAL_INI', MINIMALINI)
 
         config_values = []
+
         for k,v in _CONFIG_DEFINITIONS.items():
             xv = []
             xv.append(k)
@@ -599,6 +598,22 @@ class Config(object):
                     elif k == 'MINIMAL_INI':
                         config.set(v[1], k.lower(), str(self.MINIMAL_INI))
 
+        #this section retains values of variables that are no longer being saved to the ini
+        #in case they are needed prior to wiping out things
+        self.OLD_VALUES = {}
+        for b, bv in _BAD_DEFINITIONS.items():
+            if len(bv) == 4:  #removal of option...
+                if bv[1] not in self.OLD_VALUES:
+                    try:
+                        if bv[2] == bool:
+                             self.OLD_VALUES[bv[1]] = config.getboolean(bv[0], bv[1])
+                        elif bv[2] == str:
+                             self.OLD_VALUES[bv[1]] = config.get(bv[0], bv[1])
+                        elif bv[2] == int:
+                             self.OLD_VALUES[bv[1]] = config.getint(bv[0], bv[1])
+                    except (configparser.NoSectionError, configparser.NoOptionError):
+                        pass
+
     def read(self, startup=False):
         self.config_vals()
 
@@ -641,13 +656,14 @@ class Config(object):
             cc = maintenance.Maintenance('backup')
             bcheck = cc.backup_files(cfg=True, dbs=False, backupinfo=backupinfo)
 
-            if self.CONFIG_VERSION < 12:
+            if self.CONFIG_VERSION < 14:
                 print('Attempting to update configuration..')
                 #8-torznab multiple entries merged into extra_torznabs value
                 #9-remote rtorrent ssl option
                 #10-encryption of all keys/passwords.
                 #11-provider ids
                 #12-ddl seperation into multiple providers, new keys, update tables
+                #13-remove dognzb and nzbsu as independent options (throw them under newznabs if present)
                 self.config_update()
             setattr(self, 'OLDCONFIG_VERSION', str(self.CONFIG_VERSION))
             setattr(self, 'CONFIG_VERSION', self.newconfig)
@@ -738,6 +754,118 @@ class Config(object):
                 config.set('DDL', 'enable_getcomics', self.ENABLE_GETCOMICS)
             #tables will be updated by checking the OLDCONFIG_VERSION in __init__
             logger.info('Successfully updated config to version 12 ( multiple DDL provider option )')
+        if self.newconfig < 15:
+            # remove nzbsu and dognzb as individual options
+            # if data exists already, add them as newznab options (if not already there or via Prowlarr)
+            try:
+                for chk_e in [self.OLD_VALUES['nzbsu_apikey'], self.OLD_VALUES['dognzb_apikey']]:
+                    if chk_e is not None:
+                        if chk_e[:5] == '^~$z$':
+                            nz = encrypted.Encryptor(chk_e)
+                            nz_stat = nz.decrypt_it()
+                            if nz_stat['status'] is True:
+                                if chk_e == self.OLD_VALUES['nzbsu_apikey']:
+                                    self.OLD_VALUES['nzbsu_apikey'] = nz_stat['password']
+                                else:
+                                    self.OLD_VALUES['dognzb_apikey'] = nz_stat['password']
+            except Exception as e:
+                logger.error('error: %s' % e)
+
+            extra_newznabs, extra_torznabs = self.get_extras()
+            enz = []
+            dogs = []
+            nzbsus = []
+            try:
+                ncnt = 0
+                for en in extra_newznabs:
+                    dognzb_found = nzbsu_found = False
+                    ben = list(en)
+                    if ben[1] is not None:
+                        n_name = ben[0].lower()
+                        if n_name is None:
+                            n_name = ''
+                        if ben[3][:5] == '^~$z$':
+                            nz = encrypted.Encryptor(ben[3])
+                            nz_stat = nz.decrypt_it()
+                            if nz_stat['status'] is True:
+                                ben[3] = nz_stat['password']
+
+                        # prowlarr's url does not contain the actual url, hope the name contains it...
+                        if 'nzb.su' in ben[1].lower() or (any(['nzb.su' in n_name.lower(), 'nzbsu' in re.sub(r'\s', '', n_name).lower()]) and 'prowlarr' in n_name.lower()):
+                            nzbsus.append(tuple(ben))
+                            nzbsu_found = True
+                        elif 'dognzb' in ben[1].lower() or all(['dognzb' in re.sub(r'\s', '', n_name).lower(), 'prowlarr' in n_name.lower()]):
+                            dogs.append(tuple(ben))
+                            dognzb_found = True
+                        if not any([dognzb_found, nzbsu_found]):
+                            enz.append(tuple(ben))
+                    ncnt +=1
+            except Exception as e:
+                logger.warn('error: %s' % e)
+
+            if self.OLD_VALUES['nzbsu']:
+                mylar.PROVIDER_START_ID+=1
+                tsnzbsu = '' if self.OLD_VALUES['nzbsu_uid'] is None else self.OLD_VALUES['nzbsu_uid']
+                nzbsus.append(('nzb.su', 'https://api.nzb.su', '1', self.OLD_VALUES['nzbsu_apikey'], tsnzbsu, str(int(self.OLD_VALUES['nzbsu'])), mylar.PROVIDER_START_ID))
+            if self.OLD_VALUES['dognzb']:
+                mylar.PROVIDER_START_ID+=1
+                dogs.append(('DOGnzb', 'https://api.dognzb.cr', '1', self.OLD_VALUES['dognzb_apikey'], '', str(int(self.OLD_VALUES['dognzb'])), mylar.PROVIDER_START_ID))
+
+            #loop thru nzbsus and dogs entries and only keep one (in order of priority): Enabled, Prowlarr, newznab
+            keep_nzbsu = None
+            keep_dognzb = None
+            keep_it = None
+            kcnt = 0
+            for ggg in [nzbsus, dogs]:
+                for gg in sorted(ggg, key=itemgetter(5), reverse=True):
+                    try:
+                        if gg[5] == '1':
+                            if gg[0] is not None:
+                                if 'Prowlarr' in gg[0]:
+                                    keep_it = gg
+                        if keep_it is None and gg[0] is not None:
+                            if 'Prowlarr' in gg[0]:
+                                keep_it = gg
+                        if keep_it is None:
+                            keep_it = gg
+                    except Exception as e:
+                        logger.error('error: %s' % e)
+
+                if kcnt == 0 and keep_it is not None:
+                    enz.append(keep_it)
+                    keep_nzbsu = keep_it
+                elif kcnt == 1 and keep_it is not None:
+                    enz.append(keep_it)
+                    keep_dognzb = keep_it
+                keep_it = None
+                kcnt+=1
+
+            logger.fdebug('keep_nzbsu: %s' % (keep_nzbsu,))
+            logger.fdebug('keep_dognzb: %s' % (keep_dognzb,))
+
+            try:
+                config.remove_option('NZBsu', 'nzbsu')
+                config.remove_option('NZBsu', 'nzbsu_uid')
+                config.remove_option('NZBsu', 'nzbsu_apikey')
+                config.remove_option('NZBsu', 'nzbsu_verify')
+            except configparser.NoSectionError:
+                pass
+            else:
+                config.remove_section('NZBsu')
+            try:
+                config.remove_option('DOGnzb', 'dognzb')
+                config.remove_option('DOGnzb', 'dognzb_verify')
+                config.remove_option('DOGnzb', 'dognzb_apikey')
+            except configparser.NoSectionError:
+                pass
+            else:
+                config.remove_section('DOGnzb')
+
+            setattr(self, 'EXTRA_NEWZNABS', enz)
+            setattr(self, 'EXTRA_TORZNABS', extra_torznabs)
+            myDB = db.DBConnection()
+            chk_tbl = myDB.action("DELETE FROM provider_searches where id=102 or id=103")
+            self.writeconfig(startup=False)
 
         logger.info('Configuration upgraded to version %s' % self.newconfig)
 
@@ -938,8 +1066,6 @@ class Config(object):
                             'SAB_PASSWORD':          ('SABnzbd', 'sab_password', self.SAB_PASSWORD),
                             'SAB_APIKEY':            ('SABnzbd', 'sab_apikey', self.SAB_APIKEY),
                             'NZBGET_PASSWORD':       ('NZBGet', 'nzbget_password', self.NZBGET_PASSWORD),
-                            'NZBSU_APIKEY':          ('NZBsu', 'nzbsu_apikey', self.NZBSU_APIKEY),
-                            'DOGNZB_APIKEY':         ('DOGnzb', 'dognzb_apikey', self.DOGNZB_APIKEY),
                             'UTORRENT_PASSWORD':     ('uTorrent', 'utorrent_password', self.UTORRENT_PASSWORD),
                             'TRANSMISSION_PASSWORD': ('Transmission', 'transmission_password', self.TRANSMISSION_PASSWORD),
                             'DELUGE_PASSWORD':       ('Deluge', 'deluge_password', self.DELUGE_PASSWORD),
@@ -1217,12 +1343,16 @@ class Config(object):
             self.IGNORE_HAVETOTAL = False
             logger.warn('You cannot have both ignore_total and ignore_havetotal enabled in the config.ini at the same time. Set only ONE to true - disabling both until this is resolved.')
 
-        if len(self.MASS_PUBLISHERS) > 0:
+        if len(self.MASS_PUBLISHERS) > 0 and self.MASS_PUBLISHERS != '[]':
             if type(self.MASS_PUBLISHERS) != list:
                 try:
                     self.MASS_PUBLISHERS = json.loads(self.MASS_PUBLISHERS)
                 except Exception as e:
-                    logger.warn('[MASS_PUBLISHERS] Unable to convert publishers [%s]. Error returned: %s' % (self.MASS_PUBLISHERS, e))
+                    try:
+                        tmp_publishers = json.dumps(self.MASS_PUBLISHERS)
+                        self.MASS_PUBLISHERS = json.loads(tmp_publishers)
+                    except Exception as e:
+                        logger.warn('[MASS_PUBLISHERS] Unable to convert publishers [%s]. Error returned: %s' % (self.MASS_PUBLISHERS, e))
         logger.info('[MASS_PUBLISHERS] Auto-add for weekly publishers set to: %s' % (self.MASS_PUBLISHERS,))
 
         if len(self.IGNORE_SEARCH_WORDS) > 0 and self.IGNORE_SEARCH_WORDS != '[]':
@@ -1310,6 +1440,54 @@ class Config(object):
                     logger.error('Unable to create setting directory for ComicTagger. This WILL cause problems when tagging.')
             else:
                 logger.fdebug('Successfully created ComicTagger Settings location.')
+
+        #make sure the user_agent is running a current version and write it to the .ComicTagger file for use with CT
+        if '42.0.2311.135' in self.CV_USER_AGENT:
+            self.CV_USER_AGENT = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36'
+
+        ct_settingsfile = os.path.join(self.CT_SETTINGSPATH, 'settings')
+        if os.path.exists(ct_settingsfile):
+            ct_config = configparser.ConfigParser()
+            def readline_generator(f):
+                line = f.readline()
+                while line:
+                    yield line
+                    line = f.readline()
+
+            ct_config.read_file(
+                readline_generator(codecs.open(ct_settingsfile, "r", "utf8")))
+
+            tmp_agent = None
+            if ct_config.has_option('comicvine', 'cv_user_agent'):
+                tmp_agent = ct_config.get('comicvine', 'cv_user_agent')
+
+            if tmp_agent != self.CV_USER_AGENT:
+                #update
+                try:
+                    with codecs.open(ct_settingsfile, 'r', 'utf8') as ct_read:
+                        ct_lines = ct_read.readlines()
+
+                    process_next = False
+                    cv_line = 'cv_user_agent = %s' % self.CV_USER_AGENT
+                    with codecs.open(ct_settingsfile, encoding='utf8', mode='w+') as ct_file:
+                        for line in ct_lines:
+                            if 'cv_user_agent' in line:
+                                line = cv_line
+
+                            elif '[comicvine]' not in line and process_next:
+                                ct_file.write(cv_line+'\n')
+                                process_next = False
+
+                            if tmp_agent is None and '[comicvine]' in line:
+                                process_next = True
+
+                            ct_file.write(line)
+
+                    logger.fdebug('Updated CT Settings with new CV user agent string.')
+                except IOError as e:
+                    logger.warn("Error writing configuration file: %s" % e)
+            else:
+                logger.info('[CV_USER_AGENT] Agent already identical in comictagger session.')
 
         #make sure queues are running here...
         if startup is False:
@@ -1519,11 +1697,12 @@ class Config(object):
 
             for x in ex:
                 x_cat = x[4]
-                if '#' in x_cat:
-                    x_t = x[4].split('#')
-                    x_cat = ','.join(x_t)
-                    if x_cat[0] == ',':
-                        x_cat = re.sub(',', '#', x_cat, 1)
+                if x_cat:
+                    if '#' in x_cat:
+                        x_t = x[4].split('#')
+                        x_cat = ','.join(x_t)
+                        if x_cat[0] == ',':
+                            x_cat = re.sub(',', '#', x_cat, 1)
                 try:
                     if cnt == 0:
                         x_newzcat.append((x[0],x[1],x[2],x[3],x_cat,x[5],int(x[6])))
@@ -1617,12 +1796,6 @@ class Config(object):
             #if self.ENABLE_PUBLIC:
             #    PR.append('public torrents')
             #    PR_NUM +=1
-        if self.NZBSU:
-            PR.append('nzb.su')
-            PR_NUM +=1
-        if self.DOGNZB:
-            PR.append('dognzb')
-            PR_NUM +=1
         if self.EXPERIMENTAL:
             PR.append('Experimental')
             PR_NUM +=1
@@ -1635,7 +1808,7 @@ class Config(object):
                 PR.append('DDL(External)')
                 PR_NUM +=1
 
-        PPR = ['32p', 'nzb.su', 'dognzb', 'Experimental', 'DDL(GetComics)', 'DDL(External)']
+        PPR = ['Experimental', 'DDL(GetComics)', 'DDL(External)']
         if self.NEWZNAB:
             for ens in self.EXTRA_NEWZNABS:
                 if str(ens[5]) == '1': # if newznabs are enabled
@@ -1805,10 +1978,6 @@ class Config(object):
                        t_id = 201
                    elif any(['experimental' in prov_t, 'Experimental' in prov_t]):
                        t_id = 101
-                   elif 'dog' in prov_t:
-                       t_id = 102
-                   elif any(['nzb.su' in prov_t, 'nzbsu' in prov_t]):
-                       t_id = 103
                    else:
                        nnf = False
                        if self.EXTRA_NEWZNABS:
@@ -1845,12 +2014,6 @@ class Config(object):
                    tmp_prov = 'experimental'
                    t_type = 'experimental'
                    t_id = 101
-               elif 'dog' in tmp_prov:
-                   t_type = 'dognzb'
-                   t_id = 102
-               elif any(['nzb.su' in tmp_prov, 'nzbsu' in tmp_prov]):
-                   t_type = 'nzb.su'
-                   t_id = 103
                else:
                    nnf = False
                    if self.EXTRA_NEWZNABS:
@@ -1876,14 +2039,12 @@ class Config(object):
                    tprov = None
 
                if tprov:
-                   if (any(['nzb.su' in tmp_prov, 'nzbsu' in tmp_prov]) and tprov['type'] != 'nzb.su') or (tmp_prov == 'Experimental'):
+                   if tmp_prov == 'Experimental':
                        # needed to ensure the type is set properly for this provider
                        ptype = tprov['type']
                        if tmp_prov == 'Experimental':
                            myDB.action("DELETE FROM provider_searches where id=101")
                            tmp_prov = 'experimental'
-                       else:
-                           ptype = 'nzb.su'
                        ctrls = {'id': tprov['id'], 'provider': tmp_prov}
                        vals = {'active': tprov['active'], 'lastrun': tprov['lastrun'], 'type': ptype, 'hits': tprov['hits']}
                        write = True

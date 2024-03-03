@@ -1383,10 +1383,19 @@ def mass_publishers(publishers, weeknumber, year):
     if type(publishers) == list and len(publishers) == 0:
         publishers = None
 
-    if type(publishers) == str:
-        publishers = json.loads(publishers)
-        if len(publishers) == 0:
-            publishers = None
+    if type(publishers) != list:
+        try:
+            publishers = json.loads(publishers)
+        except Exception as e:
+            try:
+                tmp_publishers = json.dumps(publishers)
+                publishers = json.loads(tmp_publishers)
+            except Exception as e:
+                logger.warn('[MASS PUBLISHERS] Unable to convert mass publishers value in current state. Error: %s' % e)
+                publishers = None
+
+    if len(publishers) == 0:
+        publishers = None
 
     if publishers is None:
         watchlist = myDB.select('SELECT * FROM weekly WHERE weeknumber=? and year=?', [weeknumber, year])

@@ -21,7 +21,6 @@ import re
 import time
 import datetime
 import sys
-from user_agent2 import generate_user_agent
 
 from bs4 import BeautifulSoup
 
@@ -102,8 +101,7 @@ class ComicVineTalker(QObject):
 
         self.log_func = None
 
-        #self.cv_headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/42.0.2311.135 Safari/537.36 Edge/12.246'}
-        self.cv_headers = {'User-Agent': generate_user_agent(os='win', device_type='desktop')}
+        self.cv_headers = {'User-Agent': ComicVineTalker.cv_user_agent}
 
     def setLogFunc(self, log_func):
         self.log_func = log_func

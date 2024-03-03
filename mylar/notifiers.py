@@ -475,7 +475,7 @@ class SLACK:
 
     def test_notify(self):
         return self.notify('Test Message', 'Release the Ninjas!')
-    
+
 class MATTERMOST:
     def __init__(self, test_webhook_url=None):
         self.webhook_url = mylar.CONFIG.MATTERMOST_WEBHOOK_URL if test_webhook_url is None else test_webhook_url
@@ -731,7 +731,7 @@ class DISCORD:
 
         # Error logging
         sent_successfuly = True
-        if not response.status_code == 204 or response.status_code == 200:
+        if not all([response.status_code == 204, response.status_code == 200]):
             logger.info(module + 'Could not send notification to Discord (webhook_url=%s). Response: [%s]' % (self.webhook_url, response.text))
             sent_successfuly = False
 
@@ -779,7 +779,7 @@ class GOTIFY:
                     }
                 }
             }
-        
+
         try:
             response = requests.post(self.webhook_url, json=payload, verify=True)
         except Exception as e:

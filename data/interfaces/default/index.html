@@ -126,10 +126,14 @@
                        "targets": [ 4 ],
                        "visible": true,
                        "render":function (data,type,full) {
-                           if (full[4].includes('Unknown')){
-                               return 'N/A';
+                           if (full[4]){
+                               if (full[4].includes('Unknown')){
+                                   return 'N/A';
+                               } else {
+                                   return full[4];
+                               }
                            } else {
-                               return full[4];
+                               return 'N/A';
                            }
                        }
                     },

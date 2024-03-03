@@ -127,7 +127,12 @@ class MediaFire(object):
                 logger.fdebug('[MediaFire] Content has been removed - we should move on to the next one at this point.')
             return {"success": False, "filename": None, "path": None, "link_type_failure": 'GC-Media'}
 
-        logger.fdebug('[MediaFire] download completed - donwloaded %s / %s' % (os.stat(filepath).st_size, fileinfo['filesize']))
+        try:
+            filesize = os.stat(filepath).st_size
+        except FileNotFoundError:
+            return {"success": false, "filenme": None, "path": None}
+        else:
+            logger.fdebug('[MediaFire] download completed - downloaded %s / %s' % (filesize, fileinfo['filesize']))
 
         logger.fdebug('[MediaFire] ddl_linked - filename: %s' % fileinfo['filename'])
 

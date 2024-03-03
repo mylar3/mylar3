@@ -123,23 +123,31 @@
                                 <br>
 				<%
                                     mylar.PROVIDER_STATUS = {}
-                                    for ko, vo in sorted(mylar.CONFIG.PROVIDER_ORDER.items()):
-                                        mylar.PROVIDER_STATUS.update({vo : 'success'})
-                                        for kb in mylar.PROVIDER_BLOCKLIST:
-                                            if vo == kb['site']:
-                                                mylar.PROVIDER_STATUS.update({vo : 'fail'})
-                                                break
+                                    prov_fail = False
+                                    try:
+                                        for ko, vo in sorted(mylar.CONFIG.PROVIDER_ORDER.items()):
+                                            mylar.PROVIDER_STATUS.update({vo : 'success'})
+                                            for kb in mylar.PROVIDER_BLOCKLIST:
+                                                if vo == kb['site']:
+                                                    mylar.PROVIDER_STATUS.update({vo : 'fail'})
+                                                    break
+                                    except Exception:
+                                        prov_fail = True
                                 %>
                                 Providers:
-                                %for prov, stats in sorted(mylar.PROVIDER_STATUS.items()):
-                                    <%
-                                        if stats == 'success':
-                                            st_image = '<img src="images/success.png" height="8" width="8">'
-                                        else:
-                                            st_image = '<img src="images/x_red.png" height="8" width="8">'
-                                    %>
-                                    ${prov}:${st_image} &nbsp
-                                %endfor
+                                %if prov_fail:
+                                    <span title="This should correct itself eventually"><img src="images/x_red.png" height="8" width="8" />Unable to determine Provider Status' at this time...</span>
+                                %else:
+                                    %for prov, stats in sorted(mylar.PROVIDER_STATUS.items()):
+                                        <%
+                                            if stats == 'success':
+                                                st_image = '<img src="images/success.png" height="8" width="8">'
+                                            else:
+                                                st_image = '<img src="images/x_red.png" height="8" width="8">'
+                                        %>
+                                        ${prov}:${st_image} &nbsp
+                                    %endfor
+                                %endif
                         </div>
                         <div id="config_messages_dialog" title="configuration checks / warnings" style="display:none">
                            <span id="mbody"></span>

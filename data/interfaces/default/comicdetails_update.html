@@ -2061,7 +2061,8 @@
             // Handle click on "Select all" control
             $('#issues-select-all').on('click', function(){
                 // Get all rows with search applied
-                var rows = tables.rows({ 'search': 'applied' }).nodes();
+                var rows = $('#issue_table').DataTable().rows({ 'search': 'applied' }).nodes();
+                //var rows = tables.rows({ 'search': 'applied' }).nodes();
                // Check/uncheck checkboxes for all rows in the table
                $('input[type="checkbox"]', rows).prop('checked', this.checked);
                count_checks('issues');
@@ -2087,7 +2088,8 @@
             // Handle click on "Select all" control
             $('#annuals-select-all').on('click', function(){
                 // Get all rows with search applied
-                var rows = tables.rows({ 'search': 'applied' }).nodes();
+                var rows = $('#annual_table').DataTable().rows({ 'search': 'applied' }).nodes();
+                //var rows = tables.rows({ 'search': 'applied' }).nodes();
                // Check/uncheck checkboxes for all rows in the table
                $('input[type="checkbox"]', rows).prop('checked', this.checked);
                count_checks('annuals');
