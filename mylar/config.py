@@ -769,7 +769,7 @@ class Config(object):
                                 else:
                                     self.OLD_VALUES['dognzb_apikey'] = nz_stat['password']
             except Exception as e:
-                logger.error('error: %s' % e)
+                pass
 
             extra_newznabs, extra_torznabs = self.get_extras()
             enz = []
@@ -803,13 +803,20 @@ class Config(object):
             except Exception as e:
                 logger.warn('error: %s' % e)
 
-            if self.OLD_VALUES['nzbsu']:
-                mylar.PROVIDER_START_ID+=1
-                tsnzbsu = '' if self.OLD_VALUES['nzbsu_uid'] is None else self.OLD_VALUES['nzbsu_uid']
-                nzbsus.append(('nzb.su', 'https://api.nzb.su', '1', self.OLD_VALUES['nzbsu_apikey'], tsnzbsu, str(int(self.OLD_VALUES['nzbsu'])), mylar.PROVIDER_START_ID))
-            if self.OLD_VALUES['dognzb']:
-                mylar.PROVIDER_START_ID+=1
-                dogs.append(('DOGnzb', 'https://api.dognzb.cr', '1', self.OLD_VALUES['dognzb_apikey'], '', str(int(self.OLD_VALUES['dognzb'])), mylar.PROVIDER_START_ID))
+            try:
+                if self.OLD_VALUES['nzbsu']:
+                    mylar.PROVIDER_START_ID+=1
+                    tsnzbsu = '' if self.OLD_VALUES['nzbsu_uid'] is None else self.OLD_VALUES['nzbsu_uid']
+                    nzbsus.append(('nzb.su', 'https://api.nzb.su', '1', self.OLD_VALUES['nzbsu_apikey'], tsnzbsu, str(int(self.OLD_VALUES['nzbsu'])), mylar.PROVIDER_START_ID))
+            except Exception as e:
+                pass
+
+            try:
+                if self.OLD_VALUES['dognzb']:
+                    mylar.PROVIDER_START_ID+=1
+                    dogs.append(('DOGnzb', 'https://api.dognzb.cr', '1', self.OLD_VALUES['dognzb_apikey'], '', str(int(self.OLD_VALUES['dognzb'])), mylar.PROVIDER_START_ID))
+            except Exception as e:
+                pass
 
             #loop thru nzbsus and dogs entries and only keep one (in order of priority): Enabled, Prowlarr, newznab
             keep_nzbsu = None
