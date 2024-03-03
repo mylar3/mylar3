@@ -54,6 +54,7 @@ def ctmain():
             SETTINGS.save()
 
     ComicVineTalker.api_key = SETTINGS.cv_api_key
+    ComicVineTalker.cv_user_agent = SETTINGS.cv_user_agent
 
     signal.signal(signal.SIGINT, signal.SIG_DFL)
 

@@ -544,9 +544,15 @@ class GC(object):
         logger.info('[DDL-GATHERER-OF-LINKAGE] Now compiling release information & available links...')
         while True:
             #logger.fdebug('count_bees: %s' % count_bees)
-            f = beeswax[count_bees]
-            option_find = beeswax[count_bees]
-            linkage = f.find("div", {"class": "aio-pulse"})
+            try:
+                f = beeswax[count_bees]
+                option_find = beeswax[count_bees]
+                linkage = f.find("div", {"class": "aio-pulse"})
+            except Exception as e:
+                if looped_thru_once is False:
+                    valid_links[multiple_links].update({'links': gather_links})
+                break
+
             #logger.fdebug('linkage: %s' % linkage)
             if not linkage:
                 linkage_test = f.text.strip()
@@ -649,7 +655,7 @@ class GC(object):
                                  "issues": None,
                                  "size": size,
                                  "links": lk['href'],
-                                 "pack": comicinfo[0]['pack']
+                                 "pack": pack
                             })
                             #logger.fdebug('gather_links so far: %s' % gather_links)
             count_bees +=1
@@ -784,23 +790,38 @@ class GC(object):
                     if not link_matched and site_lp == 'mega':
                         sub_site_chk = [y for y in tmp_sites if 'mega' in y]
                         if sub_site_chk:
-                            kk = tmp_links[site_position['SD-Digital:mega']]
-                            logger.info('[MEGA] SD-Digital preference detected...attempting %s' % kk['series'])
-                            link_matched = True
+                            try:
+                               kk = tmp_links[site_position['SD-Digital:mega']]
+                               logger.info('[MEGA] SD-Digital preference detected...attempting %s' % kk['series'])
+                               link_matched = True
+                            except KeyError:
+                                kk = tmp_links[site_position['normal:mega']]
+                                logger.info('[MEGA] mega preference detected...attempting %s' % kk['series'])
+                                link_matched = True
 
                     elif not link_matched and site_lp == 'pixeldrain':
                         sub_site_chk = [y for y in tmp_sites if 'pixel' in y]
                         if sub_site_chk:
-                            kk = tmp_links[site_position['SD-Digital:pixeldrain']]
-                            logger.info('[PixelDrain] SD-Digital preference detected...attempting %s' % kk['series'])
-                            link_matched = True
+                            try:
+                                kk = tmp_links[site_position['SD-Digital:pixeldrain']]
+                                logger.info('[PixelDrain] SD-Digital preference detected...attempting %s' % kk['series'])
+                                link_matched = True
+                            except KeyError:
+                                kk = tmp_links[site_position['normal:pixeldrain']]
+                                logger.info('[PixelDrain] PixelDrain preference detected...attempting %s' % kk['series'])
+                                link_matched = True
 
                     elif not link_matched and site_lp == 'mediafire':
                         sub_site_chk = [y for y in tmp_sites if 'mediafire' in y]
                         if sub_site_chk:
-                            kk = tmp_links[site_position['SD-Digital:mediafire']]
-                            logger.info('[mediafire] SD-Digital preference detected...attempting %s' % kk['series'])
-                            link_matched = True
+                            try:
+                                kk = tmp_links[site_position['SD-Digital:mediafire']]
+                                logger.info('[mediafire] SD-Digital preference detected...attempting %s' % kk['series'])
+                                link_matched = True
+                            except KeyError:
+                                kk = tmp_links[site_position['normal:mediafire']]
+                                logger.info('[mediafire] mediafire preference detected...attempting %s' % kk['series'])
+                                link_matched = True
 
                     elif not link_matched and site_lp == 'main':
                         try:
@@ -808,9 +829,19 @@ class GC(object):
                             logger.info('[MAIN-SERVER] SD-Digital preference detected...attempting %s' % kk['series'])
                             link_matched = True
                         except Exception as e:
-                            kk = tmp_links[site_position['SD-Digital:mirror download']]
-                            logger.info('[MIRROR-SERVER] SD-Digital preference detected...attempting %s' % kk['series'])
-                            link_matched = True
+                            try:
+                                kk = tmp_links[site_position['SD-Digital:mirror download']]
+                                logger.info('[MIRROR-SERVER] SD-Digital preference detected...attempting %s' % kk['series'])
+                                link_matched = True
+                            except KeyError:
+                                try:
+                                    kk = tmp_links[site_position['normal:download now']]
+                                    logger.info('[MAIN-SERVER] main preference detected...attempting %s' % kk['series'])
+                                    link_matched = True
+                                except KeyError:
+                                    kk = tmp_links[site_position['normal:mirror download']]
+                                    logger.info('[MIRROR-SERVER] main-mirror preference detected...attempting %s' % kk['series'])
+                                    link_matched = True
 
                     if link_matched:
                         link = kk
@@ -938,7 +969,7 @@ class GC(object):
                                         "issues": issues,
                                         "size": size,
                                         "links": linked,
-                                        "pack": comicinfo[0]['pack']
+                                        "pack": pack
                                     }
                                 )
         else:
@@ -980,7 +1011,7 @@ class GC(object):
                                         "issues": issues,
                                         "size": size,
                                         "links": linked,
-                                        "pack": comicinfo[0]['pack']
+                                        "pack": pack
                                     }
                                 )
 

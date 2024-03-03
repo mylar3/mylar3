@@ -368,14 +368,7 @@ def search_init(
                 current_prov = get_current_prov(searchprov)
                 logger.info('current_prov: %s' % (current_prov))
 
-                if current_prov.get('dognzb') and all(
-                    [mylar.CONFIG.DOGNZB == 0, provider_blocked]
-                ):
-                    # since dognzb could hit the 100 daily api limit during the middle
-                    # of a search run, check here on each pass to make sure it's not
-                    # disabled (it gets auto-disabled on maxing out the API hits)
-                    break
-                elif all(
+                if all(
                          [
                               not provider_blocked,
                              ''.join(current_prov.keys()) in checked_once,
@@ -587,16 +580,8 @@ def provider_order(initial_run=False):
                         torznabs += 1
 
     # nzb provider selection##
-    # 'dognzb' or 'nzb.su' or 'experimental'
     nzbprovider = []
     nzbp = 0
-    if mylar.CONFIG.NZBSU is True and not helpers.block_provider_check('nzb.su'):
-        nzbprovider.append('nzb.su')
-        nzbp += 1
-    if mylar.CONFIG.DOGNZB is True and not helpers.block_provider_check('dognzb'):
-        nzbprovider.append('dognzb')
-        nzbp += 1
-
     # --------
     #  Xperimental
     if mylar.CONFIG.EXPERIMENTAL is True and not helpers.block_provider_check(
@@ -722,14 +707,7 @@ def NZB_SEARCH(
         provider_stat = provider_stat.get(list(provider_stat.keys())[0])
     #logger.info('nzbprov: %s' % (nzbprov))
     #logger.fdebug('provider_stat_after: %s' % (provider_stat))
-
-    if nzbprov == 'nzb.su':
-        apikey = mylar.CONFIG.NZBSU_APIKEY
-        verify = bool(int(mylar.CONFIG.NZBSU_VERIFY))
-    elif nzbprov == 'dognzb':
-        apikey = mylar.CONFIG.DOGNZB_APIKEY
-        verify = bool(int(mylar.CONFIG.DOGNZB_VERIFY))
-    elif nzbprov == 'experimental':
+    if nzbprov == 'experimental':
         apikey = 'none'
         verify = False
     elif provider_stat['type'] == 'torznab':
@@ -890,13 +868,8 @@ def NZB_SEARCH(
     while findloop < findcount:
         logger.fdebug('findloop: %s / findcount: %s' % (findloop, findcount))
         comsrc = comsearch
-        if nzbprov == 'dognzb' and not mylar.CONFIG.DOGNZB:
-            is_info['foundc']['status'] = False
-            done = True
-            break
-        if any([nzbprov == '32P', nzbprov == 'Public Torrents', 'DDL' in nzbprov, nzbprov == 'experimental']):
-            # 32p directly stores the exact issue, no need to iterate over variations
-            # of the issue number. DDL iteration is handled in it's own module as is experimental.
+        if any([nzbprov == 'Public Torrents', 'DDL' in nzbprov, nzbprov == 'experimental']):
+            # DDL iteration is handled in it's own module as is experimental.
             findloop = 99
 
         if done is True:  # and seperatealpha == "no":
@@ -1055,19 +1028,7 @@ def NZB_SEARCH(
             if nzbprov == '':
                 verified_matches = "no results"
             elif nzbprov != 'experimental':
-                if nzbprov == 'dognzb':
-                    findurl = (
-                        "https://api.dognzb.cr/api?t=search&q="
-                        + str(comsearch)
-                        + "&o=xml&cat=7030"
-                    )
-                elif nzbprov == 'nzb.su':
-                    findurl = (
-                        "https://api.nzb.su/api?t=search&q="
-                        + str(comsearch)
-                        + "&o=xml&cat=7030"
-                    )
-                elif provider_stat['type'] == 'newznab':
+                if provider_stat['type'] == 'newznab':
                     # let's make sure the host has a '/' at the end, if not add it.
                     host_newznab_fix = host_newznab
                     if not host_newznab_fix.endswith('api'):
@@ -1587,8 +1548,6 @@ def searchforissue(issueid=None, new=False, rsschecker=None, manual=False):
        ))
        or any(
             [
-                mylar.CONFIG.NZBSU is True,
-                mylar.CONFIG.DOGNZB is True,
                 mylar.CONFIG.EXPERIMENTAL is True,
             ]
         )
@@ -2050,8 +2009,6 @@ def searchforissue(issueid=None, new=False, rsschecker=None, manual=False):
                 ) or (
                     any(
                         [
-                            mylar.CONFIG.NZBSU is True,
-                            mylar.CONFIG.DOGNZB is True,
                             mylar.CONFIG.EXPERIMENTAL is True,
                             mylar.CONFIG.ENABLE_GETCOMICS is True,
                             mylar.CONFIG.ENABLE_EXTERNAL_SERVER is True,
@@ -2552,8 +2509,6 @@ def searchIssueIDList(issuelist):
         )
         ) or any(
             [
-                mylar.CONFIG.NZBSU is True,
-                mylar.CONFIG.DOGNZB is True,
                 mylar.CONFIG.EXPERIMENTAL is True,
             ]
         )
@@ -2960,7 +2915,7 @@ def searcher(
         payload = None
         headers = {'User-Agent': str(mylar.USER_AGENT)}
         # link doesn't have the apikey - add it and use ?t=get for newznab based.
-        if provider_stat['type'] == 'newznab' or nzbprov == 'nzb.su':
+        if provider_stat['type'] == 'newznab':
             # need to basename the link so it just has the id/hash.
             # rss doesn't store apikey, have to put it back.
             if provider_stat['type'] == 'newznab':
@@ -2982,10 +2937,6 @@ def searcher(
                         if uid is not None:
                             payload['i'] = uid
                     verify = bool(newznab[2])
-            else:
-                down_url = 'https://api.nzb.su/api'
-                apikey = mylar.CONFIG.NZBSU_APIKEY
-                verify = bool(mylar.CONFIG.NZBSU_VERIFY)
 
             if nzbhydra is True:
                 down_url = link
@@ -2998,11 +2949,6 @@ def searcher(
                 payload = {'t': 'get', 'id': str(nzbid), 'apikey': str(apikey)}
             else:
                 down_url = link
-
-        elif nzbprov == 'dognzb':
-            # dognzb - need to add back in the dog apikey
-            down_url = urljoin(link, str(mylar.CONFIG.DOGNZB_APIKEY))
-            verify = bool(mylar.CONFIG.DOGNZB_VERIFY)
 
         else:
             # experimental - direct link.
@@ -4079,12 +4025,6 @@ def generate_id(nzbprov, link, comicname):
             path_parts = url_parts[2].rpartition('/')
             nzbtempid = path_parts[2]
             nzbid = re.sub('.torrent', '', nzbtempid).rstrip()
-    elif nzbprov == 'nzb.su':
-        nzbid = os.path.splitext(link)[0].rsplit('/', 1)[1]
-    elif nzbprov == 'dognzb':
-        url_parts = urlparse(link)
-        path_parts = url_parts[2].rpartition('/')
-        nzbid = path_parts[0].rsplit('/', 1)[1]
     elif 'newznab' in nzbprov:
         # if in format of http://newznab/getnzb/<id>.nzb&i=1&r=apikey
         tmpid = urlparse(link)[

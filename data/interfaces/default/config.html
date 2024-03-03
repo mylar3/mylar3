@@ -279,7 +279,7 @@
                                 <legend>API</legend>
                                 <div class="row">
                                    <label>ComicVine API Key</label>
-                                   <input type="text" name="comicvine_api" id="comicvine_api" value="${config['comicvine_api']}" title="get one for free @ http://api.comicvine.com" size="40">
+                                   <input type="text" placeholder="None" onfocus="if(this.value==this.defaultValue) this.value='$config["comicvine_api"]}';" name="comicvine_api" id="comicvine_api" value="${config['comicvine_api']}" title="get one for free @ https://comicvine.gamespot.com/api" size="40">
                                    <small>specify your own CV API key here </small>
                                 </div>
 
@@ -817,49 +817,6 @@
                             </br><small>last run: ${config['rss_last']}</small>
                           </div>
                         </fieldset>
-                	<fieldset>
-                		<div class="row checkbox left clearfix">
-                                    <input id="usenzbsu" type="checkbox" onclick="initConfigCheckbox($(this));" name="nzbsu" value="1" ${config['nzbsu']} /><legend>NZB.SU</legend>
-                		</div>
-                		<div class="config">
-                                        <div class="row checkbox">
-                                            <input type="checkbox" name="nzbsu_verify" id="nzbsu_verify" value="1" ${config['nzbsu_verify']} /><label>Verify SSL</label>
-                                        </div>
-                                        <div class="row">
-                                            <label>NZB.SU UID</label>
-                                            <input type="text" name="nzbsu_uid" value="${config['nzbsu_uid']}" size="15" >
-                                            <small>( only needed for RSS feed )</small>
-                                        </div>
-	                		<div class="row">
-	                		 	<label>NZB.SU API</label>
-                                                <input type="text" name="nzbsu_apikey" id="nzbsu_apikey" value="${config['nzbsu_api']}" size="36">
-                  		        </div>
-                                        <div>
-                                                <img name="nzbsu_statusicon" id="nzbsu_statusicon" src="images/success.png" style="float:right;visibility:hidden;" height="20" width="20" />
-                                                <input type="button" class="newznabtest" value="Test Connection" id="test_nzbsu" name="test_nzbsu" style="float:right;margin-right:10px;" />
-                                        </div>
-                		</div>
-                	</fieldset>
-
-                        <fieldset>
-                                <div class="row checkbox left clearfix">
-                                     <input id="usedognzb" type="checkbox" onclick="initConfigCheckbox($(this));" name="dognzb" value="1" ${config['dognzb']} /><legend>DOGNZB</legend>
-                                </div>
-                                <div class="config">
-                                        <div class="row checkbox">
-                                             <input id="dognzb_verify" type="checkbox" name="dognzb_verify" id="dognzb_verify" value="1" ${config['dognzb_verify']} /><label>Verify SSL</label>
-                                        </div>
-                                        <div class="row">
-                                                <label>DOGNZB API</label>
-                                                <input type="text" name="dognzb_apikey" id="dognzb_apikey" value="${config['dognzb_api']}" size="36">
-                                        </div>
-                                        <div>
-                                                 <img name="dognzb_statusicon" id="dognzb_statusicon" src="images/success.png" style="float:right;visibility:hidden;" height="20" width="20" />
-                                                 <input type="button" class="newznabtest" value="Test Connection" id="test_dognzb" name="test_dognzb" style="float:right;margin-right:10px;" />
-                                        </div>
-                                </div>
-                        </fieldset>
-
                         <fieldset>
                                 <div class="row checkbox left clearfix">
                                    <input id="useexperimental" type="checkbox" onclick="initConfigCheckbox($(this));" name="experimental" value="1" ${config['experimental']} /><legend>Use Experimental Search</legend>
@@ -3380,8 +3337,8 @@
                 initConfigCheckbox("#sab_to_mylar");
                 initConfigCheckbox("#usenewznab");
                 initConfigCheckbox("#enable_torznab");
-		initConfigCheckbox("#usenzbsu");
-                initConfigCheckbox("#usedognzb");
+		//initConfigCheckbox("#usenzbsu");
+                //initConfigCheckbox("#usedognzb");
                 initConfigCheckbox("#enable_torrents");
                 initConfigCheckbox("#enable_torrent_search");
                 initConfigCheckbox("#enable_32p");

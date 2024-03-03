@@ -214,13 +214,20 @@ def addComictoDB(comicid, mismatch=None, pullupd=None, imported=None, ogcname=No
 
     CV_NoYearGiven = "no"
     #if the SeriesYear returned by CV is blank or none (0000), let's use the gcd one.
-    if any([comic['ComicYear'] is None, comic['ComicYear'] == '0000', comic['ComicYear'][-1:] == '-']):
+    if any([comic['ComicYear'] is None, comic['ComicYear'] == '0000', comic['ComicYear'][-1:] == '-', comic['ComicYear'] == '2099']):
         if mylar.CONFIG.CV_ONLY:
             #we'll defer this until later when we grab all the issues and then figure it out
             logger.info('Uh-oh. I cannot find a Series Year for this series. I am going to try analyzing deeper.')
             SeriesYear = cv.getComic(comicid, 'firstissue', comic['FirstIssueID'])
-            if not SeriesYear:
-                return
+            if not SeriesYear or SeriesYear == '2099':
+                try:
+                    if int(comic['ComicYear']) == 2099:
+                        logger.fdebug('Incorrect Series year detected (%s) ...'
+                                      ' Correcting to current year as this is probably a new series' % (comic['ComicYear'])
+                        )
+                        SeriesYear = str(datetime.datetime.now().year)
+                except Exception as e:
+                    return
             if SeriesYear == '0000':
                 logger.info('Ok - I could not find a Series Year at all. Loading in the issue data now and will figure out the Series Year.')
                 CV_NoYearGiven = "yes"
@@ -286,6 +293,8 @@ def addComictoDB(comicid, mismatch=None, pullupd=None, imported=None, ogcname=No
     # let's remove the non-standard characters here that will break filenaming / searching.
     comicname_filesafe = helpers.filesafe(u_comicnm)
 
+    dir_rename = False
+
     if comlocation is None:
 
         comic_values = {'ComicName':        comic['ComicName'],
@@ -308,9 +317,43 @@ def addComictoDB(comicid, mismatch=None, pullupd=None, imported=None, ogcname=No
     else:
         comsubpath = comlocation.replace(mylar.CONFIG.DESTINATION_DIR, '').strip()
 
+        #check for year change and rename the folder to the corrected year...
+        if comic['ComicYear'] == '2099' and SeriesYear:
+            badyears = [i.start() for i in re.finditer('2099', comlocation)]
+            num_bad = len(badyears)
+            if num_bad == 1:
+                new_location = re.sub('2099', SeriesYear, comlocation)
+                dir_rename = True
+            elif num_bad > 1:
+                #assume right-most is the year cause anything else isn't very smart anyways...
+                new_location = comlocation[:badyears[num_bad-1]] + SeriesYear + comlocation[badyears[num_bad-1]+1:]
+                dir_rename = True
+
+        if dir_rename and all([new_location != comlocation, os.path.isdir(comlocation)]):
+            logger.fdebug('Attempting to rename existing location [%s]' % (comlocation))
+            try:
+                # make sure 2 levels up in strucure exist
+                if not os.path.exists(os.path.split ( os.path.split(new_location)[0] ) [0] ):
+                    logger.fdebug('making directory: %s' % os.path.split(os.path.split(new_location)[0])[0])
+                    os.mkdir(os.path.split(os.path.split(new_location)[0])[0])
+                # make sure parent directory exists
+                if not os.path.exists(os.path.split(new_location)[0]):
+                    logger.fdebug('making directory: %s' % os.path.split(new_location)[0])
+                    os.mkdir(os.path.split(new_location)[0])
+                logger.info('Renaming directory: %s --> %s' % (comlocation,new_location))
+                shutil.move(comlocation, new_location)
+            except Exception as e:
+                if 'No such file or directory' in e:
+                    if mylar.CONFIG.CREATE_FOLDERS:
+                        checkdirectory = filechecker.validateAndCreateDirectory(new_location, True)
+                        if not checkdirectory:
+                            logger.warn('Error trying to validate/create directory. Aborting this process at this time.')
+                else:
+                    logger.warn('Unable to rename existing directory: %s' % e)
+
     #moved this out of the above loop so it will chk for existance of comlocation in case moved
     #if it doesn't exist - create it (otherwise will bugger up later on)
-    if comlocation is not None:
+    if not dir_rename and comlocation is not None:
         if os.path.isdir(comlocation):
             logger.info('Directory (' + comlocation + ') already exists! Continuing...')
         else:

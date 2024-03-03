@@ -1380,13 +1380,32 @@ class WebInterface(object):
         raise cherrypy.HTTPRedirect("comicDetails?ComicID=%s" % comicid)
     addComic.exposed = True
 
-    def addbyid(self, comicid, calledby=None, imported=None, ogcname=None, nothread=False, seriesyear=None, query_id=None, com_location=None, booktype=None):
+    def addbyid(self, comicid, calledby=None, imported=None, ogcname=None, nothread=False, seriesyear=None, query_id=None, com_location=None, booktype=None, markupcoming=None, markall=None):
         mismatch = "no"
         if com_location == 'null':
             com_location = None
         if booktype == 'null':
             booktype = None
         logger.info('com_location: %s' % com_location)
+
+        writeit = False
+        if markupcoming:
+            autoup = False
+            if markupcoming == 'true':
+                autoup = True
+            if autoup != mylar.CONFIG.AUTOWANT_UPCOMING:
+                mylar.CONFIG.AUTOWANT_UPCOMING = autoup
+                writeit = True
+        if markall:
+            autoall = False
+            if markall == 'true':
+                autoall = True
+            if autoall != mylar.CONFIG.AUTOWANT_ALL:
+                mylar.CONFIG.AUTOWANT_ALL = autoall
+                writeit = True
+        if writeit:
+            mylar.CONFIG.writeconfig(values={'autowant_all': mylar.CONFIG.AUTOWANT_ALL, 'autowant_upcoming': mylar.CONFIG.AUTOWANT_UPCOMING})
+
         if query_id is not None:
            myDB = db.DBConnection()
            query_chk = myDB.selectone("SELECT * FROM tmp_searches where query_id=? AND comicid=?", [query_id, comicid]).fetchone()
@@ -2520,23 +2539,23 @@ class WebInterface(object):
                 newznabinfo = None
                 link = None
 
-                if fullprov == 'nzb.su':
-                    if not mylar.CONFIG.NZBSU:
-                        logger.error('nzb.su is not enabled - unable to process retry request until provider is re-enabled.')
-                        continue
-                    # http://nzb.su/getnzb/ea1befdeee0affd663735b2b09010140.nzb&i=<uid>&r=<passkey>
-                    link = 'http://nzb.su/getnzb/' + str(id) + '.nzb&i=' + str(mylar.CONFIG.NZBSU_UID) + '&r=' + str(mylar.CONFIG.NZBSU_APIKEY)
-                    logger.info('fetched via nzb.su. Retrying the send : ' + str(link))
-                    retried = True
-                elif fullprov == 'dognzb':
-                    if not mylar.CONFIG.DOGNZB:
-                        logger.error('Dognzb is not enabled - unable to process retry request until provider is re-enabled.')
-                        continue
-                    # https://dognzb.cr/fetch/5931874bf7381b274f647712b796f0ac/<passkey>
-                    link = 'https://dognzb.cr/fetch/' + str(id) + '/' + str(mylar.CONFIG.DOGNZB_APIKEY)
-                    logger.info('fetched via dognzb. Retrying the send : ' + str(link))
-                    retried = True
-                elif fullprov == 'experimental':
+                #if fullprov == 'nzb.su':
+                #    if not mylar.CONFIG.NZBSU:
+                #        logger.error('nzb.su is not enabled - unable to process retry request until provider is re-enabled.')
+                #        continue
+                #    # http://nzb.su/getnzb/ea1befdeee0affd663735b2b09010140.nzb&i=<uid>&r=<passkey>
+                #    link = 'http://nzb.su/getnzb/' + str(id) + '.nzb&i=' + str(mylar.CONFIG.NZBSU_UID) + '&r=' + str(mylar.CONFIG.NZBSU_APIKEY)
+                #    logger.info('fetched via nzb.su. Retrying the send : ' + str(link))
+                #    retried = True
+                #elif fullprov == 'dognzb':
+                #    if not mylar.CONFIG.DOGNZB:
+                #        logger.error('Dognzb is not enabled - unable to process retry request until provider is re-enabled.')
+                #        continue
+                #    # https://dognzb.cr/fetch/5931874bf7381b274f647712b796f0ac/<passkey>
+                #    link = 'https://dognzb.cr/fetch/' + str(id) + '/' + str(mylar.CONFIG.DOGNZB_APIKEY)
+                #    logger.info('fetched via dognzb. Retrying the send : ' + str(link))
+                #    retried = True
+                if fullprov == 'experimental':
                     if not mylar.CONFIG.EXPERIMENTAL:
                         logger.error('Experimental is not enabled - unable to process retry request until provider is re-enabled.')
                         continue
@@ -6782,13 +6801,6 @@ class WebInterface(object):
                     "qbittorrent_loadaction": mylar.CONFIG.QBITTORRENT_LOADACTION,
                     "blackhole_dir": mylar.CONFIG.BLACKHOLE_DIR,
                     "usenet_retention": mylar.CONFIG.USENET_RETENTION,
-                    "nzbsu": helpers.checked(mylar.CONFIG.NZBSU),
-                    "nzbsu_uid": mylar.CONFIG.NZBSU_UID,
-                    "nzbsu_api": mylar.CONFIG.NZBSU_APIKEY,
-                    "nzbsu_verify": helpers.checked(mylar.CONFIG.NZBSU_VERIFY),
-                    "dognzb": helpers.checked(mylar.CONFIG.DOGNZB),
-                    "dognzb_api": mylar.CONFIG.DOGNZB_APIKEY,
-                    "dognzb_verify": helpers.checked(mylar.CONFIG.DOGNZB_VERIFY),
                     "experimental": helpers.checked(mylar.CONFIG.EXPERIMENTAL),
                     "enable_torznab": helpers.checked(mylar.CONFIG.ENABLE_TORZNAB),
                     "extra_torznabs": sorted(mylar.CONFIG.EXTRA_TORZNABS, key=itemgetter(5), reverse=True),
@@ -7278,8 +7290,7 @@ class WebInterface(object):
     def configUpdate(self, **kwargs):
         checked_configs = ['enable_https', 'launch_browser', 'backup_on_start', 'syno_fix', 'auto_update', 'annuals_on', 'api_enabled', 'nzb_startup_search',
                            'enforce_perms', 'sab_to_mylar', 'torrent_local', 'torrent_seedbox', 'rtorrent_ssl', 'rtorrent_verify', 'rtorrent_startonload',
-                           'enable_torrents', 'enable_rss', 'nzbsu', 'nzbsu_verify',
-                           'dognzb', 'dognzb_verify', 'experimental', 'enable_torrent_search', 'enable_32p', 'enable_torznab',
+                           'enable_torrents', 'enable_rss', 'experimental', 'enable_torrent_search', 'enable_32p', 'enable_torznab',
                            'newznab', 'use_minsize', 'use_maxsize', 'ddump', 'failed_download_handling', 'sab_client_post_processing', 'nzbget_client_post_processing',
                            'failed_auto', 'post_processing', 'enable_check_folder', 'enable_pre_scripts', 'enable_snatch_script', 'enable_extra_scripts',
                            'enable_meta', 'cbr2cbz_only', 'ct_tag_cr', 'ct_tag_cbl', 'ct_cbz_overwrite', 'cmtag_start_year_as_volume', 'cmtag_volume', 'setdefaultvolume',

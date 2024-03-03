@@ -869,8 +869,6 @@ class search_check(object):
             if nowrite is False:
                 if any(
                     [
-                        nzbprov == 'dognzb',
-                        nzbprov == 'nzb.su',
                         nzbprov == 'experimental',
                         'newznab' in nzbprov,
                     ]
@@ -1072,8 +1070,6 @@ class search_check(object):
                     if nowrite is False:
                         if any(
                             [
-                                nzbprov == 'dognzb',
-                                nzbprov == 'nzb.su',
                                 nzbprov == 'experimental',
                                 'newznab' in nzbprov,
                                 provider_stat['type'] == 'newznab',
