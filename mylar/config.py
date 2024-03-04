@@ -871,7 +871,12 @@ class Config(object):
             setattr(self, 'EXTRA_NEWZNABS', enz)
             setattr(self, 'EXTRA_TORZNABS', extra_torznabs)
             myDB = db.DBConnection()
-            chk_tbl = myDB.action("DELETE FROM provider_searches where id=102 or id=103")
+            try:
+                chk_tbl = myDB.action("DELETE FROM provider_searches where id=102 or id=103")
+            except Exception as e:
+                #if the table doesn't exist yet, it'll get created after the config loads on new installs.
+                pass
+
             self.writeconfig(startup=False)
 
         logger.info('Configuration upgraded to version %s' % self.newconfig)
