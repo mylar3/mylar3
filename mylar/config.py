@@ -847,9 +847,6 @@ class Config(object):
                 keep_it = None
                 kcnt+=1
 
-            logger.fdebug('keep_nzbsu: %s' % (keep_nzbsu,))
-            logger.fdebug('keep_dognzb: %s' % (keep_dognzb,))
-
             try:
                 config.remove_option('NZBsu', 'nzbsu')
                 config.remove_option('NZBsu', 'nzbsu_uid')
@@ -872,12 +869,12 @@ class Config(object):
             setattr(self, 'EXTRA_TORZNABS', extra_torznabs)
             myDB = db.DBConnection()
             try:
-                chk_tbl = myDB.action("DELETE FROM provider_searches where id=102 or id=103")
+                ccd = myDB.select("PRAGMA table_info(provider_searches)")
+                if ccd:
+                    chk_tbl = myDB.action("DELETE FROM provider_searches where id=102 or id=103")
             except Exception as e:
                 #if the table doesn't exist yet, it'll get created after the config loads on new installs.
                 pass
-
-            self.writeconfig(startup=False)
 
         logger.info('Configuration upgraded to version %s' % self.newconfig)
 
