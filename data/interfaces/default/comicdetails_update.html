@@ -181,7 +181,7 @@
                                                         if cid[re.sub('4050-', '', x['comicid']).strip()]['comicid']:
                                                             watch = "<a href='comicDetails?ComicID=%s' title='In Watchlist'>%s</a>" % (cid[re.sub('4050-', '', x['comicid']).strip()]['comicid'], x['series'])
                                                     except:
-                                                            watch = "%s" % (x['series'])
+                                                            watch = "<a href='https://comicvine.gamespot.com/volume/%s' title='link to CV' target='_blank'>%s</a>" % (x['comicid'],x['series'])
                                                 else:
                                                     watch = x['series']
                                                 if cnt == 0:
