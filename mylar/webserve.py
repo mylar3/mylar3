@@ -1031,6 +1031,7 @@ class WebInterface(object):
                                 'publisher': rt['publisher'],
                                 'comicid':   rt['comicid'],
                                 'comicyear': rt['comicyear'],
+                                'volume': rt['volume'],
                                 'issues': int(rt['issues']),
                                 'deck': rt['deck'],
                                 'url': rt['url'],
