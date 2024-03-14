@@ -160,7 +160,7 @@ class FileHandlers(object):
             chunk_f = re.compile(r'\s+')
             chunk_folder_format = chunk_f.sub(' ', chunk_f_f)
 
-        chunk_folder_format = re.sub("[()|[]]", '', chunk_folder_format).strip()
+        chunk_folder_format = re.sub(r'\(\)|\[\]', '', chunk_folder_format).strip()
         ccf = chunk_folder_format.find('/ ')
         if ccf != -1:
             chunk_folder_format = chunk_folder_format[:ccf+1] + chunk_folder_format[ccf+2:]
