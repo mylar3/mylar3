@@ -113,6 +113,11 @@ def addComictoDB(comicid, mismatch=None, pullupd=None, imported=None, ogcname=No
                     logger.warn('Error trying to validate/create directory. Aborting this process at this time.')
                     return {'status': 'incomplete'}
             oldcomversion = dbcomic['ComicVersion'] #store the comicversion and chk if it exists before hammering.
+            db_check_values = {'comicname': dbcomic['ComicName'],
+                               'comicyear': dbcomic['ComicYear'],
+                               'publisher': dbcomic['ComicPublisher'],
+                               'detailurl': dbcomic['DetailURL'],
+                               'total_count': dbcomic['Total']}
 
     if dbcomic is None or bypass is False:
         newValueDict = {"ComicName":   "Comic ID: %s" % (comicid),
@@ -131,6 +136,7 @@ def addComictoDB(comicid, mismatch=None, pullupd=None, imported=None, ogcname=No
         aliases = None
         FirstImageSize = 0
         old_description = None
+        db_check_values = None
 
     myDB.upsert("comics", newValueDict, controlValueDict)
 
@@ -158,6 +164,17 @@ def addComictoDB(comicid, mismatch=None, pullupd=None, imported=None, ogcname=No
         sortname = comic['ComicName'][4:]
     else:
         sortname = comic['ComicName']
+
+    if db_check_values is not None:
+        if comic['ComicURL'] != db_check_values['detailurl']:
+            logger.warn('[CORRUPT-COMICID-DETECTION-ENABLED] ComicID may have been removed from CV'
+                        ' and replaced with an entirely different series/volume. Checking some values'
+                        ' to make sure before proceeding...'
+            )
+            i_choose_violence = cv.check_that_biatch(comicid, db_check_values, comic)
+            if i_choose_violence:
+                myDB.upsert("comics", {'Status': 'Paused', 'cv_removed': 1}, {'ComicID': comicid})
+                return {'status': 'incomplete'}
 
     comic['Corrected_Type'] = fixed_type
     if fixed_type is not None and fixed_type != comic['Type']:
@@ -197,13 +214,20 @@ def addComictoDB(comicid, mismatch=None, pullupd=None, imported=None, ogcname=No
 
     CV_NoYearGiven = "no"
     #if the SeriesYear returned by CV is blank or none (0000), let's use the gcd one.
-    if any([comic['ComicYear'] is None, comic['ComicYear'] == '0000', comic['ComicYear'][-1:] == '-']):
+    if any([comic['ComicYear'] is None, comic['ComicYear'] == '0000', comic['ComicYear'][-1:] == '-', comic['ComicYear'] == '2099']):
         if mylar.CONFIG.CV_ONLY:
             #we'll defer this until later when we grab all the issues and then figure it out
             logger.info('Uh-oh. I cannot find a Series Year for this series. I am going to try analyzing deeper.')
             SeriesYear = cv.getComic(comicid, 'firstissue', comic['FirstIssueID'])
-            if not SeriesYear:
-                return
+            if not SeriesYear or SeriesYear == '2099':
+                try:
+                    if int(comic['ComicYear']) == 2099:
+                        logger.fdebug('Incorrect Series year detected (%s) ...'
+                                      ' Correcting to current year as this is probably a new series' % (comic['ComicYear'])
+                        )
+                        SeriesYear = str(datetime.datetime.now().year)
+                except Exception as e:
+                    return
             if SeriesYear == '0000':
                 logger.info('Ok - I could not find a Series Year at all. Loading in the issue data now and will figure out the Series Year.')
                 CV_NoYearGiven = "yes"
@@ -269,6 +293,8 @@ def addComictoDB(comicid, mismatch=None, pullupd=None, imported=None, ogcname=No
     # let's remove the non-standard characters here that will break filenaming / searching.
     comicname_filesafe = helpers.filesafe(u_comicnm)
 
+    dir_rename = False
+
     if comlocation is None:
 
         comic_values = {'ComicName':        comic['ComicName'],
@@ -291,9 +317,43 @@ def addComictoDB(comicid, mismatch=None, pullupd=None, imported=None, ogcname=No
     else:
         comsubpath = comlocation.replace(mylar.CONFIG.DESTINATION_DIR, '').strip()
 
+        #check for year change and rename the folder to the corrected year...
+        if comic['ComicYear'] == '2099' and SeriesYear:
+            badyears = [i.start() for i in re.finditer('2099', comlocation)]
+            num_bad = len(badyears)
+            if num_bad == 1:
+                new_location = re.sub('2099', SeriesYear, comlocation)
+                dir_rename = True
+            elif num_bad > 1:
+                #assume right-most is the year cause anything else isn't very smart anyways...
+                new_location = comlocation[:badyears[num_bad-1]] + SeriesYear + comlocation[badyears[num_bad-1]+1:]
+                dir_rename = True
+
+        if dir_rename and all([new_location != comlocation, os.path.isdir(comlocation)]):
+            logger.fdebug('Attempting to rename existing location [%s]' % (comlocation))
+            try:
+                # make sure 2 levels up in strucure exist
+                if not os.path.exists(os.path.split ( os.path.split(new_location)[0] ) [0] ):
+                    logger.fdebug('making directory: %s' % os.path.split(os.path.split(new_location)[0])[0])
+                    os.mkdir(os.path.split(os.path.split(new_location)[0])[0])
+                # make sure parent directory exists
+                if not os.path.exists(os.path.split(new_location)[0]):
+                    logger.fdebug('making directory: %s' % os.path.split(new_location)[0])
+                    os.mkdir(os.path.split(new_location)[0])
+                logger.info('Renaming directory: %s --> %s' % (comlocation,new_location))
+                shutil.move(comlocation, new_location)
+            except Exception as e:
+                if 'No such file or directory' in e:
+                    if mylar.CONFIG.CREATE_FOLDERS:
+                        checkdirectory = filechecker.validateAndCreateDirectory(new_location, True)
+                        if not checkdirectory:
+                            logger.warn('Error trying to validate/create directory. Aborting this process at this time.')
+                else:
+                    logger.warn('Unable to rename existing directory: %s' % e)
+
     #moved this out of the above loop so it will chk for existance of comlocation in case moved
     #if it doesn't exist - create it (otherwise will bugger up later on)
-    if comlocation is not None:
+    if not dir_rename and comlocation is not None:
         if os.path.isdir(comlocation):
             logger.info('Directory (' + comlocation + ') already exists! Continuing...')
         else:
@@ -1096,7 +1156,7 @@ def issue_collection(issuedata, nostatus, serieslast_updated=None):
                 #logger.fdebug("Not changing the status at this time - reverting to previous module after to re-append existing status")
                 pass #newValueDict['Status'] = "Skipped"
 
-            logger.info('issue_collection results: [%s] %s' % (controlValueDict, newValueDict))
+            #logger.fdebug('issue_collection results: [%s] %s' % (controlValueDict, newValueDict))
             try:
                 myDB.upsert(dbwrite, newValueDict, controlValueDict)
             except sqlite3.InterfaceError as e:
@@ -1367,9 +1427,22 @@ def updateissuedata(comicid, comicname=None, issued=None, comicIssues=None, call
                         #int_issnum = str(issnum)
                         int_issnum = (int(issb4dec) * 1000) + (int(issaftdec) * 10)
                     except ValueError:
-                        logger.error('This has no issue # for me to get - Either a Graphic Novel or one-shot.')
-                        updater.no_searchresults(comicid)
-                        return {'status': 'failure'}
+                        try:
+                            ordtot = 0
+                            if any(ext == issaftdec.upper() for ext in mylar.ISSUE_EXCEPTIONS):
+                                logger.fdebug('issue_exception detected..')
+                                inu = 0
+                                while (inu < len(issaftdec)):
+                                    ordtot += ord(issaftdec[inu].lower())  #lower-case the letters for simplicty
+                                    inu+=1
+                                int_issnum = (int(issb4dec) * 1000) + ordtot
+                        except Exception as e:
+                                logger.warn('error: %s' % e)
+                                ordtot = 0
+                        if ordtot == 0:
+                            logger.error('This has no issue # for me to get - Either a Graphic Novel or one-shot.')
+                            updater.no_searchresults(comicid)
+                            return {'status': 'failure'}
                 elif all([ '[' in issnum, ']' in issnum ]):
                     issnum_tmp = issnum.find('[')
                     int_issnum = int(issnum[:issnum_tmp].strip()) * 1000

@@ -13,7 +13,7 @@
   			    <a id="menu_link_delete" onclick="doAjaxCall('syncfiles',$(this),'table')" data-success="Successfully sent issues to your device">Sync</a>
                         %endif
                         <a id="menu_link_refresh" href="#" title="Add series that are in this arc, but not currently on your watchlist into your watchlist" onclick="doAjaxCall('addMissingSeriesFromArc?storyarcid=${storyarcid}',$(this),'table')" data-success="Submitted adding missing series for ${storyarcname}">Add Unwatched Series to Watchlist</a>
-                        <a id="menu_link_refresh" onclick="doAjaxCall('SearchArcIssues?StoryArcID=${storyarcid}',$(this),'table')" data-success="Now searching for Missing StoryArc Issues">Search for Missing</a>
+                        <a id="menu_link_refresh" onclick="doAjaxCall('SearchArcIssues?StoryArcID=${storyarcid}',$(this),'table')" title="Mark all missing issues as Wanted & Search" data-success="Now searching for Missing StoryArc Issues">Search for Missing</a>
                         <a id="menu_link_refresh" onclick="doAjaxCall('ArcWatchlist?StoryArcID=${storyarcid}',$(this),'table')" data-success="Now searching for matches on Watchlist & Rechecking files">Search for Watchlist matches/Recheck Files</a>
                         %if cvarcid:
                             <a id="menu_link_refresh" onclick="doAjaxCall('addStoryArc_thread?arcid=${storyarcid}&cvarcid=${cvarcid}&storyarcname=${storyarcname| u}&arcrefresh=True',$(this),'table')" data-success="Refreshed Story Arc">Refresh Story Arc</a>

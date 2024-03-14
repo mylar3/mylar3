@@ -83,6 +83,9 @@ class PostProcessor(object):
 
         self.valreturn = []
         self.extensions = ('.cbr', '.cbz', '.pdf', '.cb7')
+
+        self.extensions = tuple(x for x in self.extensions if x not in mylar.CONFIG.IGNORE_SEARCH_WORDS)
+
         self.failed_files = 0
         self.log = ''
         if issueid is not None:
@@ -249,7 +252,7 @@ class PostProcessor(object):
                 logger.fdebug('odir: %s [filename: %s][self.nzb_folder: %s]' % (odir, filename, self.nzb_folder))
                 logger.fdebug('sub_path: %s [cacheonly: %s][del_nzbdir: %s]' % (sub_path, cacheonly, del_nzbdir))
                 #if sub_path exists, then we need to use that in place of self.nzb_folder since the file was in a sub-directory within self.nzb_folder
-                if all([sub_path is not None, sub_path != self.nzb_folder]): #, self.issueid is not None]):
+                if all([sub_path is not None, sub_path != self.nzb_folder, sub_path != os.path.join(self.nzb_folder, 'mega')]): #, self.issueid is not None]):
                     if self.issueid is None:
                         logger.fdebug('Sub-directory detected during cleanup. Will attempt to remove if empty: %s' % sub_path)
                         orig_folder = sub_path
@@ -325,14 +328,17 @@ class PostProcessor(object):
                                     logger.warn('%s [%s] Unable to remove file : %s' % (self.module, e, os.path.join(tmp_folder, filename)))
                                 else:
                                     if not os.listdir(tmp_folder):
-                                       logger.fdebug('%s Tidying up. Deleting original folder location : %s' % (self.module, tmp_folder))
-                                       try:
-                                           shutil.rmtree(tmp_folder)
-                                       except Exception as e:
-                                           logger.warn('%s [%s] Unable to delete original folder location: %s' % (self.module, e, tmp_folder))
+                                       if os.path.join(mylar.CONFIG.DDL_LOCATION, 'mega') == tmp_folder:
+                                           logger.fdebug('%s Tidying up. %s sub-directory not being removed as is required for mega ddl' % (self.module, tmp_folder))
                                        else:
-                                           logger.fdebug('%s Removed original folder location: %s' % (self.module, tmp_folder))
-                                           self._log("Removed temporary directory : " + tmp_folder)
+                                           logger.fdebug('%s Tidying up. Deleting original folder location : %s' % (self.module, tmp_folder))
+                                           try:
+                                               shutil.rmtree(tmp_folder)
+                                           except Exception as e:
+                                               logger.warn('%s [%s] Unable to delete original folder location: %s' % (self.module, e, tmp_folder))
+                                           else:
+                                               logger.fdebug('%s Removed original folder location: %s' % (self.module, tmp_folder))
+                                               self._log("Removed temporary directory : " + tmp_folder)
                                     else:
                                         self._log('Failed to remove temporary directory: ' + tmp_folder)
                                         logger.error('%s %s not empty. Skipping removal of directory - this will either be caught in further post-processing or it will have to be manually deleted.' % (self.module, tmp_folder))
@@ -646,7 +652,7 @@ class PostProcessor(object):
                                                self.nzb_folder = clocation   # this is needed in order to delete after moving.
                                         else:
                                             try:
-                                                if all([pathlib.Path(tpath) != pathlib.Path(mylar.CACHE_DIR), pathlib.Path(tpath) != pathlib.Path(mylar.CONFIG.DDL_LOCATION)]):
+                                                if all([pathlib.Path(tpath) != pathlib.Path(mylar.CACHE_DIR), pathlib.Path(tpath) != pathlib.Path(mylar.CONFIG.DDL_LOCATION), pathlib.Path(tpath) != pathlib.Path(mylar.CONFIG.DDL_LOCATION).joinpath('mega')]):
                                                    if pathlib.Path(tpath).is_file():
                                                         try:
                                                             cloct = pathlib.Path(tpath).with_name(nfilename)
@@ -761,7 +767,18 @@ class PostProcessor(object):
                         if wv['ComicPublished'] is None:
                             logger.fdebug('Publication Run cannot be generated - probably due to an incomplete Refresh. Manually refresh the following series and try again: %s (%s)' % (wv['ComicName'], wv['ComicYear']))
                             continue
-                        if any([wv['Status'] == 'Paused', bool(wv['ForceContinuing']) is True]) or (wv['Have'] == wv['Total'] and not any(['Present' in wv['ComicPublished'], helpers.now()[:4] in wv['ComicPublished']])):
+                        if (wv['Status'] == 'Paused' and any(
+                                [
+                                  wv['cv_removed'] == 2,
+                                  bool(wv['ForceContinuing']) is True
+                                ]
+                            )) or (wv['Have'] == wv['Total'] and not any(
+                                [
+                                  'Present' in wv['ComicPublished'],
+                                  helpers.now()[:4] in wv['ComicPublished']
+                                ]
+                            )
+                        ):
                             dbcheck = myDB.selectone('SELECT Status FROM issues WHERE ComicID=? and Int_IssueNumber=?', [wv['ComicID'], tmp_iss]).fetchone()
                             if not dbcheck and mylar.CONFIG.ANNUALS_ON:
                                 dbcheck = myDB.selectone('SELECT Status FROM annuals WHERE ComicID=? and Int_IssueNumber=?', [wv['ComicID'], tmp_iss]).fetchone()
@@ -2067,7 +2084,7 @@ class PostProcessor(object):
                             ppinfo.append({'comicid':       oneinfo['ComicID'],
                                            'comicname':     oneinfo['ComicName'],
                                            'seriesyear':    oneinfo['SeriesYear'],
-                                           'seriesvolume':  oneinfo['ComicVolume'],
+                                           'seriesvolume':  oneinfo['Volume'],
                                            'issuenumber':   oneinfo['IssueNumber'],
                                            'publisher':     oneinfo['IssuePublisher'],
                                            'comiclocation': None,
@@ -3542,6 +3559,9 @@ class FolderCheck():
             mylar.MONITOR_STATUS = 'Paused'
             helpers.job_management(write=True)
         else:
+            if mylar.APILOCK is True:
+                logger.info('%s Unable to initiate folder monitor as another process is currently using it or using post-processing.' % self.module)
+                return {'status': 'IN PROGRESS'}
             helpers.job_management(write=True, job='Folder Monitor', current_run=helpers.utctimestamp(), status='Running')
             mylar.MONITOR_STATUS = 'Running'
             logger.info('%s Checking folder %s for newly snatched downloads' % (self.module, mylar.CONFIG.CHECK_FOLDER))

@@ -94,7 +94,7 @@ _CONFIG_DEFINITIONS = OrderedDict({
     'CREATE_FOLDERS': (bool, 'General', True),
     'ALTERNATE_LATEST_SERIES_COVERS': (bool, 'General', False),
     'SHOW_ICONS': (bool, 'General', False),
-    'FORMAT_BOOKTYPE': (bool, 'General', False),
+    'FORMAT_BOOKTYPE': (bool, 'General', True),
     'CLEANUP_CACHE': (bool, 'General', False),
     'SECURE_DIR': (str, 'General', None),
     'ENCRYPT_PASSWORDS': (bool, 'General', False),
@@ -155,7 +155,7 @@ _CONFIG_DEFINITIONS = OrderedDict({
     'CV_ONLY': (bool, 'CV', True),
     'CV_ONETIMER': (bool, 'CV', True),
     'CVINFO': (bool, 'CV', False),
-    'CV_USER_AGENT': (str, 'CV', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/42.0.2311.135 Safari/537.36 Edge/12.246'),
+    'CV_USER_AGENT': (str, 'CV', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36'),
     'IMPRINT_MAPPING_TYPE': (str, 'CV', 'CV'),  # either 'CV' for ComicVine or 'JSON' for imprints.json to choose which naming to use for imprints
 
     'LOG_DIR' : (str, 'Logs', None),
@@ -170,7 +170,7 @@ _CONFIG_DEFINITIONS = OrderedDict({
     'CHECK_GITHUB' : (bool, 'Git', False),
     'CHECK_GITHUB_ON_STARTUP' : (bool, 'Git', False),
 
-    'ENFORCE_PERMS': (bool, 'Perms', True),
+    'ENFORCE_PERMS': (bool, 'Perms', False),
     'CHMOD_DIR': (str, 'Perms', '0777'),
     'CHMOD_FILE': (str, 'Perms', '0660'),
     'CHOWNER': (str, 'Perms', None),
@@ -246,7 +246,7 @@ _CONFIG_DEFINITIONS = OrderedDict({
     'GOTIFY_TOKEN': (str, 'GOTIFY', None),
     'GOTIFY_ONSNATCH': (bool, 'GOTIFY', False),
 
-    'POST_PROCESSING': (bool, 'PostProcess', False),
+    'POST_PROCESSING': (bool, 'PostProcess', True),
     'FILE_OPTS': (str, 'PostProcess', 'move'),
     'SNATCHEDTORRENT_NOTIFY': (bool, 'PostProcess', False),
     'LOCAL_TORRENT_PP': (bool, 'PostProcess', False),
@@ -267,7 +267,7 @@ _CONFIG_DEFINITIONS = OrderedDict({
     'FOLDER_CACHE_LOCATION': (str, 'PostProcess', None),
 
     'PROVIDER_ORDER': (str, 'Providers', None),
-    'USENET_RETENTION': (int, 'Providers', 1500),
+    'USENET_RETENTION': (int, 'Providers', 3500),
 
     'NZB_DOWNLOADER': (int, 'Client', 0),  #0': sabnzbd, #1': nzbget, #2': blackhole
     'TORRENT_DOWNLOADER': (int, 'Client', 0),  #0': watchfolder, #1': uTorrent, #2': rTorrent, #3': transmission, #4': deluge, #5': qbittorrent
@@ -283,6 +283,9 @@ _CONFIG_DEFINITIONS = OrderedDict({
     'SAB_VERSION': (str, 'SABnzbd', None),
     'SAB_MOVING_DELAY': (int, 'SABnzbd', 5),
     'SAB_CLIENT_POST_PROCESSING': (bool, 'SABnzbd', False),   #0/False: ComicRN.py, #1/True: Completed Download Handling
+    'SAB_REMOVE_COMPLETED': (bool, 'SABnzbd', False),
+    'SAB_REMOVE_FAILED': (bool, 'SABnzbd', False),
+
 
     'NZBGET_HOST': (str, 'NZBGet', None),
     'NZBGET_PORT': (str, 'NZBGet', None),
@@ -294,15 +297,6 @@ _CONFIG_DEFINITIONS = OrderedDict({
     'NZBGET_CLIENT_POST_PROCESSING': (bool, 'NZBGet', False),   #0/False: ComicRN.py, #1/True: Completed Download Handling
 
     'BLACKHOLE_DIR': (str, 'Blackhole', None),
-
-    'NZBSU': (bool, 'NZBsu', False),
-    'NZBSU_UID': (str, 'NZBsu', None),
-    'NZBSU_APIKEY': (str, 'NZBsu', None),
-    'NZBSU_VERIFY': (bool, 'NZBsu', True),
-
-    'DOGNZB': (bool, 'DOGnzb', False),
-    'DOGNZB_APIKEY': (str, 'DOGnzb', None),
-    'DOGNZB_VERIFY': (bool, 'DOGnzb', True),
 
     'NEWZNAB': (bool, 'Newznab', False),
     'EXTRA_NEWZNABS': (str, 'Newznab', ""),
@@ -347,7 +341,7 @@ _CONFIG_DEFINITIONS = OrderedDict({
     'CT_NOTES_FORMAT': (str, 'Metatagging', 'Issue ID'),
     'CT_SETTINGSPATH': (str, 'Metatagging', None),
     'CMTAG_VOLUME': (bool, 'Metatagging', True),
-    'CMTAG_START_YEAR_AS_VOLUME': (bool, 'Metatagging', False),
+    'CMTAG_START_YEAR_AS_VOLUME': (bool, 'Metatagging', True),
     'SETDEFAULTVOLUME': (bool, 'Metatagging', False),
 
     'ENABLE_TORRENTS': (bool, 'Torrents', False),
@@ -358,11 +352,16 @@ _CONFIG_DEFINITIONS = OrderedDict({
 
     'ENABLE_DDL': (bool, 'DDL', False),
     'ENABLE_GETCOMICS': (bool, 'DDL', False),
+    'ENABLE_EXTERNAL_SERVER': (bool, 'DDL', False),
+    'EXTERNAL_SERVER': (str, 'DDL', None),
+    'EXTERNAL_USERNAME': (str, 'DDL', None),
+    'EXTERNAL_APIKEY': (str, 'DDL', None),
     'PACK_PRIORITY': (bool, 'DDL', False),
     'DDL_QUERY_DELAY': (int, 'DDL', 15),
     'DDL_LOCATION': (str, 'DDL', None),
     'DDL_AUTORESUME': (bool, 'DDL', True),
     'DDL_PREFER_UPSCALED': (bool, 'DDL', True),
+    'DDL_PRIORITY_ORDER': (str, 'DDL', []),
     'ENABLE_FLARESOLVERR': (bool, 'DDL', False),
     'FLARESOLVERR_URL': (str, 'DDL', None),
     'ENABLE_PROXY': (bool, 'DDL', False),
@@ -453,6 +452,13 @@ _BAD_DEFINITIONS = OrderedDict({
     'ENABLE_PUBLIC': ('Torrents', 'ENABLE_TPSE'),
     'PUBLIC_VERIFY': ('Torrents', 'TPSE_VERIFY'),
     'IGNORED_PUBLISHERS': ('CV', 'BLACKLISTED_PUBLISHERS'),
+    'NZBSU': ('NZBsu', 'nzbsu', bool, None),
+    'NZBSU_UID': ('NZBsu', 'nzbsu_uid', str, None),
+    'NZBSU_APIKEY': ('NZBsu', 'nzbsu_apikey', str, None),
+    'NZBSU_VERIFY': ('NZBsu', 'nzbsu_verify', bool, None),
+    'DOGNZB': ('DOGnzb', 'dognzb', bool, None),
+    'DOGNZB_APIKEY': ('DOGnzb', 'dognzb_apikey', str, None),
+    'DOGNZB_VERIFY': ('DOGnzb', 'dognzb_verify', bool, None),
 })
 
 class Config(object):
@@ -472,7 +478,7 @@ class Config(object):
                 count = 0
 
             #this is the current version at this particular point in time.
-            self.newconfig = 12
+            self.newconfig = 14
 
             OLDCONFIG_VERSION = 0
             if count == 0:
@@ -496,6 +502,7 @@ class Config(object):
         setattr(self, 'MINIMAL_INI', MINIMALINI)
 
         config_values = []
+
         for k,v in _CONFIG_DEFINITIONS.items():
             xv = []
             xv.append(k)
@@ -591,6 +598,22 @@ class Config(object):
                     elif k == 'MINIMAL_INI':
                         config.set(v[1], k.lower(), str(self.MINIMAL_INI))
 
+        #this section retains values of variables that are no longer being saved to the ini
+        #in case they are needed prior to wiping out things
+        self.OLD_VALUES = {}
+        for b, bv in _BAD_DEFINITIONS.items():
+            if len(bv) == 4:  #removal of option...
+                if bv[1] not in self.OLD_VALUES:
+                    try:
+                        if bv[2] == bool:
+                             self.OLD_VALUES[bv[1]] = config.getboolean(bv[0], bv[1])
+                        elif bv[2] == str:
+                             self.OLD_VALUES[bv[1]] = config.get(bv[0], bv[1])
+                        elif bv[2] == int:
+                             self.OLD_VALUES[bv[1]] = config.getint(bv[0], bv[1])
+                    except (configparser.NoSectionError, configparser.NoOptionError):
+                        pass
+
     def read(self, startup=False):
         self.config_vals()
 
@@ -633,13 +656,14 @@ class Config(object):
             cc = maintenance.Maintenance('backup')
             bcheck = cc.backup_files(cfg=True, dbs=False, backupinfo=backupinfo)
 
-            if self.CONFIG_VERSION < 12:
+            if self.CONFIG_VERSION < 14:
                 print('Attempting to update configuration..')
                 #8-torznab multiple entries merged into extra_torznabs value
                 #9-remote rtorrent ssl option
                 #10-encryption of all keys/passwords.
                 #11-provider ids
                 #12-ddl seperation into multiple providers, new keys, update tables
+                #13-remove dognzb and nzbsu as independent options (throw them under newznabs if present)
                 self.config_update()
             setattr(self, 'OLDCONFIG_VERSION', str(self.CONFIG_VERSION))
             setattr(self, 'CONFIG_VERSION', self.newconfig)
@@ -730,6 +754,127 @@ class Config(object):
                 config.set('DDL', 'enable_getcomics', self.ENABLE_GETCOMICS)
             #tables will be updated by checking the OLDCONFIG_VERSION in __init__
             logger.info('Successfully updated config to version 12 ( multiple DDL provider option )')
+        if self.newconfig < 15:
+            # remove nzbsu and dognzb as individual options
+            # if data exists already, add them as newznab options (if not already there or via Prowlarr)
+            try:
+                for chk_e in [self.OLD_VALUES['nzbsu_apikey'], self.OLD_VALUES['dognzb_apikey']]:
+                    if chk_e is not None:
+                        if chk_e[:5] == '^~$z$':
+                            nz = encrypted.Encryptor(chk_e)
+                            nz_stat = nz.decrypt_it()
+                            if nz_stat['status'] is True:
+                                if chk_e == self.OLD_VALUES['nzbsu_apikey']:
+                                    self.OLD_VALUES['nzbsu_apikey'] = nz_stat['password']
+                                else:
+                                    self.OLD_VALUES['dognzb_apikey'] = nz_stat['password']
+            except Exception as e:
+                pass
+
+            extra_newznabs, extra_torznabs = self.get_extras()
+            enz = []
+            dogs = []
+            nzbsus = []
+            try:
+                ncnt = 0
+                for en in extra_newznabs:
+                    dognzb_found = nzbsu_found = False
+                    ben = list(en)
+                    if ben[1] is not None:
+                        n_name = ben[0].lower()
+                        if n_name is None:
+                            n_name = ''
+                        if ben[3][:5] == '^~$z$':
+                            nz = encrypted.Encryptor(ben[3])
+                            nz_stat = nz.decrypt_it()
+                            if nz_stat['status'] is True:
+                                ben[3] = nz_stat['password']
+
+                        # prowlarr's url does not contain the actual url, hope the name contains it...
+                        if 'nzb.su' in ben[1].lower() or (any(['nzb.su' in n_name.lower(), 'nzbsu' in re.sub(r'\s', '', n_name).lower()]) and 'prowlarr' in n_name.lower()):
+                            nzbsus.append(tuple(ben))
+                            nzbsu_found = True
+                        elif 'dognzb' in ben[1].lower() or all(['dognzb' in re.sub(r'\s', '', n_name).lower(), 'prowlarr' in n_name.lower()]):
+                            dogs.append(tuple(ben))
+                            dognzb_found = True
+                        if not any([dognzb_found, nzbsu_found]):
+                            enz.append(tuple(ben))
+                    ncnt +=1
+            except Exception as e:
+                logger.warn('error: %s' % e)
+
+            try:
+                if self.OLD_VALUES['nzbsu']:
+                    mylar.PROVIDER_START_ID+=1
+                    tsnzbsu = '' if self.OLD_VALUES['nzbsu_uid'] is None else self.OLD_VALUES['nzbsu_uid']
+                    nzbsus.append(('nzb.su', 'https://api.nzb.su', '1', self.OLD_VALUES['nzbsu_apikey'], tsnzbsu, str(int(self.OLD_VALUES['nzbsu'])), mylar.PROVIDER_START_ID))
+            except Exception as e:
+                pass
+
+            try:
+                if self.OLD_VALUES['dognzb']:
+                    mylar.PROVIDER_START_ID+=1
+                    dogs.append(('DOGnzb', 'https://api.dognzb.cr', '1', self.OLD_VALUES['dognzb_apikey'], '', str(int(self.OLD_VALUES['dognzb'])), mylar.PROVIDER_START_ID))
+            except Exception as e:
+                pass
+
+            #loop thru nzbsus and dogs entries and only keep one (in order of priority): Enabled, Prowlarr, newznab
+            keep_nzbsu = None
+            keep_dognzb = None
+            keep_it = None
+            kcnt = 0
+            for ggg in [nzbsus, dogs]:
+                for gg in sorted(ggg, key=itemgetter(5), reverse=True):
+                    try:
+                        if gg[5] == '1':
+                            if gg[0] is not None:
+                                if 'Prowlarr' in gg[0]:
+                                    keep_it = gg
+                        if keep_it is None and gg[0] is not None:
+                            if 'Prowlarr' in gg[0]:
+                                keep_it = gg
+                        if keep_it is None:
+                            keep_it = gg
+                    except Exception as e:
+                        logger.error('error: %s' % e)
+
+                if kcnt == 0 and keep_it is not None:
+                    enz.append(keep_it)
+                    keep_nzbsu = keep_it
+                elif kcnt == 1 and keep_it is not None:
+                    enz.append(keep_it)
+                    keep_dognzb = keep_it
+                keep_it = None
+                kcnt+=1
+
+            try:
+                config.remove_option('NZBsu', 'nzbsu')
+                config.remove_option('NZBsu', 'nzbsu_uid')
+                config.remove_option('NZBsu', 'nzbsu_apikey')
+                config.remove_option('NZBsu', 'nzbsu_verify')
+            except configparser.NoSectionError:
+                pass
+            else:
+                config.remove_section('NZBsu')
+            try:
+                config.remove_option('DOGnzb', 'dognzb')
+                config.remove_option('DOGnzb', 'dognzb_verify')
+                config.remove_option('DOGnzb', 'dognzb_apikey')
+            except configparser.NoSectionError:
+                pass
+            else:
+                config.remove_section('DOGnzb')
+
+            setattr(self, 'EXTRA_NEWZNABS', enz)
+            setattr(self, 'EXTRA_TORZNABS', extra_torznabs)
+            myDB = db.DBConnection()
+            try:
+                ccd = myDB.select("PRAGMA table_info(provider_searches)")
+                if ccd:
+                    chk_tbl = myDB.action("DELETE FROM provider_searches where id=102 or id=103")
+            except Exception as e:
+                #if the table doesn't exist yet, it'll get created after the config loads on new installs.
+                pass
 
         logger.info('Configuration upgraded to version %s' % self.newconfig)
 
@@ -930,8 +1075,6 @@ class Config(object):
                             'SAB_PASSWORD':          ('SABnzbd', 'sab_password', self.SAB_PASSWORD),
                             'SAB_APIKEY':            ('SABnzbd', 'sab_apikey', self.SAB_APIKEY),
                             'NZBGET_PASSWORD':       ('NZBGet', 'nzbget_password', self.NZBGET_PASSWORD),
-                            'NZBSU_APIKEY':          ('NZBsu', 'nzbsu_apikey', self.NZBSU_APIKEY),
-                            'DOGNZB_APIKEY':         ('DOGnzb', 'dognzb_apikey', self.DOGNZB_APIKEY),
                             'UTORRENT_PASSWORD':     ('uTorrent', 'utorrent_password', self.UTORRENT_PASSWORD),
                             'TRANSMISSION_PASSWORD': ('Transmission', 'transmission_password', self.TRANSMISSION_PASSWORD),
                             'DELUGE_PASSWORD':       ('Deluge', 'deluge_password', self.DELUGE_PASSWORD),
@@ -1076,17 +1219,18 @@ class Config(object):
                 logger.error('[Backup Location Check] Could not create backup directory. Check permissions for creation of : %s' % self.BACKUP_LOCATION)
 
 
-        if self.STORYARCDIR is True:
-            if not self.STORYARC_LOCATION:
-                self.STORYARC_LOCATION = os.path.join(self.DESTINATION_DIR, 'StoryArcs')
+        if all([self.STORYARCDIR is True, self.DESTINATION_DIR is not None]):
+            if os.path.exists(self.DESTINATION_DIR):
+                if not self.STORYARC_LOCATION:
+                    self.STORYARC_LOCATION = os.path.join(self.DESTINATION_DIR, 'StoryArcs')
 
-            if not os.path.exists(self.STORYARC_LOCATION):
-                try:
-                    os.makedirs(self.STORYARC_LOCATION)
-                except OSError as e:
-                    logger.error('[STORYARC LOCATION] Could not create storyarcs directory @ %s. Error returned: %s' % (self.STORYARC_LOCATION, e))
+                if not os.path.exists(self.STORYARC_LOCATION):
+                    try:
+                        os.makedirs(self.STORYARC_LOCATION)
+                    except OSError as e:
+                        logger.error('[STORYARC LOCATION] Could not create storyarcs directory @ %s. Error returned: %s' % (self.STORYARC_LOCATION, e))
 
-            logger.info('[STORYARC LOCATION] Storyarc Base directory location set to: %s' % (self.STORYARC_LOCATION))
+                logger.info('[STORYARC LOCATION] Storyarc Base directory location set to: %s' % (self.STORYARC_LOCATION))
 
         #make sure the cookies.dat file is not in cache
         for f in glob.glob(os.path.join(self.CACHE_DIR, '.32p_cookies.dat')):
@@ -1099,7 +1243,7 @@ class Config(object):
 
         if self.CLEANUP_CACHE is True:
             logger.fdebug('[Cache Cleanup] Cache Cleanup initiated. Will delete items from cache that are no longer needed.')
-            cache_types = ['*.nzb', '*.torrent', '*.zip', '*.html', 'mylar_*']
+            cache_types = ['*.nzb', '*.torrent', '*.zip', '*.html', 'mylar_*', 'html_cache']
             cntr = 0
             for x in cache_types:
                 for f in glob.glob(os.path.join(self.CACHE_DIR,x)):
@@ -1169,6 +1313,12 @@ class Config(object):
             setattr(self, 'DUPECONSTRAINT', 'filesize')
             config.set('Duplicates', 'dupeconstraint', 'filesize')
 
+        if self.MINSIZE is not None:
+            self.MINSIZE = re.sub(r'[^0-9]', '', self.MINSIZE).strip()
+
+        if self.MAXSIZE is not None:
+            self.MAXSIZE = re.sub(r'[^0-9]', '', self.MAXSIZE).strip()
+
         if not helpers.is_number(self.CHMOD_DIR):
             logger.fdebug("CHMOD Directory value is not a valid numeric - please correct. Defaulting to 0777")
             self.CHMOD_DIR = '0777'
@@ -1202,12 +1352,16 @@ class Config(object):
             self.IGNORE_HAVETOTAL = False
             logger.warn('You cannot have both ignore_total and ignore_havetotal enabled in the config.ini at the same time. Set only ONE to true - disabling both until this is resolved.')
 
-        if len(self.MASS_PUBLISHERS) > 0:
+        if len(self.MASS_PUBLISHERS) > 0 and self.MASS_PUBLISHERS != '[]':
             if type(self.MASS_PUBLISHERS) != list:
                 try:
                     self.MASS_PUBLISHERS = json.loads(self.MASS_PUBLISHERS)
                 except Exception as e:
-                    logger.warn('[MASS_PUBLISHERS] Unable to convert publishers [%s]. Error returned: %s' % (self.MASS_PUBLISHERS, e))
+                    try:
+                        tmp_publishers = json.dumps(self.MASS_PUBLISHERS)
+                        self.MASS_PUBLISHERS = json.loads(tmp_publishers)
+                    except Exception as e:
+                        logger.warn('[MASS_PUBLISHERS] Unable to convert publishers [%s]. Error returned: %s' % (self.MASS_PUBLISHERS, e))
         logger.info('[MASS_PUBLISHERS] Auto-add for weekly publishers set to: %s' % (self.MASS_PUBLISHERS,))
 
         if len(self.IGNORE_SEARCH_WORDS) > 0 and self.IGNORE_SEARCH_WORDS != '[]':
@@ -1220,7 +1374,7 @@ class Config(object):
             setattr(self, 'IGNORE_SEARCH_WORDS', [".exe", ".iso", "pdf-xpost", "pdf", "ebook"])
             config.set('General', 'ignore_search_words', json.dumps(self.IGNORE_SEARCH_WORDS))
 
-        logger.info('[IGNORE_SEARCH_WORDS] Words to flag search result as invalid: %s' % (self.IGNORE_SEARCH_WORDS,))
+        logger.fdebug('[IGNORE_SEARCH_WORDS] Words to flag search result as invalid: %s' % (self.IGNORE_SEARCH_WORDS,))
 
         if len(self.PROBLEM_DATES) > 0 and self.PROBLEM_DATES != '[]':
             if type(self.PROBLEM_DATES) != list:
@@ -1296,6 +1450,54 @@ class Config(object):
             else:
                 logger.fdebug('Successfully created ComicTagger Settings location.')
 
+        #make sure the user_agent is running a current version and write it to the .ComicTagger file for use with CT
+        if '42.0.2311.135' in self.CV_USER_AGENT:
+            self.CV_USER_AGENT = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36'
+
+        ct_settingsfile = os.path.join(self.CT_SETTINGSPATH, 'settings')
+        if os.path.exists(ct_settingsfile):
+            ct_config = configparser.ConfigParser()
+            def readline_generator(f):
+                line = f.readline()
+                while line:
+                    yield line
+                    line = f.readline()
+
+            ct_config.read_file(
+                readline_generator(codecs.open(ct_settingsfile, "r", "utf8")))
+
+            tmp_agent = None
+            if ct_config.has_option('comicvine', 'cv_user_agent'):
+                tmp_agent = ct_config.get('comicvine', 'cv_user_agent')
+
+            if tmp_agent != self.CV_USER_AGENT:
+                #update
+                try:
+                    with codecs.open(ct_settingsfile, 'r', 'utf8') as ct_read:
+                        ct_lines = ct_read.readlines()
+
+                    process_next = False
+                    cv_line = 'cv_user_agent = %s' % self.CV_USER_AGENT
+                    with codecs.open(ct_settingsfile, encoding='utf8', mode='w+') as ct_file:
+                        for line in ct_lines:
+                            if 'cv_user_agent' in line:
+                                line = cv_line
+
+                            elif '[comicvine]' not in line and process_next:
+                                ct_file.write(cv_line+'\n')
+                                process_next = False
+
+                            if tmp_agent is None and '[comicvine]' in line:
+                                process_next = True
+
+                            ct_file.write(line)
+
+                    logger.fdebug('Updated CT Settings with new CV user agent string.')
+                except IOError as e:
+                    logger.warn("Error writing configuration file: %s" % e)
+            else:
+                logger.info('[CV_USER_AGENT] Agent already identical in comictagger session.')
+
         #make sure queues are running here...
         if startup is False:
             if self.POST_PROCESSING is True and ( all([self.NZB_DOWNLOADER == 0, self.SAB_CLIENT_POST_PROCESSING is True]) or all([self.NZB_DOWNLOADER == 1, self.NZBGET_CLIENT_POST_PROCESSING is True]) ):
@@ -1319,18 +1521,57 @@ class Config(object):
             config.set('General', 'folder_format', ann_remove)
 
         # need to recheck this cause of how enable_ddl and enable_getcomics are now
-        self.ENABLE_GETCOMICS = self.ENABLE_DDL
-        config.set('DDL', 'enable_getcomics', str(self.ENABLE_GETCOMICS))
+        #self.ENABLE_GETCOMICS = self.ENABLE_DDL
+        #config.set('DDL', 'enable_getcomics', str(self.ENABLE_GETCOMICS))
 
         if not self.DDL_LOCATION:
             self.DDL_LOCATION = self.CACHE_DIR
             if self.ENABLE_DDL is True:
                 logger.info('Setting DDL Location set to : %s' % self.DDL_LOCATION)
         else:
-            dcreate = filechecker.validateAndCreateDirectory(self.DDL_LOCATION, create=True, dmode='ddl location')
-            if dcreate is False and self.ENABLE_DDL is True:
+            try:
+                os.makedirs(self.DDL_LOCATION)
+                #dcreate = filechecker.validateAndCreateDirectory(self.DDL_LOCATION, create=True, dmode='ddl location')
+                #if dcreate is False and self.ENABLE_DDL is True:
+            except Exception as e:
                 logger.warn('Unable to create ddl_location specified in config: %s. Reverting to default cache location.' % self.DDL_LOCATION)
                 self.DDL_LOCATION = self.CACHE_DIR
+
+        if self.ENABLE_DDL:
+            #make sure directory for mega downloads is created...
+            mega_ddl_path = os.path.join(self.DDL_LOCATION, 'mega')
+            html_cache_path = os.path.join(self.CACHE_DIR, 'html_cache')
+            if not os.path.isdir(mega_ddl_path):
+                try:
+                    os.makedirs(mega_ddl_path)
+                except Exception as e:
+                    logger.error('Unable to create temp download directory [%s] for DDL-External. You will not be able to view the progress of the download.' % mega_ddl_path)
+            if not os.path.isdir(html_cache_path):
+                try:
+                    os.makedirs(html_cache_path)
+                except Exception as e:
+                    logger.error('Unable to create html_cache folder within the cache folder location [%s]. DDL will not work until this is corrected.' % html_cache_path)
+
+        if len(self.DDL_PRIORITY_ORDER) > 0 and self.DDL_PRIORITY_ORDER != '[]':
+            if type(self.DDL_PRIORITY_ORDER) != list:
+                try:
+                    self.DDL_PRIORITY_ORDER = json.loads(self.DDL_PRIORITY_ORDER)
+                except Exception as e:
+                    logger.warn('[DDL PRIORITY ORDER] Unable to load DDL priority order from setting to default')
+                    setattr(self, 'DDL_PRIORITY_ORDER', ["mega", "mediafire", "pixeldrain", "main"])
+
+            # validate entries
+            ddl_pros = ['mega', 'mediafire', 'pixeldrain', 'main']
+            for dpo in self.DDL_PRIORITY_ORDER:
+                if dpo.lower() not in ddl_pros:
+                    logger.warn('[DDL PRIORITY ORDER] Invalid value detected - removing %s' % dpo)
+                    self.DDL_PRIORITY_ORDER.pop(self.DDL_PRIORITY_ORDER.index(dpo))
+
+        else:
+            setattr(self, 'DDL_PRIORITY_ORDER', ["mega", "mediafire", "pixeldrain", "main"])  #default order
+            config.set('DDL', 'ddl_priority_order', json.dumps(self.DDL_PRIORITY_ORDER))
+
+        logger.info('[DDL PRIORITY ORDER] DDL will attempt to use the following 3rd party sites in this specific download order: %s' % self.DDL_PRIORITY_ORDER)
 
         if self.SEARCH_TIER_CUTOFF is None:
             self.SEARCH_TIER_CUTOFF = 14
@@ -1374,12 +1615,6 @@ class Config(object):
             elif self.SAB_PRIORITY == "3": self.SAB_PRIORITY = "High"
             elif self.SAB_PRIORITY == "4": self.SAB_PRIORITY = "Paused"
             else: self.SAB_PRIORITY = "Default"
-
-        if self.SAB_VERSION is not None:
-            config.set('SABnzbd', 'sab_version', self.SAB_VERSION)
-            if int(re.sub("[^0-9]", '', self.SAB_VERSION).strip()) < int(re.sub("[^0-9]", '', '0.8.0').strip()) and self.SAB_CLIENT_POST_PROCESSING is True:
-                logger.warn('Your SABnzbd client is less than 0.8.0, and does not support Completed Download Handling which is enabled. Disabling CDH.')
-                self.SAB_CLIENT_POST_PROCESSING = False
 
         mylar.USE_WATCHDIR = False
         mylar.USE_UTORRENT = False
@@ -1471,11 +1706,12 @@ class Config(object):
 
             for x in ex:
                 x_cat = x[4]
-                if '#' in x_cat:
-                    x_t = x[4].split('#')
-                    x_cat = ','.join(x_t)
-                    if x_cat[0] == ',':
-                        x_cat = re.sub(',', '#', x_cat, 1)
+                if x_cat:
+                    if '#' in x_cat:
+                        x_t = x[4].split('#')
+                        x_cat = ','.join(x_t)
+                        if x_cat[0] == ',':
+                            x_cat = re.sub(',', '#', x_cat, 1)
                 try:
                     if cnt == 0:
                         x_newzcat.append((x[0],x[1],x[2],x[3],x_cat,x[5],int(x[6])))
@@ -1569,12 +1805,6 @@ class Config(object):
             #if self.ENABLE_PUBLIC:
             #    PR.append('public torrents')
             #    PR_NUM +=1
-        if self.NZBSU:
-            PR.append('nzb.su')
-            PR_NUM +=1
-        if self.DOGNZB:
-            PR.append('dognzb')
-            PR_NUM +=1
         if self.EXPERIMENTAL:
             PR.append('Experimental')
             PR_NUM +=1
@@ -1583,8 +1813,11 @@ class Config(object):
             if self.ENABLE_GETCOMICS:
                 PR.append('DDL(GetComics)')
                 PR_NUM +=1
+            if self.ENABLE_EXTERNAL_SERVER:
+                PR.append('DDL(External)')
+                PR_NUM +=1
 
-        PPR = ['32p', 'nzb.su', 'dognzb', 'Experimental', 'DDL(GetComics)']
+        PPR = ['Experimental', 'DDL(GetComics)', 'DDL(External)']
         if self.NEWZNAB:
             for ens in self.EXTRA_NEWZNABS:
                 if str(ens[5]) == '1': # if newznabs are enabled
@@ -1750,12 +1983,10 @@ class Config(object):
                    # id of 0 means it hasn't been assigned - so we need to assign it before we build out the dict
                    if 'DDL(GetComics)' in prov_t:
                        t_id = 200
+                   if 'DDL(External)' in prov_t:
+                       t_id = 201
                    elif any(['experimental' in prov_t, 'Experimental' in prov_t]):
                        t_id = 101
-                   elif 'dog' in prov_t:
-                       t_id = 102
-                   elif any(['nzb.su' in prov_t, 'nzbsu' in prov_t]):
-                       t_id = 103
                    else:
                        nnf = False
                        if self.EXTRA_NEWZNABS:
@@ -1785,16 +2016,13 @@ class Config(object):
                if 'DDL(GetComics)' in tmp_prov:
                    t_type = 'DDL'
                    t_id = 200
+               if 'DDL(External)' in tmp_prov:
+                   t_type = 'DDL(External)'
+                   t_id = 201
                elif any(['experimental' in tmp_prov, 'Experimental' in tmp_prov]):
                    tmp_prov = 'experimental'
                    t_type = 'experimental'
                    t_id = 101
-               elif 'dog' in tmp_prov:
-                   t_type = 'dognzb'
-                   t_id = 102
-               elif any(['nzb.su' in tmp_prov, 'nzbsu' in tmp_prov]):
-                   t_type = 'nzb.su'
-                   t_id = 103
                else:
                    nnf = False
                    if self.EXTRA_NEWZNABS:
@@ -1820,14 +2048,12 @@ class Config(object):
                    tprov = None
 
                if tprov:
-                   if (any(['nzb.su' in tmp_prov, 'nzbsu' in tmp_prov]) and tprov['type'] != 'nzb.su') or (tmp_prov == 'Experimental'):
+                   if tmp_prov == 'Experimental':
                        # needed to ensure the type is set properly for this provider
                        ptype = tprov['type']
                        if tmp_prov == 'Experimental':
                            myDB.action("DELETE FROM provider_searches where id=101")
                            tmp_prov = 'experimental'
-                       else:
-                           ptype = 'nzb.su'
                        ctrls = {'id': tprov['id'], 'provider': tmp_prov}
                        vals = {'active': tprov['active'], 'lastrun': tprov['lastrun'], 'type': ptype, 'hits': tprov['hits']}
                        write = True

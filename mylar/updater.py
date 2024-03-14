@@ -1129,7 +1129,7 @@ def forceRescan(ComicID, archive=None, module=None, recheck=False):
     if rescan['Status'] == 'Paused':
         pause_status = True
 
-    if (all([rescan['Type'] != 'Print', rescan['Type'] != 'Digital', rescan['Type'] != 'None', rescan['Type'] is not None]) and rescan['Corrected_Type'] != 'Print') or any([rescan['Corrected_Type'] == 'TPB', rescan['Corrected_Type'] == 'HC', rescan['Corrected_Type'] == 'GN']):
+    if (all([rescan['Type'] != 'Print', rescan['Type'] != 'Digital', rescan['Type'] != 'None', rescan['Type'] is not None]) and rescan['Corrected_Type'] != 'Print') or any([rescan['Corrected_Type'] == 'TPB', rescan['Corrected_Type'] == 'HC', rescan['Corrected_Type'] == 'GN', rescan['Corrected_Type'] == 'One-Shot']):
         if rescan['Type'] == 'One-Shot' and rescan['Corrected_Type'] is None:
             booktype = 'One-Shot'
         else:
@@ -1140,7 +1140,7 @@ def forceRescan(ComicID, archive=None, module=None, recheck=False):
             else:
                 booktype = 'TPB'
     else:
-        booktype = None
+        booktype = 'Print'
 
     annscan = myDB.select('SELECT * FROM annuals WHERE ComicID=? AND NOT Deleted', [ComicID])
     if annscan is None:
@@ -1205,6 +1205,8 @@ def forceRescan(ComicID, archive=None, module=None, recheck=False):
                 if all([booktype == 'TPB', iscnt > 1]) or all([booktype == 'GN', iscnt > 1]) or all([booktype =='HC', iscnt > 1]) or all([booktype == 'One-Shot', iscnt == 1, cla['JusttheDigits'] is None]):
                     if cla['SeriesVolume'] is not None:
                         just_the_digits = re.sub('[^0-9]', '', cla['SeriesVolume']).strip()
+                    elif cla['JusttheDigits'] is None:
+                        just_the_digits = None
                     else:
                         just_the_digits = re.sub('[^0-9]', '', cla['JusttheDigits']).strip()
                 else:
@@ -1264,7 +1266,7 @@ def forceRescan(ComicID, archive=None, module=None, recheck=False):
             logger.fdebug('[ANNUAL-CHK] No annuals with identical issue numbering across annual volumes were detected for this series')
             mc_annualnumber = None
         else:
-            logger.fdebug('[ANNUAL-CHK] Multiple issues with identical numbering were detected across multiple annual volumes. Attempting to accomodate.')
+            logger.fdebug('[ANNUAL-CHK] Multiple annuals with identical numbering were detected across multiple annual volumes. Attempting to accomodate.')
             for mc in mult_ann_check:
                 mc_annualnumber.append({"Int_IssueNumber": mc['Int_IssueNumber']})
 
@@ -1468,8 +1470,8 @@ def forceRescan(ComicID, archive=None, module=None, recheck=False):
                             isslocation = tmpfc['ComicFilename'] #helpers.conversion(tmpfc['ComicFilename'])
                             issSize = str(tmpfc['ComicSize'])
                             logger.fdebug(module + ' .......filename: ' + isslocation)
-                            logger.fdebug(module + ' .......filesize: ' + str(tmpfc['ComicSize'])) 
-                            # to avoid duplicate issues which screws up the count...let's store the filename issues then 
+                            logger.fdebug(module + ' .......filesize: ' + str(tmpfc['ComicSize']))
+                            # to avoid duplicate issues which screws up the count...let's store the filename issues then
                             # compare earlier...
                             issuedupechk.append({'fcdigit':   fcdigit,
                                                  'filename':  tmpfc['ComicFilename'],
@@ -1513,17 +1515,16 @@ def forceRescan(ComicID, archive=None, module=None, recheck=False):
                     break
                 int_iss = helpers.issuedigits(reann['Issue_Number'])
                 #logger.fdebug(module + ' int_iss:' + str(int_iss))
-
                 issyear = reann['IssueDate'][:4]
                 old_status = reann['Status']
 
-                year_check = re.findall(r'(/d{4})(?=[\s]|annual\b|$)', temploc, flags=re.I)
+                year_check = re.findall(r'(\d{4})(?=[\s]|annual\b|$)', temploc, flags=re.I)
                 if year_check:
                     ann_line = '%s annual' % year_check[0]
                     logger.fdebug('ann_line: %s' % ann_line)
-                    fcdigit = helpers.issuedigits(re.sub(ann_line, '', temploc.lower()).strip())
-                #fcdigit = helpers.issuedigits(re.sub('2021 annual', '', temploc.lower()).strip())
-                fcdigit = helpers.issuedigits(re.sub('annual', '', temploc.lower()).strip())
+                    fcdigit = helpers.issuedigits('1')
+                else:
+                    fcdigit = helpers.issuedigits(re.sub('annual', '', temploc.lower()).strip())
                 if fcdigit == 999999999999999:
                     fcdigit = helpers.issuedigits(re.sub('special', '', temploc.lower()).strip())
 
@@ -1786,7 +1787,7 @@ def forceRescan(ComicID, archive=None, module=None, recheck=False):
 
                 if pause_status:
                     issStatus = old_status
-                    logger.fdefbug('[PAUSE_ANNUAL_CHECK_STATUS_CHECK] series is paused, keeping status of %s for issue #%s' % (issStatus, chk['Issue_Number']))
+                    logger.fdebug('[PAUSE_ANNUAL_CHECK_STATUS_CHECK] series is paused, keeping status of %s for issue #%s' % (issStatus, chk['Issue_Number']))
                 else:
                     #if old_status == "Skipped":
                     #    if mylar.CONFIG.AUTOWANT_ALL:
@@ -1802,11 +1803,13 @@ def forceRescan(ComicID, archive=None, module=None, recheck=False):
 
     logger.fdebug('[nothaves] issue_status_generation_time_taken: %s' % (datetime.datetime.now() - u_start))
 
-    if len(update_iss) > 0:
+    if any([len(update_iss) > 0, len(update_ann) > 0]):
         r_start = datetime.datetime.now()
         try:
-            myDB.action("UPDATE issues SET Status=? WHERE IssueID=?", update_iss, executemany=True)
-            myDB.action("UPDATE annuals SET Status=? WHERE IssueID=?", update_ann, executemany=True)
+            if len(update_iss) > 0:
+                myDB.action("UPDATE issues SET Status=? WHERE IssueID=?", update_iss, executemany=True)
+            if len(update_ann) > 0:
+                myDB.action("UPDATE annuals SET Status=? WHERE IssueID=?", update_ann, executemany=True)
         except Exception as e:
             logger.warn('Error updating: %s' % e)
         logger.fdebug('[nothaves] issue_status_writing took %s' % (datetime.datetime.now() - r_start))
@@ -2221,7 +2224,10 @@ def watchlist_updater(calledfrom=None, sched=False):
             '[BACKFILL-UPDATE] [%s] series need to be updated due to previous'
             ' failures: %s' % (len(prev_failed_updates), prev_failed_updates)
         )
-        to_check = dict(to_check, **prev_failed_updates)
+        try:
+            to_check = dict(to_check, **prev_failed_updates)
+        except Exception as e:
+            to_check = prev_failed_updates
         #to_check.extend(prev_failed_updates)
     else:
         logger.info(

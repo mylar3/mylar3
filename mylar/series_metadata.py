@@ -40,7 +40,7 @@ class metadata_Series(object):
         for cid in self.comiclist:
 
             if self.refreshSeries is True:
-                updater.dbupdate(cid, calledfrom='json_api')
+                updater.dbUpdate(cid, calledfrom='json_api')
 
             myDB = db.DBConnection()
             comic = myDB.selectone('SELECT * FROM comics WHERE ComicID=?', [cid]).fetchone()
@@ -161,7 +161,7 @@ class metadata_Series(object):
 
                 c_image = comic
                 metadata = {}
-                metadata['version'] = '1.0.1'
+                metadata['version'] = '1.0.2'
                 metadata['metadata'] = (
                                             {'type': 'comicSeries',
                                              'publisher': comic['ComicPublisher'],
@@ -175,7 +175,7 @@ class metadata_Series(object):
                                              'booktype': booktype,
                                              'age_rating': comic['AgeRating'],
                                              'collects': clean_issue_list,
-                                             'ComicImage': comic['ComicImageURL'],
+                                             'comic_image': comic['ComicImageURL'],
                                              'total_issues': comic['Total'],
                                              'publication_run': comic['ComicPublished'],
                                              'status': seriesStatus}

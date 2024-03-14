@@ -13,14 +13,17 @@ configparser>=4.0.2
 feedparser>=5.2.1
 Mako>=1.1.0
 natsort>=3.5.2
+packaging>=22.0
 Pillow>=10.1
 portend>=2.6
+pycryptodome>=3.19.0
 pystun>=0.1.0
 pytz>=2019.3
 rarfile>=4.0
 requests[socks]>=2.22.0
 simplejson>=3.17.0
 six>=1.13.0
+tenacity>=8.2.3
 tzlocal>=2.0.0
 urllib3<2
 user_agent2>=2021.12.11

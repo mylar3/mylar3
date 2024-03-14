@@ -30,7 +30,9 @@ from mylar import (
     nzbget,
     search_filer,
     getcomics,
+    downloaders,
 )
+from mylar.downloaders import external_server as exs
 
 import feedparser
 import requests
@@ -271,6 +273,11 @@ def search_init(
                        searchprov['DDL(GetComics)'] = ({'id': 200, 'type': 'DDL', 'lastrun': 0, 'active': True, 'hits': 0})
                     else:
                         searchprov['DDL(GetComics)']['active'] = True
+                elif prov_order[prov_count] == 'DDL(External)' and not provider_blocked and 'DDL(External)' not in checked_once:
+                    if 'DDL(External)' not in searchprov.keys():
+                        searchprov['DDL(External)'] = ({'id': 201, 'type': 'DDL(External)', 'lastrun': 0, 'active': True, 'hits': 0})
+                    else:
+                        searchprov['DDL(External)']['active'] = True
                 elif prov_order[prov_count] == '32p' and not provider_blocked:
                     searchprov['32P'] = ({'type': 'torrent', 'lastrun': 0, 'active': True, 'hits': 0})
                 elif prov_order[prov_count].lower() == 'experimental' and not provider_blocked and 'experimental' not in checked_once:
@@ -361,14 +368,7 @@ def search_init(
                 current_prov = get_current_prov(searchprov)
                 logger.info('current_prov: %s' % (current_prov))
 
-                if current_prov.get('dognzb') and all(
-                    [mylar.CONFIG.DOGNZB == 0, provider_blocked]
-                ):
-                    # since dognzb could hit the 100 daily api limit during the middle
-                    # of a search run, check here on each pass to make sure it's not
-                    # disabled (it gets auto-disabled on maxing out the API hits)
-                    break
-                elif all(
+                if all(
                          [
                               not provider_blocked,
                              ''.join(current_prov.keys()) in checked_once,
@@ -447,6 +447,7 @@ def search_init(
                       ) and ''.join(current_prov.keys()) in (
                           '32P',
                           'DDL(GetComics)',
+                          'DDL(External)',
                           'Public Torrents',
                           'experimental',
                       ):
@@ -472,6 +473,10 @@ def search_init(
                                 issuedisplay = None
                         else:
                             issuedisplay = StoreDate[5:]
+                            if 'annual' in ComicName.lower():
+                                if re.findall('(?:19|20)\d{2}', ComicName):
+                                    issuedisplay = None
+
                     if issuedisplay is None:
                         logger.info(
                             'Could not find %s (%s) using %s [%s]'
@@ -575,16 +580,8 @@ def provider_order(initial_run=False):
                         torznabs += 1
 
     # nzb provider selection##
-    # 'dognzb' or 'nzb.su' or 'experimental'
     nzbprovider = []
     nzbp = 0
-    if mylar.CONFIG.NZBSU is True and not helpers.block_provider_check('nzb.su'):
-        nzbprovider.append('nzb.su')
-        nzbp += 1
-    if mylar.CONFIG.DOGNZB is True and not helpers.block_provider_check('dognzb'):
-        nzbprovider.append('dognzb')
-        nzbp += 1
-
     # --------
     #  Xperimental
     if mylar.CONFIG.EXPERIMENTAL is True and not helpers.block_provider_check(
@@ -616,6 +613,15 @@ def provider_order(initial_run=False):
            ]
         ):
             ddlprovider.append('DDL(GetComics)')
+            ddls+=1
+
+        if all(
+            [
+                mylar.CONFIG.ENABLE_EXTERNAL_SERVER is True,
+                not helpers.block_provider_check('DDL(External)'),
+            ]
+        ):
+            ddlprovider.append('DDL(External)')
             ddls+=1
 
     if initial_run:
@@ -701,14 +707,7 @@ def NZB_SEARCH(
         provider_stat = provider_stat.get(list(provider_stat.keys())[0])
     #logger.info('nzbprov: %s' % (nzbprov))
     #logger.fdebug('provider_stat_after: %s' % (provider_stat))
-
-    if nzbprov == 'nzb.su':
-        apikey = mylar.CONFIG.NZBSU_APIKEY
-        verify = bool(int(mylar.CONFIG.NZBSU_VERIFY))
-    elif nzbprov == 'dognzb':
-        apikey = mylar.CONFIG.DOGNZB_APIKEY
-        verify = bool(int(mylar.CONFIG.DOGNZB_VERIFY))
-    elif nzbprov == 'experimental':
+    if nzbprov == 'experimental':
         apikey = 'none'
         verify = False
     elif provider_stat['type'] == 'torznab':
@@ -869,13 +868,8 @@ def NZB_SEARCH(
     while findloop < findcount:
         logger.fdebug('findloop: %s / findcount: %s' % (findloop, findcount))
         comsrc = comsearch
-        if nzbprov == 'dognzb' and not mylar.CONFIG.DOGNZB:
-            is_info['foundc']['status'] = False
-            done = True
-            break
-        if any([nzbprov == '32P', nzbprov == 'Public Torrents', 'DDL' in nzbprov, nzbprov == 'experimental']):
-            # 32p directly stores the exact issue, no need to iterate over variations
-            # of the issue number. DDL iteration is handled in it's own module as is experimental.
+        if any([nzbprov == 'Public Torrents', 'DDL' in nzbprov, nzbprov == 'experimental']):
+            # DDL iteration is handled in it's own module as is experimental.
             findloop = 99
 
         if done is True:  # and seperatealpha == "no":
@@ -962,9 +956,12 @@ def NZB_SEARCH(
                          'year':      comyear}
                 b = getcomics.GC(query=fline, provider_stat=provider_stat)
                 verified_matches = b.search(is_info=is_info)
+            elif nzbprov == 'DDL(External)':
+                b = exs.MegaNZ(query='%s' % ComicName, provider_stat=provider_stat)
+                verified_matches = b.ddl_search(is_info=is_info)
             #logger.fdebug('bb returned from %s: %s' % (nzbprov, verified_matches))
 
-        elif RSS == "yes":
+        elif RSS == "yes" and 'DDL(External)' not in nzbprov:
             if 'DDL(GetComics)' in nzbprov:
                 #only GC has an available RSS Feed
                 logger.fdebug(
@@ -1031,19 +1028,7 @@ def NZB_SEARCH(
             if nzbprov == '':
                 verified_matches = "no results"
             elif nzbprov != 'experimental':
-                if nzbprov == 'dognzb':
-                    findurl = (
-                        "https://api.dognzb.cr/api?t=search&q="
-                        + str(comsearch)
-                        + "&o=xml&cat=7030"
-                    )
-                elif nzbprov == 'nzb.su':
-                    findurl = (
-                        "https://api.nzb.su/api?t=search&q="
-                        + str(comsearch)
-                        + "&o=xml&cat=7030"
-                    )
-                elif provider_stat['type'] == 'newznab':
+                if provider_stat['type'] == 'newznab':
                     # let's make sure the host has a '/' at the end, if not add it.
                     host_newznab_fix = host_newznab
                     if not host_newznab_fix.endswith('api'):
@@ -1412,8 +1397,9 @@ def verification(verified_matches, is_info):
 
     if is_info['foundc']['status'] is True:
         #foundcomic.append("yes")
-        logger.fdebug('mylar.COMICINFO: %s' % verified_matches)
-        logger.fdebug('verified_index: %s' % verified_index)
+        #logger.fdebug('mylar.COMICINFO: %s' % verified_matches)
+        #logger.fdebug('verified_index: %s' % verified_index)
+        #logger.fdebug('isinfo: %s' % is_info)
         if verified_matches[verified_index]['pack'] is True:
             try:
                 issinfo = verified_matches[verified_index]['pack_issuelist']
@@ -1450,10 +1436,10 @@ def verification(verified_matches, is_info):
                     )
                 notify_snatch(
                     sent_to,
-                    is_info['ComicName'],
-                    is_info['ComicYear'],
+                    verified_matches[verified_index]['entry']['series'], #is_info['ComicName'],
+                    verified_matches[verified_index]['entry']['year'], #is_info['ComicYear'],
                     verified_matches[verified_index]['pack_numbers'],
-                    is_info['nzbprov'],
+                    verified_matches[verified_index]['nzbprov'],
                     True,
                 )
             else:
@@ -1557,12 +1543,11 @@ def searchforissue(issueid=None, new=False, rsschecker=None, manual=False):
        and any(
             [
                 mylar.CONFIG.ENABLE_GETCOMICS is True,
+                mylar.CONFIG.ENABLE_EXTERNAL_SERVER is True,
             ]
        ))
        or any(
             [
-                mylar.CONFIG.NZBSU is True,
-                mylar.CONFIG.DOGNZB is True,
                 mylar.CONFIG.EXPERIMENTAL is True,
             ]
         )
@@ -2024,11 +2009,9 @@ def searchforissue(issueid=None, new=False, rsschecker=None, manual=False):
                 ) or (
                     any(
                         [
-                            mylar.CONFIG.NZBSU is True,
-                            mylar.CONFIG.DOGNZB is True,
                             mylar.CONFIG.EXPERIMENTAL is True,
-                            mylar.CONFIG.ENABLE_DDL is True,
-                            #mylar.CONFIG.ENABLE_GETCOMICS is True,
+                            mylar.CONFIG.ENABLE_GETCOMICS is True,
+                            mylar.CONFIG.ENABLE_EXTERNAL_SERVER is True,
                         ]
                     )
                     or all([mylar.CONFIG.NEWZNAB is True, len(ens) > 0])
@@ -2311,6 +2294,30 @@ def searchforissue(issueid=None, new=False, rsschecker=None, manual=False):
                                 mylar.SEARCHLOCK = False
                                 return
 
+                #if it's not manually initiated, make sure it's not already downloaded/snatched.
+                if not manual:
+                    if smode == 'story_arc':
+                        issnumb = result['IssueNumber']
+                    else:
+                        issnumb = result['Issue_Number']
+                    checkit = searchforissue_checker(
+                                result['IssueID'],
+                                result['ReleaseDate'],
+                                result['IssueDate'],
+                                result['DigitalDate'],
+                                {'ComicName': result['ComicName'],
+                                 'Issue_Number': issnumb,
+                                 'ComicID': result['ComicID']
+                                }
+                              )
+                    if checkit['status'] is False:
+                        logger.fdebug(
+                              'Issue is already in a Downloaded / Snatched status. If this is'
+                              ' still wanted, perform a Manual search or mark issue as Skipped'
+                              ' or Wanted.'
+                        )
+                        return
+
                 allow_packs = False
                 ComicID = result['ComicID']
                 if smode == 'story_arc':
@@ -2458,7 +2465,7 @@ def searchforissue(issueid=None, new=False, rsschecker=None, manual=False):
                     'err': str(err),
                     'err_text': err_text,
                     'traceback': tracebackline,
-                    'comicname': comic['ComicName'],
+                    'comicname': result['ComicName'],
                     'issuenumber': result['Issue_Number'],
                     #'seriesyear': SeriesYear,
                     'issueid': result['IssueID'],
@@ -2497,12 +2504,11 @@ def searchIssueIDList(issuelist):
        and any(
             [
                 mylar.CONFIG.ENABLE_GETCOMICS is True,
+                mylar.CONFIG.ENABLE_EXTERNAL_SERVER is True
             ]
         )
         ) or any(
             [
-                mylar.CONFIG.NZBSU is True,
-                mylar.CONFIG.DOGNZB is True,
                 mylar.CONFIG.EXPERIMENTAL is True,
             ]
         )
@@ -2909,7 +2915,7 @@ def searcher(
         payload = None
         headers = {'User-Agent': str(mylar.USER_AGENT)}
         # link doesn't have the apikey - add it and use ?t=get for newznab based.
-        if provider_stat['type'] == 'newznab' or nzbprov == 'nzb.su':
+        if provider_stat['type'] == 'newznab':
             # need to basename the link so it just has the id/hash.
             # rss doesn't store apikey, have to put it back.
             if provider_stat['type'] == 'newznab':
@@ -2931,10 +2937,6 @@ def searcher(
                         if uid is not None:
                             payload['i'] = uid
                     verify = bool(newznab[2])
-            else:
-                down_url = 'https://api.nzb.su/api'
-                apikey = mylar.CONFIG.NZBSU_APIKEY
-                verify = bool(mylar.CONFIG.NZBSU_VERIFY)
 
             if nzbhydra is True:
                 down_url = link
@@ -2947,11 +2949,6 @@ def searcher(
                 payload = {'t': 'get', 'id': str(nzbid), 'apikey': str(apikey)}
             else:
                 down_url = link
-
-        elif nzbprov == 'dognzb':
-            # dognzb - need to add back in the dog apikey
-            down_url = urljoin(link, str(mylar.CONFIG.DOGNZB_APIKEY))
-            verify = bool(mylar.CONFIG.DOGNZB_VERIFY)
 
         else:
             # experimental - direct link.
@@ -3129,22 +3126,53 @@ def searcher(
             tmp_issueid = IssueArcID
         else:
             tmp_issueid = IssueID
+
+        # we need to pass in if it's a pack and what issues are present therein
+        pack_info = {'pack': comicinfo[0]['pack'],
+                     'pack_numbers': comicinfo[0]['pack_numbers'],
+                     'pack_issuelist': comicinfo[0]['pack_issuelist']}
+
         if nzbprov == 'DDL(GetComics)':
             #GC requires an extra step - do it now.
             ggc = getcomics.GC(issueid=tmp_issueid, comicid=ComicID)
             ggc.loadsite(nzbid, link)
-            ddl_it = ggc.parse_downloadresults(nzbid, link, comicinfo)
-
-        if ddl_it['success'] is True:
-            logger.info(
-                'Successfully snatched %s from DDL site. It is currently being queued'
-                ' to download in position %s' % (nzbname, mylar.DDL_QUEUE.qsize())
-            )
+            ddl_it = ggc.parse_downloadresults(nzbid, link, comicinfo, pack_info)
+            tnzbprov = nzbprov
+            if ddl_it['success'] is True:
+                logger.info(
+                    '[%s] Successfully snatched %s from DDL site. It is currently being queued'
+                    ' to download in position %s' % (tnzbprov, nzbname, mylar.DDL_QUEUE.qsize())
+                )
+            else:
+                logger.info('[%s] Failed to retrieve %s from the DDL site.' % (tnzbprov, nzbname))
+                return "ddl-fail"
         else:
-            logger.info('Failed to retrieve %s from the DDL site.' % nzbname)
-            return "ddl-fail"
+            cinfo = {'id': nzbid,
+                     'series': comicinfo[0]['ComicName'],
+                     'year': comicinfo[0]['comyear'],
+                     'size': comicinfo[0]['size'],
+                     'issues': comicinfo[0]['IssueNumber'],
+                     'issueid': comicinfo[0]['IssueID'],
+                     'comicid': comicinfo[0]['ComicID'],
+                     'filename': comicinfo[0]['nzbtitle'],
+                     'oneoff': comicinfo[0]['oneoff'],
+                     'link': link,
+                     'site': nzbprov}
 
-        sent_to = "is downloading it directly via %s" % nzbprov
+            meganz = exs.MegaNZ(provider_stat=provider_stat)
+            ddl_it = meganz.queue_the_download(cinfo, comicinfo, pack_info)
+            tnzbprov = 'DDL(External)'
+
+            if ddl_it['success'] is True:
+                logger.info(
+                    '[%s] Successfully snatched %s from DDL site. It is currently being queued'
+                    ' to download in position %s' % (tnzbprov, nzbname, mylar.DDL_QUEUE.qsize())
+                )
+            else:
+                logger.info('[%s] Failed to retrieve %s from the DDL site.' % (tnzbprov, nzbname))
+                return "ddl-fail"
+
+        sent_to = "is downloading it directly via %s" % tnzbprov
 
     elif mylar.USE_BLACKHOLE and all(
         [nzbprov != '32P', nzbprov != 'WWT', nzbprov != 'DEM', provider_stat['type'] != 'torznab']
@@ -3681,15 +3709,25 @@ def searcher(
 
 
 def notify_snatch(sent_to, comicname, comyear, IssueNumber, nzbprov, pack):
+    # pack = {"pack": True, "issues": '#1 - 60', "years": "(1997-2002"}
+    #logger.fdebug('sent_to: %s' % sent_to)
+    #logger.fdebug('pack: %s' % pack)
+    #logger.fdebug('Issue: %s' % IssueNumber)
+    #logger.fdebug('nzbprov: %s' % nzbprov)
+    #logger.fdebug('comyear: %s' % comyear)
+    #logger.fdebug('comicname: %s' % comicname)
+
     if pack is False:
         snline = 'Issue snatched!'
+        if IssueNumber is not None:
+            snatched_name = '%s (%s) #%s' % (comicname, comyear, IssueNumber)
+        else:
+            snatched_name = '%s (%s)' % (comicname, comyear)
     else:
         snline = 'Pack snatched!'
+        snatched_name = '%s %s (%s)' % (comicname, IssueNumber, comyear)
 
-    if IssueNumber is not None:
-        snatched_name = '%s (%s) #%s' % (comicname, comyear, IssueNumber)
-    else:
-        snatched_name = '%s (%s)' % (comicname, comyear)
+    #logger.fdebug('snatched_name: %s' % snatched_name)
 
     nzbprov = re.sub(r'\(newznab\)', '', nzbprov).strip()
     nzbprov = re.sub(r'\(torznab\)', '', nzbprov).strip()
@@ -3987,12 +4025,6 @@ def generate_id(nzbprov, link, comicname):
             path_parts = url_parts[2].rpartition('/')
             nzbtempid = path_parts[2]
             nzbid = re.sub('.torrent', '', nzbtempid).rstrip()
-    elif nzbprov == 'nzb.su':
-        nzbid = os.path.splitext(link)[0].rsplit('/', 1)[1]
-    elif nzbprov == 'dognzb':
-        url_parts = urlparse(link)
-        path_parts = url_parts[2].rpartition('/')
-        nzbid = path_parts[0].rsplit('/', 1)[1]
     elif 'newznab' in nzbprov:
         # if in format of http://newznab/getnzb/<id>.nzb&i=1&r=apikey
         tmpid = urlparse(link)[

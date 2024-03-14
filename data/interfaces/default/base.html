@@ -123,23 +123,34 @@
                                 <br>
 				<%
                                     mylar.PROVIDER_STATUS = {}
-                                    for ko, vo in sorted(mylar.CONFIG.PROVIDER_ORDER.items()):
-                                        mylar.PROVIDER_STATUS.update({vo : 'success'})
-                                        for kb in mylar.PROVIDER_BLOCKLIST:
-                                            if vo == kb['site']:
-                                                mylar.PROVIDER_STATUS.update({vo : 'fail'})
-                                                break
+                                    prov_fail = False
+                                    try:
+                                        for ko, vo in sorted(mylar.CONFIG.PROVIDER_ORDER.items()):
+                                            mylar.PROVIDER_STATUS.update({vo : 'success'})
+                                            for kb in mylar.PROVIDER_BLOCKLIST:
+                                                if vo == kb['site']:
+                                                    mylar.PROVIDER_STATUS.update({vo : 'fail'})
+                                                    break
+                                    except Exception:
+                                        prov_fail = True
                                 %>
                                 Providers:
-                                %for prov, stats in sorted(mylar.PROVIDER_STATUS.items()):
-                                    <%
-                                        if stats == 'success':
-                                            st_image = '<img src="images/success.png" height="8" width="8">'
-                                        else:
-                                            st_image = '<img src="images/x_red.png" height="8" width="8">'
-                                    %>
-                                    ${prov}:${st_image} &nbsp
-                                %endfor
+                                %if prov_fail:
+                                    <span title="This should correct itself eventually"><img src="images/x_red.png" height="8" width="8" />Unable to determine Provider Status' at this time...</span>
+                                %else:
+                                    %for prov, stats in sorted(mylar.PROVIDER_STATUS.items()):
+                                        <%
+                                            if stats == 'success':
+                                                st_image = '<img src="images/success.png" height="8" width="8">'
+                                            else:
+                                                st_image = '<img src="images/x_red.png" height="8" width="8">'
+                                        %>
+                                        ${prov}:${st_image} &nbsp
+                                    %endfor
+                                %endif
+                        </div>
+                        <div id="config_messages_dialog" title="configuration checks / warnings" style="display:none">
+                           <span id="mbody"></span>
                         </div>
                         <div style="text-align:right;position:relative;top:${bottom_foot}">
                             <a id="notifs" title="View Latest Notifications" href="javascript:void(0)" onclick="manageNotifications()"><img src="images/notif.png" height="31" width="25" /></a>
@@ -269,6 +280,18 @@
             }
         }, false);
 
+        evtSource.addEventListener("config_check", function(e){
+            if (e.data){
+                var data = JSON.parse(e.data);
+                console.log('config_check:'+data.status,data.message);
+                $("#mbody").html(data.message);
+                $("#config_messages_dialog").dialog({
+                  modal: true,
+                  width: "50%",
+                });
+            }
+        }, false);
+
         evtSource.addEventListener("check_update", function(e){
             if (e.data){
                 var data = JSON.parse(e.data);
@@ -339,7 +362,7 @@
                     if (data.status == 'success'){
                         $('#ajaxMsg').addClass('success').fadeIn().delay(3000).fadeOut();
                         console.log('data.comicid:'+data.comicid)
-                        if ( (data.tables == 'both' || data.tables == 'tables') && ( document.body.innerHTML.search(data.comicid) || tt.value == 'history' || tt.value == 'search_results') ){
+                        if ( ( tt.value != "config" ) && (data.tables == 'both' || data.tables == 'tables') && ( document.body.innerHTML.search(data.comicid) || tt.value == "history" || tt.value == "search_results") ){
                             console.log('reloading table1...');
                             reload_table();
                         }
@@ -347,7 +370,7 @@
                             console.log('reloading table2...');
                             reload_table();
                         }
-                        if (data.tables == 'both' || data.tables == 'tabs'){
+                        if ( (data.tables == 'both' || data.tables == 'tabs') && ( tt.value != "config") ) {
                             reload_tabs();
                         }
                         if( data.comicid == cid && document.getElementById("page_name").value == 'series_detail'){
@@ -409,7 +432,7 @@
             var tables = $('table.display').DataTable();
             var tt = document.getElementById("page_name");
             if(typeof(tt) != 'undefined' && tt != null){
-                if (tt.value != "weekly" && tt.value != "import_results" && tt.value != "manage_comics" && tt.value != "manage_issues" && tt.value != "manage_failed" && tt.value != "reading_list" && tt.value != "storyarcs_index" && tt.value != "storyarc_detail") {
+                if (tt.value != "weekly" && tt.value != "import_results" && tt.value != "manage_comics" && tt.value != "manage_issues" && tt.value != "manage_failed" && tt.value != "reading_list" && tt.value != "storyarcs_index" && tt.value != "storyarc_detail" && tt.value != "config") {
                     // this is required so it doesn't error if on the weekly page
                     // once weekly & other pages are converted to dynamic loading, this if can be removed
                     tables.ajax.reload(null,false);

@@ -98,6 +98,7 @@ class ComicTaggerSettings:
         self.remove_html_tables = False
         self.cv_api_key = ""
         self.notes_format = 'Issue ID'
+        self.cv_user_agent = None
 
         # CBL Tranform settings
 
@@ -270,6 +271,8 @@ class ComicTaggerSettings:
             self.cv_api_key = self.config.get('comicvine', 'cv_api_key')
         if self.config.has_option('comicvine', 'notes_format'):
             self.notes_format = self.config.get('comicvine', 'notes_format')
+        if self.config.has_option('comicvine', 'cv_user_agent'):
+            self.cv_user_agent = self.config.get('comicvine', 'cv_user_agent')
 
         if self.config.has_option(
                 'cbl_transform', 'assume_lone_credit_is_primary'):
@@ -424,6 +427,7 @@ class ComicTaggerSettings:
             'comicvine', 'remove_html_tables', self.remove_html_tables)
         self.config.set('comicvine', 'cv_api_key', self.cv_api_key)
         self.config.set('comicvine', 'notes_format', self.notes_format)
+        self.config.set('comicvine', 'cv_user_agent', self.cv_user_agent)
 
         if not self.config.has_section('cbl_transform'):
             self.config.add_section('cbl_transform')

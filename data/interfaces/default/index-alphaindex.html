@@ -22,6 +22,7 @@
                                 <th id="status">Status</th>
                                 <th id="active">Active</th>
                                 <th class="hidden" id="activestatus">ActiveSt</th>
+                                <th class="hidden" id="int_issue">int</th>
 			</tr>
 		</thead>
 		<tbody>
@@ -46,14 +47,16 @@
 
                                 comic_percent = comic['percent']
 
-				if comic['Status'] == 'Paused':
+                                if comic['cv_removed'] == 1:
+                                        grade = 'U'
+				elif comic['Status'] == 'Paused':
 					grade = 'T'
 				elif comic['Status'] == 'Loading':
 			        	grade = 'L'
                                 elif comic['Status'] == 'Error':
                                         grade = 'X'
                                 else:
-                                        grade = 'A'
+                                        grade = 'Z'
 
                                 comicpub = comic['ComicPublisher']
                                 try:
@@ -63,12 +66,14 @@
                                     pass
 
                                 comicname = comic['ComicSortName']
-                                try:
-                                    if len(comic['ComicSortName']) > 55:
-                                        comicname = comic['ComicSortName'][:55] + '...'
-                                except:
-                                    pass
-
+                                if comicname is not None:
+                                    try:
+                                        if len(comic['ComicSortName']) > 55:
+                                            comicname = comic['ComicSortName'][:55] + '...'
+                                    except:
+                                        pass
+                                else:
+                                    comicname = comic['ComicName']
                                 comicline = comicname
 
                                 comictype = comic['Type']
@@ -109,11 +114,23 @@
                                 %endif
                                 </td>
                                 <td class="hidden" id="activestatus">${comic['Status']}</td>
+                                <td class="hidden" id="int_iss">${comic['IntLatestIssue']}</td>
                          </tr>
 		%endfor
 		</tbody>
 	</table>
       </div>
+      <div>
+            <table style="float: right; border-spacing:3px;border-collapse:separate;">
+              <tr>
+                <td id="legend_removed" style="float:left;margin-left:2px;vertical-align:middle;"><span style="border:1px solid#ccc;float:left;width:30px;height:12px;margin:4px;background:${legend_colors['removed']};" title="Series has been removed from CV"></span> CV removed</td>
+                <td id="legend_paused" style="float:left;margin-left:2px;vertical-align:middle;"><span style="border:1px solid#ccc;float:left;width:30px;height:12px;margin:4px;background:${legend_colors['paused']};" title="Series is Paused"></span> Paused series</td>
+                <td id="legend_failed" style="float:left;margin-left:2px;vertical-align:middle;"><span style="border:1px solid#ccc;float:left;width:30px;height:12px;margin:4px;background:${legend_colors['failed']};" title="Series was unable to complete adding/refreshing"></span> Failed/Error</td>
+                <td id="legend_loading" style="float:left;margin-left:2px;vertical-align:middle;"><span style="border:1px solid#ccc;float:left;width:30px;height:12px;margin:4px;background:${legend_colors['loading']};" title="Loading information state"></span> Loading</td>
+              </tr>
+            </table>
+     </div>
+
 </%def>
 
 <%def name="headIncludes()">
@@ -135,12 +152,14 @@
                         "destroy": true,
                         "sDom": '<"clear"Af><"clear"lp><"clear">rt<"clear"ip>',
                         "columnDefs": [
-                             { "orderable": false, "targets": [5, 7, 10] },
-                             { "visible": false, "targets": [5, 7, 10] },
+                             { "orderable": false, "targets": [5, 7, 10, 11] },
+                             { "visible": false, "targets": [5, 7, 10, 11] },
                              { "type": 'num', "targets": 5 },
                              { "type": 'num', "targets": 7 },
+                             { "type": 'num', "targets": 11 },
                              { "orderData": [ 5, 7 ], "targets": 6 },
                              { "orderData": 10, "targets": 9 },
+                             { "orderData": 11, "targets": 3 },
                              { "order": [[7, 'asc'],[1, 'asc']] }
                         ],
                         "lengthMenu": [[10, 15, 25, 50, 100, 200, -1], [10, 15, 25, 50, 100, 200, 'All' ]],
@@ -163,12 +182,14 @@
                          "destroy": true,
                          "sDom": '<"clear"f><"clear"lp><"clear">rt<"clear"ip>',
                          "columnDefs": [
-                              { "orderable": false, "targets": [5, 7, 10] },
-                              { "visible": false, "targets": [5, 7, 10] },
+                              { "orderable": false, "targets": [5, 7, 10, 11] },
+                              { "visible": false, "targets": [5, 7, 10, 11] },
                               { "type": 'num', "targets": 5 },
                               { "type": 'num', "targets": 7 },
+                              { "type": 'num', "targets": 11 },
                               { "orderData": [ 5, 7 ], "targets": 6 },
                               { "orderData": 10, "targets": 9 },
+                              { "orderData": 11, "targets": 3 },
                               { "order": [[7, 'asc'],[1, 'asc']] }
                          ],
                          "lengthMenu": [[10, 15, 25, 50, 100, 200, -1], [10, 15, 25, 50, 100, 200, 'All' ]],

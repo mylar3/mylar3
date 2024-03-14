@@ -42,9 +42,21 @@
                 <tr>
                 <td style="float:left;margin-right:10px;"><span class="gradeZ" style="border:1px solid#ccc;float:left;width:30px;height:12px;margin:4px;"></span> Digital/TPB/GN/HC</td></tr>
             </table>
+
+<!--
+                   </br>
+                   <div class="row">
+                       <div class="row checkbox left clearfix">
+                           <input type="checkbox" name="markupcoming" id="markupcoming" style="vertical-align: middle; margin: 3px; margin-top: -1px;" value=1 ${checked(mylar.CONFIG.AUTOWANT_UPCOMING)} /><label>Mark Upcoming issues as Wanted</label></br>
+                       </div>
+                       <div class="row checkbox left clearfix">
+                           <input type="checkbox" name="markall" id="markall" style="vertical-align: middle; margin: 3px; margin-top: -1px;" value=1 ${checked(mylar.CONFIG.AUTOWANT_ALL)} /><label>Mark All issues as Wanted</label>
+                       </div>
+                   </div>
+-->
         </div>
 
-        </br>
+        </br></br>
 
         <div class="table_wrapper" id="search_wrapper">
 
@@ -143,6 +155,9 @@
         }
 
         function addseries(comicid, query_id, com_location, booktype){
+            //var markupcoming = document.getElementById("markupcoming").checked;
+            //var markall = document.getElementById("markall").checked;
+
             if(typeof(com_location) === "undefined" || com_location === null){
                 com_location = null;
             }
@@ -153,7 +168,7 @@
             $.when($.ajax({
                  type: "GET",
                  url: "addbyid",
-                 data: { comicid: comicid, query_id: query_id, com_location: com_location, booktype: booktype},
+                 data: { comicid: comicid, query_id: query_id, com_location: com_location, booktype: booktype}, //, markupcoming: markupcoming, markall: markall},
                  success: function(response) {
                     //obj = JSON.parse(response);
                  },
@@ -217,11 +232,11 @@
                                 }
                             }
 
-                            var dropdown = "<select name='booktype' id='booktype' onchange='update_location("+comicid+",null, booktype)' style='font-size:14px;'>"+
+                            var dropdown = "<select name='booktype' id='booktype' onChange='update_location("+comicid+",null, booktype)' style='font-size:14px;'>"+
                                "<option value='Print' selected='selected'>Print</option>" +
                                "<option value='TPB'>TPB</option>" +
                                "<option value='HC'>HC</option>" +
-                               "<option value='GC'>GC</option>" +
+                               "<option value='GN'>GN</option>" +
                                "<option value='One-Shot'>One-Shot</option>" +
                                "<option value='Digital'>Digital</option>" +
                                "</select>";
@@ -255,7 +270,6 @@
             var bktype = document.getElementById("booktype");
             var booktype = bktype.options[bktype.selectedIndex];
             var query_id = retrieve_searchquery();
-            console.log(location.value + ' --- '+ booktype.text);
             if (comlocation){
                 cloc = location.value;
             } else {
@@ -275,6 +289,7 @@
                 }
                 if (btype) {
                     bktype.text = dc.booktype;
+                    location.value = dc.comlocation;
                 }
            });
         }

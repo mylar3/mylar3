@@ -60,9 +60,13 @@ class search_check(object):
             chktpb = is_info['chktpb']
             provider_stat = is_info['provider_stat']
 
+        try:
+            pack = entry['pack']
+        except Exception:
+            pack = False
+
         alt_match = False
         #logger.fdebug('entry: %s' % (entry,))
-        # brief match here against 32p since it returns the direct issue number
 
         logger.fdebug("checking search result: %s" % entry['title'])
         # some nzbsites feel that comics don't deserve a nice regex to strip
@@ -139,6 +143,8 @@ class search_check(object):
                                     comsize_b = None
                                 else:
                                     comsize_b = helpers.human2bytes(entry['size'])
+                        elif entry['site'] == 'DDL(External)':
+                            comsize_b = '0' #External links ! filesize
                     except Exception:
                         tmpsz = entry.enclosures[0]
                         comsize_b = tmpsz['length']
@@ -371,12 +377,14 @@ class search_check(object):
                         '[CONV] %s is after store date of %s'
                         % (pubdate, stdate)
                     )
-            except Exception:
+            except Exception as e:
                 # if the above fails, drop down to the integer compare method
                 # as a failsafe.
-                if (
-                    digitaldate != '0000-00-00'
-                    and postdate_int >= digitaldate_int
+                if digitaldate is not None and all(
+                    [
+                        digitaldate != '0000-00-00',
+                        postdate_int >= digitaldate_int
+                    ]
                 ):
                     logger.fdebug(
                         '%s is after DIGITAL store date of %s'
@@ -417,10 +425,34 @@ class search_check(object):
                 'removed extra information after issue # that'
                 ' is not necessary: %s' % cleantitle
             )
+        # only send it to parser if it's not a DDL + pack (already parsed)
+        if pack is True and 'DDL' in entry['site']:
+            logger.fdebug('parsing pack...')
+            ffc = filechecker.FileChecker()
+            dnr = ffc.dynamic_replace(entry['series'])
+            parsed_comic = {'booktype': entry['gc_booktype'],
+                            'comicfilename': entry['filename'],
+                            'series_name': entry['series'],
+                            'series_name_decoded': entry['series'],
+                            'issueid': None,
+                            'dynamic_name': dnr['mod_seriesname'],
+                            'issues': entry['issues'],
+                            'series_volume': None,
+                            'alt_series': None,
+                            'alt_issue': None,
+                            'issue_year': entry['year'],
+                            'issue_number': None,
+                            'scangroup': None,
+                            'reading_order': None,
+                            'sub': None,
+                            'comiclocation': None,
+                            'parse_status': 'success'}
+
 
         # send it to the parser here.
-        p_comic = filechecker.FileChecker(file=ComicTitle, watchcomic=ComicName)
-        parsed_comic = p_comic.listFiles()
+        else:
+            p_comic = filechecker.FileChecker(file=ComicTitle, watchcomic=ComicName)
+            parsed_comic = p_comic.listFiles()
 
         logger.fdebug('parsed_info: %s' % parsed_comic)
         logger.fdebug(
@@ -644,7 +676,7 @@ class search_check(object):
         elif UseFuzzy == "1":
             yearmatch = True
 
-        if yearmatch is False:
+        if yearmatch is False and pack is False:
             return None
 
         annualize = False
@@ -696,7 +728,12 @@ class search_check(object):
 
             # here's the catch, sometimes annuals get posted as the Pub Year
             # instead of the Series they belong to (V2012 vs V2013)
-            if annualize is True and any(
+            if all(
+                    [
+                        annualize is True,
+                        parsed_comic['issue_number'] is not None,
+                    ]
+            ) and any(
                     [
                         int(ComicYear) == int(F_ComicVersion),
                         int(ComicYear) == int(parsed_comic['issue_number']),
@@ -711,6 +748,7 @@ class search_check(object):
                          booktype != 'TPB',
                          booktype != 'HC',
                          booktype != 'GN',
+                         booktype != 'TPB/GN/HC/One-Shot',
                     ]
                 ) and (
                     int(F_ComicVersion) == int(D_ComicVersion)
@@ -723,6 +761,7 @@ class search_check(object):
                            booktype == 'TPB',
                            booktype == 'HC',
                            booktype == 'GN',
+                           booktype == 'TPB/GN/HC/One-Shot',
                        ]
                     ) and any([
                        all(
@@ -747,6 +786,7 @@ class search_check(object):
                              booktype == 'TPB',
                              booktype == 'HC',
                              booktype == 'GN',
+                             booktype == 'TPB/GN/HC/One-Shot',
                          ]
                     ) and all(
                     [
@@ -766,13 +806,7 @@ class search_check(object):
 
         downloadit = False
 
-        try:
-            pack_test = entry['pack']
-        except Exception:
-            pack_test = False
-
-
-        if all(['DDL' in nzbprov, pack_test is True]):
+        if all(['DDL' in nzbprov, pack is True]):
             logger.fdebug(
                 '[PACK-QUEUE] %s Pack detected for %s.'
                 % (nzbprov, entry['filename'])
@@ -785,7 +819,7 @@ class search_check(object):
                 if not entry['title'].startswith('0-Day Comics Pack'):
                     pack_issuelist = entry['issues']
                     issueid_info = helpers.issue_find_ids(
-                        ComicName, ComicID, pack_issuelist, IssueNumber
+                        ComicName, ComicID, pack_issuelist, IssueNumber, entry['id']
                     )
                     if issueid_info['valid'] is True:
                         logger.info(
@@ -835,8 +869,6 @@ class search_check(object):
             if nowrite is False:
                 if any(
                     [
-                        nzbprov == 'dognzb',
-                        nzbprov == 'nzb.su',
                         nzbprov == 'experimental',
                         'newznab' in nzbprov,
                     ]
@@ -904,13 +936,13 @@ class search_check(object):
                         intIss = 1000
                     else:
                         if annualize is True:
-                            if len(re.sub('[^0-9]', '', parsed_comic['issue_number']).strip()) == 4:
+                            if parsed_comic['issue_number'] is None:
+                                # if issue_number is None, assume it's #1 of the annual
+                                intIss = 1000
+                            elif len(re.sub('[^0-9]', '', parsed_comic['issue_number']).strip()) == 4:
                                 intIss = 1000
                             elif parsed_comic['issue_number'] is not None:
                                 intIss = helpers.issuedigits(parsed_comic['issue_number'])
-                            else:
-                                # if issue_number is None, assume it's #1 of the annual
-                                intIss = 1000
                         else:
                             intIss = 9999999999
                 if filecomic['justthedigits'] is not None:
@@ -943,7 +975,7 @@ class search_check(object):
                             filecomic['booktype'] == 'TPB',
                             filecomic['booktype'] == 'GN',
                             filecomic['booktype'] == 'HC',
-                            filecomic['booktype'] == 'TPB/GN/HC',
+                            filecomic['booktype'] == 'TPB/GN/HC/One-Shot',
                         ]
                         ) and all(
                             [
@@ -957,7 +989,7 @@ class search_check(object):
                             filecomic['booktype'] == 'TPB',
                             filecomic['booktype'] == 'GN',
                             filecomic['booktype'] == 'HC',
-                            filecomic['booktype'] == 'TPB/GN/HC',
+                            filecomic['booktype'] == 'TPB/GN/HC/One-Shot',
                         ]
                         )  and all(
                             [
@@ -1038,8 +1070,6 @@ class search_check(object):
                     if nowrite is False:
                         if any(
                             [
-                                nzbprov == 'dognzb',
-                                nzbprov == 'nzb.su',
                                 nzbprov == 'experimental',
                                 'newznab' in nzbprov,
                                 provider_stat['type'] == 'newznab',
@@ -1111,6 +1141,7 @@ class search_check(object):
         candidate = None
         for entry in entries:
             maybe_value = self._process_entry(entry, is_info)
+            #logger.fdebug('maybe_value: %s' % maybe_value)
             if maybe_value is not None:
                 # If we have a value which matches our pack/not-pack
                 # preference, return it: otherwise, store it for return if we
@@ -1120,4 +1151,5 @@ class search_check(object):
                     # (This reduces to prefer_pack == is_pack, but that's harder to grok)
                     return maybe_value
                 candidate = maybe_value
+        #logger.fdebug('candidate: %s' % candidate)
         return candidate

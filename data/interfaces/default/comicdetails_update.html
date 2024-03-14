@@ -6,6 +6,9 @@
 %>
 
 <%def name="headerIncludes()">
+        <div id="cv_removed_dialog" title="ComicVine ComicID change detected" style="display:none">
+            <span id="crd"></span>
+        </div>
 	<div id="subhead_container">
 		<div id="subhead_menu">
                         <a id="menu_link_refresh" title="retrieve any new information for the series" onclick="refresh_series(${comic['ComicID']})" href="#">Refresh Comic</a>
@@ -51,6 +54,7 @@
 </%def>
 <%def name="body()">
         <input type="hidden" id="page_name" value="series_detail" />
+        <input type="hidden" id="cv_removed" value="${comic['cv_removed']}" />
 	<div id="paddingheader">
 		<h1>
                    </br>
@@ -117,7 +121,7 @@
                    %>
                    %if mylar.CONFIG.SERIES_METADATA_LOCAL is True:
                        <div class="outerglow" style="z-index: 10; position: absolute; float: right; bottom: 10px; right: -50px;">
-                           <a href="#" onclick="doAjaxCall('update_metadata?comicid=${comic['ComicID']}', $(this), 'tabs');" data-success="successfully generated series.json" data-error="nope.">
+                           <a href="#" onclick="doAjaxCall('update_metadata?comicid=${comic['ComicID']}', $(this), 'both');" data-success="successfully generated series.json" data-error="nope.">
                            <span title="${meta_title}" class="outerglow_shadow_${meta_color}">series.json</span>
                            <span class="outerglow_text">series.json</span></a>
                        </div>
@@ -177,7 +181,7 @@
                                                         if cid[re.sub('4050-', '', x['comicid']).strip()]['comicid']:
                                                             watch = "<a href='comicDetails?ComicID=%s' title='In Watchlist'>%s</a>" % (cid[re.sub('4050-', '', x['comicid']).strip()]['comicid'], x['series'])
                                                     except:
-                                                            watch = "%s" % (x['series'])
+                                                            watch = "<a href='https://comicvine.gamespot.com/volume/%s' title='link to CV' target='_blank'>%s</a>" % (x['comicid'],x['series'])
                                                 else:
                                                     watch = x['series']
                                                 if cnt == 0:
@@ -413,7 +417,7 @@
                                        <label>Alternate File-Naming</label>
                                        <input type="text" name="alt_filename" placeholder="${comic['AlternateFileName']}" onfocus="if(this.value==this.defaultValue) this.value='';" value="${comic['AlternateFileName']}" size="90">
                                        <a href="#" title="Alternate File Naming"><img src="images/info32.png" height="16" alt=""></a>
-                                       <small>Use this insetad of CV name during post-processing / renaming</small>
+                                       <small>Use this instead of CV name during post-processing / renaming</small>
                                    </div>
 
                                    <div class="row">
@@ -1397,8 +1401,41 @@
             }
             reload_tables();
         }
+        function fix_cv_removed(option, delete_cv_dir) {
+            var comicid = retrieve_comicid();
+            if (option == 'delete_cv_removed'){
+                opts = 'delete';
+            } else {
+                opts = 'keep';
+            }
+            $.when($.ajax({
+                 type: "GET",
+                 url: "fix_cv_removed",
+                 data: { comicid: comicid, opts: opts, delete_dir: delete_cv_dir },
+                 success: function(response) {
+                    obj = JSON.parse(response);
+                 },
+                 error: function(data)
+                     {
+                       alert('ERROR'+data.responseText);
+                     },
+            })).done(function(data) {
+                 if (opts == 'delete'){
+                     document.location.href="/";
+                 } else {
+                     $("#cv_removed_dialog").dialog('close');
+                     reload_tables();
+                 }
+                 $('#ajaxMsg').html("<div class='msg'><span class='ui-icon ui-icon-check'></span>"+obj['message']+"</div>");
+                 if (obj['status'] == 'success'){
+                     $('#ajaxMsg').addClass('success').fadeIn().delay(3000).fadeOut();
+                 } else {
+                     $('#ajaxMsg').addClass('error').fadeIn().delay(3000).fadeOut();
+                 }
+            });
+        }
 
-       function count_checks(tabletype){
+        function count_checks(tabletype){
             if (tabletype == 'issues'){
                 var checks = document.getElementsByName("issueid[]");
                 cc = document.getElementById("markissue");
@@ -1532,6 +1569,20 @@
         }
 
         function initThisPage(){
+                if (document.getElementById("cv_removed").value === '1'){
+                   $("#crd").append('<center>ComicVine has decided to remove this volume and has replaced it with an entirely different volume. You have 2 options:</center></br> \
+                                     <p style="display: block;"><div class="cv_row"><div class="cv_column">Remove this volume from your watchlist</br> (all issues/annuals)</br> \
+                                     </br><input id="delete_cv_removed" type="button" value="DELETE" onclick="fix_cv_removed(this.id, delete_cv_dir.value);" /> \
+                                     </br></br><input type="checkbox" style="vertical-align: middle; margin: 3px; margin-top: -1px;" name="delete_cv_dir" id="delete_cv_dir" value="1" /> \
+                                     <label>Remove directory when deleting Series?</label></div> \
+                                     <div class="cv_column">Retain existing information but no new</br> information will be available (ie. Paused)</br> \
+                                     </br><input id="keep_cv_removed" type="button" value="KEEP" onclick="fix_cv_removed(this.id, delete_cv_dir.value);" /> \
+                                     </p></div></div>');
+                   $("#cv_removed_dialog").dialog({
+                      modal: true,
+                      width: "50%",
+                   });
+                }
                 $( "#tabs" ).tabs({
                     cache: false,
                 });
@@ -1936,9 +1987,9 @@
                          } else if (aData[3] === "Snatched") {
                             $('td', nRow).closest('tr').addClass("Snatched gradeC");
                          } else if (aData[3] === "Archived") {
-                            $('td', nRow).closest('tr').addClass("Archived gradeA");
+                            $('td', nRow).closest('tr').addClass("Archived gradeI");
                          } else if (aData[3] === "Ignored") {
-                            $('td', nRow).closest('tr').addClass("Ignored gradeA");
+                            $('td', nRow).closest('tr').addClass("Ignored gradeZ");
                          } else if (aData[3] === "Failed") {
                             $('td', nRow).closest('tr').addClass("Failed gradeF");
                          } else {
@@ -2010,7 +2061,8 @@
             // Handle click on "Select all" control
             $('#issues-select-all').on('click', function(){
                 // Get all rows with search applied
-                var rows = tables.rows({ 'search': 'applied' }).nodes();
+                var rows = $('#issue_table').DataTable().rows({ 'search': 'applied' }).nodes();
+                //var rows = tables.rows({ 'search': 'applied' }).nodes();
                // Check/uncheck checkboxes for all rows in the table
                $('input[type="checkbox"]', rows).prop('checked', this.checked);
                count_checks('issues');
@@ -2036,7 +2088,8 @@
             // Handle click on "Select all" control
             $('#annuals-select-all').on('click', function(){
                 // Get all rows with search applied
-                var rows = tables.rows({ 'search': 'applied' }).nodes();
+                var rows = $('#annual_table').DataTable().rows({ 'search': 'applied' }).nodes();
+                //var rows = tables.rows({ 'search': 'applied' }).nodes();
                // Check/uncheck checkboxes for all rows in the table
                $('input[type="checkbox"]', rows).prop('checked', this.checked);
                count_checks('annuals');

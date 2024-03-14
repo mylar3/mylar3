@@ -15,7 +15,7 @@
 import re
 import time
 import pytz
-from mylar import logger, helpers
+from mylar import db, logger, helpers
 import mylar
 from bs4 import BeautifulSoup as Soup
 from xml.parsers.expat import ExpatError
@@ -49,7 +49,10 @@ def pulldetails(comicid, rtype, issueid=None, offset=1, arclist=None, comicidlis
         PULLURL = mylar.CVURL + str(cv_rtype) + '/?api_key=' + str(comicapi) + '&format=xml&' + str(searchset) + '&offset=' + str(offset)
     elif any([rtype == 'image', rtype == 'firstissue', rtype == 'imprints_first']):
         #this is used ONLY for CV_ONLY
-        PULLURL = mylar.CVURL + 'issues/?api_key=' + str(comicapi) + '&format=xml&filter=id:' + str(issueid) + '&field_list=cover_date,store_date,image'
+        if issueid:
+            PULLURL = mylar.CVURL + 'issues/?api_key=' + str(comicapi) + '&format=xml&filter=id:' + str(issueid) + '&field_list=cover_date,store_date,image'
+        else:
+            PULLURL = mylar.CVURL + 'volume/' + str(comicid) + '/?api_key=' + str(comicapi) + '&format=xml' + '&field_list=image'
     elif rtype == 'storyarc':
         PULLURL = mylar.CVURL + 'story_arcs/?api_key=' + str(comicapi) + '&format=xml&filter=name:' + str(issueid) + '&field_list=cover_date'
     elif rtype == 'comicyears':
@@ -939,11 +942,11 @@ def GetSeriesYears(dom):
                     #sometimes it's volume 5 and ocassionally it's fifth volume.
                     if i == 0:
                         vfind = comicDes[v_find:v_find +15]   #if it's volume 5 format
-                        basenums = {'zero': '0', 'one': '1', 'two': '2', 'three': '3', 'four': '4', 'five': '5', 'six': '6', 'seven': '7', 'eight': '8', 'nine': '9', 'ten': '10', 'i': '1', 'ii': '2', 'iii': '3', 'iv': '4', 'v': '5'}
+                        basenums = basenum_mapping(ordinal=False)
                         logger.fdebug('volume X format - %s: %s' % (i, vfind))
                     else:
                         vfind = comicDes[:v_find]   # if it's fifth volume format
-                        basenums = {'zero': '0', 'first': '1', 'second': '2', 'third': '3', 'fourth': '4', 'fifth': '5', 'sixth': '6', 'seventh': '7', 'eighth': '8', 'nineth': '9', 'tenth': '10', 'i': '1', 'ii': '2', 'iii': '3', 'iv': '4', 'v': '5'}
+                        basenums = basenum_mapping(ordinal=True)
                         logger.fdebug('X volume format - %s: %s' % (i, vfind))
                     for nums in basenums:
                         if nums in vfind.lower():
@@ -1263,7 +1266,7 @@ def get_imprint_volume_and_booktype(series, comicyear, publisher, firstissueid, 
 
     #sometimes the deck has volume labels
     try:
-        comic_deck = deck
+        comic_deck = deck.strip()
         desdeck +=1
     except:
         comic_deck = 'None'
@@ -1273,7 +1276,7 @@ def get_imprint_volume_and_booktype(series, comicyear, publisher, firstissueid, 
     comic['ComicVersion'] = 'None' #noversion'
 
     #figure out if it's a print / digital edition.
-    comic['Type'] = 'None'
+    comic['Type'] = 'Print'
     if comic_deck != 'None':
         if any(['print' in comic_deck.lower(), 'digital' in comic_deck.lower(), 'paperback' in comic_deck.lower(), 'one shot' in re.sub('-', '', comic_deck.lower()).strip(), 'hardcover' in comic_deck.lower()]):
             if all(['print' in comic_deck.lower(), 'reprint' not in comic_deck.lower()]):
@@ -1291,7 +1294,7 @@ def get_imprint_volume_and_booktype(series, comicyear, publisher, firstissueid, 
             else:
                 comic['Type'] = 'Print'
 
-    if comic_desc != 'None' and comic['Type'] == 'None':
+    if comic_desc != 'None' and comic['Type'] == 'Print':
         if 'print' in comic_desc[:60].lower() and all(['also available as a print' not in comic_desc.lower(), 'for the printed edition' not in comic_desc.lower(), 'print edition can be found' not in comic_desc.lower(), 'reprints' not in comic_desc.lower()]):
             comic['Type'] = 'Print'
         elif all(['digital' in comic_desc[:60].lower(), 'graphic novel' not in comic_desc[:60].lower(), 'digital edition can be found' not in comic_desc.lower()]):
@@ -1357,17 +1360,20 @@ def get_imprint_volume_and_booktype(series, comicyear, publisher, firstissueid, 
                         # check to see if it matches the existing volume and if so replace it with any new
                         # values since the incorrect volume is incorrect.
                         incorrect_volume = comicDes[v_find:v_find+15]
-                if comicDes[v_find+7:comicDes.find(' ', v_find+7)].isdigit():
-                    comic['ComicVersion'] = re.sub("[^0-9]", "", comicDes[v_find+7:comicDes.find(' ', v_find+7)]).strip()
+                cbd = comicDes.find(' ', v_find+7)
+                if comicDes.find(' ', v_find+7) == -1:
+                    cbd = len(comicDes)
+                if comicDes[v_find+7:cbd].isdigit():
+                    comic['ComicVersion'] = re.sub("[^0-9]", "", comicDes[v_find+7:cbd]).strip()
                     break
                 elif i == 0:
                     vfind = comicDes[v_find:v_find +15]   #if it's volume 5 format
-                    basenums = {'zero': '0', 'one': '1', 'two': '2', 'three': '3', 'four': '4', 'five': '5', 'six': '6', 'seven': '7', 'eight': '8', 'nine': '9', 'ten': '10', 'i': '1', 'ii': '2', 'iii': '3', 'iv': '4', 'v': '5'}
-                    logger.fdebug('volume X format - ' + str(i) + ': ' + vfind)
+                    basenums = basenum_mapping(ordinal=False)
+                    logger.fdebug('volume X format - %s: %s' % (i, vfind))
                 else:
-                    vfind = comicDes[:v_find]   # if it's fifth volume format
-                    basenums = {'zero': '0', 'first': '1', 'second': '2', 'third': '3', 'fourth': '4', 'fifth': '5', 'sixth': '6', 'seventh': '7', 'eighth': '8', 'nineth': '9', 'tenth': '10', 'i': '1', 'ii': '2', 'iii': '3', 'iv': '4', 'v': '5'}
-                    logger.fdebug('X volume format - ' + str(i) + ': ' + vfind)
+                    vfind = comicDes[:v_find] # if it's fifth volume format
+                    basenums = basenum_mapping(ordinal=True)
+                    logger.fdebug('X volume format - %s: %s' % (i, vfind))
                 og_vfind = vfind
                 for nums in basenums:
                     if nums in vfind.lower():
@@ -1417,3 +1423,84 @@ def get_imprint_volume_and_booktype(series, comicyear, publisher, firstissueid, 
     logger.info('comic_values: %s' % (comic,))
 
     return comic
+
+def basenum_mapping(ordinal=False):
+    if not ordinal:
+        basenums = {'zero': '0',
+                    'one': '1',
+                    'two': '2',
+                    'three': '3',
+                    'four': '4',
+                    'five': '5',
+                    'six': '6',
+                    'seven': '7',
+                    'eight': '8',
+                    'nine': '9',
+                    'ten': '10',
+                    'eleven': '11',
+                    'twelve': '12',
+                    'thirteen': '13',
+                    'fourteen': '14',
+                    'fifteen': '15',
+                    'i': '1',
+                    'ii': '2',
+                    'iii': '3',
+                    'iv': '4',
+                    'v': '5',
+                    'vi': '6',
+                    'vii': '7',
+                    'viii': '8',
+                    'xi': '9'}
+    else:
+        basenums = {'zero': '0',
+                    'first': '1',
+                    'second': '2',
+                    'third': '3',
+                    'fourth': '4',
+                    'fifth': '5',
+                    'sixth': '6',
+                    'seventh': '7',
+                    'eighth': '8',
+                    'nineth': '9',
+                    'tenth': '10',
+                    'eleventh': '11',
+                    'twelfth': '12',
+                    'thirteenth': '13',
+                    'fourteenth': '14',
+                    'fifteenth': '15',
+                    'i': '1',
+                    'ii': '2',
+                    'iii': '3',
+                    'iv': '4',
+                    'v': '5',
+                    'vi': '6',
+                    'vii': '7',
+                    'viii': '8',
+                    'xi': '9'}
+
+    return basenums
+
+def check_that_biatch(comicid, oldinfo, newinfo):
+    failures = 0
+    if newinfo['ComicName'] is not None:
+        if newinfo['ComicName'].lower() != oldinfo['comicname'].lower():
+            failures +=1
+    if newinfo['ComicYear'] is not None:
+        if newinfo['ComicYear'] != oldinfo['comicyear']:
+            failures +=1
+    if newinfo['ComicPublisher'] is not None:
+        if newinfo['ComicPublisher'] != oldinfo['publisher']:
+            failures +=1
+    if newinfo['ComicURL'] is not None:
+        if newinfo['ComicURL'] != oldinfo['detailurl']:
+            failures +=1
+
+    if failures > 2:
+        # if > 50% failure (> 2/4 mismatches) assume removed...
+        logger.warn('[%s] Detected CV removing existing data for series [%s (%s)] and replacing it with [%s (%s)].'
+                    'This is a failure for this series and will be paused until fixed manually' %
+                    (failures, oldinfo['comicname'], oldinfo['comicyear'], newinfo['ComicName'], newinfo['ComicYear'])
+        )
+        return True
+
+    return False
