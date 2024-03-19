@@ -25,15 +25,17 @@
             </tbody>
 	</table>
       </div>
-      <div>
+      <div style="z-index:10;overflow: hidden;margin-top:10px;">
+        <div>
             <table style="float: right; border-spacing:3px;border-collapse:separate;">
               <tr>
                 <td id="legend_removed" style="float:left;margin-left:2px;vertical-align:middle;"><span style="border:1px solid#ccc;float:left;width:30px;height:12px;margin:4px;background:${legend_colors['removed']};" title="Series has been removed from CV"></span> CV removed</td>
                 <td id="legend_paused" style="float:left;margin-left:2px;vertical-align:middle;"><span style="border:1px solid#ccc;float:left;width:30px;height:12px;margin:4px;background:${legend_colors['paused']};" title="Series is Paused"></span> Paused series</td>
-                <td id="legend_failed" style="float:left;margin-left:2px;vertical-align:middle;"><span style="border:1px solid#ccc;float:left;width:30px;height:12px;margin:4px;background:${legend_colors['failed']};" title="Series was unable to complete adding/refreshing"></span> Failed/Error</td>
-                <td id="legend_loading" style="float:left;margin-left:2px;vertical-align:middle;"><span style="border:1px solid#ccc;float:left;width:30px;height:12px;margin:4px;background:${legend_colors['loading']};" title="Loading information state"></span> Loading</td>
+                <td id="legend_failed" style="margin-left:5px;"><span style="border:1px solid#ccc;float:left;width:30px;height:12px;margin:4px;background:${legend_colors['failed']};" title="Series was unable to complete adding/refreshing"></span> Failed/Error</td>
+                <td id="legend_loading" style="margin-left:5px;"><span style="border:1px solid#ccc;float:left;width:30px;height:12px;margin:4px;background:${legend_colors['loading']};" title="Loading information state"></span> Loading</td>
               </tr>
             </table>
+       </div>
      </div>
 </%def>
 
