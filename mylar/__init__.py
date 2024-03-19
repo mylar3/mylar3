@@ -282,6 +282,9 @@ def initialize(config_file):
             mylar.MAINTENANCE = True
 
         if MAINTENANCE is False:
+
+            mylar.config.ddl_creations()
+
             #try to get the local IP using socket. Get this on every startup so it's at least current for existing session.
             import socket
             try:
