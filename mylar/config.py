@@ -1268,9 +1268,11 @@ class Config(object):
                     if x == '[__*__]':
                         tmp_path = os.path.join(y, pathlimiter, '*' + glob.escape('[__') + '*' + glob.escape('__]'))
                     for f in glob.glob(tmp_path, recursive=True):
+                        ff = Path(f)
                         try:
                             if os.path.isdir(f):
-                                shutil.rmtree(f)
+                                if all([ff.stem != 'html_cache', ff.stem != 'mega']):
+                                    shutil.rmtree(f)
                             else:
                                 os.remove(f)
                         except Exception as e:
