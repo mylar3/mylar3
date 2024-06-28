@@ -1061,11 +1061,11 @@ class GC(object):
                 logger.warn('[GC-Site-Unknown] Unknown site detected...%s' % lt_site)
                 link_type = 'Unknown'
 
-            if self.issueid is None:
+            if self.issueid is None and comicinfo is not None:
                 self.issueid = comicinfo[0]['IssueID']
-            if self.comicid is None:
+            if self.comicid is None and comicinfo is not None:
                 self.comicid = comicinfo[0]['ComicID']
-            if self.oneoff is None:
+            if self.oneoff is None and comicinfo is not None:
                 self.oneoff = comicinfo[0]['oneoff']
 
             ctrlval = {'id': mod_id}
