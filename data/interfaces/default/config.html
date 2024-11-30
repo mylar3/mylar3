@@ -1267,7 +1267,7 @@
                                                     <input type="checkbox" name="ct_tag_cr" value="1" ${config['ct_tag_cr']} /><label>Write ComicRack (cr) tags (ComicInfo.xml)</label>
                                             </div>
                                             <div class="row checkbox left clearfix">
-                                                    <input type="checkbox" name="ct_tag_cbl" value="1" ${config['ct_tag_cbl']} /><label>Write ComicBookLover (Cbl) tags (zip comment)</label>
+                                                    <input id="ct_tag_cbl" type="checkbox" name="ct_tag_cbl" disabled value="1" ${config['ct_tag_cbl']} /><label>Write ComicBookLover (Cbl) tags (zip comment)</label>
                                             </div>
                                             <div class="row checkbox left clearfix">
                                                     <input type="checkbox" name="ct_cbz_overwrite" value="1" ${config['ct_cbz_overwrite']} /><label>Overwrite existing cbz tags (if they exist)</label>
@@ -1305,7 +1305,8 @@
                                             </div>
                                             <div>
                                                <p style="padding-top:10%;text-align:center;color:#999;display:block;font-size:11px;line-height:12px;">If ComicVine API Key specified, will use with ComicTagger</br>
-                                               Writing each type of metadata will increase API count respectively</p>
+                                               Writing each type of metadata will increase API count respectively</br>
+                                               Using ComicBookLover tags is discouraged</p>
                                             </div>
                                         </div>
                                 </div>
@@ -2163,6 +2164,22 @@
 
                         }
                 });
+                if ($("#ct_tag_cbl").is(":checked"))
+                        {
+                            document.getElementById("ct_tag_cbl").removeAttribute("disabled");
+                        }
+                else
+                        {
+                            document.getElementById("ct_tag_cbl").setAttribute("disabled", "disabled");
+                        }
+
+                $("#ct_tag_cbl").click(function(){
+                    if (!$("#ct_tag_cbl").checked)
+                    {
+                        document.getElementById("ct_tag_cbl").setAttribute("disabled", "disabled");
+                    }
+                });
+
                 if ($("#cmtag_volume").is(":checked"))
                         {
                                 $("#volumetag_options").slideDown();
