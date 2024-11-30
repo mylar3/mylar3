@@ -337,7 +337,7 @@ _CONFIG_DEFINITIONS = OrderedDict({
     'CMTAGGER_PATH': (str, 'Metatagging', None),
     'CBR2CBZ_ONLY': (bool, 'Metatagging', False),
     'CT_TAG_CR': (bool, 'Metatagging', True),
-    'CT_TAG_CBL': (bool, 'Metatagging', True),
+    'CT_TAG_CBL': (bool, 'Metatagging', False),
     'CT_CBZ_OVERWRITE': (bool, 'Metatagging', False),
     'UNRAR_CMD': (str, 'Metatagging', None),
     'CT_NOTES_FORMAT': (str, 'Metatagging', 'Issue ID'),
