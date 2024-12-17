@@ -2782,11 +2782,20 @@ class PostProcessor(object):
                 issuenum = re.sub("[^0-9]", "", issuenum)
                 issue_except = '.HU'
             elif '\xbd' in issuenum:
-                issuenum = '0.5'
+                wholenum = issuenum.replace('\xbd', '')
+                if wholenum == '':
+                    wholenum = "0"
+                issuenum = f'{wholenum}.5'
             elif '\xbc' in issuenum:
-                issuenum = '0.25'
+                wholenum = issuenum.replace('\xbc', '')
+                if wholenum == '':
+                    wholenum = "0"
+                issuenum = f'{wholenum}.25'
             elif '\xbe' in issuenum:
-                issuenum = '0.75'
+                wholenum = issuenum.replace('\xbe', '')
+                if wholenum == '':
+                    wholenum = "0"
+                issuenum = f'{wholenum}.75'
             elif '\u221e' in issuenum:
                 #issnum = utf-8 will encode the infinity symbol without any help
                 issuenum = 'infinity'
