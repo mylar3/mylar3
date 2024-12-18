@@ -410,12 +410,31 @@ def rename_param(comicid, comicname, issue, ofilename, comicyear=None, issueid=N
             unicodeissue = issuenum
 
             if type(issuenum) == str:
-               vals = {'\xbd':'.5','\xbc':'.25','\xbe':'.75','\u221e':'9999999999','\xe2':'9999999999'}
+               vals = {'\u221e':'9999999999','\xe2':'9999999999'}
             else:
-               vals = {'\xbd':'.5','\xbc':'.25','\xbe':'.75','\\u221e':'9999999999','\xe2':'9999999999'}
+               vals = {'\\u221e':'9999999999','\xe2':'9999999999'}
             x = [vals[key] for key in vals if key in issuenum]
             if x:
                 issuenum = x[0]
+                logger.fdebug('issue number formatted: %s' % issuenum)
+
+            if '\xbd' in issuenum:
+                wholenum = issuenum.replace('\xbd', '')
+                if wholenum == '':
+                    wholenum = "0"
+                issuenum = f'{wholenum}.5'
+                logger.fdebug('issue number formatted: %s' % issuenum)
+            elif '\xbc' in issuenum:
+                wholenum = issuenum.replace('\xbc', '')
+                if wholenum == '':
+                    wholenum = "0"
+                issuenum = f'{wholenum}.25'
+                logger.fdebug('issue number formatted: %s' % issuenum)
+            elif '\xbe' in issuenum:
+                wholenum = issuenum.replace('\xbe', '')
+                if wholenum == '':
+                    wholenum = "0"
+                issuenum = f'{wholenum}.75'
                 logger.fdebug('issue number formatted: %s' % issuenum)
 
             #comicid = issuenzb['ComicID']
