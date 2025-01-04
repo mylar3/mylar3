@@ -345,6 +345,9 @@ _CONFIG_DEFINITIONS = OrderedDict({
     'CMTAG_VOLUME': (bool, 'Metatagging', True),
     'CMTAG_START_YEAR_AS_VOLUME': (bool, 'Metatagging', True),
     'SETDEFAULTVOLUME': (bool, 'Metatagging', False),
+    'CV_BATCH_LIMIT_PROTECTION': (bool, 'Metatagging', True),
+    'CV_BATCH_LIMIT_THRESHOLD': (int, 'Metatagging', 200),
+
 
     'ENABLE_TORRENTS': (bool, 'Torrents', False),
     'ENABLE_TORRENT_SEARCH': (bool, 'Torrents', False),
