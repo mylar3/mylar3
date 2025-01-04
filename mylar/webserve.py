@@ -8106,7 +8106,7 @@ class WebInterface(object):
         if mylar.CONFIG.ANNUALS_ON:
             groupinfo += myDB.select('SELECT IssueID, Location FROM annuals WHERE ComicID=? and and Location is not NULL', [ComicID])
 
-        if groupinfo is None:
+        if len(groupinfo) == 0:
             logger.warn('No issues physically exist within the series directory for me to (re)-tag.')
             return
 
