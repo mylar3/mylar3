@@ -25,6 +25,7 @@ import codecs
 import shutil
 import re
 import configparser
+from pathlib import Path
 import mylar
 from mylar import logger, helpers, encrypted, filechecker, db, maintenance
 
@@ -95,7 +96,8 @@ _CONFIG_DEFINITIONS = OrderedDict({
     'ALTERNATE_LATEST_SERIES_COVERS': (bool, 'General', False),
     'SHOW_ICONS': (bool, 'General', False),
     'FORMAT_BOOKTYPE': (bool, 'General', True),
-    'CLEANUP_CACHE': (bool, 'General', False),
+    'CLEANUP_CACHE': (bool, 'General', True),
+    'CLEANUP_STRAYS': (bool, 'General', False),
     'SECURE_DIR': (str, 'General', None),
     'ENCRYPT_PASSWORDS': (bool, 'General', False),
     'BACKUP_ON_START': (bool, 'General', False),
@@ -1241,20 +1243,41 @@ class Config(object):
                  logger.error('SECURE-DIR-MOVE] Unable to move cookies file into secure location. This is a fatal error.')
                  sys.exit()
 
-        if self.CLEANUP_CACHE is True:
+        if self.CLEANUP_CACHE:
             logger.fdebug('[Cache Cleanup] Cache Cleanup initiated. Will delete items from cache that are no longer needed.')
-            cache_types = ['*.nzb', '*.torrent', '*.zip', '*.html', 'mylar_*', 'html_cache']
+            cache_types = ['*.nzb', '*.torrent', '*.html', 'mylar_*', 'html_cache']
+            dir_locations = []
+            dir_locations.append(self.CACHE_DIR)
+            if self.CLEANUP_STRAYS:
+                logger.fdebug('[Cache Cleanup] cbr/cbz cache cleanup option detected. Will remove any detected cbr & cbz files from cache/ddl location.')
+                cache_types.extend(('*.zip', '*.cbr', '*.cbz', '[__*__]'))
+                if all(
+                         [
+                           self.DDL_LOCATION is not None,
+                           self.DESTINATION_DIR is not None,
+                           self.CACHE_DIR != self.DDL_LOCATION,
+                           self.DDL_LOCATION != self.DESTINATION_DIR
+                         ]
+                ):
+                    dir_locations.append(self.DDL_LOCATION)
             cntr = 0
-            for x in cache_types:
-                for f in glob.glob(os.path.join(self.CACHE_DIR,x)):
-                    try:
-                        if os.path.isdir(f):
-                            shutil.rmtree(f)
-                        else:
-                            os.remove(f)
-                    except Exception as e:
-                        logger.warn('[ERROR] Unable to remove %s from cache. Could be a possible permissions issue ?' % f)
-                    cntr+=1
+            pathlimiter = '**'
+            for y in dir_locations:
+                for x in cache_types:
+                    tmp_path = os.path.join(y, pathlimiter, x)
+                    if x == '[__*__]':
+                        tmp_path = os.path.join(y, pathlimiter, '*' + glob.escape('[__') + '*' + glob.escape('__]'))
+                    for f in glob.glob(tmp_path, recursive=True):
+                        ff = Path(f)
+                        try:
+                            if os.path.isdir(f):
+                                if all([ff.stem != 'html_cache', ff.stem != 'mega']):
+                                    shutil.rmtree(f)
+                            else:
+                                os.remove(f)
+                        except Exception as e:
+                            logger.warn('[ERROR] Unable to remove %s from cache. [%s]' % (f, e))
+                        cntr+=1
 
             if cntr > 1:
                 logger.fdebug('[Cache Cleanup] Cache Cleanup finished. Cleaned %s items' % cntr)
@@ -1411,14 +1434,13 @@ class Config(object):
         #we need to make sure the default folder setting for the comictagger settings exists so things don't error out
         if self.CT_SETTINGSPATH is None:
             chkpass = False
-            import pathlib
 
             #windows won't be able to create in ~, so force it to DATA_DIR
             if mylar.OS_DETECT == 'Windows':
                 ct_path = mylar.DATA_DIR
                 chkpass = True
             else:
-                ct_path = str(pathlib.Path(os.path.expanduser("~")))
+                ct_path = str(Path(os.path.expanduser("~")))
                 try:
                     os.mkdir(os.path.join(ct_path, '.ComicTagger'))
                     chkpass = True
@@ -1519,38 +1541,6 @@ class Config(object):
             ann_remove = re.sub(r'\s+', ' ', ann_removed).strip()
             setattr(self, 'FOLDER_FORMAT', ann_remove)
             config.set('General', 'folder_format', ann_remove)
-
-        # need to recheck this cause of how enable_ddl and enable_getcomics are now
-        #self.ENABLE_GETCOMICS = self.ENABLE_DDL
-        #config.set('DDL', 'enable_getcomics', str(self.ENABLE_GETCOMICS))
-
-        if not self.DDL_LOCATION:
-            self.DDL_LOCATION = self.CACHE_DIR
-            if self.ENABLE_DDL is True:
-                logger.info('Setting DDL Location set to : %s' % self.DDL_LOCATION)
-        else:
-            try:
-                os.makedirs(self.DDL_LOCATION)
-                #dcreate = filechecker.validateAndCreateDirectory(self.DDL_LOCATION, create=True, dmode='ddl location')
-                #if dcreate is False and self.ENABLE_DDL is True:
-            except Exception as e:
-                logger.warn('Unable to create ddl_location specified in config: %s. Reverting to default cache location.' % self.DDL_LOCATION)
-                self.DDL_LOCATION = self.CACHE_DIR
-
-        if self.ENABLE_DDL:
-            #make sure directory for mega downloads is created...
-            mega_ddl_path = os.path.join(self.DDL_LOCATION, 'mega')
-            html_cache_path = os.path.join(self.CACHE_DIR, 'html_cache')
-            if not os.path.isdir(mega_ddl_path):
-                try:
-                    os.makedirs(mega_ddl_path)
-                except Exception as e:
-                    logger.error('Unable to create temp download directory [%s] for DDL-External. You will not be able to view the progress of the download.' % mega_ddl_path)
-            if not os.path.isdir(html_cache_path):
-                try:
-                    os.makedirs(html_cache_path)
-                except Exception as e:
-                    logger.error('Unable to create html_cache folder within the cache folder location [%s]. DDL will not work until this is corrected.' % html_cache_path)
 
         if len(self.DDL_PRIORITY_ORDER) > 0 and self.DDL_PRIORITY_ORDER != '[]':
             if type(self.DDL_PRIORITY_ORDER) != list:
@@ -2061,3 +2051,26 @@ class Config(object):
            if write is True:
                logger.fdebug('writing: keys - %s: vals - %s' % (vals, ctrls))
                writeout = myDB.upsert("provider_searches", vals, ctrls)
+
+def ddl_creations():
+    if not mylar.CONFIG.DDL_LOCATION:
+        mylar.CONFIG.DDL_LOCATION = mylar.CONFIG.CACHE_DIR
+        if mylar.CONFIG.ENABLE_DDL is True:
+            logger.info('Setting DDL Location set to : %s' % mylar.CONFIG.DDL_LOCATION)
+    else:
+        dcreate = filechecker.validateAndCreateDirectory(mylar.CONFIG.DDL_LOCATION, create=True, dmode='ddl location')
+        if all([dcreate is False, mylar.CONFIG.ENABLE_DDL is True]):
+            logger.warn('Unable to create ddl_location specified in config: %s. Reverting to default cache location.' % mylar.CONFIG.DDL_LOCATION)
+            mylar.CONFIG.DDL_LOCATION = mylar.CONFIG.CACHE_DIR
+
+    if mylar.CONFIG.ENABLE_DDL:
+        #make sure directory for mega downloads is created...
+        mega_ddl_path = os.path.join(mylar.CONFIG.DDL_LOCATION, 'mega')
+        html_cache_path = os.path.join(mylar.CONFIG.CACHE_DIR, 'html_cache')
+        mdp_create = filechecker.validateAndCreateDirectory(mega_ddl_path, create=True, dmode='ddl-mega location')
+        if mdp_create is False:
+            logger.error('Unable to create temp download directory [%s] for DDL-External. You will not be able to view the progress of the download.' % mega_ddl_path)
+
+        hcp_create = filechecker.validateAndCreateDirectory(html_cache_path, create=True, dmode='html cache')
+        if hcp_create is False:
+            logger.error('Unable to create html_cache folder within the cache folder location [%s]. DDL will not work until this is corrected.' % html_cache_path)
