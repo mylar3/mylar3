@@ -1384,6 +1384,8 @@ def updateissuedata(comicid, comicname=None, issued=None, comicIssues=None, call
                     int_issnum = (int(issnum[:-3]) * 1000) + ord('l') + ord('r')
                 elif 'hu' in issnum.lower():
                     int_issnum = (int(issnum[:-3]) * 1000) + ord('h') + ord('u')
+                elif 'deaths' in issnum.lower():
+                    int_issnum = (int(issnum[:-7]) * 1000) + ord('d') + ord('e') + ord('a') + ord('t') + ord('h') + ord('s')
                 elif '\xbd' in issnum:
                     tmpiss = re.sub('[^0-9]', '', issnum).strip()
                     if len(tmpiss) > 0:
