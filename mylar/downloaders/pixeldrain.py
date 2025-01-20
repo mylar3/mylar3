@@ -34,6 +34,12 @@ class PixelDrain(object):
         }
         self.session = requests.Session()
 
+        if mylar.CONFIG.ENABLE_PROXY:
+            self.session.proxies.update({
+                'http':  mylar.CONFIG.HTTP_PROXY,
+                'https': mylar.CONFIG.HTTPS_PROXY
+            })
+
     def ddl_download(self, link, id, issueid):
         self.id = id
         self.url = link
