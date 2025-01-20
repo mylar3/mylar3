@@ -3106,103 +3106,55 @@ def weekly_info(week=None, year=None, current=None):
     if week:
         weeknumber = int(week)
         year = int(year)
-        #monkey patch for 2018/2019 - week 52/week 0
-        if all([weeknumber == 52, c_weeknumber == 51, c_weekyear == 2018]):
-            weeknumber = 0
-            year = 2019
-        elif all([weeknumber == 52, c_weeknumber == 0, c_weekyear == 2019]):
-            weeknumber = 51
-            year = 2018
-
-        #monkey patch for 2019/2020 - week 52/week 0
-        if all([weeknumber == 52, c_weeknumber == 51, c_weekyear == 2019]):
-            weeknumber = 0
-            year = 2020
-        elif all([weeknumber == 52, c_weeknumber == 0, c_weekyear == 2020]):
-            weeknumber = 51
-            year = 2019
-
-        #monkey patch for 2020/2021 - week 52/week 0
-        if all([int(weeknumber) == 0, c_weeknumber == 52, c_weekyear == 2020]):
-            weeknumber = 1
-            year = 2021
-        elif all([int(weeknumber) == 0, c_weeknumber == 1, c_weekyear == 2021]):
-            weeknumber = 52
-            year = 2020
-
-        #monkey patch for 2021/2022 - week 52/week 0
-        if all([int(weeknumber) == 0, c_weeknumber == 52, c_weekyear == 2021]):
-            weeknumber = 1
-            year = 2022
-        elif all([int(weeknumber) == 0, c_weeknumber == 1, c_weekyear == 2022]):
-            weeknumber = 52
-            year = 2021
-
-        #monkey patch for 2024/2025 - week 52/week 0
-        if all([weeknumber == 52, c_weeknumber == 51, c_weekyear == 2024]):
-            weeknumber = 1
-            year = 2025
-        elif all([weeknumber == 0, c_weeknumber == 1, c_weekyear == 2025]):
-            weeknumber = 51
-            year = 2024
-
-        #view specific week (prev_week, next_week)
-        startofyear = date(year,1,1)
-        week0 = startofyear - timedelta(days=startofyear.isoweekday())
-        stweek = datetime.datetime.strptime(week0.strftime('%Y-%m-%d'), '%Y-%m-%d')
-        if year == 2025:
-            startweek = stweek + timedelta(weeks = weeknumber -1)
-        else:
-            startweek = stweek + timedelta(weeks = weeknumber)
-        midweek = startweek + timedelta(days = 3)
-        endweek = startweek + timedelta(days = 6)
     else:
         #find the given week number for the current day
         weeknumber = current_weeknumber
         year = int(todaydate.strftime("%Y"))
 
-        #monkey patch for 2018/2019 - week 52/week 0
-        if all([weeknumber == 52, c_weeknumber == 51, c_weekyear == 2018]):
-            weeknumber = 0
-            year = 2019
-        elif all([weeknumber == 52, c_weeknumber == 0, c_weekyear == 2019]):
-            weeknumber = 51
-            year = 2018
+    #monkey patch for 2018/2019 - week 52/week 0
+    if all([weeknumber == 52, c_weeknumber == 51, c_weekyear == 2018]):
+        weeknumber = 0
+        year = 2019
+    elif all([weeknumber == 52, c_weeknumber == 0, c_weekyear == 2019]):
+        weeknumber = 51
+        year = 2018
 
-        #monkey patch for 2019/2020 - week 52/week 0
-        if all([weeknumber == 52, c_weeknumber == 51, c_weekyear == 2019]) or all([weeknumber == '52', year == '2019']):
-            weeknumber = 0
-            year = 2020
-        elif all([weeknumber == 52, c_weeknumber == 0, c_weekyear == 2020]):
-            weeknumber = 51
-            year = 2019
+    #monkey patch for 2019/2020 - week 52/week 0
+    if all([weeknumber == 52, c_weeknumber == 51, c_weekyear == 2019]) or all([weeknumber == '52', year == '2019']):
+        weeknumber = 0
+        year = 2020
+    elif all([weeknumber == 52, c_weeknumber == 0, c_weekyear == 2020]):
+        weeknumber = 51
+        year = 2019
 
-        #monkey patch for 2020/2021 - week 52/week 0
-        if all([int(weeknumber) == 0, int(year) == 2021]) or all([int(weeknumber) == 52, int(year) == 2020]):
-            weeknumber = 52
-            year = 2020
+    #monkey patch for 2020/2021 - week 52/week 0
+    if all([int(weeknumber) == 0, int(year) == 2021]) or all([int(weeknumber) == 52, int(year) == 2020]):
+        weeknumber = 52
+        year = 2020
 
-        #monkey patch for 2021/2022 - week 52/week 0
-        if all([int(weeknumber) == 0, int(year) == 2022]) or all([int(weeknumber) == 52, int(year) == 2021]):
-            weeknumber = 52
-            year = 2021
+    #monkey patch for 2021/2022 - week 52/week 0
+    if all([int(weeknumber) == 0, int(year) == 2022]) or all([int(weeknumber) == 52, int(year) == 2021]):
+        weeknumber = 52
+        year = 2021
 
-        #monkey patch for 2024/2025 - week 52/week 0
-        if all([weeknumber == 52, c_weeknumber == 51, c_weekyear == 2024]) or all([weeknumber == '52', year == '2024']):
-            weeknumber = 1
-            year = 2025
-        elif all([weeknumber == 52, c_weeknumber == 1, c_weekyear == 2025]):
-            weeknumber = 51
-            year = 2024
+    #monkey patch for 2024/2025 - week 52/week 0
+    if all([weeknumber == 52, c_weeknumber == 51, c_weekyear == 2024]) or all([weeknumber == '52', year == '2024']):
+        weeknumber = 1
+        year = 2025
+    elif any([weeknumber == 52, weeknumber == 0]) and all([c_weeknumber == 1, c_weekyear == 2025]):
+        weeknumber = 51
+        year = 2024
 
-        stweek = datetime.datetime.strptime(todaydate.strftime('%Y-%m-%d'), '%Y-%m-%d')
-        if year == 2025:
-            startweek = stweek
-        else:
-            startweek = stweek - timedelta(days = (stweek.weekday() + 1) % 7)
+    startofyear = date(year,1,1)
+    week0 = startofyear - timedelta(days=startofyear.isoweekday())
+    stweek = datetime.datetime.strptime(week0.strftime('%Y-%m-%d'), '%Y-%m-%d')
+    if year == 2025:
+        startweek = stweek + timedelta(weeks = weeknumber -1)
+    else:
+        startweek = stweek + timedelta(weeks = weeknumber)
 
-        midweek = startweek + timedelta(days = 3)
-        endweek = startweek + timedelta(days = 6)
+    midweek = startweek + timedelta(days = 3)
+    endweek = startweek + timedelta(days = 6)
 
     if all([weeknumber == 1, year == 2021]):
         # make sure the arrow going back will hit the correct week in the previous year.
