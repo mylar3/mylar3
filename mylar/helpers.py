@@ -1057,6 +1057,12 @@ def issuedigits(issnum):
                     #int_issnum = (int(issnum[:-2]) * 1000) + ord('b') + ord('l')
                 #else:
                 #    int_issnum = (int(issnum[:-3]) * 1000) + ord('h') + ord('u')
+            elif 'deaths' in issnum.lower():
+                remdec = issnum.find('.')  #find the decimal position.
+                if remdec == -1:
+                    int_issnum = (int(issnum[:-6]) * 1000) + ord('d') + ord('e') + ord('a') + ord('t') + ord('h') + ord('s')
+                else:
+                    int_issnum = (int(issnum[:-7]) * 1000) + ord('d') + ord('e') + ord('a') + ord('t') + ord('h') + ord('s')
 
         except ValueError as e:
             logger.error('[' + issnum + '] Unable to properly determine the issue number. Error: %s', e)
