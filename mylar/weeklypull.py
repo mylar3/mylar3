@@ -210,7 +210,7 @@ def pullit(forcecheck=None, weeknumber=None, year=None):
 
         #denotes issues that contain special characters within that would normally fail when checked if issue ONLY contained numerics.
         #add freely, just lowercase and exclude decimals (they get stripped during comparisons)
-        specialissues = {'au', 'ai', 'inh', 'now', 'mu'}
+        specialissues = {'au', 'ai', 'inh', 'now', 'mu', 'deaths'}
 
         pub = "COMICS"
         prevcomic = ""
