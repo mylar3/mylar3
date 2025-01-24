@@ -344,12 +344,27 @@ else:
             # Monkey patch the run() by monkey patching the __init__ method
             threading.Thread.__init__ = new_init
 
-    # Expose logger methods
-    info = logger.info
-    warn = logger.warn
-    error = logger.error
-    debug = logger.debug
-    warning = logger.warning
-    message = logger.info
-    exception = logger.exception
-    fdebug = logger.debug
+    # Expose logger methods - plus add some error handling for odd characters that stderr doesn't like
+    def info(message, *args, **kwargs):
+        logger.info(str(message).encode(errors="backslashreplace").decode(),*args, **kwargs)
+
+    def warn(message, *args, **kwargs):
+        logger.debug(str(message).encode(errors="backslashreplace").decode(),*args, **kwargs)
+
+    def error(message, *args, **kwargs):
+        logger.error(str(message).encode(errors="backslashreplace").decode(),*args, **kwargs)
+
+    def debug(message, *args, **kwargs):
+        logger.debug(str(message).encode(errors="backslashreplace").decode(),*args, **kwargs)
+
+    def warning(message, *args, **kwargs):
+        logger.warning(str(message).encode(errors="backslashreplace").decode(),*args, **kwargs)
+
+    def message(message, *args, **kwargs):
+        logger.message(str(message).encode(errors="backslashreplace").decode(),*args, **kwargs)
+
+    def exception(message, *args, **kwargs):
+        logger.exception(str(message).encode(errors="backslashreplace").decode(),*args, **kwargs)
+
+    def fdebug(message, *args, **kwargs):
+        logger.debug(str(message).encode(errors="backslashreplace").decode(),*args, **kwargs)
