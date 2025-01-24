@@ -213,7 +213,7 @@ def search_init(
                 cmloopit = 4
                 if 'annual' in ComicName.lower():
                     if IssueNumber is not None:
-                        if helpers.issuedigits(IssueNumber) != 1000:
+                        if helpers.issue_number_parser(IssueNumber).asInt != helpers.issue_number_to_int(1, None):
                             cmloopit = None
             if cmloopit is None:
                 if len(c_number) == 1:
@@ -809,7 +809,8 @@ def NZB_SEARCH(
     cm = re.sub("'", "%27", str(cm))
 
     if IssueNumber is not None:
-        intIss = helpers.issuedigits(IssueNumber)
+        intIss = helpers.issue_number_parser(IssueNumber).asInt
+        # TODO: Revisit this later to see if the below can be absorbed by the string part of issueNumberParser (and to fix the fraction logic)
         iss = IssueNumber
         if '\xbd' in IssueNumber:
             findcomiciss = '0.5'
@@ -2126,7 +2127,7 @@ def searchforissue(issueid=None, new=False, rsschecker=None, manual=False):
 
                         logger.info('provider_list: %s' % (provider_list,))
 
-                        intIss = helpers.issuedigits(xr['Issue_Number'])
+                        intIss = helpers.issue_number_parser(xr['Issue_Number']).asInt
 
                         findcomiciss, c_number = get_findcomiciss(xr['Issue_Number'])
 
@@ -2138,7 +2139,7 @@ def searchforissue(issueid=None, new=False, rsschecker=None, manual=False):
                                 cmloopit = 4
                                 if 'annual' in comicname.lower():
                                     if xr['Issue_Number'] is not None:
-                                        if helpers.issuedigits(xr['Issue_Number']) != 1000:
+                                        if helpers.issue_number_parser(xr['Issue_Number']).asInt != helpers.issue_number_to_int(1,None):
                                             cmloopit = None
                             if cmloopit is None:
                                 if len(c_number) == 1:

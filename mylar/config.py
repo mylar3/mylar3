@@ -112,6 +112,7 @@ _CONFIG_DEFINITIONS = OrderedDict({
     'SCAN_ON_SERIES_CHANGES': (bool, 'General', True),
     'CLEAR_PROVIDER_TABLE': (bool, 'General', False),
     'SEARCH_TIER_CUTOFF': (int, 'General', 14), # days
+    'CUSTOM_ISSUE_EXCEPTIONS': (str, 'General', []),
 
     'RSS_CHECKINTERVAL': (int, 'Scheduler', 20),
     'SEARCH_INTERVAL': (int, 'Scheduler', 1440),
@@ -1403,6 +1404,29 @@ class Config(object):
                     except Exception as e:
                         logger.warn('[MASS_PUBLISHERS] Unable to convert publishers [%s]. Error returned: %s' % (self.MASS_PUBLISHERS, e))
         logger.info('[MASS_PUBLISHERS] Auto-add for weekly publishers set to: %s' % (self.MASS_PUBLISHERS,))
+
+        if len(self.CUSTOM_ISSUE_EXCEPTIONS) > 0 and self.CUSTOM_ISSUE_EXCEPTIONS != '[]':
+            if type(self.CUSTOM_ISSUE_EXCEPTIONS) != list:
+                try:
+                    self.CUSTOM_ISSUE_EXCEPTIONS = json.loads(self.CUSTOM_ISSUE_EXCEPTIONS)
+                except Exception as e:
+                    logger.warn(f'unable to load custom issue exceptions {self.CUSTOM_ISSUE_EXCEPTIONS}, resetting to empty string')
+                    self.CUSTOM_ISSUE_EXCEPTIONS = []
+
+            # Clean up the exceptions in config if any new ones now overlap from hard coded list (either exact match, or pattern matched)
+            inbuilt_patterns = [x[0] for x in mylar.INBUILT_ISSUE_EXCEPTIONS if x[1] == 'Pattern']
+            inbuilt_exact = [x[0].lower() for x in mylar.INBUILT_ISSUE_EXCEPTIONS if x[1] == 'Exact']
+
+            custom_patterns = [x[0] for x in self.CUSTOM_ISSUE_EXCEPTIONS if x[1] == 'Pattern']
+            custom_exact = [x[0] for x in self.CUSTOM_ISSUE_EXCEPTIONS if x[1] == 'Exact']
+
+            self.CUSTOM_ISSUE_EXCEPTIONS = [[x, "Exact"] for x in custom_exact if (not x.lower() in inbuilt_exact) and (not any([re.fullmatch(pattern, x, re.IGNORECASE) for pattern in inbuilt_patterns]))] + \
+                                            [[x, "Pattern"] for x in custom_patterns if x not in inbuilt_patterns]
+        else:
+            setattr(self, 'CUSTOM_ISSUE_EXCEPTIONS', [])
+            config.set('General', 'custom_issue_exceptions', json.dumps(self.CUSTOM_ISSUE_EXCEPTIONS))
+
+        logger.fdebug('[CUSTOM_ISSUE_EXCEPTIONS] Custom patterns for issue number exceptions: %s' % (self.CUSTOM_ISSUE_EXCEPTIONS,))
 
         if len(self.IGNORE_SEARCH_WORDS) > 0 and self.IGNORE_SEARCH_WORDS != '[]':
             if type(self.IGNORE_SEARCH_WORDS) != list:

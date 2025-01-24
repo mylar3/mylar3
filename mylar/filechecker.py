@@ -517,9 +517,11 @@ class FileChecker(object):
                     except Exception as e:
                         pass
             else:
-                test_exception = ''.join([i for i in sf if not i.isdigit()])
+                #test_exception = ''.join([i for i in sf if not i.isdigit()])
+                # Changing this to look at whole strings for new pattern match exceptions
+                test_exception = sf
 
-            if any(ext == test_exception.upper() for ext in mylar.ISSUE_EXCEPTIONS):
+            if helpers.issueExceptionCheck(test_exception, full_match=True):
                 logger.fdebug('Exception match: %s' % test_exception)
                 if lastissue_label is not None:
                     if lastissue_position == (split_file.index(sf) -1):
@@ -544,20 +546,27 @@ class FileChecker(object):
                     #if the issue number & alpha character(s) don't have a space seperating them (ie. 15A)
                     #test_exception is the alpha-numeric
                     logger.fdebug('Possible alpha numeric issue (or non-numeric only). Testing my theory.')
-                    test_sf = re.sub(test_exception.lower(), '', sf.lower()).strip()
-                    logger.fdebug('[%s] Removing possible alpha issue leaves: %s (Should be a numeric)' % (test_exception, test_sf))
-                    if test_sf.isdigit():
+                    if sf.lower() == test_exception.lower():
+                        logger.fdebug('[%s] Exception is exact match to %s (Pure String Issue Number)' % (test_exception, sf))
                         possible_issuenumbers.append({'number':       sf,
-                                                      'position':     split_file.index(sf),
-                                                      'mod_position': self.char_file_position(modfilename, sf, lastmod_position),
-                                                      'validcountchk': validcountchk})
+                                                        'position':     current_pos,
+                                                        'mod_position': self.char_file_position(modfilename, sf, lastmod_position),
+                                                        'validcountchk': validcountchk})
                     else:
-                        test_position = modfilename[self.char_file_position(modfilename, sf,lastmod_position)-1]
-                        if test_position == '#':
+                        test_sf = re.sub(test_exception.lower(), '', sf.lower()).strip()
+                        logger.fdebug('[%s] Removing possible alpha issue leaves: %s (Should be a numeric)' % (test_exception, test_sf))
+                        if test_sf.isdigit():
                             possible_issuenumbers.append({'number':       sf,
-                                                          'position':     split_file.index(sf),
-                                                          'mod_position': self.char_file_position(modfilename, sf, lastmod_position),
-                                                          'validcountchk': validcountchk})
+                                                        'position':     split_file.index(sf),
+                                                        'mod_position': self.char_file_position(modfilename, sf, lastmod_position),
+                                                        'validcountchk': validcountchk})
+                        else:
+                            test_position = modfilename[self.char_file_position(modfilename, sf,lastmod_position)-1]
+                            if test_position == '#':
+                                possible_issuenumbers.append({'number':       sf,
+                                                            'position':     split_file.index(sf),
+                                                            'mod_position': self.char_file_position(modfilename, sf, lastmod_position),
+                                                            'validcountchk': validcountchk})
 
             if sf == 'XCV':
 #  new 2016-09-19 \ attempt to check for XCV which replaces any unicode above
@@ -606,6 +615,7 @@ class FileChecker(object):
                 if findst >= len(modfilename):
                     findst = len(modfilename) -1
 
+                # TODO: What is this condition?  How can this ever be anything but true?
                 if modfilename[findst] != '.' or modfilename[findst] != '#': #findst != '.' and findst != '#':
                     if sf.isdigit():
                         seper_num = False
@@ -652,7 +662,6 @@ class FileChecker(object):
                                                       'dec_position':  bb,
                                                       'rem_position':  split_file.index(sf),
                                                       'validcountchk': validcountchk})
-
                     else:
                         if ('#' in sf or sf.isdigit()) or validcountchk:
                             if validcountchk:
@@ -777,14 +786,26 @@ class FileChecker(object):
                         x = float(sf)
                         #validity check
                         if x < 0:
-                            logger.fdebug('I have encountered a negative issue #: %s' % sf)
-                            possible_issuenumbers.append({'number':       sf,
-                                                          'position':     split_file.index(sf, lastissue_position), #modfilename.find(sf)})
-                                                          'mod_position': self.char_file_position(modfilename, sf, lastmod_position),
-                                                          'validcountchk': validcountchk})
-                            lastissue_position = split_file.index(sf, lastissue_position)
-                            lastissue_label = sf
-                            lastissue_mod_position = file_length
+                            # Check that this negative isn't part of a hyphenated split issue number
+                            if (lastissue_label is not None) and (lastissue_position == (current_pos -1)) and re.sub(r'^#','',lastissue_label).isdigit():
+                                splitIssue = re.sub(r'^#','',lastissue_label) + sf
+                                logger.fdebug('I have encountered a hyphenated split issue #: %s' % splitIssue)    
+                                possible_issuenumbers.append({'number':       splitIssue,
+                                                            'position':     lastissue_position,
+                                                            'mod_position': lastissue_mod_position,
+                                                            'validcountchk': validcountchk})
+                                lastissue_label = splitIssue
+                                lastissue_position = split_file.index(sf, lastissue_position)                            
+                                lastissue_mod_position = file_length
+                            else:
+                                logger.fdebug('I have encountered a negative issue #: %s' % sf)
+                                possible_issuenumbers.append({'number':       sf,
+                                                            'position':     split_file.index(sf, lastissue_position), #modfilename.find(sf)})
+                                                            'mod_position': self.char_file_position(modfilename, sf, lastmod_position),
+                                                            'validcountchk': validcountchk})
+                                lastissue_label = sf
+                                lastissue_position = split_file.index(sf, lastissue_position)                            
+                                lastissue_mod_position = file_length
                         elif x > 0:
                             if x == float('inf') and split_file.index(sf, lastissue_position) <= 2:
                                 logger.fdebug('infinity wording detected - position places it within series title boundaries..')

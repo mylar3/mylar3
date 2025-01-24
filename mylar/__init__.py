@@ -176,34 +176,40 @@ DDL_LOCK = False
 CMTAGGER_PATH = None
 STATIC_COMICRN_VERSION = "1.01"
 STATIC_APC_VERSION = "2.04"
-ISSUE_EXCEPTIONS = [
-    'DEATHS',
-    'ALPHA',
-    'OMEGA',
-    'BLACK',
-    'DARK',
-    'LIGHT',
-    'AU',
-    'AI',
-    'INH',
-    'NOW',
-    'BEY',
-    'MU',
-    'HU',
-    'LR',
-    'A',
-    'B',
-    'C',
-    'X',
-    'O',
-    'WHITE',
-    'SUMMER',
-    'SPRING',
-    'FALL',
-    'WINTER',
-    'PREVIEW',
-    "DIRECTOR'S CUT",
-    "(DC)"]
+# Exceptions for issue number matching.  Can include regex, and will be treated as case insensitive.
+INBUILT_ISSUE_EXCEPTIONS = [
+    ["Deaths", "Exact"],
+    ["Alpha", "Exact"],
+    ["Omega", "Exact"],
+    ["Black", "Exact"],
+    ["Dark", "Exact"],
+    ["Light", "Exact"],
+    ["AU", "Exact"],
+    ["AI", "Exact"],
+    ["INH", "Exact"],
+    ["NOW", "Exact"],
+    ["BEY", "Exact"],
+    ["MU", "Exact"],
+    ["HU", "Exact"],
+    ["LR", "Exact"],
+    ["HS", "Exact"],
+    ["A", "Exact"],
+    ["B", "Exact"],
+    ["C", "Exact"],
+    # X-O Manowar (1992) and Shadowman (2012)
+    ["-?X", "Pattern"],
+    ["-?O", "Pattern"],
+    ["White", "Exact"],
+    ["Summer", "Exact"],
+    ["Spring", "Exact"],
+    ["Fall", "Exact"],
+    ["Winter", "Exact"],
+    ["Preview", "Exact"],
+    ["Director's Cut", "Exact"],
+    ["(DC)", "Exact"],
+    # Super DC Giant (1970) and Weapon Zero (1995)
+    [r"[ST]-\d+", "Pattern"]
+]
 SAB_PARAMS = None
 EXT_IP = None
 PROVIDER_START_ID=0
@@ -250,7 +256,7 @@ def initialize(config_file):
                MONITOR_STATUS, SEARCH_STATUS, RSS_STATUS, WEEKLY_STATUS, VERSION_STATUS, UPDATER_STATUS, FORCE_STATUS, DBUPDATE_INTERVAL, DB_BACKFILL, LOG_LANG, LOG_CHARSET, APILOCK, SEARCHLOCK, DDL_LOCK, LOG_LEVEL, \
                MONITOR_SCHEDULER, SEARCH_SCHEDULER, RSS_SCHEDULER, WEEKLY_SCHEDULER, VERSION_SCHEDULER, UPDATER_SCHEDULER, START_UP, \
                SCHED_RSS_LAST, SCHED_WEEKLY_LAST, SCHED_MONITOR_LAST, SCHED_SEARCH_LAST, SCHED_VERSION_LAST, SCHED_DBUPDATE_LAST, COMICINFO, SEARCH_TIER_DATE, \
-               BACKENDSTATUS_CV, BACKENDSTATUS_WS, PROVIDER_STATUS, EXT_IP, ISSUE_EXCEPTIONS, PROVIDER_START_ID, GLOBAL_MESSAGES, CHECK_FOLDER_CACHE, FOLDER_CACHE, SESSION_ID, \
+               BACKENDSTATUS_CV, BACKENDSTATUS_WS, PROVIDER_STATUS, EXT_IP, INBUILT_ISSUE_EXCEPTIONS, PROVIDER_START_ID, GLOBAL_MESSAGES, CHECK_FOLDER_CACHE, FOLDER_CACHE, SESSION_ID, \
                MAINTENANCE_UPDATE, MAINTENANCE_DB_COUNT, MAINTENANCE_DB_TOTAL, UPDATE_VALUE, REQS, IMPRINT_MAPPING, GC_URL, PACK_ISSUEIDS_DONT_QUEUE, DDL_QUEUED, EXT_SERVER
 
         cc = mylar.config.Config(config_file)
