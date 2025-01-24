@@ -4097,7 +4097,7 @@ class WebInterface(object):
                     if os.path.exists(os.path.join(mylar.CONFIG.MULTIPLE_DEST_DIRS, os.path.basename(comicdir))):
                         secondary_folders = os.path.join(mylar.CONFIG.MULTIPLE_DEST_DIRS, os.path.basename(comicdir))
                     else:
-                        ff = mylar.filers.FileHandlers(ComicID=ComicID)
+                        ff = mylar.filers.FileHandlers(ComicID=cid)
                         secondary_folders = ff.secondary_folders(comicdir)
             except:
                 pass

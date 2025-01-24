@@ -507,7 +507,7 @@ class FileChecker(object):
             if re.sub('g11', "\'", sf.lower()) == "director's":
                 try:
                     tmp_test = split_file.index(sf)+1
-                except Exeption as e:
+                except Exception as e:
                     logger.warn('failure to match to Director\'s Cut - ignoring as an issue match')
                 else:
                     try:
