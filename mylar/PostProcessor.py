@@ -802,8 +802,9 @@ class PostProcessor(object):
                         logger.info('Now checking: %s [%s]' % (wv['ComicName'], wv['ComicID']))
                         #do some extra checks in here to ignore these types:
                         # check for valid issue number - if not, don't even bother checking it
+                        # TODO Not sure why this is here.  If it catches any exception, then it's going to cause problems further down.
                         try:
-                            tmp_iss = helpers.issuedigits(fl['issue_number'])
+                            tmp_iss = helpers.issue_number_parser(fl['issue_number']).asInt
                         except Exception as e:
                             logger.warn('Unable to determine issue number. This is a no-go, Captain [%s]' % (e,))
 
@@ -969,6 +970,7 @@ class PostProcessor(object):
                     for cs in watchvals:
                         wm = filechecker.FileChecker(watchcomic=cs['ComicName'], Publisher=cs['ComicPublisher'], AlternateSearch=cs['AlternateSearch'], manual=cs['WatchValues'])
                         watchmatch = wm.matchIT(fl)
+                        
                         if watchmatch['process_status'] == 'fail':
                             nm+=1
                             continue
@@ -978,7 +980,7 @@ class PostProcessor(object):
                                     if watchmatch['series_volume'] is not None:
                                         just_the_digits = re.sub('[^0-9]', '', watchmatch['series_volume']).strip()
                                     else:
-                                        just_the_digits = re.sub('[^0-9.-]', '', watchmatch['justthedigits']).strip()
+                                        just_the_digits = re.sub('[^0-9.\-\u00BC-\u00BE\u2150-\u215E\u221E]', '', watchmatch['justthedigits']).strip()
                                 else:
                                     just_the_digits = watchmatch['justthedigits']
                             except Exception as e:
@@ -1005,24 +1007,23 @@ class PostProcessor(object):
                                 biannchk = re.sub('-', '', temploc.lower()).strip()
                                 if 'biannual' in biannchk:
                                     logger.fdebug('%s Bi-Annual detected.' % module)
-                                    fcdigit = helpers.issuedigits(re.sub('biannual', '', str(biannchk)).strip())
+                                    fcdigit = helpers.issue_number_parser(re.sub('biannual', '', str(biannchk)).strip()).asInt
                                 else:
                                     if 'annual' in temploc.lower():
                                         year_check = re.findall(r'(\d{4})(?=[\s]|annual\b|$)', temploc, flags=re.I)
                                         if year_check:
                                             ann_line = '%s annual' % year_check[0]
-                                            fcdigit = helpers.issuedigits(re.sub(ann_line, '', str(temploc.lower())).strip())
-                                            #fcdigit = helpers.issuedigits(re.sub('2021 annual', '', str(temploc.lower())).strip())
-                                        fcdigit = helpers.issuedigits(re.sub('annual', '', str(temploc.lower())).strip())
+                                            fcdigit = helpers.issue_number_parser(re.sub(ann_line, '', str(temploc.lower())).strip()).asInt
+                                        fcdigit = helpers.issue_number_parser(re.sub('annual', '', str(temploc.lower())).strip()).asInt
                                     else:
-                                        fcdigit = helpers.issuedigits(re.sub('special', '', str(temploc.lower())).strip())
+                                        fcdigit = helpers.issue_number_parser(re.sub('special', '', str(temploc.lower())).strip()).asInt
                                     logger.fdebug('%s Annual/Special detected [%s]. ComicID assigned as %s' % (module, fcdigit, cs['ComicID']))
                                 annchk = "yes"
                                 issuechk = myDB.select("SELECT * from annuals WHERE ComicID=? AND Int_IssueNumber=? AND NOT Deleted", [cs['ComicID'], fcdigit])
                             else:
                                 annchk = "no"
                                 if temploc is not None:
-                                    fcdigit = helpers.issuedigits(temploc)
+                                    fcdigit = helpers.issue_number_parser(temploc).asInt
                                     issuechk = myDB.select("SELECT * from issues WHERE ComicID=? AND Int_IssueNumber=?", [cs['ComicID'], fcdigit])
                                 else:
                                     fcdigit = None
@@ -1062,7 +1063,9 @@ class PostProcessor(object):
                                     continue
 
                             for isc in issuechk:
-                                if any([temploc is not None, temploc != 999999999999999]) and all([annchk =='no', helpers.issuedigits(temploc) != helpers.issuedigits(isc['Issue_Number'])]) or all([annchk == 'yes', helpers.issuedigits(re.sub('annual', '', temploc.lower()).strip()) != helpers.issuedigits(isc['Issue_Number'])]):
+                                if (any([temploc is not None, temploc != 999999999999999]) and 
+                                        all([annchk =='no', helpers.issue_number_parser(temploc).asInt != helpers.issue_number_parser(isc['Issue_Number']).asInt]) or 
+                                        all([annchk == 'yes', helpers.issue_number_parser(re.sub('annual', '', temploc.lower()).strip()).asInt != helpers.issue_number_parser(isc['Issue_Number']).asInt])):
                                     logger.fdebug('issues dont match. Skipping')
                                     continue
 
@@ -1181,7 +1184,7 @@ class PostProcessor(object):
                                                     week_dynamicname = re.sub('annual', '', week_dynamicname, flags=re.I).strip()
                                                     week_dynamicname = re.sub('special', '', week_dynamicname, flags=re.I).strip()
                                                 week_issue = test[2]
-                                                week_intissue = helpers.issuedigits(week_issue)
+                                                week_intissue = helpers.issue_number_parser(week_issue).asInt
                                                 logger.fdebug('week_dynamicname: %s / dynamic_seriesname: %s' % (week_dynamicname,dynamic_seriesname))
                                                 logger.fdebug('week_intissue: %s / fcdigit: %s' % (week_intissue, fcdigit))
                                                 logger.fdebug('last issue for series listed as #%s in week %s, %s' % (week_issue, test[3], test[4]))
@@ -1469,7 +1472,8 @@ class PostProcessor(object):
                                         else:
                                             temploc = None
 
-                                    if any([temploc is not None ,temploc != 999999999999999]) and helpers.issuedigits(temploc) != helpers.issuedigits(v[i]['ArcValues']['IssueNumber']):
+                                    if (any([temploc is not None ,temploc != 999999999999999]) and 
+                                            helpers.issue_number_parser(temploc).asInt != helpers.issue_number_parser(v[i]['ArcValues']['IssueNumber']).asInt):
                                         #logger.fdebug('issues dont match. Skipping')
                                         i+=1
                                         continue
@@ -1479,19 +1483,18 @@ class PostProcessor(object):
                                             biannchk = re.sub('-', '', temploc.lower()).strip()
                                             if 'biannual' in biannchk:
                                                 logger.fdebug('%s Bi-Annual detected.' % module)
-                                                fcdigit = helpers.issuedigits(re.sub('biannual', '', str(biannchk)).strip())
+                                                fcdigit = helpers.issue_number_parser(re.sub('biannual', '', str(biannchk)).strip()).asInt
                                                 annualtype = 'BiAnnual'
                                             else:
                                                 if 'annual' in temploc.lower():
                                                     year_check = re.findall(r'(\d{4})(?=[\s]|annual\b|$)', temploc, flags=re.I)
                                                     if year_check:
                                                         ann_line = '%s annual' % year_check[0]
-                                                        fcdigit = helpers.issuedigits(re.sub(ann_line, '', str(temploc.lower())).strip())
-                                                        #fcdigit = helpers.issuedigits(re.sub('2021 annual', '', str(temploc.lower())).strip())
-                                                    fcdigit = helpers.issuedigits(re.sub('annual', '', str(temploc.lower())).strip())
+                                                        fcdigit = helpers.issue_number_parser(re.sub(ann_line, '', str(temploc.lower())).strip()).asInt
+                                                    fcdigit = helpers.issue_number_parser(re.sub('annual', '', str(temploc.lower())).strip()).asInt
                                                     annualtype = 'Annual'
                                                 else:
-                                                    fcdigit = helpers.issuedigits(re.sub('special', '', str(temploc.lower())).strip())
+                                                    fcdigit = helpers.issue_number_parser(re.sub('special', '', str(temploc.lower())).strip()).asInt
                                                     annualtype = 'Special'
                                                 logger.fdebug('%s %s detected [%s]. ComicID assigned as %s' % (module, annualtype, fcdigit, v[i]['WatchValues']['ComicID']))
                                             annchk = "yes"
@@ -1499,7 +1502,7 @@ class PostProcessor(object):
                                         else:
                                             annchk = "no"
                                             if temploc is not None:
-                                                fcdigit = helpers.issuedigits(temploc)
+                                                fcdigit = helpers.issue_number_parser(temploc).asInt
                                                 issuechk = myDB.select("SELECT * from storyarcs WHERE ComicID=? AND Int_IssueNumber=?", [v[i]['WatchValues']['ComicID'], fcdigit])
                                             else:
                                                 fcdigit = None
@@ -1816,20 +1819,23 @@ class PostProcessor(object):
                                             biannchk = re.sub('-', '', temploc.lower()).strip()
                                             if 'biannual' in biannchk:
                                                 logger.fdebug('%s Bi-Annual detected.' % module)
-                                                fcdigit = helpers.issuedigits(re.sub('biannual', '', str(biannchk)).strip())
+                                                fcdigit = helpers.issue_number_parser(re.sub('biannual', '', str(biannchk)).strip()).asInt
                                             else:
                                                 year_check = re.findall(r'(\d{4})(?=[\s]|annual\b|$)', temploc, flags=re.I)
                                                 if year_check:
                                                     ann_line = '%s annual' % year_check[0]
-                                                    fcdigit = helpers.issuedigits(re.sub(ann_line, '', str(temploc.lower())).strip())
+                                                    fcdigit = helpers.issue_number_parser(re.sub(ann_line, '', str(temploc.lower())).strip()).asInt
                                                     #fcdigit = helpers.issuedigits(re.sub('2021 annual', '', str(temploc.lower())).strip())
-                                                fcdigit = helpers.issuedigits(re.sub('annual', '', str(temploc.lower())).strip())
+                                                fcdigit = helpers.issue_number_parser(re.sub('annual', '', str(temploc.lower())).strip()).asInt
                                                 logger.fdebug('%s Annual detected [%s]. ComicID assigned as %s' % (module, fcdigit, ofv['ComicID']))
                                             annchk = "yes"
                                         else:
-                                            fcdigit = helpers.issuedigits(temploc)
+                                            fcdigit = helpers.issue_number_parser(temploc).asInt
 
-                                    if temploc is not None and fcdigit == helpers.issuedigits(ofv['Issue_Number']) or all([temploc is None, helpers.issuedigits(ofv['Issue_Number']) == '1']):
+                                    if (temploc is not None and 
+                                        fcdigit == helpers.issue_number_parser(ofv['Issue_Number']).asInt or
+                                        # TODO Is this check not redundant?  The helper always returns a (large) integer
+                                          all([temploc is None, helpers.issue_number_parser(ofv['Issue_Number']).asInt == '1'])):
                                         if watchmatch['sub']:
                                             clocation = os.path.join(watchmatch['comiclocation'], watchmatch['sub'], watchmatch['comicfilename']) #helpers.conversion(watchmatch['comicfilename']))
                                             if not os.path.exists(clocation):
@@ -2808,155 +2814,9 @@ class PostProcessor(object):
             #issueno = str(issuenum).split('.')[0]
             #new CV API - removed all decimals...here we go AGAIN!
             issuenum = issuenzb['Issue_Number']
-            issue_except = 'None'
-
-            if 'au' in issuenum.lower() and issuenum[:1].isdigit():
-                issuenum = re.sub("[^0-9]", "", issuenum)
-                issue_except = ' AU'
-            elif 'ai' in issuenum.lower() and issuenum[:1].isdigit():
-                issuenum = re.sub("[^0-9]", "", issuenum)
-                issue_except = ' AI'
-            elif 'inh' in issuenum.lower() and issuenum[:1].isdigit():
-                issuenum = re.sub("[^0-9]", "", issuenum)
-                issue_except = '.INH'
-            elif 'now' in issuenum.lower() and issuenum[:1].isdigit():
-                if '!' in issuenum: issuenum = re.sub('\!', '', issuenum)
-                issuenum = re.sub("[^0-9]", "", issuenum)
-                issue_except = '.NOW'
-            elif 'bey' in issuenum.lower() and issuenum[:1].isdigit():
-                issuenum = re.sub("[^0-9]", "", issuenum)
-                issue_except = '.BEY'
-            elif 'mu' in issuenum.lower() and issuenum[:1].isdigit():
-                issuenum = re.sub("[^0-9]", "", issuenum)
-                issue_except = '.MU'
-            elif 'hu' in issuenum.lower() and issuenum[:1].isdigit():
-                issuenum = re.sub("[^0-9]", "", issuenum)
-                issue_except = '.HU'
-            elif 'deaths' in issuenum.lower() and issuenum[:1].isdigit():
-                issuenum = re.sub("[^0-9]", "", issuenum)
-                issue_except = '.DEATHS'
-            elif '\xbd' in issuenum:
-                issuenum = '0.5'
-            elif '\xbc' in issuenum:
-                issuenum = '0.25'
-            elif '\xbe' in issuenum:
-                issuenum = '0.75'
-            elif '\u221e' in issuenum:
-                #issnum = utf-8 will encode the infinity symbol without any help
-                issuenum = 'infinity'
-            else:
-                exceptionmatch = [x for x in mylar.ISSUE_EXCEPTIONS if x.lower() in issuenum.lower()]
-                if exceptionmatch:
-                    logger.fdebug('[FILECHECKER] We matched on : ' + str(exceptionmatch))
-                    for x in exceptionmatch:
-                        issuenum = re.sub("[^0-9]", "", issuenum)
-                        issue_except = x
-
-            if '.' in issuenum:
-                iss_find = issuenum.find('.')
-                iss_b4dec = issuenum[:iss_find]
-                if iss_b4dec == '':
-                    iss_b4dec = '0'
-                iss_decval = issuenum[iss_find +1:]
-                if iss_decval.endswith('.'): iss_decval = iss_decval[:-1]
-                if int(iss_decval) == 0:
-                    iss = iss_b4dec
-                    issdec = int(iss_decval)
-                    issueno = str(iss)
-                    self._log("Issue Number: %s" % issueno)
-                    logger.fdebug('%s Issue Number: %s' % (module, issueno))
-                else:
-                    if len(iss_decval) == 1:
-                        iss = iss_b4dec + "." + iss_decval
-                        issdec = int(iss_decval) * 10
-                    else:
-                        iss = iss_b4dec + "." + iss_decval.rstrip('0')
-                        issdec = int(iss_decval.rstrip('0')) * 10
-                    issueno = iss_b4dec
-                    self._log("Issue Number: %s" % iss)
-                    logger.fdebug('%s Issue Number: %s' % (module, iss))
-            else:
-                iss = issuenum
-                issueno = iss
-
-            # issue zero-suppression here
-            if mylar.CONFIG.ZERO_LEVEL is False:
-                zeroadd = ""
-            else:
-                if any([mylar.CONFIG.ZERO_LEVEL_N  == "none", mylar.CONFIG.ZERO_LEVEL is None]): zeroadd = ""
-                elif mylar.CONFIG.ZERO_LEVEL_N == "0x": zeroadd = "0"
-                elif mylar.CONFIG.ZERO_LEVEL_N == "00x": zeroadd = "00"
-
-            logger.fdebug('%s Zero Suppression set to : %s' % (module, mylar.CONFIG.ZERO_LEVEL_N))
-
-            prettycomiss = None
-
-            if issueno.isalpha():
-                logger.fdebug('issue detected as an alpha.')
-                prettycomiss = str(issueno)
-            else:
-                try:
-                    x = float(issueno)
-                    #validity check
-                    if x < 0:
-                        logger.info('%s I\'ve encountered a negative issue #: %s. Trying to accomodate' % (module, issueno))
-                        prettycomiss = '-%s%s' % (zeroadd, issueno[1:])
-                    elif x >= 0:
-                        pass
-                    else:
-                        raise ValueError
-                except ValueError as e:
-                    logger.warn('Unable to properly determine issue number [%s] - you should probably log this on github for help.' % issueno)
-                    return
-
-            if all([prettycomiss is None, len(str(issueno)) > 0]):
-                #if int(issueno) < 0:
-                #    self._log("issue detected is a negative")
-                #    prettycomiss = '-' + str(zeroadd) + str(abs(issueno))
-                if int(issueno) < 10:
-                    logger.fdebug('issue detected less than 10')
-                    if '.' in iss:
-                        if int(iss_decval) > 0:
-                            issueno = str(iss)
-                            prettycomiss = str(zeroadd) + str(iss)
-                        else:
-                            prettycomiss = str(zeroadd) + str(int(issueno))
-                    else:
-                        prettycomiss = str(zeroadd) + str(iss)
-                    if issue_except != 'None':
-                        prettycomiss = str(prettycomiss) + issue_except
-                    logger.fdebug('%s Zero level supplement set to %s. Issue will be set as : %s' % (module, mylar.CONFIG.ZERO_LEVEL_N, prettycomiss))
-                elif int(issueno) >= 10 and int(issueno) < 100:
-                    logger.fdebug('issue detected greater than 10, but less than 100')
-                    if any([mylar.CONFIG.ZERO_LEVEL_N == "none", mylar.CONFIG.ZERO_LEVEL_N is None, mylar.CONFIG.ZERO_LEVEL is False]):
-                        zeroadd = ""
-                    else:
-                        zeroadd = "0"
-                    if '.' in iss:
-                        if int(iss_decval) > 0:
-                            issueno = str(iss)
-                            prettycomiss = str(zeroadd) + str(iss)
-                        else:
-                           prettycomiss = str(zeroadd) + str(int(issueno))
-                    else:
-                        prettycomiss = str(zeroadd) + str(iss)
-                    if issue_except != 'None':
-                        prettycomiss = str(prettycomiss) + issue_except
-                    logger.fdebug('%s Zero level supplement set to %s. Issue will be set as : %s' % (module, mylar.CONFIG.ZERO_LEVEL_N, prettycomiss))
-                else:
-                    logger.fdebug('issue detected greater than 100')
-                    if '.' in iss:
-                        if int(iss_decval) > 0:
-                            issueno = str(iss)
-                    prettycomiss = str(issueno)
-                    if issue_except != 'None':
-                        prettycomiss = str(prettycomiss) + issue_except
-                    logger.fdebug('%s Zero level supplement set to %s. Issue will be set as : %s' % (module, mylar.CONFIG.ZERO_LEVEL_N, prettycomiss))
-
-            elif len(str(issueno)) == 0:
-                prettycomiss = str(issueno)
-                logger.fdebug('issue length error - cannot determine length. Defaulting to None: %s ' % prettycomiss)
-
+            
+            prettycomiss = helpers.issue_number_parser(issuenum, issue_id=issueid).asString
+            
             if annchk == "yes":
                 self._log("Annual detected.")
             logger.fdebug('%s Pretty Comic Issue is : %s' % (module, prettycomiss))

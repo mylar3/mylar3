@@ -935,21 +935,22 @@ class search_check(object):
                     if intIss is None and all(
                         [
                             booktype == 'One-Shot',
-                            helpers.issuedigits(parsed_comic['issue_number'])
-                            == 1000,
+                            helpers.issue_number_parser(parsed_comic['issue_number']).asInt
+                            == helpers.issue_number_to_int(1, None),
                         ]
                     ):
-                        intIss = 1000
+                        intIss = helpers.issue_number_to_int(1,None)
                     else:
                         if annualize is True:
                             if parsed_comic['issue_number'] is None:
                                 # if issue_number is None, assume it's #1 of the annual
-                                intIss = 1000
+                                intIss = helpers.issue_number_to_int(1, None)
                             elif len(re.sub('[^0-9]', '', parsed_comic['issue_number']).strip()) == 4:
-                                intIss = 1000
+                                intIss = helpers.issue_number_to_int(1, None)
                             elif parsed_comic['issue_number'] is not None:
-                                intIss = helpers.issuedigits(parsed_comic['issue_number'])
+                                intIss = helpers.issue_number_parser(parsed_comic['issue_number']).asInt
                         else:
+                            # TODO: Does this special case still exist / get referenced anywhere after further clean up?
                             intIss = 9999999999
                 if filecomic['justthedigits'] is not None:
                     logger.fdebug(
@@ -957,21 +958,21 @@ class search_check(object):
                         % filecomic['justthedigits']
                     )
                     if annualize is True and len(re.sub('[^0-9]', '', filecomic['justthedigits']).strip()) == 4:
-                        comintIss = 1000
+                        comintIss = helpers.issue_number_to_int(1, None)
                     else:
-                        comintIss = helpers.issuedigits(filecomic['justthedigits'])
+                        comintIss = helpers.issue_number_parser(filecomic['justthedigits']).asInt
                     logger.fdebug(
                         "integer value of issue we have found : %s" % comintIss
                     )
                 else:
-                    comintIss = 11111111111
+                    comintIss = helpers.issue_number_to_int(11111111, None)
 
                 # do this so that we don't touch the actual value but just
                 # use it for comparisons
                 if filecomic['justthedigits'] is None:
                     pc_in = None
                 else:
-                    pc_in = helpers.issuedigits(filecomic['justthedigits'])
+                    pc_in = helpers.issue_number_parser(filecomic['justthedigits']).asInt
                 # issue comparison now as well
                 if (
                     all([intIss is not None, comintIss is not None])
@@ -987,7 +988,7 @@ class search_check(object):
                             [
                                 chktpb != 0,
                                 pc_in is None,
-                                helpers.issuedigits(F_ComicVersion) == intIss,
+                                helpers.issue_number_parser(F_ComicVersion).asInt == intIss,
                             ]
                     ))
                     or (any(

@@ -633,7 +633,7 @@ def addComictoDB(comicid, mismatch=None, pullupd=None, imported=None, ogcname=No
             moveit.archivefiles(comicid, comlocation, imported)
 
     #check for existing files...
-    statbefore = myDB.selectone("SELECT Status FROM issues WHERE ComicID=? AND Int_IssueNumber=?", [comicid, helpers.issuedigits(latestiss)]).fetchone()
+    statbefore = myDB.selectone("SELECT Status FROM issues WHERE ComicID=? AND Int_IssueNumber=?", [comicid, helpers.issue_number_parser(latestiss).asInt]).fetchone()
     logger.fdebug('issue: ' + latestiss + ' status before chk :' + str(statbefore['Status']))
     updater.forceRescan(comicid)
 
@@ -642,7 +642,7 @@ def addComictoDB(comicid, mismatch=None, pullupd=None, imported=None, ogcname=No
         sm = series_metadata.metadata_Series(comicid, bulk=False, api=False)
         sm.update_metadata()
 
-    statafter = myDB.selectone("SELECT Status FROM issues WHERE ComicID=? AND Int_IssueNumber=?", [comicid, helpers.issuedigits(latestiss)]).fetchone()
+    statafter = myDB.selectone("SELECT Status FROM issues WHERE ComicID=? AND Int_IssueNumber=?", [comicid, helpers.issue_number_parser(latestiss).asInt]).fetchone()
     logger.fdebug('issue: ' + latestiss + ' status after chk :' + str(statafter['Status']))
 
     logger.fdebug('pullupd: ' + str(pullupd))
@@ -653,10 +653,10 @@ def addComictoDB(comicid, mismatch=None, pullupd=None, imported=None, ogcname=No
     # do this for only Present comics....
         if mylar.CONFIG.AUTOWANT_UPCOMING and lastpubdate == 'Present' and series_status == 'Active': #and 'Present' in gcdinfo['resultPublished']:
             logger.fdebug('latestissue: #' + str(latestiss))
-            chkstats = myDB.selectone("SELECT * FROM issues WHERE ComicID=? AND Int_IssueNumber=?", [comicid, helpers.issuedigits(latestiss)]).fetchone()
+            chkstats = myDB.selectone("SELECT * FROM issues WHERE ComicID=? AND Int_IssueNumber=?", [comicid, helpers.issue_number_parser(latestiss).asInt]).fetchone()
             if chkstats is None:
                 if mylar.CONFIG.ANNUALS_ON:
-                    chkstats = myDB.selectone("SELECT * FROM annuals WHERE ComicID=? AND Int_IssueNumber=? AND NOT Deleted", [comicid, helpers.issuedigits(latestiss)]).fetchone()
+                    chkstats = myDB.selectone("SELECT * FROM annuals WHERE ComicID=? AND Int_IssueNumber=? AND NOT Deleted", [comicid, helpers.issue_number_parser(latestiss).asInt]).fetchone()
 
             if chkstats:
                 logger.fdebug('latestissue status: ' + chkstats['Status'])
@@ -1301,7 +1301,7 @@ def manualAnnual(manual_comicid=None, comicname=None, comicyear=None, comicid=No
     for ann in annchk:
         newCtrl = {"IssueID": ann['IssueID']}
         newVals = {"Issue_Number":     ann['Issue_Number'],
-                   "Int_IssueNumber":  helpers.issuedigits(ann['Issue_Number']),
+                   "Int_IssueNumber":  helpers.issue_number_parser(ann['Issue_Number']).asInt,
                    "IssueDate":        ann['IssueDate'],
                    "ReleaseDate":      ann['ReleaseDate'],
                    "DigitalDate":      ann['DigitalDate'],
@@ -1407,186 +1407,10 @@ def updateissuedata(comicid, comicname=None, issued=None, comicIssues=None, call
             issdate = str(firstval['Issue_Date'])
             storedate = str(firstval['Store_Date'])
             digitaldate = str(firstval['Digital_Date'])
-            int_issnum = None
-            if issnum.isdigit():
-                int_issnum = int(issnum) * 1000
-            else:
-                if 'a.i.' in issnum.lower() or 'ai' in issnum.lower():
-                    issnum = re.sub('\.', '', issnum)
-                    #int_issnum = (int(issnum[:-2]) * 1000) + ord('a') + ord('i')
-                if 'au' in issnum.lower():
-                    int_issnum = (int(issnum[:-2]) * 1000) + ord('a') + ord('u')
-                elif 'inh' in issnum.lower():
-                    int_issnum = (int(issnum[:-4]) * 1000) + ord('i') + ord('n') + ord('h')
-                elif 'now' in issnum.lower():
-                    int_issnum = (int(issnum[:-4]) * 1000) + ord('n') + ord('o') + ord('w')
-                elif 'bey' in issnum.lower():
-                    int_issnum = (int(issnum[:-4]) * 1000) + ord('b') + ord('e') + ord('y')
-                elif 'mu' in issnum.lower():
-                    int_issnum = (int(issnum[:-3]) * 1000) + ord('m') + ord('u')
-                elif 'lr' in issnum.lower():
-                    int_issnum = (int(issnum[:-3]) * 1000) + ord('l') + ord('r')
-                elif 'hu' in issnum.lower():
-                    int_issnum = (int(issnum[:-3]) * 1000) + ord('h') + ord('u')
-                elif 'deaths' in issnum.lower():
-                    int_issnum = (int(issnum[:-7]) * 1000) + ord('d') + ord('e') + ord('a') + ord('t') + ord('h') + ord('s')
-                elif '\xbd' in issnum:
-                    tmpiss = re.sub('[^0-9]', '', issnum).strip()
-                    if len(tmpiss) > 0:
-                        int_issnum = (int(tmpiss) + .5) * 1000
-                    else:
-                        int_issnum = .5 * 1000
-                    logger.fdebug('1/2 issue detected :' + issnum + ' === ' + str(int_issnum))
-                elif '\xbc' in issnum:
-                    int_issnum = .25 * 1000
-                elif '\xbe' in issnum:
-                    int_issnum = .75 * 1000
-                elif '\u221e' in issnum:
-                    #issnum = utf-8 will encode the infinity symbol without any help
-                    int_issnum = 9999999999 * 1000  # set 9999999999 for integer value of issue
-                elif '.' in issnum or ',' in issnum:
-                    if ',' in issnum: issnum = re.sub(',', '.', issnum)
-                    issst = str(issnum).find('.')
-                    #logger.fdebug("issst:" + str(issst))
-                    if issst == 0:
-                        issb4dec = 0
-                    else:
-                        issb4dec = str(issnum)[:issst]
-                    #logger.fdebug("issb4dec:" + str(issb4dec))
-                    #if the length of decimal is only 1 digit, assume it's a tenth
-                    decis = str(issnum)[issst +1:]
-                    #logger.fdebug("decis:" + str(decis))
-                    if len(decis) == 1:
-                        decisval = int(decis) * 10
-                        issaftdec = str(decisval)
-                    elif len(decis) == 2:
-                        decisval = int(decis)
-                        issaftdec = str(decisval)
-                    else:
-                        decisval = decis
-                        issaftdec = str(decisval)
-                    #if there's a trailing decimal (ie. 1.50.) and it's either intentional or not, blow it away.
-                    if issaftdec[-1:] == '.':
-                        logger.fdebug('Trailing decimal located within issue number. Irrelevant to numbering. Obliterating.')
-                        issaftdec = issaftdec[:-1]
-                    try:
-                        #int_issnum = str(issnum)
-                        int_issnum = (int(issb4dec) * 1000) + (int(issaftdec) * 10)
-                    except ValueError:
-                        try:
-                            ordtot = 0
-                            if any(ext == issaftdec.upper() for ext in mylar.ISSUE_EXCEPTIONS):
-                                logger.fdebug('issue_exception detected..')
-                                inu = 0
-                                while (inu < len(issaftdec)):
-                                    ordtot += ord(issaftdec[inu].lower())  #lower-case the letters for simplicty
-                                    inu+=1
-                                int_issnum = (int(issb4dec) * 1000) + ordtot
-                        except Exception as e:
-                                logger.warn('error: %s' % e)
-                                ordtot = 0
-                        if ordtot == 0:
-                            logger.error('This has no issue # for me to get - Either a Graphic Novel or one-shot.')
-                            updater.no_searchresults(comicid)
-                            return {'status': 'failure'}
-                elif all([ '[' in issnum, ']' in issnum ]):
-                    issnum_tmp = issnum.find('[')
-                    int_issnum = int(issnum[:issnum_tmp].strip()) * 1000
-                    legacy_num = issnum[issnum_tmp+1:issnum.find(']')]
-                else:
-                    try:
-                        x = float(issnum)
-                        #validity check
-                        if x < 0:
-                            logger.fdebug('I have encountered a negative issue #: ' + str(issnum) + '. Trying to accomodate.')
-                            logger.fdebug('value of x is : ' + str(x))
-                            int_issnum = (int(x) *1000) - 1
-                        else: raise ValueError
-                    except ValueError as e:
-                        x = 0
-                        tstord = None
-                        issno = None
-                        invchk = "false"
-                        if issnum.lower() != 'preview':
-                            while (x < len(issnum)):
-                                if issnum[x].isalpha():
-                                    #take first occurance of alpha in string and carry it through
-                                    tstord = issnum[x:].rstrip()
-                                    tstord = re.sub('[\-\,\.\+]', '', tstord).rstrip()
-                                    issno = issnum[:x].rstrip()
-                                    issno = re.sub('[\-\,\.\+]', '', issno).rstrip()
-                                    try:
-                                        isschk = float(issno)
-                                    except ValueError as e:
-                                        if len(issnum) == 1 and issnum.isalpha():
-                                            logger.fdebug('detected lone alpha issue. Attempting to figure this out.')
-                                            break
-                                        logger.fdebug('[' + issno + '] invalid numeric for issue - cannot be found. Ignoring.')
-                                        issno = None
-                                        tstord = None
-                                        invchk = "true"
-                                    break
-                                x+=1
-
-                        if all([tstord is not None, issno is not None, int_issnum is None]):
-                            a = 0
-                            ordtot = 0
-                            if len(issnum) == 1 and issnum.isalpha():
-                                int_issnum = ord(tstord.lower())
-                            else:
-                                while (a < len(tstord)):
-                                    ordtot += ord(tstord[a].lower())  #lower-case the letters for simplicty
-                                    a+=1
-                                int_issnum = (int(issno) * 1000) + ordtot
-                        elif invchk == "true":
-                            if any([issnum.lower() == 'omega', issnum.lower() == 'alpha', issnum.lower() == 'fall 2005', issnum.lower() == 'spring 2005', issnum.lower() == 'summer 2006', issnum.lower() == 'winter 2009']):
-                                issnum = re.sub('[0-9]+', '', issnum).strip()
-                                inu = 0
-                                ordtot = 0
-                                while (inu < len(issnum)):
-                                    ordtot += ord(issnum[inu].lower())  #lower-case the letters for simplicty
-                                    inu+=1
-                                int_issnum = ordtot
-                            else:
-                                logger.fdebug('this does not have an issue # that I can parse properly.')
-                                return {'status': 'failure'}
-                        else:
-                            # Matches "number -&/\ number"
-                            match = re.match(r"(?P<first>\d+)\s?[-&/\\]\s?(?P<last>\d+)", issnum)
-                            if int_issnum is not None:
-                                pass
-                            elif match:
-                                first_num, last_num = map(int, match.groups())
-                                if last_num > first_num:
-                                    int_issnum = (first_num * 1000) + int(((last_num - first_num) * .5) * 1000)
-                                else:
-                                    int_issnum = (first_num * 1000) + (.5 * 1000)
-                            elif issnum == '9-5':
-                                issnum = '9\xbd'
-                                logger.fdebug('issue: 9-5 is an invalid entry. Correcting to : ' + issnum)
-                                int_issnum = (9 * 1000) + (.5 * 1000)
-                            elif issnum == '2 & 3':
-                                logger.fdebug('issue: 2 & 3 is an invalid entry. Ensuring things match up')
-                                int_issnum = (2 * 1000) + (.5 * 1000)
-                            elif issnum == '4 & 5':
-                                logger.fdebug('issue: 4 & 5 is an invalid entry. Ensuring things match up')
-                                int_issnum = (4 * 1000) + (.5 * 1000)
-                            elif issnum == '112/113':
-                                int_issnum = (112 * 1000) + (.5 * 1000)
-                            elif issnum == '14-16':
-                                int_issnum = (15 * 1000) + (.5 * 1000)
-                            elif issnum == '380/381':
-                                int_issnum = (380 * 1000) + (.5 * 1000)
-                            elif issnum.lower() == 'preview':
-                                inu = 0
-                                ordtot = 0
-                                while (inu < len(issnum)):
-                                    ordtot += ord(issnum[inu].lower())  #lower-case the letters for simplicty
-                                    inu+=1
-                                int_issnum = ordtot
-                            else:
-                                logger.error(issnum + ' this has an alpha-numeric in the issue # which I cannot account for.')
-                                return {'status': 'failure'}
+            
+            # Call this with the DataSource flag to ensure that any new non-numeric exceptions are captured properly
+            int_issnum, _, legacy_num = helpers.issue_number_parser(issnum, issue_id=issid, from_data_source=True)
+            
             #get the latest issue / date using the date.
             #logger.fdebug('issue : ' + str(issnum))
             #logger.fdebug('latest date: ' + str(latestdate))
@@ -1595,7 +1419,7 @@ def updateissuedata(comicid, comicname=None, issued=None, comicIssues=None, call
             #logger.fdebug('issue date: ' + storedate)
             if any([firstval['Issue_Date'] >= latestdate, storedate >= latestdate]):
                 #logger.fdebug('date check hit for issue date > latestdate')
-                if int_issnum > helpers.issuedigits(latestiss):
+                if int_issnum > helpers.issue_number_parser(latestiss).asInt:
                     #logger.fdebug('assigning latest issue to : ' + str(issnum))
                     latestiss = issnum
                     latestissueid = issid
@@ -1736,7 +1560,7 @@ def updateissuedata(comicid, comicname=None, issued=None, comicIssues=None, call
                     "ComicPublished":  publishfigure,
                     "NewPublish":      newpublish,
                     "LatestIssue":     latestiss,
-                    "intLatestIssue":  helpers.issuedigits(latestiss),
+                    "intLatestIssue":  helpers.issue_number_parser(latestiss).asInt,
                     "LatestIssueID":   latestissueid,
                     "LatestDate":      latestdate,
                     "LastUpdated":     helpers.now()
@@ -1880,7 +1704,7 @@ def annual_check(ComicName, SeriesYear, comicid, issuetype, issuechk, annualslis
                             issdate = str(firstval['Issue_Date'])
                             stdate = str(firstval['Store_Date'])
                             digdate = str(firstval['Digital_Date'])
-                            int_issnum = helpers.issuedigits(issnum)
+                            int_issnum = helpers.issue_number_parser(issnum).asInt
 
                             iss_exists = myDB.selectone('SELECT * from annuals WHERE IssueID=?', [issid]).fetchone()
                             if iss_exists is None:

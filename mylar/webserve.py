@@ -1659,7 +1659,7 @@ class WebInterface(object):
                 digitaldate = str(arcval['Digital_Date'])
                 storedate = str(arcval['Store_Date'])
 
-                int_issnum = helpers.issuedigits(issnum)
+                int_issnum = helpers.issue_number_parser(issnum).asInt
 
                 #verify the reading order if present.
                 findorder = arclist.find(issid)
@@ -2990,7 +2990,7 @@ class WebInterface(object):
                 try:
                     x = float(weekly['ISSUE'])
                 except ValueError as e:
-                    if any(ext in weekly['ISSUE'].upper() for ext in mylar.ISSUE_EXCEPTIONS):
+                    if helpers.issueExceptionCheck(weekly['ISSUE'], full_match=False):
                         x = weekly['ISSUE']
 
                 if x is not None:
@@ -5148,12 +5148,14 @@ class WebInterface(object):
             for MSCheck in AMS:
                 thischk = myDB.select('SELECT * FROM storyarcs WHERE ComicName=? AND SeriesYear=?', [MSCheck['ComicName'], MSCheck['SeriesYear']])
                 for tchk in thischk:
-                    if helpers.issuedigits(tchk['IssueNumber']) > helpers.issuedigits(MSCheck['highvalue']):
+                    issueNumber_asInt = helpers.issue_number_parser(tchk['IssueNumber']).asInt
+
+                    if issueNumber_asInt > helpers.issue_number_parser(MSCheck['highvalue']).asInt:
                         for key in list(MSCheck.keys()):
                             if key == "highvalue":
                                 MSCheck[key] = tchk['IssueNumber']
 
-                    if helpers.issuedigits(tchk['IssueNumber']) < helpers.issuedigits(MSCheck['lowvalue']):
+                    if issueNumber_asInt < helpers.issue_number_parser(MSCheck['lowvalue']).asInt:
                         for key in list(MSCheck.keys()):
                             if key == "lowvalue":
                                 MSCheck[key] = tchk['IssueNumber']
@@ -5349,7 +5351,7 @@ class WebInterface(object):
                             logger.fdebug("issue converted to %s" % GCDissue)
                             isschk = myDB.selectone("SELECT * FROM issues WHERE Issue_Number=? AND ComicID=?", [str(GCDissue), comic['ComicID']]).fetchone()
                         else:
-                            issue_int = helpers.issuedigits(arc['IssueNumber'])
+                            issue_int = helpers.issue_number_parser(arc['IssueNumber']).asInt
                             logger.fdebug('int_issue = %s' % issue_int)
                             if mylar.CONFIG.ANNUALS_ON and 'annual' in arc['ComicName'].lower():
                                 logger.fdebug('annual checking: %s -- %s' % (issue_int, comic['ComicID']))
@@ -5442,9 +5444,9 @@ class WebInterface(object):
                             if temploc:
                                 temploc = temploc.replace('_', ' ')
                             else:
-                                logger.debug('could not parse issue number: %r', tmpfc)
-                            fcdigit = helpers.issuedigits(arc['IssueNumber'])
-                            int_iss = helpers.issuedigits(temploc)
+                                logger.debug('could not parse issue number: %r', tmpfc)                                
+                            fcdigit = helpers.issue_number_parser(arc['IssueNumber']).asInt
+                            int_iss = helpers.issue_number_parser(temploc).asInt
                             if int_iss == fcdigit:
                                 logger.fdebug('%s Issue #%s already present in StoryArc directory' % (arc['ComicName'], arc['IssueNumber']))
                                 #update storyarcs db to reflect status.
@@ -6318,16 +6320,16 @@ class WebInterface(object):
                                     if result['ComicYear'] != "0000" and result['ComicYear'] is not None:
                                         yearRANGE.append(str(result['ComicYear']))
                                         yearTOP = str(result['ComicYear'])
-                                getiss_num = helpers.issuedigits(getiss)
-                                miniss_num = helpers.issuedigits(minISSUE)
-                                startiss_num = helpers.issuedigits(startISSUE)
+                                getiss_num = helpers.issue_number_parser(getiss).asInt
+                                miniss_num = helpers.issue_number_parser(minISSUE).asInt
+                                startiss_num = helpers.issue_number_parser(startISSUE).asInt
                                 if int(getiss_num) > int(miniss_num):
                                     logger.fdebug('Minimum issue now set to : %s - it was %s' % (getiss, minISSUE))
                                     minISSUE = getiss
                                 if int(getiss_num) < int(startiss_num):
                                     logger.fdebug('Start issue now set to : %s - it was %s' % (getiss, startISSUE))
                                     startISSUE = str(getiss)
-                                    if helpers.issuedigits(startISSUE) == 1000 and result['ComicYear'] is not None:  # if it's an issue #1, get the year and assume that's the start.
+                                    if helpers.issue_number_parser(startISSUE).asInt == helpers.issue_number_to_int(1,None) and result['ComicYear'] is not None:  # if it's an issue #1, get the year and assume that's the start.
                                         startyear = result['ComicYear']
 
                 #taking this outside of the transaction in an attempt to stop db locking.
@@ -6342,7 +6344,7 @@ class WebInterface(object):
                 if starttheyear is None:
                     if all([yearTOP != None, yearTOP != 'None']):
                         if int(str(yearTOP)) > 0:
-                            minni = helpers.issuedigits(minISSUE)
+                            minni = helpers.issue_number_parser(minISSUE).asInt
                             #logger.info(minni)
                             if minni < 1 or minni > 999999999:
                                 maxyear = int(str(yearTOP))
@@ -8851,7 +8853,7 @@ class WebInterface(object):
                 try:
                     x = float(weekly['ISSUE'])
                 except ValueError as e:
-                    if any(ext in weekly['ISSUE'].upper() for ext in mylar.ISSUE_EXCEPTIONS):
+                    if helpers.issueExceptionCheck(weekly['ISSUE'], full_match=False):
                         x = weekly['ISSUE']
 
                 if x is not None:
