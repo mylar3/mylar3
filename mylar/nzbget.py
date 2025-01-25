@@ -41,6 +41,10 @@ class NZBGet(object):
             return {'status': False}
         url = '%s://%s:%s'
         val = (protocol,nzbget_host,mylar.CONFIG.NZBGET_PORT)
+        if mylar.CONFIG.NZBGET_SUB:
+            url = '%s://%s:%s%s'
+            val+=(mylar.CONFIG.NZBGET_SUB,)
+
         logon_info = ''
         if mylar.CONFIG.NZBGET_USERNAME is not None:
             logon_info = '%s:'
@@ -54,9 +58,13 @@ class NZBGet(object):
         if logon_info != '':
             url = url + '/' + logon_info
         url = url + '/xmlrpc'
-        #val = val + (nzbget_host,mylar.CONFIG.NZBGET_PORT,)
-        self.display_url = '%s://%s:%s/xmlrpc' % (protocol, nzbget_host, mylar.CONFIG.NZBGET_PORT)
+
+        if mylar.CONFIG.NZBGET_SUB:
+            self.display_url = '%s://%s:%s%s/xmlrpc' % (protocol, nzbget_host, mylar.CONFIG.NZBGET_PORT, mylar.CONFIG.NZBGET_SUB)
+        else:
+            self.display_url = '%s://%s:%s/xmlrpc' % (protocol, nzbget_host, mylar.CONFIG.NZBGET_PORT)
         self.nzb_url = (url % val)
+
         self.server = xmlrpc.client.ServerProxy(self.nzb_url) #,allow_none=True)
 
     def sender(self, filename, test=False):

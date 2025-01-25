@@ -6743,6 +6743,7 @@ class WebInterface(object):
                     "nzb_downloader_sabnzbd": helpers.radio(mylar.CONFIG.NZB_DOWNLOADER, 0),
                     "nzb_downloader_nzbget": helpers.radio(mylar.CONFIG.NZB_DOWNLOADER, 1),
                     "nzb_downloader_blackhole": helpers.radio(mylar.CONFIG.NZB_DOWNLOADER, 2),
+                    "nzb_downloader_none": helpers.radio(mylar.CONFIG.NZB_DOWNLOADER, 3),
                     "sab_host": mylar.CONFIG.SAB_HOST,
                     "sab_user": mylar.CONFIG.SAB_USERNAME,
                     "sab_api": mylar.CONFIG.SAB_APIKEY,
@@ -6756,6 +6757,7 @@ class WebInterface(object):
                     "sab_remove_completed": helpers.checked(mylar.CONFIG.SAB_REMOVE_COMPLETED),
                     "sab_remove_failed": helpers.checked(mylar.CONFIG.SAB_REMOVE_FAILED),
                     "nzbget_host": mylar.CONFIG.NZBGET_HOST,
+                    "nzbget_sub": mylar.CONFIG.NZBGET_SUB,
                     "nzbget_port": mylar.CONFIG.NZBGET_PORT,
                     "nzbget_user": mylar.CONFIG.NZBGET_USERNAME,
                     "nzbget_pass": mylar.CONFIG.NZBGET_PASSWORD,
@@ -7478,7 +7480,7 @@ class WebInterface(object):
 
     SABtest.exposed = True
 
-    def NZBGet_test(self, nzbhost=None, nzbport=None, nzbusername=None, nzbpassword=None):
+    def NZBGet_test(self, nzbhost=None, nzbport=None, nzbusername=None, nzbpassword=None, nzbsub=None):
         if nzbhost is None:
             nzbhost = mylar.CONFIG.NZBGET_HOST
         if nzbport is None:
@@ -7487,6 +7489,8 @@ class WebInterface(object):
             nzbusername = mylar.CONFIG.NZBGET_USERNAME
         if nzbpassword is None:
             nzbpassword = mylar.CONFIG.NZBGET_PASSWORD
+        if nzbsub is None:
+            nzbsub = mylar.CONFIG.NZBGET_SUB
 
         logger.fdebug('Now attempting to test NZBGet connection')
 
@@ -7499,7 +7503,11 @@ class WebInterface(object):
             nzbgethost = nzbhost[7:]
 
         url = '%s://%s:%s'
-        nzbparams = (protocol,nzbgethost,nzbport,)
+        nzbparams = (protocol,nzbgethost,nzbport)
+        if nzbsub:
+            url = '%s://%s:%s%s'
+            nzbparams += (nzbsub,)
+
         logon_info = ''
         if all([nzbusername is not None, nzbpassword is not None]):
             logon_info = '%s:%s'
@@ -7511,7 +7519,6 @@ class WebInterface(object):
             url = url + '/' + logon_info
         url = url + '/xmlrpc'
         nzb_url = (url % nzbparams)
-        logger.info('nzb_url: %s' % (nzb_url,))
 
         import xmlrpc.client, http.client, socket
         nzbserver = xmlrpc.client.ServerProxy(nzb_url)
