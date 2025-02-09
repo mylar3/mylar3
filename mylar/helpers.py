@@ -3414,7 +3414,7 @@ def ddl_downloader(queue):
                         except KeyError:
                             link_type_failure[item['id']] = [item['link_type']]
                         logger.fdebug('[%s] link_type_failure: %s' % (item['id'], link_type_failure))
-                        ggc = getcomics.GC()
+                        ggc = getcomics.GC(comicid=item['comicid'], issueid=item['issueid'], oneoff=item['oneoff'])
                         ggc.parse_downloadresults(item['id'], item['mainlink'], item['comicinfo'], item['packinfo'], link_type_failure[item['id']])
                     else:
                         logger.info('[REDO] Exhausted all available links [%s] for issueid %s and was not able to download anything' % (link_type_failure[item['id']], item['issueid']))

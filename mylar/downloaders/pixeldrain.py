@@ -54,7 +54,7 @@ class PixelDrain(object):
                     '[PixelDrain][ABORTING] Error trying to validate/create DDL download'
                     ' directory: %s.' % self.dl_location
                 )
-                return {"success": False, "filename": filename, "path": None, "link_type_failure": 'GC-Pixel'}
+                return {"success": False, "filename": None, "path": None, "link_type_failure": 'GC-Pixel'}
 
 
         t = self.session.get(
@@ -77,13 +77,27 @@ class PixelDrain(object):
         if f_info.status_code == 200:
             info = f_info.json()
             logger.fdebug('[PixelDrain] pixeldrain_info_response: %s' % info)
-            file_info = {'filename': info['name'],
-                         'filesize': info['size'],
-                         'avail': info['availability'],
-                         'can_dl': info['can_download']}
+            if any(
+                    [
+                        info['availability'] == 'file_rate_limited_captcha_required',
+                        info['availability'] == 'virus_detected_captcha_required',
+                    ]
+            ):
+                file_info = None
+                file_error = info['availability']
+            else:
+                file_info = {'filename': info['name'],
+                             'filesize': info['size'],
+                             'avail': info['availability'],
+                             'can_dl': info['can_download']}
         else:
             # should return null here - unobtainable link.
             file_info = None
+            file_error = 'not found'
+
+        if not file_info:
+            logger.warn('[PIXELDRAIN] Unable to retrieve remote link - %s' % file_error)
+            return {"success": False, "filename": None, "path": None, "link_type_failure": 'GC-Pixel'}
 
         myDB = db.DBConnection()
         # write the filename to the db for tracking purposes...
