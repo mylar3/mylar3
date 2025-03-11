@@ -3158,16 +3158,13 @@ class WebInterface(object):
 
     def fly_me_to_the_moon(self):
         todaydate = datetime.datetime.today()
-        current_weeknumber = todaydate.strftime("%U")
+        weekinfo = helpers.weekly_info()
 
-        #find the given week number for the current day
-        weeknumber = current_weeknumber
-        stweek = datetime.datetime.strptime(todaydate.strftime('%Y-%m-%d'), '%Y-%m-%d')
-        startweek = stweek - timedelta(days = (stweek.weekday() + 1) % 7)
-        midweek = startweek + timedelta(days = 3)
-        endweek = startweek + timedelta(days = 6)
-        weekyear = todaydate.strftime("%Y")
-
+        weeknumber = weekinfo['current_weeknumber']
+        weekyear = weekinfo['year']
+        startweek = weekinfo['startweek']
+        midweek = weekinfo['midweek']
+        endweek = weekinfo['endweek']
 
         myDB = db.DBConnection()
         logger.info('weeknumber: %s' % weeknumber)
