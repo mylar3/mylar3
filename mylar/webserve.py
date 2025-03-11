@@ -8051,6 +8051,57 @@ class WebInterface(object):
 
     manual_metatag.exposed = True
 
+    def bulk_metatag(self, ComicID, IssueIDs, threaded=False):
+        myDB = db.DBConnection()
+        cinfo = myDB.selectone('SELECT ComicLocation, ComicVersion, ComicYear, ComicName, AgeRating FROM comics WHERE ComicID=?', [ComicID]).fetchone()
+
+        comicinfo = {'ComicID': ComicID,
+                     'ComicName': cinfo['ComicName'],
+                     'ComicYear': cinfo['ComicYear'],
+                     'ComicVersion': cinfo['ComicVersion'],
+                     'AgeRating': cinfo['AgeRating'],
+                     'meta_dir': cinfo['ComicLocation']}
+        
+        issueList = ', '.join(IssueIDs)
+        groupinfo = myDB.select(f'SELECT IssueID, Location FROM issues WHERE ComicID={ComicID} and IssueID IN ({issueList}) and Location is not NULL')
+        if mylar.CONFIG.ANNUALS_ON:
+            groupinfo += myDB.select(f'SELECT IssueID, Location FROM annuals WHERE ComicID={ComicID} and IssueID IN ({issueList}) and Location is not NULL')
+
+        if len(groupinfo) == 0:
+            logger.warn('No issues physically exist for me to (re)-tag.')
+            return
+        
+        if mylar.CONFIG.CV_BATCH_LIMIT_PROTECTION and len(groupinfo) > mylar.CONFIG.CV_BATCH_LIMIT_THRESHOLD:
+            warningMessage = f"CV Batch Limit Protection ({mylar.CONFIG.CV_BATCH_LIMIT_THRESHOLD}) has been triggered trying to tag {len(groupinfo)} issues.  This will likely breach ComicVine API Limits."
+            logger.warn(f"[SERIES-METATAGGER][{comicinfo['ComicName']} ({comicinfo['ComicYear']})] {warningMessage}")
+            mylar.GLOBAL_MESSAGES = {'status': 'failure', 'comicname': cinfo['ComicName'], 'seriesyear': cinfo['ComicYear'], 'comicid': ComicID, 'tables': 'both', 'message': warningMessage}
+            return
+        
+        issueinfo = []
+        for ginfo in groupinfo:
+            issueinfo.append({'IssueID': ginfo['IssueID'],
+                              'Location': ginfo['Location']})        
+
+        if threaded is False:
+            threading.Thread(target=self.thread_that_bulk_meta, args=[comicinfo, issueinfo]).start()
+            return json.dumps({'status': 'success'})
+        else:
+            self.thread_that_bulk_meta(comicinfo, issueinfo)
+            return json.dumps({'status': 'success'})        
+    bulk_metatag.exposed = True
+
+    def thread_that_bulk_meta(self, comicinfo, issueinfo):
+        for ginfo in issueinfo:
+            #if multiple_dest_dirs is in effect, metadir will be pointing to the wrong location and cause a 'Unable to create temporary cache location' error message
+            self.manual_metatag(ginfo['IssueID'], group=True)
+        updater.forceRescan(comicinfo['ComicID'])
+        logger.info('[SERIES-METATAGGER][%s (%s)] Finished (re)tagging of metadata for selected issues.' % (comicinfo['ComicName'], comicinfo['ComicYear']))
+        issueline = '%s issues' % len(issueinfo)
+        if len(issueinfo) == 1:
+            issueline = '1 issue'
+        mylar.GLOBAL_MESSAGES = {'status': 'success', 'comicname': comicinfo['ComicName'], 'seriesyear': comicinfo['ComicYear'], 'comicid': comicinfo['ComicID'], 'tables': 'both', 'message': 'Finished (re)tagging of %s of %s (%s)' % (issueline, comicinfo['ComicName'], comicinfo['ComicYear'])}
+    thread_that_bulk_meta.exposed = True
+
     def group_metatag(self, ComicID, threaded=False):
         myDB = db.DBConnection()
         cinfo = myDB.selectone('SELECT ComicLocation, ComicVersion, ComicYear, ComicName, AgeRating FROM comics WHERE ComicID=?', [ComicID]).fetchone()
@@ -8066,8 +8117,14 @@ class WebInterface(object):
         if mylar.CONFIG.ANNUALS_ON:
             groupinfo += myDB.select('SELECT IssueID, Location FROM annuals WHERE ComicID=? and Location is not NULL', [ComicID])
 
-        if groupinfo is None:
+        if len(groupinfo) == 0:
             logger.warn('No issues physically exist within the series directory for me to (re)-tag.')
+            return
+
+        if mylar.CONFIG.CV_BATCH_LIMIT_PROTECTION and len(groupinfo) > mylar.CONFIG.CV_BATCH_LIMIT_THRESHOLD:
+            warningMessage = f"CV Batch Limit Protection ({mylar.CONFIG.CV_BATCH_LIMIT_THRESHOLD}) has been triggered trying to tag {len(groupinfo)} issues.  This will likely breach ComicVine API Limits."
+            logger.warn(f"[SERIES-METATAGGER][{comicinfo['ComicName']} ({comicinfo['ComicYear']})] {warningMessage}")
+            mylar.GLOBAL_MESSAGES = {'status': 'failure', 'comicname': cinfo['ComicName'], 'seriesyear': cinfo['ComicYear'], 'comicid': ComicID, 'tables': 'both', 'message': warningMessage}
             return
 
         issueinfo = []

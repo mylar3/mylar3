@@ -488,6 +488,16 @@
                         %endif
                 </select>
                 <input type="hidden" value="Go">
+                %if any([mylar.CONFIG.ENABLE_META, mylar.CONFIG.CBR2CBZ_ONLY]):
+                    <div style="padding-left: 10px; float:right">
+                        <a id="metatag_issues" href="#" title="Perform metatagging on selected issues" onclick="metatag_the_issues(${comic['ComicID']}, 'issues')" 
+                            class="ui-button ui-widget ui-state-default ui-corner-all ui-button-text-icon-primary" role="button" aria-disabled="false" 
+                            style="background-image: -webkit-linear-gradient(#616161, #4e4e4e) !important;">
+                            <span class="ui-button-icon-primary ui-icon ui-icon-refresh"></span>
+                            <span class="ui-button-text" style="font-weight: normal;">MetaTag Issues</span>
+                        </a>
+                    </div>     
+                %endif          
         </div>
 
           <table class="display select" id="issue_table">
@@ -531,6 +541,16 @@
                 </select>
                 selected annuals
                 <input type="hidden" value="Go">
+                %if any([mylar.CONFIG.ENABLE_META, mylar.CONFIG.CBR2CBZ_ONLY]):
+                    <div style="padding-left: 10px; float:right">
+                        <a id="metatag_issues" href="#" title="Perform metatagging on selected issues" onclick="metatag_the_issues(${comic['ComicID']}, 'annuals')" 
+                            class="ui-button ui-widget ui-state-default ui-corner-all ui-button-text-icon-primary" role="button" aria-disabled="false" 
+                            style="background-image: -webkit-linear-gradient(#616161, #4e4e4e) !important;">
+                            <span class="ui-button-icon-primary ui-icon ui-icon-refresh"></span>
+                            <span class="ui-button-text" style="font-weight: normal;">MetaTag Issues</span>
+                        </a>
+                    </div>   
+                %endif
         </div>
             <table class="display select" id="annual_table">
                 <thead>
@@ -1094,6 +1114,41 @@
                   //reload_tabs();
                   //reload_tables();
               });
+        }
+
+        function metatag_the_issues(comicid, tabletype){
+            $('#ajaxMsg').html("<div class='msg'><span class='ui-icon ui-icon-check'></span>Now metatagging selected items...</div>");
+            $('#ajaxMsg').addClass('success').fadeIn().delay(3000).fadeOut();
+            if (tabletype == 'issues'){
+                var checks = document.getElementsByName("issueid[]");
+            } else {
+                var checks = document.getElementsByName("aissueid[]");
+            }
+
+            var checkboxesChecked = [];
+            for (var i=0; i<checks.length; i++) {
+                if (checks[i].checked) {
+                    // console.log(checks[i].value);
+                    checkboxesChecked.push(checks[i].value);
+                }
+            } 
+
+            $.when($.ajax({
+                type: "GET",
+                url: "bulk_metatag",
+                data: { ComicID: comicid, IssueIDs: checkboxesChecked },
+                traditional : true,
+                success: function(response) {
+                   obj = JSON.parse(response);
+                },
+                error: function(data)
+                    {
+                      alert('ERROR'+data.responseText);
+                    },
+             })).done(function(data) {
+                 //reload_tabs();
+                 //reload_tables();
+             });
         }
 
         function run_single_metatag(issueid, comicid, issuenumber){
