@@ -4497,11 +4497,28 @@ class WebInterface(object):
         raise cherrypy.HTTPRedirect("home")
     forceUpdate.exposed = True
 
-    def forceSearch(self):
+    def forceSearch(self, issueIds = None):
         #from mylar import search
         #threading.Thread(target=search.searchforissue).start()
         #raise cherrypy.HTTPRedirect("home")
-        self.schedulerForceCheck(jobid='search')
+        if issueIds is None:
+            self.schedulerForceCheck(jobid='search')
+        else:
+            myDB = db.DBConnection()
+
+            for issueId in issueIds:
+                issue_data = myDB.selectone("SELECT C.Type, C.ComicYear, I.ComicName, I.Issue_Number, I.ComicID, I.IssueID FROM comics as C INNER JOIN issues as I on C.ComicID = I.ComicID WHERE I.IssueID=?", [issueId]).fetchone()
+                passInfo = {'issueid': issueId,
+                            'comicname': issue_data['ComicName'],
+                            'seriesyear': issue_data['ComicYear'],
+                            'comicid': issue_data['ComicID'],
+                            'issuenumber': issue_data['Issue_Number'],
+                            'booktype': issue_data['Type'],
+                            'manual': True}
+                logger.fdebug(f"Adding issue {issue_data['ComicName']} #{issue_data['Issue_Number']} [{issueId}] to search queue")
+                s = mylar.SEARCH_QUEUE.put(passInfo)
+
+        return json.dumps({'status': 'success'})
     forceSearch.exposed = True
 
     def forceRescan(self, ComicID, bulk=False, action='recheck', api=False):
