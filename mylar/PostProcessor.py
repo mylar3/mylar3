@@ -814,14 +814,20 @@ class PostProcessor(object):
 
                         #force it to use the Publication Date of the latest issue instead of the Latest Date (which could be anything)
                         ld_check = myDB.selectone('SELECT ReleaseDate, Issue_Number, Int_IssueNumber from issues WHERE ComicID=? order by ReleaseDate DESC', [wv['ComicID']]).fetchone()
+                        highest_issue_check = myDB.selectone('SELECT Issue_Number, Int_IssueNumber from issues WHERE ComicID=? order by Int_IssueNumber DESC', [wv['ComicID']]).fetchone()
                         if ld_check:
                             if mylar.CONFIG.ANNUALS_ON:
                                 ld_check_ann = myDB.selectone('SELECT ReleaseDate, Issue_Number, Int_IssueNumber from annuals WHERE ComicID=? order by ReleaseDate DESC', [wv['ComicID']]).fetchone()
+                                highest_issue_check_ann = myDB.selectone('SELECT Issue_Number, Int_IssueNumber from annuals WHERE ComicID=? order by Int_IssueNumber DESC', [wv['ComicID']]).fetchone()
                                 if ld_check_ann:
                                     if all([ld_check_ann[0] != '0000-00-00', ld_check_ann[0] is not None]):
                                         if int(re.sub('-', '', ld_check_ann[0]).strip()) > int(re.sub('-', '', ld_check[0]).strip()):
                                             logger.fdebug('Annual date newer than latest issue date - re-assigning latestdate as an annual')
                                             ld_check = ld_check_ann
+                                if highest_issue_check_ann:
+                                    if highest_issue_check_ann[1] > highest_issue_check[1]:
+                                        logger.fdebug('Largest annual issue # higher than issues - re-assigning latestissue as an annual')
+                                        highest_issue_check = highest_issue_check_ann
                             #tmplatestdate = latestdate[0]
                             if ld_check[0][:4] != wv['LatestDate'][:4]:
                                 if ld_check[0][:4] > wv['LatestDate'][:4]:
@@ -830,8 +836,8 @@ class PostProcessor(object):
                                     latestdate = wv['LatestDate']
                             else:
                                 latestdate = ld_check[0]
-                            tmplatestissue = ld_check[1]
-                            tmplatestissueint = ld_check[2]
+                            tmplatestissue = highest_issue_check[0]
+                            tmplatestissueint = highest_issue_check[1]
                             logger.fdebug('tmplatestissue: %s' %(tmplatestissue))
                             logger.fdebug('tmplatestissueint: %s' %(tmplatestissueint))
                             try:
