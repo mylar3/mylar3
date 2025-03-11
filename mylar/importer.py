@@ -1333,8 +1333,8 @@ def updateissuedata(comicid, comicname=None, issued=None, comicIssues=None, call
     issname = []
     issdate = []
     issuedata = []
-    #let's start issue #'s at 0 -- thanks to DC for the new 52 reboot! :)
-    latestiss = "0"
+    # Start looking for the latest issue ID very low to accomodate series with only negative issues
+    latestiss = "-999999999"
     latestdate = "0000-00-00"
     latest_stdate = "0000-00-00"
     latestissueid = None
