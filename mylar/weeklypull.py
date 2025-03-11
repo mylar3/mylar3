@@ -70,9 +70,9 @@ def pullit(forcecheck=None, weeknumber=None, year=None):
         newpull.newpull()
     elif mylar.CONFIG.ALT_PULL == 2:
         logger.info('[PULL-LIST] Populating & Loading pull-list data directly from alternate website')
-        today_date = datetime.datetime.today().replace(second=0,microsecond=0)
-        current_weeknumber = today_date.strftime('%U')
-        current_year = today_date.strftime("%Y")
+        weekly_info = helpers.weekly_info()
+        current_weeknumber = weekly_info['weeknumber']
+        current_year = weekly_info['year']
         for x in [1, 2]:
             # for now we'll query WS twice - once for the previous week & once for the current week
             # but only when requesting data for the current week. This is done in order to make sure that
@@ -80,23 +80,15 @@ def pullit(forcecheck=None, weeknumber=None, year=None):
             # week roll-over which leaves some stragglers if the updater doesn't catch it (which it mostly should).
             if x == 1:
                 if pulldate is not None:
-                    weeknumber = today_date.strftime('%U')
-                    year = today_date.strftime("%Y")
+                    weeknumber = weekly_info['weeknumber']
+                    year = weekly_info['year']
 
-                weeknumber_mod = int(weeknumber) - 1
-                year_mod = year
-                if weeknumber_mod <= 0:
-                    weeknumber_mod = 52
-                    year_mod = int(year) - 1
+                weeknumber_mod = weekly_info['prev_weeknumber']
+                year_mod = weekly_info['prev_year']
             else:
                time.sleep(2)
                weeknumber_mod = weeknumber
                year_mod = year
-
-            if weeknumber_mod == '00' and year_mod == '2022':
-                # because 01/2022 falls at the end of 52/2021, just force it to stay in the 52/2021 week
-                weeknumber_mod = '52'
-                year_mod = '2021'
 
             if all([forcecheck == 'yes', x == 1, current_weeknumber != weeknumber]):
                # if it's not the current week being requested during a recreate pull,
@@ -210,7 +202,7 @@ def pullit(forcecheck=None, weeknumber=None, year=None):
 
         #denotes issues that contain special characters within that would normally fail when checked if issue ONLY contained numerics.
         #add freely, just lowercase and exclude decimals (they get stripped during comparisons)
-        specialissues = {'au', 'ai', 'inh', 'now', 'mu'}
+        specialissues = {'au', 'ai', 'inh', 'now', 'mu', 'deaths'}
 
         pub = "COMICS"
         prevcomic = ""

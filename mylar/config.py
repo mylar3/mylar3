@@ -271,7 +271,7 @@ _CONFIG_DEFINITIONS = OrderedDict({
     'PROVIDER_ORDER': (str, 'Providers', None),
     'USENET_RETENTION': (int, 'Providers', 3500),
 
-    'NZB_DOWNLOADER': (int, 'Client', 0),  #0': sabnzbd, #1': nzbget, #2': blackhole
+    'NZB_DOWNLOADER': (int, 'Client', 3),  #0': sabnzbd, #1': nzbget, #2': blackhole, #3': none(default)
     'TORRENT_DOWNLOADER': (int, 'Client', 0),  #0': watchfolder, #1': uTorrent, #2': rTorrent, #3': transmission, #4': deluge, #5': qbittorrent
 
     'SAB_HOST': (str, 'SABnzbd', None),
@@ -290,6 +290,7 @@ _CONFIG_DEFINITIONS = OrderedDict({
 
 
     'NZBGET_HOST': (str, 'NZBGet', None),
+    'NZBGET_SUB': (str, 'NZBGet', None),
     'NZBGET_PORT': (str, 'NZBGet', None),
     'NZBGET_USERNAME': (str, 'NZBGet', None),
     'NZBGET_PASSWORD': (str, 'NZBGet', None),
@@ -337,7 +338,7 @@ _CONFIG_DEFINITIONS = OrderedDict({
     'CMTAGGER_PATH': (str, 'Metatagging', None),
     'CBR2CBZ_ONLY': (bool, 'Metatagging', False),
     'CT_TAG_CR': (bool, 'Metatagging', True),
-    'CT_TAG_CBL': (bool, 'Metatagging', True),
+    'CT_TAG_CBL': (bool, 'Metatagging', False),
     'CT_CBZ_OVERWRITE': (bool, 'Metatagging', False),
     'UNRAR_CMD': (str, 'Metatagging', None),
     'CT_NOTES_FORMAT': (str, 'Metatagging', 'Issue ID'),
@@ -1524,7 +1525,7 @@ class Config(object):
         if startup is False:
             if self.POST_PROCESSING is True and ( all([self.NZB_DOWNLOADER == 0, self.SAB_CLIENT_POST_PROCESSING is True]) or all([self.NZB_DOWNLOADER == 1, self.NZBGET_CLIENT_POST_PROCESSING is True]) ):
                 mylar.queue_schedule('nzb_queue', 'start')
-            elif self.POST_PROCESSING is True and ( all([self.NZB_DOWNLOADER == 0, self.SAB_CLIENT_POST_PROCESSING is False]) or all([self.NZB_DOWNLOADER == 1, self.NZBGET_CLIENT_POST_PROCESSING is False]) ):
+            elif self.POST_PROCESSING is True and ( all([self.NZB_DOWNLOADER == 0, self.SAB_CLIENT_POST_PROCESSING is False]) or all([self.NZB_DOWNLOADER == 1, self.NZBGET_CLIENT_POST_PROCESSING is False]) or self.NZB_DOWNLOADER == 3):
                 mylar.queue_schedule('nzb_queue', 'stop')
 
             if self.ENABLE_DDL is True:
@@ -1587,16 +1588,16 @@ class Config(object):
         mylar.USE_NZBGET = False
         mylar.USE_BLACKHOLE = False
 
+        if all([self.NZB_DOWNLOADER ==0, self.SAB_HOST is None]) or all([self.NZB_DOWNLOADER ==1, self.NZBGET_HOST is None]) or all([self.NZB_DOWNLOADER==2, self.BLACKHOLE_DIR is None]):
+            logger.info('NZB Downloader detected as invalid entry - defaulting to None')
+            self.NZB_DOWNLOADER = 3
+
         if self.NZB_DOWNLOADER == 0:
             mylar.USE_SABNZBD = True
         elif self.NZB_DOWNLOADER == 1:
             mylar.USE_NZBGET = True
         elif self.NZB_DOWNLOADER == 2:
             mylar.USE_BLACKHOLE = True
-        else:
-            #default to SABnzbd
-            self.NZB_DOWNLOADER = 0
-            mylar.USE_SABNZBD = True
 
         if self.SAB_PRIORITY.isdigit():
             if self.SAB_PRIORITY == "0": self.SAB_PRIORITY = "Default"

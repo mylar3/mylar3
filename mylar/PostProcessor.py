@@ -2781,6 +2781,9 @@ class PostProcessor(object):
             elif 'hu' in issuenum.lower() and issuenum[:1].isdigit():
                 issuenum = re.sub("[^0-9]", "", issuenum)
                 issue_except = '.HU'
+            elif 'deaths' in issuenum.lower() and issuenum[:1].isdigit():
+                issuenum = re.sub("[^0-9]", "", issuenum)
+                issue_except = '.DEATHS'
             elif '\xbd' in issuenum:
                 issuenum = '0.5'
             elif '\xbc' in issuenum:
