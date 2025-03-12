@@ -114,7 +114,7 @@ _CONFIG_DEFINITIONS = OrderedDict({
     'SEARCH_TIER_CUTOFF': (int, 'General', 14), # days
 
     'RSS_CHECKINTERVAL': (int, 'Scheduler', 20),
-    'SEARCH_INTERVAL': (int, 'Scheduler', 360),
+    'SEARCH_INTERVAL': (int, 'Scheduler', 1440),
     'DOWNLOAD_SCAN_INTERVAL': (int, 'Scheduler', 5),
     'CHECK_GITHUB_INTERVAL' : (int, 'Scheduler', 360),
     'BLOCKLIST_TIMER': (int, 'Scheduler', 3600),
