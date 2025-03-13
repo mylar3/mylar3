@@ -4514,7 +4514,7 @@ class WebInterface(object):
                             'comicid': issue_data['ComicID'],
                             'issuenumber': issue_data['Issue_Number'],
                             'booktype': issue_data['Type'],
-                            'manual': True}
+                            'manual': False}
                 logger.fdebug(f"Adding issue {issue_data['ComicName']} #{issue_data['Issue_Number']} [{issueId}] to search queue")
                 s = mylar.SEARCH_QUEUE.put(passInfo)
 

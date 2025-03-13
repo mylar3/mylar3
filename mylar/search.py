@@ -1672,7 +1672,7 @@ def searchforissue(issueid=None, new=False, rsschecker=None, manual=False):
                                  'ComicID': iss['ComicID']
                                 }
                             )
-                            if checkit is True:
+                            if checkit['status'] is True:
                                 if not any(r['IssueID'] == iss['IssueID'] for r in results):
                                     results.append(
                                         {
@@ -1728,7 +1728,7 @@ def searchforissue(issueid=None, new=False, rsschecker=None, manual=False):
                              'ComicID': iss['ComicID']
                             }
                         )
-                        if checkit is True:
+                        if checkit['status'] is True:
                             if not any(r['IssueID'] == iss['IssueID'] for r in results):
                                 results.append(
                                     {
