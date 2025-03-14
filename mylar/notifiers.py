@@ -484,7 +484,7 @@ class MATTERMOST:
         if module is None:
             module = ''
         module += '[NOTIFIER]'
-
+        
         if 'snatched' in attachment_text.lower():
             snatched_text = '%s: %s' % (attachment_text, snatched_nzb)
             if all([sent_to is not None, prov is not None]):
@@ -495,14 +495,8 @@ class MATTERMOST:
         else:
             pass
 
-        payload = {
-            "text": attachment_text,
-            "username": "Mylar",
-            "icon_url": "https://github.com/mylar3/mylar3/raw/master/data/images/mylarlogo.png",
-            "image_url": f"data:image/jpeg;base64,{imageFile}",
-            "footer": "Powered by [Mylar](https://github.com/mylar3/mylar3)",
-            "footer_icon": "https://github.com/mylar3/mylar3/raw/master/data/images/mylarlogo.png",
-            "attachments":[
+        if not attachment_text == 'Release the Ninjas!':
+            attachments = [
                 {
                     "title":f"{metadata['series']} ({metadata['year']}) - Issue {metadata['issue']}",
                     "fields": [
@@ -520,15 +514,20 @@ class MATTERMOST:
                             "short": True,
                             "title": "Year",
                             "value": metadata['year']
-                        },
-                        {
-                            "short": False,
-                            "title": "Cover",
-                            "value": f"![Cover](data:image/jpeg;base64,{imageFile})"
                         }
                     ]
                 }
             ]
+        else:
+            attachments = []
+        logger.debug(attachments)
+        payload = {
+            "text": attachment_text,
+            "username": "Mylar",
+            "icon_url": "https://github.com/mylar3/mylar3/raw/master/data/images/mylarlogo.png",
+            "footer": "Powered by [Mylar](https://github.com/mylar3/mylar3)",
+            "footer_icon": "https://github.com/mylar3/mylar3/raw/master/data/images/mylarlogo.png",
+            "attachments": attachments
         }
 
         try:
