@@ -478,7 +478,8 @@ class SLACK:
 
 class MATTERMOST:
     def __init__(self, test_webhook_url=None):
-        self.test_hook = (test_webhook_url == None)
+        self.test_hook = not (test_webhook_url == None)
+        logger.debug(self.test_hook)
         self.webhook_url = mylar.CONFIG.MATTERMOST_WEBHOOK_URL if test_webhook_url is None else test_webhook_url
 
     def notify(self, text, attachment_text, snatched_nzb=None, prov=None, sent_to=None, module=None, metadata=None, imageFile=None):
