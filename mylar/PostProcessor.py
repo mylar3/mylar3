@@ -485,6 +485,17 @@ class PostProcessor(object):
                         if any(['coveronly' in cvchk, 'coversonly' in cvchk]):
                             logger.fdebug('Cover only detected. Ignoring result.')
                             continue
+
+                    if os.path.isfile(fl['comiclocation']):
+                        full_filename = fl['comiclocation']
+                    else:
+                        full_filename = os.path.join(fl['comiclocation'], fl['comicfilename'])
+
+                    condition_check = helpers.checkFileCondition(full_filename)
+                    if condition_check['status'] is False:
+                        logger.warn(f"File {full_filename} failed condition check ({condition_check['quality']}).  Ignoring file.")
+                        continue
+
                     self.matched = False
                     as_d = filechecker.FileChecker()
                     as_dinfo = as_d.dynamic_replace(fl['series_name']) #helpers.conversion(fl['series_name']))
