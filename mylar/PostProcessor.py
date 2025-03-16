@@ -485,6 +485,24 @@ class PostProcessor(object):
                         if any(['coveronly' in cvchk, 'coversonly' in cvchk]):
                             logger.fdebug('Cover only detected. Ignoring result.')
                             continue
+
+                    if os.path.isfile(fl['comiclocation']):
+                        full_filename = fl['comiclocation']
+                    else:
+                        if fl['sub'] is not None:
+                            full_filename = os.path.join(fl['comiclocation'], fl['sub'], fl['comicfilename'])
+                        else:
+                            full_filename = os.path.join(fl['comiclocation'], fl['comicfilename'])
+
+                    # If after all that I still don't have a filename that is a file, something is probably confused.  Skip the integrity check.
+                    if os.path.isfile(full_filename):
+                        condition_check = helpers.check_file_condition(full_filename)
+                        if condition_check['status'] is False:
+                            logger.warn(f"CRC Check: File {full_filename} failed condition check ({condition_check['quality']}).  Ignoring file.")
+                            continue
+                    else:
+                        logger.warn(f"Could not find file {full_filename}.  Skipping condition check.")
+
                     self.matched = False
                     as_d = filechecker.FileChecker()
                     as_dinfo = as_d.dynamic_replace(fl['series_name']) #helpers.conversion(fl['series_name']))

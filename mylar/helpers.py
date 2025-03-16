@@ -39,6 +39,10 @@ from urllib.parse import urljoin
 from io import StringIO
 from apscheduler.triggers.interval import IntervalTrigger
 from PIL import Image
+from pathlib import Path
+
+import zipfile
+from lib.rarfile import rarfile
 
 import mylar
 from . import logger
@@ -3344,6 +3348,15 @@ def ddl_downloader(queue):
                 meganz = mega.MegaNZ()
                 ddzstat = meganz.ddl_download(item['link'], item['filename'], item['id'], item['issueid'], item['link_type'])
 
+            # Check for file validity post download and mark as failure if file is not a zip, rar, or pdf
+            # Can only check single downloads.  Packs will have to be managed by post-processing if enabled
+            if ddzstat['success'] and ddzstat['filename'] is not None:
+                filecondition = check_file_condition(ddzstat['path'])
+                if not filecondition['status']:
+                    logger.warn(f"CRC Check: File {ddzstat['path']} failed condition check ({filecondition['quality']}).  Marking as failed.")
+                    ddzstat['success'] = False
+                    ddzstat['link_type_failure'] = item['link_type']
+
             if ddzstat['success'] is True:
                 tdnow = datetime.datetime.now()
                 nval = {'status':  'Completed',
@@ -3508,6 +3521,14 @@ def search_queue(queue):
                             issueid = None # required for storyarcs to work
                     mofo = mylar.filers.FileHandlers(ComicID=comicid, IssueID=issueid, arcID=arcid)
                     local_check = mofo.walk_the_walk()
+
+                    if local_check['status']:
+                        fullpath = Path(local_check['filepath']) / local_check['filename']
+                        filecondition = check_file_condition(fullpath)
+                        if not filecondition['status']:
+                            logger.warn(f"CRC Check: File {fullpath} failed condition check ({filecondition['quality']}).  Ignoring.")
+                            local_check['status'] = False
+
                     if local_check['status'] is True:
                         mylar.PP_QUEUE.put({'nzb_name':     local_check['filename'],
                                             'nzb_folder':   local_check['filepath'],
@@ -3641,6 +3662,13 @@ def cdh_monitor(queue, item, nzstat, readd=False):
         if item not in queue.queue:
             mylar.NZB_QUEUE.put(item)
     elif nzstat['status'] is True:
+        if nzstat['failed'] is False:
+            fullpath = Path(nzstat['location']) / nzstat['name']
+            filecondition = check_file_condition(fullpath)
+            if not filecondition['status']:
+                logger.warn(f"CRC Check: File {fullpath} failed condition check ({filecondition['quality']}).  Marking as failed.")
+                nzstat['failed'] = True
+
         if nzstat['failed'] is False:
             logger.info('File successfully downloaded - now initiating completed downloading handling.')
         else:
@@ -4967,6 +4995,65 @@ def tail_that_log():
         block_counter -= 1
 
     return lines_found[-lines:]
+
+# Magic numbers for checks below
+# Reference: https://www.garykessler.net/library/file_sigs.html
+magic_numbers = {
+    'PDF' : bytes([0x25, 0x50, 0x44, 0x46]),
+    'ZIP' : bytes([0x50, 0x4B, 0x03, 0x04]),
+    'RAR' : bytes([0x52, 0x61, 0x72, 0x21, 0x1A, 0x07]), # Should cover both v4 and v5
+    '7Z' :  bytes([0x37, 0x7A, 0xBC, 0xAF, 0x27, 0x1C])
+}
+
+def check_file_condition(file_path):
+    """ Use magic numbers to confirm a file type, and do some sanity checks for quality of
+        the file (CRC checks, etc.)
+
+    Args:
+        file_path (str): Location of the file to check
+
+    Returns:
+        dict: A dictionary containing a status (True/False for good/bad file), type (known file type), 
+            and quality (descriptive string)
+    """
+    logger.fdebug(f'Checking file condition of {file_path}')
+
+    max_number_length = max(len(m) for m in magic_numbers.values())
+    try:
+        with open(file_path, 'rb') as file:
+            header = file.read(max_number_length)
+    except Exception as e:
+        logger.error(f"Could not open {file_path} to check for file type")
+        return {'status': False, 'type' : 'unknown', 'quality': f'Failed to open file to check quality {e}.'}
+
+    if header.startswith(magic_numbers['ZIP']):
+        try:
+            with zipfile.ZipFile(file_path, mode='r') as zf:
+                test_result = zf.testzip()
+                if test_result is not None:
+                    return {'status': False, 'type' : 'ZIP', 'quality': f'CRC error in file {test_result}.'}
+        except Exception as e:
+            logger.fdebug("Issue working with zip file.  Likely a broken archive.")
+            return {'status': False, 'type' : 'ZIP', 'quality': f'Error processing zip compressed file: {e}.'}
+
+        return {'status': True, 'type' : 'ZIP', 'quality': 'Good condition.'}
+    elif header.startswith(magic_numbers['RAR']):
+        try:
+            with rarfile.RarFile(file_path, mode='r') as rarf:
+                test_result = rarf.testrar()
+                if test_result is not None:
+                    return {'status': False, 'type' : 'RAR', 'quality': f'CRC error in file {test_result}.'}
+        except Exception as e:
+            logger.fdebug("Issue working with rar file.  Likely a broken archive.")
+            return {'status': False, 'type' : 'RAR', 'quality': f'Error processing rar compressed file: {e}.'}
+
+        return {'status': True, 'type' : 'RAR', 'quality': 'Good condition.'}
+    elif header.startswith(magic_numbers['7Z']):
+        return {'status': True, 'type' : '7Z', 'quality': 'File is using 7zip compression.'}
+    elif header.startswith(magic_numbers['PDF']):
+        return {'status': True, 'type' : 'PDF', 'quality': 'PDF file.  No quality checks performed.'}
+    else:
+        return {'status': False, 'type' : 'unknown', 'quality': 'Unknown file type, unknown condition'}
 
 
 from threading import Thread
