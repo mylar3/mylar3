@@ -7495,15 +7495,15 @@ class WebInterface(object):
     SABtest.exposed = True
 
     def NZBGet_test(self, nzbhost=None, nzbport=None, nzbusername=None, nzbpassword=None, nzbsub=None):
-        if nzbhost is None:
+        if any([nzbhost is None, nzbhost == 'None']):
             nzbhost = mylar.CONFIG.NZBGET_HOST
-        if nzbport is None:
+        if any([nzbport is None, nzbport == 'None']):
             nzbport = mylar.CONFIG.NZBGET_PORT
-        if nzbusername is None:
+        if any([nzbusername is None, nzbusername == 'None']):
             nzbusername = mylar.CONFIG.NZBGET_USERNAME
-        if nzbpassword is None:
+        if any([nzbpassword is None, nzbpassword == 'None']):
             nzbpassword = mylar.CONFIG.NZBGET_PASSWORD
-        if nzbsub is None:
+        if any([nzbsub is None, nzbsub == 'None']):
             nzbsub = mylar.CONFIG.NZBGET_SUB
 
         logger.fdebug('Now attempting to test NZBGet connection')
@@ -7519,8 +7519,12 @@ class WebInterface(object):
         url = '%s://%s:%s'
         nzbparams = (protocol,nzbgethost,nzbport)
         if nzbsub:
+            if not nzbsub.startswith('/'):
+                nzbsub = '/' + nzbsub
+            if nzbsub.endswith('/'):
+                nzbsub = nzbsub[:-1]
             url = '%s://%s:%s%s'
-            nzbparams += (nzbsub,)
+            nzbparams = nzbparams + (nzbsub,)
 
         logon_info = ''
         if all([nzbusername is not None, nzbpassword is not None]):
