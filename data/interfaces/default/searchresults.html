@@ -348,6 +348,8 @@
             });
         }
 
+        var lastChecked = null;
+
         function initThisPage(){
                 initActions();
                 var search_type = "${search_type}";
@@ -498,6 +500,30 @@
                      "fnInitComplete": function(oSettings, json)
                      {
                      },
+                });
+
+                $('#searchresults_table tbody').on('click', 'input[type="checkbox"]', function(e){
+                var chkboxes = Array.from($(":checkbox"));
+        
+                if (!lastChecked) {
+                        lastChecked = this;
+                } else {
+                        if (e.shiftKey) {
+                        var start = chkboxes.indexOf(lastChecked);
+                        var end = chkboxes.indexOf(this);
+        
+                        var positive = start < end;
+        
+                        for (var i = (positive ? start: end );
+                        (positive ? i <= end : i <= start); i++) {
+                                chkboxes[i].checked = lastChecked.checked;
+                        }
+                        lastChecked = null;
+                        }
+                        else {
+                        lastChecked = this;
+                        }
+                }
                 });
             };
 
