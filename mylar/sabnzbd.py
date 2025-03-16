@@ -145,7 +145,7 @@ class SABnzbd(object):
             logger.info('File has now downloaded!')
             return self.historycheck(self.params)
 
-    def historycheck(self, nzbinfo, roundtwo=False):
+    def historycheck(self, nzbinfo, roundtwo=False, extract_counter=1):
         sendresponse = nzbinfo['nzo_id']
         hist_params = {'mode':      'history',
                        'failed':    0,
@@ -276,9 +276,18 @@ class SABnzbd(object):
                 elif hq['nzo_id'] == sendresponse:
                     nzo_exists = True
                     logger.fdebug('nzo_id: %s found while processing queue in an unhandled status: %s' % (hq['nzo_id'], hq['status']))
-                    if any([hq['status'] == 'Queued', hq['status'] == 'Moving']) and roundtwo is False:
-                        logger.fdebug('sleeping for %ss to allow the process to finish before trying again..' % (mylar.CONFIG.SAB_MOVING_DELAY))
+                    if any([hq['status'] == 'Queued', hq['status'] == 'Moving', hq['status'] == 'Extracting']) and roundtwo is False:
+                        logger.fdebug('[%s(%s)] sleeping for %ss to allow the process to finish before trying again..' % (hq['status'], extract_counter, mylar.CONFIG.SAB_MOVING_DELAY))
                         time.sleep(mylar.CONFIG.SAB_MOVING_DELAY)
+                        if hq['status'] == 'Extracting':
+                            try:
+                                to_delay = int(int(hq['bytes']) / 25000000) + 2  #for every 25mb add another retry pause as a precaution
+                            except Exception:
+                                to_delay = 4
+
+                            if extract_counter < to_delay:
+                                extract_counter +=1
+                                return self.historycheck(nzbinfo, roundtwo=False, extract_counter=extract_counter)
                         return self.historycheck(nzbinfo, roundtwo=True)
                     else:
                         self.remove_history(hq['nzo_id'], hq['status'])
