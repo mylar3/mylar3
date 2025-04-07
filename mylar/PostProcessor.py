@@ -1839,6 +1839,13 @@ class PostProcessor(object):
 
                             crcvalue = helpers.crc(ofilename)
 
+                            # Set default values
+                            odir = os.path.split(ofilename)[0]
+                            dfilename = os.path.split(ofilename)[1]
+                            grab_src = ofilename
+                            grab_dst = os.path.join(grdst, dfilename)
+                            src_location = ofilename
+
                             if mylar.CONFIG.CMTAG_START_YEAR_AS_VOLUME:
                                 vol_label = ml['SeriesYear']
                             else:
@@ -1878,19 +1885,15 @@ class PostProcessor(object):
                                         odir = os.path.split(metaresponse)[0]
                                         ofilename = os.path.split(metaresponse)[1]
                                         ext = os.path.splitext(metaresponse)[1]
-                                        logger.info('%s Sucessfully wrote metadata to .cbz (%s) - Continuing..' % (module, ofilename))
-                                        self._log('Sucessfully wrote metadata to .cbz (%s) - proceeding...' % ofilename)
+                                        logger.info('%s Sucessfully wrote metadata to .cbz (%s) - Continuing..' % (module, metaresponse))
+                                        self._log('Sucessfully wrote metadata to .cbz (%s) - proceeding...' % metaresponse)
+
+                                        src_location = os.path.split(metaresponse)[0]
+                                        grab_src = metaresponse
 
                                     dfilename = ofilename
                                 else:
                                     dfilename = ml['Filename']
-
-                                if metaresponse:
-                                    src_location = odir
-                                    grab_src = os.path.join(src_location, ofilename)
-                                else:
-                                    src_location = ofilename
-                                    grab_src = ofilename
 
                                 logger.fdebug('%s Source Path : %s' % (module, grab_src))
 
