@@ -374,6 +374,10 @@ class PostProcessor(object):
             self._log('nzb folder: %s' % self.nzb_folder)
             logger.fdebug('%s nzb name: %s' % (module, self.nzb_name))
             logger.fdebug('%s nzb folder: %s' % (module, self.nzb_folder))
+
+            # Reset manual_arclist at the beginning of the process
+            manual_arclist = []
+
             if self.ddl is False:
                 if mylar.USE_SABNZBD==1:
                     if self.nzb_name != 'Manual Run':
@@ -2308,6 +2312,8 @@ class PostProcessor(object):
         module = self.module
         myDB = db.DBConnection()
         manual_list = None
+        manual_arclist = None
+
         if tinfo is not None: #manual is None:
             sandwich = None
             issueid = tinfo['issueid']
