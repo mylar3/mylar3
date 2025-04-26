@@ -41,7 +41,7 @@ class NZBGet(object):
             return {'status': False}
         url = '%s://%s:%s'
         val = (protocol,nzbget_host,mylar.CONFIG.NZBGET_PORT)
-        if mylar.CONFIG.NZBGET_SUB:
+        if mylar.CONFIG.NZBGET_SUB is not None:
             url = '%s://%s:%s%s'
             val+=(mylar.CONFIG.NZBGET_SUB,)
 
@@ -59,7 +59,7 @@ class NZBGet(object):
             url = url + '/' + logon_info
         url = url + '/xmlrpc'
 
-        if mylar.CONFIG.NZBGET_SUB:
+        if mylar.CONFIG.NZBGET_SUB is not None:
             self.display_url = '%s://%s:%s%s/xmlrpc' % (protocol, nzbget_host, mylar.CONFIG.NZBGET_PORT, mylar.CONFIG.NZBGET_SUB)
         else:
             self.display_url = '%s://%s:%s/xmlrpc' % (protocol, nzbget_host, mylar.CONFIG.NZBGET_PORT)
