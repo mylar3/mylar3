@@ -42,9 +42,8 @@ def processIssue(dirName, nzbName=None, failed=False, comicrn_version=None):
         sys.exit(-1)
 
     try:
-        fp = open(configFilename, "r")
-        config.readfp(fp)
-        fp.close()
+        with open(configFilename, "r") as fp:
+            config.read_file(fp)
     except IOError as e:
         print("Could not read configuration file: ", str(e))
         sys.exit(1)
@@ -85,10 +84,10 @@ def processIssue(dirName, nzbName=None, failed=False, comicrn_version=None):
 
     if use_requests is True:
         try:
-            print(("Opening URL for post-process of %s @ %s/forceProcess:" % (dirName,url)))
+            print("Opening URL for post-process of %s @ %s/forceProcess:" % (dirName,url))
             pp = requests.post(url, params=params, verify=False)
         except Exception as e:
-            print(("Unable to open URL: %s" %e))
+            print("Unable to open URL: %s" %e)
             sys.exit(1)
         else:
             print('statuscode: %s' % pp.status_code)
@@ -105,10 +104,10 @@ def processIssue(dirName, nzbName=None, failed=False, comicrn_version=None):
         else:
             result = urlObj.readlines()
             for line in result:
-                print(line)
+                print(line.decode('utf-8').strip())
 
     if type(result) == list:
-        if any("Post Processing SUCCESSFUL" in s for s in result):
+        if any(b"Post Processing SUCCESSFUL" in s if isinstance(s, bytes) else "Post Processing SUCCESSFUL" in s for s in result):
             return 0
         else:
             return 1
