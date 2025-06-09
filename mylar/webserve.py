@@ -6887,6 +6887,7 @@ class WebInterface(object):
                     "pushover_userkey": mylar.CONFIG.PUSHOVER_USERKEY,
                     "pushover_device": mylar.CONFIG.PUSHOVER_DEVICE,
                     "pushover_priority": mylar.CONFIG.PUSHOVER_PRIORITY,
+                    "pushover_sound": mylar.CONFIG.PUSHOVER_SOUND,
                     "boxcar_enabled": helpers.checked(mylar.CONFIG.BOXCAR_ENABLED),
                     "boxcar_onsnatch": helpers.checked(mylar.CONFIG.BOXCAR_ONSNATCH),
                     "boxcar_token": mylar.CONFIG.BOXCAR_TOKEN,
