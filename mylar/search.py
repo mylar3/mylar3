@@ -33,6 +33,7 @@ from mylar import (
     downloaders,
 )
 from mylar.downloaders import external_server as exs
+from mylar.downloaders import airdcpp
 
 import feedparser
 import requests
@@ -174,6 +175,7 @@ def search_init(
 
     searchcnt = 0
     srchloop = 1
+    current_prov = {}  # Initialize current_prov here to avoid UnboundLocalError
 
     if rsschecker:
         if mylar.CONFIG.ENABLE_RSS:
@@ -623,6 +625,14 @@ def provider_order(initial_run=False):
         ):
             ddlprovider.append('DDL(External)')
             ddls+=1
+    if all(
+       [
+            mylar.CONFIG.ENABLE_AIRDCPP is True,
+            not helpers.block_provider_check('AirDCPP'),
+       ]
+    ):
+        ddlprovider.append('AirDCPP')
+        ddls+=1
 
     if initial_run:
         logger.fdebug('nzbprovider(s): %s' % nzbprovider)
@@ -649,6 +659,7 @@ def provider_order(initial_run=False):
     prov_order, torznab_info, newznab_info = provider_sequence(
         nzbprovider, torprovider, newznab_hosts, torznab_hosts, ddlprovider
     )
+
     #if initial_run:
     #    logger.fdebug('search provider order is %s' % prov_order)
 
@@ -939,7 +950,6 @@ def NZB_SEARCH(
         #           'chktpb': chktpb,
         #           'provider_stat': provider_stat,
         #           'foundc': foundc}
-
         if 'DDL' in nzbprov and RSS == "no":
             cmname = re.sub("%20", " ", str(comsrc))
             logger.fdebug(
@@ -1048,6 +1058,14 @@ def NZB_SEARCH(
                     findurl = str(torznab_fix) + "?t=search&q=" + str(comsearch)
                     if category_torznab is not None:
                         findurl += "&cat=" + str(category_torznab)
+                elif provider_stat['type'] == 'airdcpp':
+                    findurl = None
+                    cleaned_comicname = re.sub(r'[?:$]', '', findcomic)
+                    fline = {'comicname': cleaned_comicname,
+                             'issue': isssearch,
+                             'year': comyear}
+                    b = downloaders.airdcpp.AirDCPP(query=fline, provider_stat=provider_stat)
+                    verified_matches = b.search(is_info=is_info)
                 else:
                     logger.warn(
                         'You have a blank newznab entry within your configuration.'
@@ -1546,6 +1564,7 @@ def searchforissue(issueid=None, new=False, rsschecker=None, manual=False):
                 mylar.CONFIG.ENABLE_EXTERNAL_SERVER is True,
             ]
        ))
+       or mylar.CONFIG.ENABLE_AIRDCPP is True
        or any(
             [
                 mylar.CONFIG.EXPERIMENTAL is True,
@@ -2022,6 +2041,7 @@ def searchforissue(issueid=None, new=False, rsschecker=None, manual=False):
                             mylar.USE_BLACKHOLE is True,
                         ]
                     )
+                    or all([mylar.CONFIG.ENABLE_AIRDCPP is True, len(mylar.CONFIG.AIRDCPP_ANNOUNCE_HUB) > 0])
                     or all([mylar.CONFIG.TORZNAB is True, len(ens) > 0])
                     and any(
                         [
@@ -2504,10 +2524,11 @@ def searchIssueIDList(issuelist):
        and any(
             [
                 mylar.CONFIG.ENABLE_GETCOMICS is True,
-                mylar.CONFIG.ENABLE_EXTERNAL_SERVER is True
+                mylar.CONFIG.ENABLE_EXTERNAL_SERVER is True,
             ]
         )
-        ) or any(
+        ) or mylar.CONFIG.ENABLE_AIRDCPP is True
+        or any(
             [
                 mylar.CONFIG.EXPERIMENTAL is True,
             ]
@@ -2734,7 +2755,12 @@ def nzbname_create(provider, title=None, info=None):
         nzbname = re.sub(r'[\,\:\?\']', '', nzbname)
         if nzbname.lower().endswith('.torrent'):
             nzbname = re.sub('.torrent', '', nzbname)
-
+    elif provider == 'airdcpp':
+        nzbname = re.sub(r'\s{2,}', ' ', helpers.filesafe(title)).strip()
+        nzbname = re.sub(" ", ".", nzbname)
+        nzbname = re.sub(r'\&amp;|(amp;)|amp;|\&', 'and', title)
+        nzbname = re.sub(r'[\,\:\?\']', '', nzbname)
+        # DO NOT strip the extension for AirDC++
     else:
         # let's change all space to decimals for simplicity
         logger.fdebug('[SEARCHER] entry[title]: %s' % title)
@@ -2900,10 +2926,12 @@ def searcher(
             )
 
     if link and all(
-        [
-            provider_stat['type'] != 'torznab',
-            'DDL' not in nzbprov,
-        ]
+            [
+                provider_stat['type'] != 'torznab',
+                'DDL' not in nzbprov,
+                nzbprov != 'AirDCPP',
+                nzbprov != 'airdcpp',
+            ]
     ):
 
         # generate nzbid here.
@@ -3171,6 +3199,80 @@ def searcher(
             else:
                 logger.info('[%s] Failed to retrieve %s from the DDL site.' % (tnzbprov, nzbname))
                 return "ddl-fail"
+
+        sent_to = "is downloading it directly via %s" % tnzbprov
+
+    if mylar.CONFIG.ENABLE_AIRDCPP and nzbprov.lower() == 'airdcpp':
+        if all([IssueID is None, IssueArcID is not None]):
+            tmp_issueid = IssueArcID
+        else:
+            tmp_issueid = IssueID
+
+        filename = nzbname
+
+        airdcpp_downloader = airdcpp.AirDCPP(
+            issueid=tmp_issueid,
+            comicid=ComicID,
+            provider_stat=provider_stat
+        )
+
+        search_instance_id = None
+        if isinstance(comicinfo, list) and len(comicinfo) > 0:
+            if isinstance(comicinfo[0], dict) and 'search_instance_id' in comicinfo[0]:
+                search_instance_id = comicinfo[0]['search_instance_id']
+
+        # Check if this is a TTH hash from RSS (no search instance)
+        is_valid_tth = bool(re.match(r'^[A-Z2-7]{39}$', link))
+        if search_instance_id is None and is_valid_tth:
+            # RSS download - we have a TTH hash but no search instance
+            logger.info('[AirDCPP] RSS download detected - using TTH: %s' % link)
+            download_result = airdcpp_downloader.rss_download(
+                tth_hash=link,
+                filename=filename,
+                issueid=tmp_issueid
+            )
+        else:
+            # Normal download - we have a search instance from regular search
+            logger.info('[AirDCPP] Normal download with search instance: %s' % search_instance_id)
+            download_result = airdcpp_downloader.download(
+                link=link,
+                filename=filename,
+                id=nzbid,
+                issueid=tmp_issueid,
+                site='AirDCPP',
+                search_instance_id=search_instance_id
+            )
+
+        tnzbprov = 'AirDCPP'
+
+        if download_result['success'] is True:
+            logger.info(
+                '[%s] Successfully downloaded %s from AirDC++. Downloaded to: %s'
+                % (tnzbprov, filename, download_result['path'])
+            )
+
+            if mylar.CONFIG.POST_PROCESSING is True:
+                mylar.PP_QUEUE.put({'nzb_name': download_result['filename'],
+                                    'nzb_folder': os.path.dirname(download_result['path']),
+                                    'issueid': tmp_issueid,
+                                    'comicid': ComicID,
+                                    'failed': False,
+                                    'apicall': True,
+                                    'ddl': False})
+                logger.info('[%s] Added %s to post-processing queue.' % (tnzbprov, filename))
+                updater.nzblog(
+                    tmp_issueid,
+                    filename,
+                    ComicName,
+                    SARC=SARC,
+                    IssueArcID=IssueArcID,
+                    id=nzbid,
+                    prov=tnzbprov,
+                    oneoff=oneoff
+                )
+        else:
+            logger.info('[%s] Failed to download %s from AirDC++.' % (tnzbprov, filename))
+            return "ddl-fail"
 
         sent_to = "is downloading it directly via %s" % tnzbprov
 
@@ -4069,6 +4171,9 @@ def generate_id(nzbprov, link, comicname):
         else:
             idpos = idtmp.find('&')
             nzbid = re.sub('id=', '', idtmp[:idpos]).strip()
+    elif nzbprov == 'AirDCPP' or nzbprov == 'airdcpp':
+        # For AirDCPP, the link is the ID (TTH hash)
+        nzbid = link
     return nzbid
 
 def check_time(last_run):

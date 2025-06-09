@@ -503,7 +503,11 @@ def nzbs(provider=None, forcerss=False):
             if str(newznab_host[5]) == '1':
                 newznab_hosts.append(newznab_host)
 
-    providercount = len(newznab_hosts) + int(mylar.CONFIG.EXPERIMENTAL is True)
+    dcpp_enabled = (mylar.CONFIG.ENABLE_AIRDCPP and
+                    hasattr(mylar.CONFIG, 'AIRDCPP_ANNOUNCE_HUB') and
+                    len(mylar.CONFIG.AIRDCPP_ANNOUNCE_HUB) > 0)
+
+    providercount = len(newznab_hosts) + int(mylar.CONFIG.EXPERIMENTAL is True) + int(dcpp_enabled)
     logger.fdebug('[RSS] You have enabled ' + str(providercount) + ' NZB RSS search providers.')
 
     if providercount > 0:
@@ -527,6 +531,18 @@ def nzbs(provider=None, forcerss=False):
             check = _parse_feed('experimental', 'https://nzbindex.nl/search/rss', True, params)
             if check == 'disable':
                 helpers.disable_provider('experimental')
+
+        # DC++ Hub monitoring
+        if dcpp_enabled:
+            try:
+                logger.fdebug('[RSS] Processing DC++ hub announcements...')
+                dcpp_result = dcpp_hub_monitor(forcerss)
+                if not dcpp_result:
+                    logger.warn('[RSS] DC++ hub monitoring failed or returned no results')
+            except Exception as e:
+                logger.warn('[RSS] Error processing DC++ hub: %s' % e)
+                import traceback
+                logger.fdebug('[RSS] DC++ error traceback: %s' % traceback.format_exc())
 
         for newznab_host in newznab_hosts:
             site = newznab_host[0].rstrip()
@@ -925,21 +941,31 @@ def nzbdbsearch(seriesname, issue, comicid=None, nzbprov=None, searchYear=None, 
         else:
             logger.info('executed insert...now attempting to select')
 
+        #wanted_check = myDB.select("SELECT ComicName, SQLQuery_name, Issue_Number FROM VariableTable LIMIT 10")
+        #for w in wanted_check:
+        #    print(f"WANTED: '{w['ComicName']}' (SQLQuery: '{w['SQLQuery_name']}') #{w['Issue_Number']}")
+
         tcnt = myDB.select("SELECT COUNT(*) as count FROM rssdb")
         totalcnt = tcnt[0][0]
         cnt = 0
-        for nzb in myDB.select("SELECT DISTINCT r.ComicName as RSS_ComicName, r.Issue_Number as RSS_IssueNumber, r.Title, r.Link, r.Pubdate, r.Size, r.Site, v.* FROM rssdb r join VariableTable v on r.Title like '%' || v.SQLQuery_name || '%' WHERE (r.ComicName like '%' || v.SQLQuery_name || '%' and v.SQLQuery_name is not NULL) AND v.Issue_Number = r.Issue_Number"):
+
+        #debug_matches = myDB.select("SELECT DISTINCT r.ComicName as RSS_ComicName, r.Issue_Number as RSS_IssueNumber, r.Title, r.Site, v.ComicName as WANTED_ComicName, v.SQLQuery_name, v.Issue_Number as WANTED_Issue FROM rssdb r join VariableTable v on r.Title like '%' || v.SQLQuery_name || '%' WHERE (r.ComicName like '%' || v.SQLQuery_name || '%' and v.SQLQuery_name is not NULL) AND (v.Issue_Number = r.Issue_Number OR CAST(v.Issue_Number AS INTEGER) = CAST(r.Issue_Number AS INTEGER))")
+        #for match in debug_matches:
+            #print(f"MATCH: Wanted='{match['WANTED_ComicName']}' (SQLQuery='{match['SQLQuery_name']}') #{match['WANTED_Issue']} <-> RSS='{match['RSS_ComicName']}' #{match['RSS_IssueNumber']} [{match['Site']}] Title='{match['Title']}'")
+        #print(f"Total matches found: {len(debug_matches)}")
+
+        for nzb in myDB.select("SELECT DISTINCT r.ComicName as RSS_ComicName, r.Issue_Number as RSS_IssueNumber, r.Title, r.Link, r.Pubdate, r.Size, r.Site, v.* FROM rssdb r join VariableTable v on r.Title like '%' || v.SQLQuery_name || '%' WHERE (r.ComicName like '%' || v.SQLQuery_name || '%' and v.SQLQuery_name is not NULL) AND (v.Issue_Number = r.Issue_Number OR CAST(v.Issue_Number AS INTEGER) = CAST(r.Issue_Number AS INTEGER))"):
             cnt+=1
             nzbTITLE = re.sub('&amp;', '&', nzb['Title']).strip()
             nzbTITLE = re.sub('&#39;', '\'', nzbTITLE).strip()
             #logger.info('tor[Title]: %s' % tor['Title'])
             if mylar.CONFIG.PREFERRED_QUALITY == 1:
                 if 'cbr' not in nzbTITLE:
-                    #logger.fdebug('Quality restriction enforced [ cbr only ]. Rejecting result.')
+                    logger.fdebug('Quality restriction enforced [ cbr only ]. Rejecting result.')
                     continue
             elif mylar.CONFIG.PREFERRED_QUALITY == 2:
                 if 'cbz' not in nzbTITLE:
-                    #logger.fdebug('Quality restriction enforced [ cbz only ]. Rejecting result.')
+                    logger.fdebug('Quality restriction enforced [ cbz only ]. Rejecting result.')
                     continue
             i=0
             if provider_list is not None:
@@ -1536,3 +1562,264 @@ def ddlrss_pack_detect(title, link):
         return {'title': title, 'issues': issues, 'pack': pack, 'link': link}
     else:
         return
+
+def dcpp_get_hub_session_id(session, api_url, headers, hub_address):
+    """
+    Get the session ID for a specific hub
+    """
+    try:
+        logger.fdebug('[AIRDCPP][RSS] Looking for hub session ID for: %s' % hub_address)
+        response = session.get(f"{api_url}/hubs", headers=headers, timeout=30)
+        if response.status_code == 200:
+            hubs = response.json()
+            logger.fdebug('[AIRDCPP][RSS] Found %s active hub sessions' % len(hubs))
+
+            for hub in hubs:
+                hub_url = hub.get('hub_url', '')
+                hub_name = hub.get('identity', {}).get('name', '')
+                hub_id = hub.get('id')
+
+                logger.fdebug('[AIRDCPP][RSS] Checking hub: %s (name: %s, id: %s)' % (hub_url, hub_name, hub_id))
+
+                # Match either by hub_url or hub name
+                if hub_url == hub_address or hub_name == hub_address:
+                    logger.fdebug('[AIRDCPP][RSS] Found matching hub session: %s' % hub_id)
+                    return hub_id
+
+            logger.warn('[AIRDCPP][RSS] No matching hub found for: %s' % hub_address)
+        else:
+            logger.warn('[AIRDCPP][RSS] Failed to get hub list: %s - %s' % (response.status_code, response.text))
+        return None
+    except Exception as e:
+        logger.warn('[AIRDCPP][RSS] Error getting hub session ID: %s' % e)
+        return None
+
+def dcpp_hub_monitor(forcerss=False):
+    """
+    Monitor DC++ hub messages for comic announcements, similar to RSS feeds
+    """
+
+    if not hasattr(mylar.CONFIG, 'AIRDCPP_ANNOUNCE_HUB') or not mylar.CONFIG.AIRDCPP_ANNOUNCE_HUB:
+        logger.error('[AIRDCPP][RSS] No announce hub configured for monitoring')
+        return False
+
+    if not hasattr(mylar.CONFIG, 'AIRDCPP_ANNOUNCE_BOTS') or not mylar.CONFIG.AIRDCPP_ANNOUNCE_BOTS:
+        logger.fdebug('[AIRDCPP][RSS] No announce bots configured for monitoring')
+        return False
+
+    logger.info('[AIRDCPP][RSS] Monitoring hub messages for comic announcements...')
+
+    # Set up session similar to AirDCPP class
+    session = requests.Session()
+    headers = {'User-Agent': mylar.USER_AGENT}
+
+    api_url = mylar.CONFIG.AIRDCPP_HOST
+    if not api_url.endswith('/'):
+        api_url += '/'
+    api_url += 'api/v1'
+
+    if mylar.CONFIG.AIRDCPP_USERNAME and mylar.CONFIG.AIRDCPP_PASSWORD:
+        session.auth = (mylar.CONFIG.AIRDCPP_USERNAME, mylar.CONFIG.AIRDCPP_PASSWORD)
+
+    try:
+        # Get hub session ID first
+        session_id = dcpp_get_hub_session_id(session, api_url, headers, mylar.CONFIG.AIRDCPP_ANNOUNCE_HUB)
+
+        if not session_id:
+            logger.warn(
+                '[AIRDCPP][RSS] Could not get session ID for announce hub: %s' % mylar.CONFIG.AIRDCPP_ANNOUNCE_HUB)
+            return False
+
+        logger.info(
+            '[AIRDCPP][RSS] Found hub session ID: %s for hub: %s' % (session_id, mylar.CONFIG.AIRDCPP_ANNOUNCE_HUB))
+
+        # Get recent messages from the hub
+        max_count = "100" if forcerss else "50"
+        url = f"{api_url}/hubs/{session_id}/messages/{max_count}"
+
+        logger.fdebug('[AIRDCPP][RSS] Fetching messages from: %s' % url)
+        response = session.get(url, headers=headers, timeout=30)
+
+        if response.status_code != 200:
+            logger.warn('[AIRDCPP][RSS] Failed to get hub messages: %s - %s' % (response.status_code, response.text))
+            return False
+
+        # Handle both list and direct dict responses
+        messages = response.json()
+        if isinstance(messages, list):
+            msg_list = messages
+        else:
+            msg_list = [messages]
+
+        logger.info('[AIRDCPP][RSS] Retrieved %s messages from hub' % len(msg_list))
+
+        comic_announcements = []
+        announce_bots = [bot.strip() for bot in mylar.CONFIG.AIRDCPP_ANNOUNCE_BOTS.split(',')]
+
+        chat_messages = 0
+        log_messages = 0
+        bot_messages = 0
+
+        for message in msg_list:
+            if 'chat_message' in message:
+                chat_messages += 1
+                sender = message['chat_message'].get('from', {}).get('nick', 'Unknown')
+                if sender in announce_bots:
+                    bot_messages += 1
+                    logger.fdebug('[AIRDCPP][RSS] Found message from announce bot %s: %s' % (sender, message['chat_message'].get('text', '')[:200]))
+                    parsed_announcement = dcpp_parse_hub_message(message)
+                    if parsed_announcement:
+                        comic_announcements.append(parsed_announcement)
+                        logger.fdebug('[AIRDCPP][RSS] Parsed comic announcement: %s' % parsed_announcement['Title'])
+            elif 'log_message' in message:
+                log_messages += 1
+
+        logger.info('[AIRDCPP][RSS] Message summary: %s total, %s chat, %s log, %s from bots, %s comic announcements' %
+                    (len(msg_list), chat_messages, log_messages, bot_messages, len(comic_announcements)))
+
+        if comic_announcements:
+            logger.info(
+                '[AIRDCPP][RSS] Found %s comic announcements, storing in RSS database' % len(comic_announcements))
+            rssdbupdate(comic_announcements, len(comic_announcements), 'dcpp')
+        else:
+            logger.fdebug('[AIRDCPP][RSS] No comic announcements found in recent messages')
+
+        return True
+
+    except Exception as e:
+        logger.warn('[AIRDCPP][RSS] Error monitoring hub messages: %s' % e)
+        import traceback
+        logger.fdebug('[AIRDCPP][RSS] Full error traceback: %s' % traceback.format_exc())
+        return False
+
+def dcpp_parse_hub_message(message):
+    """
+    Parse a hub message to extract comic information
+    Similar to how RSS entries are parsed
+    """
+    try:
+        # Skip log messages, only process chat messages
+        if 'log_message' in message:
+            return None
+
+        if 'chat_message' not in message:
+            return None
+
+        chat_msg = message['chat_message']
+        text = chat_msg.get('text', '')
+        sender = chat_msg.get('from', {}).get('nick', 'Unknown')
+        timestamp = chat_msg.get('time', 0)
+
+        # Only process messages from configured announce bots if present
+        announce_bots = [bot.strip() for bot in mylar.CONFIG.AIRDCPP_ANNOUNCE_BOTS.split(',')]
+        if sender not in announce_bots:
+            logger.fdebug('[AIRDCPP][RSS] Skipping message from %s (not in announce bots list)' % sender)
+            return None
+
+        logger.fdebug('[AIRDCPP][RSS] Processing message from announce bot: %s' % sender)
+
+        # Convert timestamp to proper date format
+        try:
+            msg_date = datetime.fromtimestamp(timestamp).strftime('%a, %d %b %Y %H:%M:%S GMT')
+        except:
+            msg_date = datetime.now().strftime('%a, %d %b %Y %H:%M:%S GMT')
+
+        # Check if message contains comic file extensions
+        if not any(ext in text.lower() for ext in ['.cbr', '.cbz']):
+            logger.fdebug('[AIRDCPP][RSS] Message does not contain comic file extensions')
+            return None
+
+        # Extract magnet link and filename from highlights if available
+        magnet_link = None
+        filename = None
+        size_bytes = 0
+        category = None
+
+        # First try to get magnet link from highlights (most reliable)
+        highlights = chat_msg.get('highlights', [])
+        for highlight in highlights:
+            if highlight.get('tag') in ['magnet', 'url']:
+                magnet_link = highlight.get('text', '')
+                logger.fdebug('[AIRDCPP][RSS] Found magnet link in highlights: %s' % magnet_link[:100])
+                break
+
+        # If no magnet in highlights, try to extract from text
+        if not magnet_link:
+            magnet_match = re.search(r'(magnet:\?[^\s]+)', text)
+            if magnet_match:
+                magnet_link = magnet_match.group(1)
+                logger.fdebug('[AIRDCPP][RSS] Found magnet link in text: %s' % magnet_link[:100])
+
+        if magnet_link:
+            # Extract filename from magnet link dn parameter
+            dn_match = re.search(r'&dn=([^&]+)', magnet_link)
+            if dn_match:
+                filename = urllib.parse.unquote_plus(dn_match.group(1))
+                logger.fdebug('[AIRDCPP][RSS] Extracted filename: %s' % filename)
+
+            # Extract size from xl parameter (exact length in bytes)
+            xl_match = re.search(r'&xl=(\d+)', magnet_link)
+            if xl_match:
+                size_bytes = int(xl_match.group(1))
+                logger.fdebug('[AIRDCPP][RSS] Extracted size: %s bytes' % size_bytes)
+
+        # Extract category from message text [Category]
+        category_match = re.match(r'\[([^\]]+)\]', text)
+        if category_match:
+            category = category_match.group(1)
+            logger.fdebug('[AIRDCPP][RSS] Extracted category: %s' % category)
+
+        if not filename:
+            logger.warn('[AIRDCPP][RSS] Could not extract filename from message: %s' % text)
+            return None
+
+        # Parse filename using existing FileChecker
+        try:
+            flc = filechecker.FileChecker(file=filename)
+            filelist = flc.listFiles()
+            logger.fdebug('[AIRDCPP][RSS] FileChecker results: %s' % filelist)
+        except Exception as e:
+            logger.warn('[AIRDCPP][RSS] FileChecker failed for %s: %s' % (filename, e))
+            # Create a basic filelist if FileChecker fails
+            filelist = {
+                'series_name': None,
+                'issue_number': None
+            }
+
+        # Create a unique link/ID for this announcement using magnet hash
+        if magnet_link:
+            # Extract TTH hash from magnet link for unique ID
+            tth_match = re.search(r'urn:tree:tiger:([A-Z0-9]+)', magnet_link)
+            if tth_match:
+                link_id = tth_match.group(1)  # Use TTH hash as unique ID
+            else:
+                import hashlib
+                link_id = hashlib.md5(f"{sender}_{timestamp}_{filename}".encode()).hexdigest()
+        else:
+            import hashlib
+            link_id = hashlib.md5(f"{sender}_{timestamp}_{filename}".encode()).hexdigest()
+
+        announcement = {
+            'Title': filename,
+            'Link': link_id,  # TTH hash or unique identifier
+            'Pubdate': msg_date,
+            'Site': 'AirDCPP',
+            'Size': size_bytes,
+            'ComicName': filelist.get('series_name'),
+            'Issue_Number': filelist.get('issue_number'),
+            'Hub_Sender': sender,
+            'Hub_Message': text,
+            'Hub_Category': category,
+            'Magnet_Link': magnet_link,
+            'Original_Filename': filename
+        }
+
+        logger.fdebug('[AIRDCPP][RSS] Successfully parsed comic: %s (Category: %s, Size: %s bytes)' % (filename, category, size_bytes))
+
+        return announcement
+
+    except Exception as e:
+        logger.fdebug('[AIRDCPP][RSS] Error parsing hub message: %s' % e)
+        import traceback
+        logger.fdebug('[AIRDCPP][RSS] Full error traceback: %s' % traceback.format_exc())
+        return None

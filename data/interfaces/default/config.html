@@ -834,6 +834,58 @@
                         </fieldset>
                         <fieldset>
                                 <div class="row checkbox left clearfix">
+                                     <input id="enable_airdcpp" type="checkbox" onclick="initConfigCheckbox($(this));" name="enable_airdcpp" value="1" ${config['enable_airdcpp']} /><legend>AirDC++</legend>
+                                </div>
+                                <div class="config">
+                                   <div id="airdcpp_options">
+                                       <div class="row">
+                                          <label>Address:Port</label>
+                                          <input type="text" name="airdcpp_host" id="airdcpp_host" value="${config['airdcpp_host']}" size="30">
+                                          <small>http://localhost:5600</small>
+                                       </div>
+                                       <div class="row">
+                                           <label>Username</label>
+                                           <input type="text" name="airdcpp_username" id="airdcpp_username" value="${config['airdcpp_username']}" size="20">
+                                       </div>
+                                       <div class="row">
+                                           <label>Password</label>
+                                           <input type="password" name="airdcpp_password" id="airdcpp_password" value="${config['airdcpp_password']| h}" size="20">
+                                       </div>
+                                       <div class="row">
+                                           <label>Downloads Directory</label>
+                                           <input type="text" name="airdcpp_download_dir" id="airdcpp_download_dir" value="${config['airdcpp_download_dir']}" size="50">
+                                       </div>
+                                       <div class="row">
+                                             <label>Search Hubs</label>
+                                             <input type="text" name="airdcpp_hubs" id="airdcpp_hubs" value="${config['airdcpp_hubs']}" size="50">
+                                             <small>comma separated, leave blank for all</small>
+                                        </div>
+                                       <div class="row">
+                                           <label>Announce Hub</label>
+                                           <input type="text" name="airdcpp_announce_hub" id="airdcpp_announce_hub" value="${config['airdcpp_announce_hub']}" size="50">
+                                           <small>single hub address:port for RSS-like monitoring</small>
+                                       </div>
+                                       <div class="row">
+                                           <label>Announce Bots</label>
+                                           <input type="text" name="airdcpp_announce_bots" id="airdcpp_announce_bots" value="${config['airdcpp_announce_bots']}" size="50">
+                                           <small>nicknames to parse announcements from</small>
+                                       </div>
+                                       <div align="center" class="row">
+                                        <img name="airdcpp_statusicon" id="airdcpp_statusicon" src="images/success.png" style="float:right;visibility:hidden;" height="20" width="20" />
+                                        <input type="button" value="Test AirDC++" id="test_airdcpp" style="float:center" /></br>
+                                        <input type="text" name="airdcppstatus" style="text-align:center;font-size:11px;color:white;" id="airdcppstatus" size="50" DISABLED />
+                                        <div name="airdcppversion" id="airdcppversion" style="font-size:11px;" align="center">
+                                            <%
+                                                if mylar.CONFIG.AIRDCPP_VERSION is not None:
+                                                    airdcppv = 'last tested version: %s' % mylar.CONFIG.AIRDCPP_VERSION
+                                                else:
+                                                    airdcppv = ''
+                                            %>
+                                            <span>${airdcppv}</span>
+                                        </div>
+                                </div>
+                        </fieldset>                        <fieldset>
+                                <div class="row checkbox left clearfix">
                                      <input id="enable_ddl" type="checkbox" onclick="initConfigCheckbox($(this));" name="enable_ddl" value="1" ${config['enable_ddl']} /><legend>DDL (Direct Download)</legend>
                                 </div>
                                 <div class="config">
@@ -2010,6 +2062,25 @@
                                 $("#opdscredentials").slideUp();
                         }
                 });
+if ($("#enable_airdcpp").is(":checked"))
+{
+    $("#airdcpp_options").show();
+}
+else
+{
+    $("#airdcpp_options").hide();
+}
+
+$("#enable_airdcpp").click(function(){
+    if ($("#enable_airdcpp").is(":checked"))
+    {
+        $("#airdcpp_options").slideDown();
+    }
+    else
+    {
+        $("#airdcpp_options").slideUp();
+    }
+});
 
                 if ($("#enable_ddl").is(":checked"))
                         {
@@ -2727,6 +2798,38 @@
 
                 $('#annuals_on').click(function () {
                     annuals_integration();
+                });
+
+                $('#test_airdcpp').click(function () {
+                    var imagechk = document.getElementById("airdcpp_statusicon");
+                    var airdcpphost = document.getElementById("airdcpp_host").value;
+                    var airdcppuser = document.getElementById("airdcpp_username").value;
+                    var airdcpppass = document.getElementById("airdcpp_password").value;
+                    $.get("AirDCPPtest",
+                        { airdcpphost: airdcpphost, airdcppusername: airdcppuser, airdcpppassword: airdcpppass },
+                        function(data){
+                            if (data.error != undefined) {
+                                alert(data.error);
+                                return;
+                            }
+                            var obj = JSON.parse(data);
+                            var versionairdcpp = obj['version'];
+                            $('#airdcppstatus').val(obj['message']);
+                            $('#airdcppversion span').text('AirDC++ version: '+versionairdcpp);
+                            $('#ajaxMsg').removeClass();
+                            $('#ajaxMsg').html("<div class='msg'><span class='ui-icon ui-icon-check'></span>"+obj['message']+"</div>");
+                            if (obj['status']){
+                                imagechk.src = "";
+                                imagechk.src = "images/success.png";
+                                imagechk.style.visibility = "visible";
+                                $('#ajaxMsg').addClass('success').fadeIn().delay(3000).fadeOut();
+                            } else {
+                                imagechk.src = "";
+                                imagechk.src = "images/x_red.png";
+                                imagechk.style.visibility = "visible";
+                                $('#ajaxMsg').addClass('error').fadeIn().delay(3000).fadeOut();
+                            }
+                    });
                 });
 
                 $('#test_nzbget').click(function () {

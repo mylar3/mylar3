@@ -530,7 +530,13 @@ class PostProcessor(object):
                             tmp_manual_list = {}
                             tmp_oneoff = {}
                             logger.info('issueid detected in filename: %s' % fl['issueid'])
-                            ssi = myDB.selectone('SELECT ComicID, IssueID, IssueArcID, IssueNumber, ComicName, SeriesYear, StoryArc, StoryArcID, Publisher, Volume, ReadingOrder FROM storyarcs WHERE IssueID=?', [fl['issueid']]).fetchone()
+                            try:
+                                ssi = myDB.selectone(
+                                    'SELECT ComicID, IssueID, IssueArcID, IssueNumber, ComicName, SeriesYear, StoryArc, StoryArcID, Publisher, Volume, ReadingOrder FROM storyarcs WHERE IssueID=?',
+                                    [fl['issueid']]).fetchone()
+                            except Exception as e:
+                                logger.error(f"Database error when querying storyarcs: {e}")
+                                ssi = None
                             if ssi is not None:
                                 annualtype = None
                                 annualseries = None
@@ -555,22 +561,40 @@ class PostProcessor(object):
                                               "Volume":          ssi['Volume'],
                                               "ComicName":       ssi['ComicName']}
 
-                            csi = myDB.selectone('SELECT i.ComicID, i.IssueID, i.Issue_Number, c.ComicName, c.ComicYear, c.AgeRating FROM comics as c JOIN issues as i ON c.ComicID = i.ComicID WHERE i.IssueID=?', [fl['issueid']]).fetchone()
+                            try:
+                                csi = myDB.selectone(
+                                    'SELECT i.ComicID, i.IssueID, i.Issue_Number, c.ComicName, c.ComicYear, c.AgeRating FROM comics as c JOIN issues as i ON c.ComicID = i.ComicID WHERE i.IssueID=?',
+                                    [fl['issueid']]).fetchone()
+                            except Exception as e:
+                                logger.error(f"Database error when querying comics/issues: {e}")
+                                csi = None
                             if csi is None:
-                                csi = myDB.selectone('SELECT a.ComicID as comicid, a.IssueID, a.Issue_Number, a.ReleaseComicName, c.ComicName, c.ComicYear, c.AgeRating FROM comics as c JOIN annuals as a ON c.ComicID = a.ComicID WHERE a.IssueID=? AND NOT a.Deleted', [fl['issueid']]).fetchone()
+                                try:
+                                    csi = myDB.selectone(
+                                        'SELECT i.ComicID, i.IssueID, i.Issue_Number, c.ComicName, c.ComicYear, c.AgeRating FROM comics as c JOIN issues as i ON c.ComicID = i.ComicID WHERE i.IssueID=?',
+                                        [fl['issueid']]).fetchone()
+                                except Exception as e:
+                                    logger.error(f"Database error when querying comics/issues: {e}")
+                                    csi = None
                                 if csi is not None:
                                     annchk = 'yes'
 
                             osi = None
                             if all([csi is None, ssi is None]):
-                                osi = myDB.selectone('select s.Issue_Number, s.ComicName, s.IssueID, s.ComicID, w.seriesyear FROM snatched AS s INNER JOIN nzblog AS n ON s.IssueID = n.IssueID INNER JOIN weekly AS w ON s.IssueID = w.IssueID WHERE s.IssueID = ? AND n.OneOff = 1 AND s.ComicName IS NOT NULL', [fl['issueid']]).fetchone()
+                                try:
+                                    osi = myDB.selectone(
+                                        'select s.Issue_Number, s.ComicName, s.IssueID, s.ComicID, w.seriesyear FROM snatched AS s INNER JOIN nzblog AS n ON s.IssueID = n.IssueID INNER JOIN weekly AS w ON s.IssueID = w.IssueID WHERE s.IssueID = ? AND n.OneOff = 1 AND s.ComicName IS NOT NULL',
+                                        [fl['issueid']]).fetchone()
+                                except Exception as e:
+                                    logger.error(f"Database error when querying snatched/nzblog/weekly: {e}")
+                                    osi = None
                                 if osi is not None:
-                                    tmp_oneoff = {"ComicID":         osi['ComicID'],
-                                                  "IssueID":         osi['IssueID'],
-                                                  "IssueNumber":     osi['Issue_Number'],
-                                                  "ComicName":       osi['ComicName'],
-                                                  "SeriesYear":      osi['seriesyear'],
-                                                  "One-Off":         True}
+                                    tmp_oneoff = {"ComicID": osi['ComicID'],
+                                                  "IssueID": osi['IssueID'],
+                                                  "IssueNumber": osi['Issue_Number'],
+                                                  "ComicName": osi['ComicName'],
+                                                  "SeriesYear": osi['seriesyear'],
+                                                  "One-Off": True}
                                     self.oneoffinlist = True
 
                             if any([csi is not None, ssi is not None, osi is not None]):
@@ -581,6 +605,9 @@ class PostProcessor(object):
                                         t_mp = pathlib.Path(fl['comiclocation'])
                                         tpath = str(t_mp.parents[0])
                                         tname = str(pathlib.Path(fl['comiclocation']).name)
+                                    elif os.path.isfile(os.path.join(fl['comiclocation'], fl['comicfilename'])) and fl['comicfilename'].lower().endswith((".cbz", ".cbr")):
+                                        tname = fl['comicfilename']
+                                        tpath = fl['comiclocation']
                                     else:
                                         tname = str(pathlib.Path(fl['comiclocation']).name)
                                         tpath = fl['comiclocation']

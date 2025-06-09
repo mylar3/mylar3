@@ -145,6 +145,12 @@ class search_check(object):
                                     comsize_b = helpers.human2bytes(entry['size'])
                         elif entry['site'] == 'DDL(External)':
                             comsize_b = '0' #External links ! filesize
+                        elif entry['site'] == 'AirDCPP':
+                            # Use size_bytes if available, otherwise use the formatted size string
+                            if 'size_bytes' in entry and entry['size_bytes']:
+                                comsize_b = entry['size_bytes']
+                            else:
+                                comsize_b = helpers.human2bytes(entry['size'])
                     except Exception:
                         tmpsz = entry.enclosures[0]
                         comsize_b = tmpsz['length']
@@ -219,9 +225,9 @@ class search_check(object):
                     )
                     return None
 
-        if UseFuzzy == "1":
+        if UseFuzzy == "1" or nzbprov.lower() == 'airdcpp':
             logger.fdebug(
-                'Year has been fuzzied for this series,'
+                'Year has been fuzzied for this series, or provider is AirDC++'
                 ' ignoring store date comparison entirely.'
             )
             postdate_int = None
@@ -1116,6 +1122,8 @@ class search_check(object):
                             "ComicTitle": ComicTitle,
                             "entry": entry,
                             "provider_stat": provider_stat,
+                            # Add this line to preserve the search_instance_id
+                            "search_instance_id": entry.get('search_instance_id')
                         }
                 else:
                     #log2file = log2file + "issues don't match.." + "\n"
@@ -1151,5 +1159,5 @@ class search_check(object):
                     # (This reduces to prefer_pack == is_pack, but that's harder to grok)
                     return maybe_value
                 candidate = maybe_value
-        #logger.fdebug('candidate: %s' % candidate)
+        logger.info('candidate: %s' % candidate)
         return candidate
