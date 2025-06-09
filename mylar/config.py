@@ -203,6 +203,7 @@ _CONFIG_DEFINITIONS = OrderedDict({
     'PUSHOVER_USERKEY': (str, 'PUSHOVER', None),
     'PUSHOVER_ONSNATCH': (bool, 'PUSHOVER', False),
     'PUSHOVER_IMAGE': (bool, 'PUSHOVER', False),
+    'PUSHOVER_SOUND': (str, 'PUSHOVER', ""),
 
     'BOXCAR_ENABLED': (bool, 'BOXCAR', False),
     'BOXCAR_ONSNATCH': (bool, 'BOXCAR', False),
