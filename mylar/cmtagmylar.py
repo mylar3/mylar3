@@ -19,6 +19,165 @@ import mylar
 from mylar import logger, notifiers
 
 
+
+
+def check_cbr_has_folders(filepath):
+    """Check if a CBR file has internal folder structure"""
+    try:
+        from lib.rarfile import rarfile
+        with rarfile.RarFile(filepath) as rf:
+            for name in rf.namelist():
+                if '/' in name or '\\' in name:
+                    # Found a path separator, indicating folders
+                    return True
+        return False
+    except Exception as e:
+        logger.fdebug('Error checking CBR structure: %s' % e)
+        return False
+
+
+def flatten_cbr(source_cbr, temp_dir, module=''):
+    """Extract and create a flattened CBR without folder structure"""
+    try:
+        # Import Mylar's bundled rarfile correctly
+        from lib.rarfile import rarfile
+        import zipfile
+        import tempfile
+        import subprocess
+
+        # First, find a working unrar tool
+        unrar_tool = None
+
+        # Try system unrar first
+        try:
+            result = subprocess.run(['/usr/bin/unrar'], capture_output=True)
+            # unrar exists if we get any return code (it returns 7 when run without args)
+            unrar_tool = '/usr/bin/unrar'
+            logger.fdebug('%s Found system unrar at: %s' % (module, unrar_tool))
+        except FileNotFoundError:
+            pass
+        except Exception as e:
+            logger.fdebug('%s Error checking /usr/bin/unrar: %s' % (module, e))
+
+        if not unrar_tool:
+            try:
+                result = subprocess.run(['unrar'], capture_output=True)
+                unrar_tool = 'unrar'
+                logger.fdebug('%s Found unrar in PATH' % module)
+            except FileNotFoundError:
+                pass
+            except Exception as e:
+                logger.fdebug('%s Error checking unrar in PATH: %s' % (module, e))
+
+        if not unrar_tool:
+            logger.error('%s Cannot find unrar tool - unable to flatten CBR' % module)
+            return None
+
+        # Configure rarfile BEFORE creating any RarFile instances
+        rarfile.UNRAR_TOOL = unrar_tool
+        rarfile.PATH_SEP = '/'
+
+        logger.fdebug('%s CBR has folder structure - flattening it using %s' % (module, unrar_tool))
+
+        # Create a temporary directory for extraction
+        extract_dir = tempfile.mkdtemp(dir=temp_dir)
+        flattened_files = []
+
+        # Use subprocess to extract directly instead of rarfile.extract
+        logger.fdebug('%s Extracting CBR to: %s' % (module, extract_dir))
+
+        # Change to extraction directory first (like manual unrar command)
+        import os
+        original_dir = os.getcwd()
+        try:
+            os.chdir(extract_dir)
+            extract_cmd = [unrar_tool, 'x', '-y', source_cbr]
+            logger.fdebug('%s Running: %s' % (module, ' '.join(extract_cmd)))
+            result = subprocess.run(extract_cmd, capture_output=True, text=True)
+
+            # Check if any files were actually extracted (even if unrar reported errors)
+            extracted_files = []
+            for root, dirs, files in os.walk(extract_dir):
+                extracted_files.extend(files)
+
+            if not extracted_files:
+                logger.error('%s No files were extracted from CBR' % module)
+                logger.error('%s stdout: %s' % (module, result.stdout))
+                logger.error('%s stderr: %s' % (module, result.stderr))
+                os.chdir(original_dir)
+                import shutil
+                shutil.rmtree(extract_dir)
+                return None
+            else:
+                logger.fdebug(
+                    '%s Extraction completed - found %d files (return code: %d)' % (module, len(extracted_files),
+                                                                                    result.returncode))
+                if result.returncode != 0:
+                    logger.fdebug('%s unrar returned non-zero code but files were extracted' % module)
+                if result.stdout:
+                    logger.fdebug('%s unrar output: %s' % (module, result.stdout[:500]))  # First 500 chars
+        finally:
+            os.chdir(original_dir)
+
+        # Now find all extracted files and flatten the structure
+        for root, dirs, files in os.walk(extract_dir):
+            for file in files:
+                # Skip .DS_Store but keep other files
+                if file == '.DS_Store':
+                    continue
+
+                old_path = os.path.join(root, file)
+                new_path = os.path.join(extract_dir, file)
+
+                if old_path != new_path:
+                    # Handle filename conflicts
+                    if os.path.exists(new_path):
+                        base, ext = os.path.splitext(file)
+                        counter = 1
+                        while os.path.exists(new_path):
+                            new_name = f"{base}_{counter}{ext}"
+                            new_path = os.path.join(extract_dir, new_name)
+                            counter += 1
+                    os.rename(old_path, new_path)
+                    flattened_files.append(os.path.basename(new_path))
+                else:
+                    flattened_files.append(file)
+
+        # Remove empty directories
+        for root, dirs, files in os.walk(extract_dir, topdown=False):
+            for dir in dirs:
+                dir_path = os.path.join(root, dir)
+                try:
+                    os.rmdir(dir_path)
+                except:
+                    pass
+
+        # Create a temporary CBZ
+        temp_cbz = source_cbr.replace('.cbr', '_flattened.cbz')
+        if os.path.exists(temp_cbz):
+            os.remove(temp_cbz)
+
+        logger.fdebug('%s Creating flattened archive with %d files' % (module, len(flattened_files)))
+
+        with zipfile.ZipFile(temp_cbz, 'w', zipfile.ZIP_STORED) as zf:
+            for filename in sorted(flattened_files):
+                filepath = os.path.join(extract_dir, filename)
+                if os.path.exists(filepath) and os.path.isfile(filepath):
+                    zf.write(filepath, filename)
+
+        # Clean up extraction directory
+        import shutil
+        shutil.rmtree(extract_dir)
+
+        logger.fdebug('%s Created flattened archive: %s' % (module, temp_cbz))
+        return temp_cbz
+
+    except Exception as e:
+        logger.error('%s Error flattening CBR: %s' % (module, e))
+        import traceback
+        logger.error(traceback.format_exc())
+        return None
+
 def run(dirName, nzbName=None, issueid=None, comversion=None, manual=None, filename=None, module=None, manualmeta=False, readingorder=None, agerating=None):
     if module is None:
         module = ''
@@ -68,6 +227,23 @@ def run(dirName, nzbName=None, issueid=None, comversion=None, manual=None, filen
         tidyup(og_filepath, new_filepath, new_folder, manualmeta)
         return "fail"
 
+    # Check if CBR has folder structure and flatten if needed
+    if filename.lower().endswith('.cbr'):
+        if check_cbr_has_folders(filepath):
+            logger.fdebug(module + ' CBR file has folder structure - flattening it')
+            flattened_cbr = flatten_cbr(filepath, new_folder, module)
+            if flattened_cbr and os.path.exists(flattened_cbr):
+                # Replace the filepath with the flattened version
+                old_filepath = filepath
+                filepath = flattened_cbr
+                filename = os.path.basename(flattened_cbr)
+                logger.fdebug(module + ' Using flattened CBR: ' + filepath)
+            else:
+                logger.error(module + ' Failed to flatten CBR with folder structure - cannot continue conversion')
+                sendnotify("Error - Failed to flatten CBR with folder structure", filename, module)
+                tidyup(og_filepath, new_filepath, new_folder, manualmeta)
+                return "fail"
+
     ## Sets up other directories ##
     scriptname = os.path.basename(sys.argv[0])
     downloadpath = os.path.abspath(dirName)
@@ -84,7 +260,7 @@ def run(dirName, nzbName=None, issueid=None, comversion=None, manual=None, filen
 
     ##set up default comictagger options here.
     #used for cbr - to - cbz conversion
-    #depending on copy/move - eitehr we retain the rar or we don't.
+    #depending on copy/move - either we retain the rar or we don't.
     if mylar.CONFIG.FILE_OPTS == 'move':
         cbr2cbzoptions = ["--configfolder", mylar.CONFIG.CT_SETTINGSPATH, "-e", "--delete-rar"]
     else:
@@ -186,6 +362,10 @@ def run(dirName, nzbName=None, issueid=None, comversion=None, manual=None, filen
         else:
             logger.fdebug(module + ' Will NOT modify existing tag blocks even if they exist already.')
             tagoptions.extend(["--nooverwrite"])
+        initial_ctrun = False
+    else:
+        # CBR files need conversion
+        initial_ctrun = True
 
     if issueid is None:
         tagoptions.extend(["-f", "-o"])
