@@ -4130,6 +4130,7 @@ def check_the_search_delay(manual=False):
     if (
         mylar.CONFIG.SEARCH_DELAY == 'None'
         or mylar.CONFIG.SEARCH_DELAY is None
+        or manual
     ):
         pause_the_search = 30  # in seconds
     elif str(mylar.CONFIG.SEARCH_DELAY).isdigit() and manual is False:
