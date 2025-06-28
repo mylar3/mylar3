@@ -4517,6 +4517,9 @@ class WebInterface(object):
         else:
             myDB = db.DBConnection()
 
+            if not isinstance(issueIds, list):
+                issueIds = [issueIds]
+
             for issueId in issueIds:
                 issue_data = myDB.selectone("SELECT C.Type, C.ComicYear, I.ComicName, I.Issue_Number, I.ComicID, I.IssueID FROM comics as C INNER JOIN issues as I on C.ComicID = I.ComicID WHERE I.IssueID=?", [issueId]).fetchone()
                 passInfo = {'issueid': issueId,
@@ -8090,6 +8093,9 @@ class WebInterface(object):
                      'ComicVersion': cinfo['ComicVersion'],
                      'AgeRating': cinfo['AgeRating'],
                      'meta_dir': cinfo['ComicLocation']}
+        
+        if not isinstance(IssueIDs, list):
+            IssueIDs = [IssueIDs]
         
         issueList = ', '.join(IssueIDs)
         groupinfo = myDB.select(f'SELECT IssueID, Location FROM issues WHERE ComicID={ComicID} and IssueID IN ({issueList}) and Location is not NULL')
