@@ -240,6 +240,8 @@
                      },
             })).done(function(data) {
                  reload_table();
+                 fc = document.getElementById("menu_link_scan");
+                 fc.getElementsByClassName('ui-button-text')[0].innerText = "Force Check Tier-1";
             });
         }
 
