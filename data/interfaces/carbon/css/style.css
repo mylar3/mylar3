@@ -2578,6 +2578,7 @@ img.mylarload {
   filter: drop-shadow(0 0 0.75rem rgb(192, 192, 16));
   backdrop-filter: blur(0px) saturate(3);
   box-shadow: none!important;
+  transform: translateZ(0);
 }
 img.mylarload.lastgood {
   filter: drop-shadow(0 0 0.75rem rgb(0, 240, 16));
