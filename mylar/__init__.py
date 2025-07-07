@@ -148,6 +148,7 @@ DDL_QUEUE = queue.Queue()
 RETURN_THE_NZBQUEUE = queue.Queue()
 MASS_ADD = None
 ADD_LIST = queue.Queue()
+ISSUE_WATCH_LIST = queue.Queue()
 MASS_REFRESH = None
 REFRESH_QUEUE = queue.Queue()
 DDL_QUEUED = []

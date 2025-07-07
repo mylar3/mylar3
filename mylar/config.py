@@ -447,6 +447,9 @@ _CONFIG_DEFINITIONS = OrderedDict({
     'OPDS_METAINFO': (bool, 'OPDS', False),
     'OPDS_PAGESIZE': (int, 'OPDS', 30),
 
+    'CBL_IMPORT_ISSUESONLY' : (bool, 'CBLImport', True),
+    'CBL_IMPORT_IGNOREARCHIVED' : (bool, 'CBLImport', False),
+
 })
 
 _BAD_DEFINITIONS = OrderedDict({
