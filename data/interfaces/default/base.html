@@ -362,7 +362,7 @@
                     if (data.status == 'success'){
                         $('#ajaxMsg').addClass('success').fadeIn().delay(3000).fadeOut();
                         console.log('data.comicid:'+data.comicid)
-                        if ( ( tt.value != "config" ) && (data.tables == 'both' || data.tables == 'tables') && ( document.body.innerHTML.search(data.comicid) || tt.value == "history" || tt.value == "search_results") ){
+                        if ( ( tt.value != "config" ) && ( tt.value != "cblimport") && (data.tables == 'both' || data.tables == 'tables') && ( document.body.innerHTML.search(data.comicid) || tt.value == "history" || tt.value == "search_results") ){
                             console.log('reloading table1...');
                             reload_table();
                         }
