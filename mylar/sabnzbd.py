@@ -276,7 +276,7 @@ class SABnzbd(object):
                 elif hq['nzo_id'] == sendresponse:
                     nzo_exists = True
                     logger.fdebug('nzo_id: %s found while processing queue in an unhandled status: %s' % (hq['nzo_id'], hq['status']))
-                    if any([hq['status'] == 'Queued', hq['status'] == 'Moving', hq['status'] == 'Extracting']) and roundtwo is False:
+                    if hq['Status'] in ['Queued', 'Moving', 'Extracting', 'QuickCheck', 'Repairing', 'Verifying'] and not roundtwo:
                         logger.fdebug('[%s(%s)] sleeping for %ss to allow the process to finish before trying again..' % (hq['status'], extract_counter, mylar.CONFIG.SAB_MOVING_DELAY))
                         time.sleep(mylar.CONFIG.SAB_MOVING_DELAY)
                         if hq['status'] == 'Extracting':
