@@ -552,7 +552,7 @@ def nzbs(provider=None, forcerss=False):
                           'num':       '100'}
 
                 check = _parse_feed(site, url, bool(int(newznab_host[2])), params)
-                if check is False and 'rss' in url[-3:]:
+                if not check:
                     logger.fdebug('RSS url returning 403 error. Attempting to use API to get most recent items in lieu of RSS feed')
                     url = newznab_host[1].rstrip() + '/api'
                     params = {'t':         'search',
@@ -560,6 +560,7 @@ def nzbs(provider=None, forcerss=False):
                               'dl':        '1',
                               'apikey':    newznab_host[3].rstrip(),
                               'num':       '100'}
+                    
                     check = _parse_feed(site, url, bool(int(newznab_host[2])), params)
                 if check == 'disable':
                     helpers.disable_provider(site)
@@ -591,7 +592,9 @@ def nzbs(provider=None, forcerss=False):
                     link = entry.link
 
                     #Remove the API keys from the url to allow for possible api key changes
-                    link = link[:link.find('&i=')].strip()
+                    filter_patterns = ['&i=[0-9a-zA-Z]+', '&r=[0-9a-zA-Z]+']
+                    for pattern in filter_patterns:
+                        link = re.sub(pattern, '', link).strip()
 
                 feeddata.append({'Site': site,
                                  'Title': titlename,
