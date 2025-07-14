@@ -722,7 +722,7 @@ def ddl_dbsearch(seriesname, issue, comicid=None, nzbprov=None, oneoff=False):
     dsearch_removed = re.sub('\s+', ' ', dsearch_rem2)
     dsearch_seriesname = re.sub('[\'\!\@\#\$\%\:\-\;\/\\=\?\&\.\s\,]', '%', dsearch_removed)
     dsearch = '%' + dsearch_seriesname + '%'
-    dresults = myDB.select('SELECT * FROM rssdb WHERE ComicName like ? COLLATE NOCASE AND Site="DDL(GetComics)"', [dsearch])
+    dresults = myDB.select("SELECT * FROM rssdb WHERE ComicName like ? COLLATE NOCASE AND Site='DDL(GetComics)'", [dsearch])
     ddltheinfo = []
     ddlinfo = {}
     if not dresults:

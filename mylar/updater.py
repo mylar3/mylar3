@@ -64,7 +64,7 @@ def dbUpdate(ComicIDList=None, calledfrom=None, sched=False):
         if mylar.CONFIG.UPDATE_ENDED:
             logger.info('Updating only Continuing Series (option enabled) - this might cause problems with the pull-list matching for rebooted series')
             comiclist = []
-            completelist = myDB.select('SELECT LatestDate, ComicPublished, ForceContinuing, NewPublish, LastUpdated, ComicID, ComicName, Corrected_SeriesYear, Corrected_Type, ComicYear, Status from comics WHERE Status="Active" or Status="Loading" order by LastUpdated DESC, LatestDate ASC')
+            completelist = myDB.select("SELECT LatestDate, ComicPublished, ForceContinuing, NewPublish, LastUpdated, ComicID, ComicName, Corrected_SeriesYear, Corrected_Type, ComicYear, Status from comics WHERE Status='Active' or Status='Loading' order by LastUpdated DESC, LatestDate ASC")
             for comlist in completelist:
                 if comlist['LatestDate'] is None:
                     recentstatus = 'Loading'
@@ -98,7 +98,7 @@ def dbUpdate(ComicIDList=None, calledfrom=None, sched=False):
                                       "Corrected_Type":        comlist['Corrected_Type']})
 
         else:
-            comiclist = myDB.select('SELECT LatestDate, LastUpdated, ComicID, ComicName, ComicYear, Corrected_SeriesYear, Corrected_Type, Status from comics WHERE Status="Active" or Status="Loading" order by LastUpdated DESC, latestDate ASC')
+            comiclist = myDB.select("SELECT LatestDate, LastUpdated, ComicID, ComicName, ComicYear, Corrected_SeriesYear, Corrected_Type, Status from comics WHERE Status='Active' or Status='Loading' order by LastUpdated DESC, latestDate ASC")
     else:
         comiclist = []
         comiclisting = ComicIDList
