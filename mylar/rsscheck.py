@@ -477,7 +477,7 @@ def nzbs(provider=None, forcerss=False):
             r = requests.get(url, params=payload, verify=verify, headers=headers)
         except Exception as e:
             logger.warn('Error fetching RSS Feed Data from %s: %s' % (site, e))
-            return
+            return False
 
         if r.status_code != 200:
             #typically 403 will not return results, but just catch anything other than a 200
@@ -489,12 +489,14 @@ def nzbs(provider=None, forcerss=False):
                     logger.warn('[%s] Site appears unresponsive/down. Disabling...' % (site))
                     return 'disable'
                 else:
-                    return
+                    return False
 
         feedme = feedparser.parse(r.content)
 
         feedthis.append({"site": site,
                          "feed": feedme})
+        
+        return True
 
     newznab_hosts = []
 
@@ -552,14 +554,16 @@ def nzbs(provider=None, forcerss=False):
                           'num':       '100'}
 
                 check = _parse_feed(site, url, bool(int(newznab_host[2])), params)
-                if check is False and 'rss' in url[-3:]:
-                    logger.fdebug('RSS url returning 403 error. Attempting to use API to get most recent items in lieu of RSS feed')
+                
+                if check is not True:
+                    logger.fdebug('RSS url returning error code. Attempting to use API to get most recent items in lieu of RSS feed')
                     url = newznab_host[1].rstrip() + '/api'
                     params = {'t':         'search',
                               'cat':       str(newznabcat),
                               'dl':        '1',
                               'apikey':    newznab_host[3].rstrip(),
                               'num':       '100'}
+                    
                     check = _parse_feed(site, url, bool(int(newznab_host[2])), params)
                 if check == 'disable':
                     helpers.disable_provider(site)
@@ -591,7 +595,9 @@ def nzbs(provider=None, forcerss=False):
                     link = entry.link
 
                     #Remove the API keys from the url to allow for possible api key changes
-                    link = link[:link.find('&i=')].strip()
+                    filter_patterns = ['&i=[0-9a-zA-Z]+', '&r=[0-9a-zA-Z]+']
+                    for pattern in filter_patterns:
+                        link = re.sub(pattern, '', link).strip()
 
                 feeddata.append({'Site': site,
                                  'Title': titlename,
