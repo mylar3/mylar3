@@ -2030,7 +2030,7 @@ class WebInterface(object):
                 myDB.action('DELETE from annuals WHERE ComicID=?', [ComicID])
             myDB.action('DELETE from upcoming WHERE ComicID=?', [ComicID])
             myDB.action('DELETE from readlist WHERE ComicID=?', [ComicID])
-            myDB.action('UPDATE weekly SET Status="Skipped" WHERE ComicID=? AND Status="Wanted"', [ComicID])
+            myDB.action("UPDATE weekly SET Status='Skipped' WHERE ComicID=? AND Status='Wanted'", [ComicID])
             if delete_dir: #mylar.CONFIG.DELETE_REMOVE_DIR:
                 logger.fdebug('Remove directory on series removal enabled.')
                 if seriesdir is not None:
@@ -4424,7 +4424,7 @@ class WebInterface(object):
                     DynamicName = v
                     if volume is None or volume == 'None':
                         logger.info('Removing ' + ComicName + ' from the Import list')
-                        myDB.action('DELETE from importresults WHERE DynamicName=? AND (Volume is NULL OR Volume="None")', [DynamicName])
+                        myDB.action("DELETE from importresults WHERE DynamicName=? AND (Volume is NULL OR Volume='None')", [DynamicName])
                     else:
                         logger.info('Removing ' + ComicName + ' [' + str(volume) + '] from the Import list')
                         myDB.action('DELETE from importresults WHERE DynamicName=? AND Volume=?', [DynamicName, volume])
@@ -6160,7 +6160,7 @@ class WebInterface(object):
             logname = ComicName + '[' + str(volume) + ']'
         logger.info("Removing import data for Comic: " + logname)
         if volume is None or volume == 'None':
-            myDB.action('DELETE from importresults WHERE DynamicName=? AND Status=? AND (Volume is NULL OR Volume="None")', [DynamicName, Status])
+            myDB.action("DELETE from importresults WHERE DynamicName=? AND Status=? AND (Volume is NULL OR Volume='None')", [DynamicName, Status])
         else:
             myDB.action('DELETE from importresults WHERE DynamicName=? AND Volume=? AND Status=?', [DynamicName, volume, Status])
         raise cherrypy.HTTPRedirect("importResults")
@@ -9562,7 +9562,7 @@ class WebInterface(object):
                 myDB.action("DELETE FROM annuals WHERE ComicID=?", [comicid])
             myDB.action('DELETE from upcoming WHERE ComicID=?', [comicid])
             myDB.action('DELETE from readlist WHERE ComicID=?', [comicid])
-            myDB.action('UPDATE weekly SET Status="Skipped" WHERE ComicID=? AND Status="Wanted"', [comicid])
+            myDB.action("UPDATE weekly SET Status='Skipped' WHERE ComicID=? AND Status='Wanted'", [comicid])
             warnings = 0
             if delete_dir:
                 logger.fdebug('Remove directory on series removal enabled.')

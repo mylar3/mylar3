@@ -2840,7 +2840,7 @@ def weekly_info(week=None, year=None, current=None):
 def latestdate_update():
     #import db
     myDB = db.DBConnection()
-    ccheck = myDB.select('SELECT a.ComicID, b.IssueID, a.LatestDate, b.ReleaseDate, b.Issue_Number from comics as a left join issues as b on a.comicid=b.comicid where a.LatestDate < b.ReleaseDate or a.LatestDate like "%Unknown%" group by a.ComicID')
+    ccheck = myDB.select("SELECT a.ComicID, b.IssueID, a.LatestDate, b.ReleaseDate, b.Issue_Number from comics as a left join issues as b on a.comicid=b.comicid where a.LatestDate < b.ReleaseDate or a.LatestDate like '%Unknown%' group by a.ComicID")
     if ccheck is None or len(ccheck) == 0:
         return
     logger.info('Now preparing to update ' + str(len(ccheck)) + ' series that have out-of-date latest date information.')

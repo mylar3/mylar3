@@ -1617,12 +1617,12 @@ def searchforissue(issueid=None, new=False, rsschecker=None, manual=False):
                         and mylar.CONFIG.FAILED_AUTO
                     ):
                         issues_1 = myDB.select(
-                            'SELECT * from issues WHERE Status="Wanted" OR'
-                            ' Status="Failed"'
+                            "SELECT * from issues WHERE Status='Wanted' OR"
+                            " Status='Failed'"
                         )
                     else:
                         issues_1 = myDB.select(
-                            'SELECT * from issues WHERE Status="Wanted"'
+                            "SELECT * from issues WHERE Status='Wanted'"
                         )
                     for iss in issues_1:
                         checkit = searchforissue_checker(
@@ -1673,12 +1673,12 @@ def searchforissue(issueid=None, new=False, rsschecker=None, manual=False):
                             and mylar.CONFIG.FAILED_AUTO
                         ):
                             issues_2 = myDB.select(
-                                'SELECT * from storyarcs WHERE Status="Wanted" OR'
-                                ' Status="Failed"'
+                                "SELECT * from storyarcs WHERE Status='Wanted' OR" 
+                                " Status='Failed'"
                             )
                         else:
                             issues_2 = myDB.select(
-                                'SELECT * from storyarcs WHERE Status="Wanted"'
+                                "SELECT * from storyarcs WHERE Status='Wanted'"
                             )
                         cnt = 0
                         for iss in issues_2:
@@ -1730,12 +1730,11 @@ def searchforissue(issueid=None, new=False, rsschecker=None, manual=False):
                         and mylar.CONFIG.FAILED_AUTO
                     ):
                         issues_3 = myDB.select(
-                            'SELECT * from annuals WHERE Status="Wanted" OR'
-                            ' Status="Failed AND NOT Deleted"'
+                            "SELECT * from annuals WHERE Status IN ('Wanted', 'Failed') AND NOT Deleted"
                         )
                     else:
                         issues_3 = myDB.select(
-                            'SELECT * from annuals WHERE Status="Wanted AND NOT Deleted"'
+                            "SELECT * from annuals WHERE Status='Wanted' AND NOT Deleted"
                         )
                     for iss in issues_3:
                         checkit = searchforissue_checker(
