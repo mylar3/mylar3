@@ -332,7 +332,7 @@ class FileHandlers(object):
 
     def series_folder_collision_detection(self, comlocation, comicid, booktype, comicyear, volume):
         myDB = db.DBConnection()
-        chk = myDB.select('SELECT * FROM comics WHERE ComicLocation LIKE "%'+comlocation+'%" AND ComicID !=?', [comicid])
+        chk = myDB.select(f"SELECT * FROM comics WHERE ComicLocation LIKE '%{comlocation}%' AND ComicID !=?", [comicid])
 
         tryit = None
         if chk:
