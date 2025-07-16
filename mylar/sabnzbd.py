@@ -187,6 +187,13 @@ class SABnzbd(object):
             for hq in histqueue['slots']:
                 logger.fdebug('nzo_id: %s --- %s [%s]' % (hq['nzo_id'], sendresponse, hq['status']))
                 if hq['nzo_id'] == sendresponse and any([hq['status'] == 'Completed', hq['status'] == 'Running', 'comicrn' in hq['script'].lower()]):
+                    # A rare occurrence from SAB has it returning two history entries for this nzo, one of which has an empty storage entry.  If hitting this
+                    # assume that it will condense back into one entry on subsequent re-check
+                    if hq['storage'] == '' and not roundtwo:
+                        logger.fdebug(f"[{hq['status']}] Storage entry was empty for Completed job.  Sleeping for {mylar.CONFIG.SAB_MOVING_DELAY}s to allow the process to fully finish before trying again.")
+                        time.sleep(mylar.CONFIG.SAB_MOVING_DELAY)
+                        return self.historycheck(nzbinfo, roundtwo=True)
+                    
                     nzo_exists = True
                     logger.info('found matching completed item in history. Job has a status of %s' % hq['status'])
                     if 'comicrn' in hq['script'].lower():
