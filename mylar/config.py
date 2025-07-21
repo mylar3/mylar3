@@ -2052,8 +2052,8 @@ class Config(object):
                                t_id = n[6]
                                nnf = True
                                break
-               ctrls = {'id': t_id, 'provider': tmp_prov}
-               vals = {'active': False, 'lastrun': 0, 'type': t_type, 'hits': 0}
+               ctrls = {'id': t_id}
+               vals = {'provider': tmp_prov, 'active': False, 'lastrun': 0, 'type': t_type, 'hits': 0}
            else:
                try:
                    tprov = [p_list[x] for x, y in p_list.items() if x.lower() == tmp_prov.lower()][0]
@@ -2067,8 +2067,8 @@ class Config(object):
                        if tmp_prov == 'Experimental':
                            myDB.action("DELETE FROM provider_searches where id=101")
                            tmp_prov = 'experimental'
-                       ctrls = {'id': tprov['id'], 'provider': tmp_prov}
-                       vals = {'active': tprov['active'], 'lastrun': tprov['lastrun'], 'type': ptype, 'hits': tprov['hits']}
+                       ctrls = {'id': tprov['id']}
+                       vals = {'provider': tmp_prov, 'active': tprov['active'], 'lastrun': tprov['lastrun'], 'type': ptype, 'hits': tprov['hits']}
                        write = True
 
            if write is True:
