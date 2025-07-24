@@ -415,6 +415,15 @@
 		                    <input type="text" name="sab_host" id="sab_host" value="${config['sab_host']}" size="30">
 		                    <small>usually http://localhost:8080</small>
 	                        </div>
+                        <div class="row">
+		                    <label>Mylar Host Override:</label>
+		                    <input type="text" name="host_return" id="host_return" value="${config['host_return']}" size="30">
+                            <%
+                                          hr_tt = "If needed, this will tell SAB how to reach mylar.  Used in multi-home / VPN / docker environments."
+                            %>
+                            <a href="#" title="${hr_tt}"><img src="images/info32.png" height="16" alt="" /></a>
+		                    <small>Overrides detected URL: ${ mylar.helpers.where_am_i(True) }</small>
+	                    </div>
 	                   	<div class="row">
 		                    <label>SABnzbd Username</label>
 		                    <input type="text" name="sab_username" id="sab_username" value="${config['sab_user']}" size="20">

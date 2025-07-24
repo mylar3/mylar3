@@ -5056,6 +5056,112 @@ def check_file_condition(file_path):
         return {'status': False, 'type' : 'unknown', 'quality': 'Unknown file type, unknown condition'}
 
 
+def where_am_i(ignore_host_return=False):
+    """ Attempt to determine the externally facing URL for mylar.
+
+    Args:
+        ignore_host_return (bool, optional): Ignore the host_return config override. Defaults to False.
+
+    Returns:
+        str: A URL for mylar in the form protocol://address:port/
+    """
+    # generate the mylar host address if applicable.
+    if mylar.CONFIG.ENABLE_HTTPS:
+        proto = 'https://'
+    else:
+        proto = 'http://'
+
+    if mylar.CONFIG.HTTP_ROOT is None:
+        hroot = '/'
+    elif mylar.CONFIG.HTTP_ROOT.endswith('/'):
+        hroot = mylar.CONFIG.HTTP_ROOT
+    else:
+        if mylar.CONFIG.HTTP_ROOT != '/':
+            hroot = mylar.CONFIG.HTTP_ROOT + '/'
+        else:
+            hroot = mylar.CONFIG.HTTP_ROOT
+
+    if mylar.LOCAL_IP is None:
+        # if mylar's local, get the local IP using socket.
+        try:
+            import socket
+
+            s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+            s.connect(('8.8.8.8', 80))
+            mylar.LOCAL_IP = s.getsockname()[0]
+            s.close()
+        except Exception as e:
+            logger.warn(
+                'Unable to determine local IP. Defaulting to host address for'
+                ' Mylar provided as : %s. Error returned: %s'
+                % (mylar.CONFIG.HTTP_HOST, e)
+            )
+
+    if mylar.CONFIG.HOST_RETURN and not ignore_host_return:
+        # mylar has the return value already provided
+        # (easier and will work if it's right)
+        if mylar.CONFIG.HOST_RETURN.endswith('/'):
+            mylar_host = mylar.CONFIG.HOST_RETURN
+        else:
+            mylar_host = mylar.CONFIG.HOST_RETURN + '/'
+
+    elif mylar.CONFIG.SAB_TO_MYLAR:
+        # if sab & mylar are on different machines, check to see if they are
+        # local or external IP's provided for host.
+        if (
+            mylar.CONFIG.HTTP_HOST == 'localhost'
+            or mylar.CONFIG.HTTP_HOST == '0.0.0.0'
+            or mylar.CONFIG.HTTP_HOST.startswith('10.')
+            or mylar.CONFIG.HTTP_HOST.startswith('192.')
+            or mylar.CONFIG.HTTP_HOST.startswith('172.')
+        ):
+            # if mylar's local, use the local IP already assigned to LOCAL_IP.
+            mylar_host = (
+                '%s%s:%s%s'
+                % (proto, mylar.LOCAL_IP, mylar.CONFIG.HTTP_PORT, hroot)
+                )
+        else:
+            if mylar.EXT_IP is None:
+                # if mylar isn't local, get the external IP using pystun.
+                import stun
+
+                sip = mylar.CONFIG.HTTP_HOST
+                port = int(mylar.CONFIG.HTTP_PORT)
+                try:
+                    nat_type, ext_ip, ext_port = stun.get_ip_info(sip, port)
+                    mylar_host = (
+                        '%s%s:%s%s'
+                        % (proto, ext_ip, ext_port, hroot)
+                        )
+                    mylar.EXT_IP = ext_ip
+                except Exception as e:
+                    logger.warn(
+                        'Unable to retrieve External IP - try using the'
+                        ' host_return option in the config.ini. Error: %s' % e
+                    )
+                    mylar_host = (
+                        '%s%s:%s%s'
+                        % (proto, mylar.CONFIG.HTTP_HOST,
+                            mylar.CONFIG.HTTP_PORT, hroot)
+                    )
+            else:
+                mylar_host = (
+                    '%s%s:%s%s'
+                    % (proto, mylar.EXT_IP, mylar.CONFIG.HTTP_PORT, hroot)
+                )
+
+    else:
+        # if all else fails, drop it back to the basic host:port and try that.
+        if mylar.LOCAL_IP is None:
+            tmp_host = mylar.CONFIG.HTTP_HOST
+        else:
+            tmp_host = mylar.LOCAL_IP
+        mylar_host = (
+            proto + str(tmp_host) + ':' + str(mylar.CONFIG.HTTP_PORT) + hroot
+        )
+
+    return mylar_host
+
 from threading import Thread
 
 class ThreadWithReturnValue(Thread):
