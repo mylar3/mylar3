@@ -1645,6 +1645,14 @@
                 initActions();
                 $.fn.DataTable.ext.pager.numbers_length = 3;
                 $('#issue_table').dataTable( {
+                    "stateSave" : true,
+                    "stateDuration" : 0,
+                    // We don't want to remember the page we're at across refreshes as it will confuse different size
+                    // volumes, and filters don't need to persist a refresh
+                    "stateSaveParams" : function (settings, data) {
+                        data.start = 0;
+                        data.search.search = '';
+                    },
                     "preDrawCallback": function (settings){
                         pageScrollPos = $('#issue_table div.datatables_scrollBody').scrollTop();
                         // make sure the filter counts are up-to-date
