@@ -343,6 +343,11 @@ class GC(object):
                 headers=self.headers,
                 timeout=(30,30)
             )
+
+            # Either comms problems with the page, dead link, or a cloudflare issue
+            if gc_page.status_code != 200:
+                logger.warn(f"Search request not returned by GetComics (Code:{gc_page.status_code}).  This may be a CloudFlare block.")
+                break
             
             page_html = gc_page.text
 
