@@ -176,7 +176,27 @@
 			"stateDuration": 0,
                         "pageLength": 25,
                         "pagingType": "simple_numbers",
-                        alphabetSearch: { column:1 }
+                        alphabetSearch: { column:1 },
+                        "stateSaveParams": function(settings, data) {
+                            data.selected = $('span.active').index()
+                        },
+                        "initComplete": function() {
+                            var api = this.api();
+                            var state = api.state.loaded();
+
+                            if (state != undefined) {
+                                if (state.selected != undefined) {
+                                    $('div.alphabet span:eq(' + state.selected + ')').click();
+                                };
+
+                                if (state.start !== 0) {
+                                    api.page(state.start / state.length).draw(false);
+                                };
+                                api.state.save();
+                            } else {
+                                $('div.alphabet span:eq(0)').click();
+                            }
+                        }  
 		     });
                  } else {
                      var table = $('#series_table').dataTable( {
