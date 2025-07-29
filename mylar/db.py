@@ -24,6 +24,7 @@ import sqlite3
 import threading
 import time
 import queue
+import re
 
 import mylar
 from . import logger
@@ -62,6 +63,12 @@ class WriteOnly:
                 time.sleep(1)
                 #logger.fdebug('[' + str(thisthread) + '] sleeping until active.')
 
+def _sqlite_regexp(exp, item):
+    if exp is None or item is None:
+        return False
+    rex = re.compile(exp)
+    return rex.search(item) is not None
+
 class DBConnection:
 
     def __init__(self, filename="mylar.db"):
@@ -70,6 +77,9 @@ class DBConnection:
         self.connection = sqlite3.connect(dbFilename(filename), timeout=20)
         self.connection.row_factory = sqlite3.Row
         self.queue = mylarQueue
+
+        # Support REGEXP in SQLITE queries
+        self.connection.create_function("REGEXP", 2, _sqlite_regexp, deterministic= True)
 
     def fetch(self, query, args=None):
 
@@ -184,4 +194,5 @@ class DBConnection:
         #    self.queue.put( (tableName, valueDict, keyDict) )
         #    #assuming this is coming in from a seperate thread, so loop it until it's free to write.
         #    #self.queuesend()
+
 

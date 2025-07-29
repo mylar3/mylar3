@@ -50,6 +50,8 @@ from operator import itemgetter
 
 import xml.etree.ElementTree as ET
 
+from string import ascii_lowercase
+
 import mylar
 from mylar import (
     carepackage,
@@ -290,20 +292,47 @@ class WebInterface(object):
                              'loading': '#1c5188',
                              'failed': '#641716'}
 
-        if mylar.CONFIG.ALPHAINDEX == True:
-            comics = helpers.havetotals()
-            return serve_template(templatename="index-alphaindex.html", title="Home", comics=comics, alphaindex=mylar.CONFIG.ALPHAINDEX, legend_colors=legend_colors)
-        else:
-            return serve_template(templatename="index.html", title="Home", legend_colors=legend_colors)
+        return serve_template(templatename="index.html", title="Home", alphaindex=mylar.CONFIG.ALPHAINDEX, legend_colors=legend_colors)
     home.exposed = True
 
-    def loadhome(self, iDisplayStart=0, iDisplayLength=100, iSortCol_0=5, sSortDir_0="desc", sSearch="", **kwargs):
-        resultlist = helpers.havetotals()
-        iDisplayStart = int(iDisplayStart)
-        iDisplayLength = int(iDisplayLength)
+    def alpha_volume_counts(self, as_json = True, **kwargs):
+        # Convert if calling from params
+        if as_json == 'true':
+            as_json = True
+        elif as_json == 'false':
+            as_json = False
+
+        alphabet_lengths = dict.fromkeys(['All','#'] + list(ascii_lowercase), 0)
+        # Saving this regexp version but I can't see how it's performant compared to using in-built functions
+        #letter_query = "SELECT lower(substr(c.ComicName,1,1)) AS 'Character', Count(c.ComicID) AS 'Count' FROM Comics c WHERE c.ComicName REGEXP '^[a-zA-Z]' GROUP BY 1 UNION SELECT '#' AS 'Character', Count(c.ComicID) AS 'Count' FROM Comics c WHERE c.ComicName REGEXP '^[^a-zA-Z]' GROUP BY 1"
+        letter_query = "SELECT lower(substr(c.ComicName,1,1)) as 'Character', COUNT(c.ComicID) as 'Count' FROM Comics c WHERE hex(lower(substr(c.ComicName,1,1))) BETWEEN '61' AND '7A' GROUP BY 1 UNION SELECT '#' as 'Character', COUNT(c.ComicID) as 'Count' FROM Comics c WHERE NOT hex(lower(substr(c.ComicName,1,1))) BETWEEN '61' AND '7A' GROUP BY 1;"
+        myDB = db.DBConnection()
+        result = myDB.select(letter_query)
+        for letter_count in result:
+            alphabet_lengths['All'] += letter_count['Count']
+            alphabet_lengths[letter_count['Character']] += letter_count['Count']
+
+        if as_json:
+            return json.dumps(alphabet_lengths)
+        else:
+            return alphabet_lengths
+    alpha_volume_counts.exposed = True
+
+
+    def loadhome(self, **kwargs):
+        iDisplayStart = int(kwargs['start'])
+        iDisplayLength = int(kwargs['length'])
+        
+        if not 'selected' in kwargs.keys() or kwargs['selected'] == 'All':
+            resultlist = helpers.havetotals()
+        else:
+            resultlist = helpers.havetotals(start_char_filter=kwargs['selected'])
+
+        sSearch = kwargs['search[value]']        
         filtered = []
+
         if sSearch == "" or sSearch == None:
-            filtered = resultlist[::]
+            filtered = resultlist
         else:
             ignore_terms = []
             tsearch = sSearch
@@ -351,42 +380,55 @@ class WebInterface(object):
                 except Exception as e:
                     pass
 
-        sortcolumn = 'ComicPublisher'
-        if iSortCol_0 == '0':
-            sortcolumn = 'ComicPublisher'
-        elif iSortCol_0 == '1':
-            sortcolumn = 'ComicName'
-        elif iSortCol_0 == '2':
-            sortcolumn = 'ComicYear'
-        elif iSortCol_0 == '3':
-            sortcolumn = 'LatestIssue'
-        elif iSortCol_0 == '4':
-            sortcolumn = 'LatestDate'
-        elif iSortCol_0 == '5':
-            sortcolumn = 'percent'
-        elif iSortCol_0 == '6':
-            sortcolumn = 'Status'
+        # Multisort by using the stable nature of sort in reverse order
+        # We have to work out the number of columns based on kwargs keys
+        sort_columns = 0        
+        while f"order[{sort_columns}][column]" in kwargs.keys():
+            sort_columns += 1
 
-        #below sort is for multi-sort columns, maybe make them user configurable - not sure how to pass mutli-sort thru otherwise
-        #filtered.sort(key= itemgetter(sortcolumn2, sortcolumn), reverse=sSortDir_0 == "desc")
-        if sortcolumn == 'percent':
-            filtered.sort(key=lambda x: (x['totalissues'] is None, x['totalissues'] == '', x['totalissues']), reverse=sSortDir_0 == "asc")
-            filtered.sort(key=lambda x: (x['percent'] is None, x['percent'] == '', x['percent']), reverse=sSortDir_0 == "desc")
-            filtered.sort(key=lambda x: (x['haveissues'] is None, x['haveissues'] == '', x['haveissues']), reverse=sSortDir_0 == "desc")
-            filtered.sort(key=lambda x: (x['percent'] is None, x['percent'] == '', x['percent']), reverse=sSortDir_0 == "desc")
-        elif sortcolumn == 'LatestIssue':
-            filtered.sort(key=lambda x: (x['IntLatestIssue'] is None, x['IntLatestIssue'] == '', x['IntLatestIssue']), reverse=sSortDir_0 == "asc")
-        else:
-            filtered.sort(key=lambda x: (x[sortcolumn] is None, x[sortcolumn] == '', x[sortcolumn]), reverse=sSortDir_0 == "desc")
+        for sort_pos in range(sort_columns, 0, -1):
+            iSortCol = kwargs[f'order[{sort_pos-1}][column]']
+            sSortDir = kwargs[f'order[{sort_pos-1}][dir]']
+            
+            match iSortCol:
+                case '0':
+                    sortcolumn = 'ComicPublisher'
+                case '1':
+                    sortcolumn = 'ComicName'
+                case '2':
+                    sortcolumn = 'ComicYear'
+                case '3':
+                    sortcolumn = 'LatestIssue'
+                case '4':
+                    sortcolumn = 'LatestDate'
+                case '5':
+                    sortcolumn = 'percent'
+                case '6':
+                    sortcolumn = 'Status'
+                case _:
+                    sortcolumn = 'ComicPublisher'
+
+            if sortcolumn == 'percent':
+                filtered.sort(key=lambda x: (x['totalissues'] is None, x['totalissues'] == '', x['totalissues']), reverse=sSortDir == "asc")
+                filtered.sort(key=lambda x: (x['percent'] is None, x['percent'] == '', x['percent']), reverse=sSortDir == "desc")
+                filtered.sort(key=lambda x: (x['haveissues'] is None, x['haveissues'] == '', x['haveissues']), reverse=sSortDir == "desc")
+                filtered.sort(key=lambda x: (x['percent'] is None, x['percent'] == '', x['percent']), reverse=sSortDir == "desc")
+            elif sortcolumn == 'LatestIssue':
+                filtered.sort(key=lambda x: (x['IntLatestIssue'] is None, x['IntLatestIssue'] == '', x['IntLatestIssue']), reverse=sSortDir == "asc")
+            else:
+                filtered.sort(key=lambda x: (x[sortcolumn] is None, x[sortcolumn] == '', x[sortcolumn]), reverse=sSortDir == "desc")
+
+
         if iDisplayLength != -1:
             rows = filtered[iDisplayStart:(iDisplayStart + iDisplayLength)]
         else:
             rows = filtered
         rows = [[row['ComicPublisher'], row['ComicName'], row['ComicYear'], row['LatestIssue'], row['LatestDate'], row['recentstatus'], row['Status'], row['percent'], row['haveissues'], row['totalissues'], row['ComicID'], row['displaytype'], row['ComicVolume'], row['cv_removed']] for row in rows]
+        
         return json.dumps({
-            'iTotalDisplayRecords': len(filtered),
-            'iTotalRecords': len(resultlist),
-            'aaData': rows,
+            'recordsFiltered': len(filtered),
+            'recordsTotal': len(resultlist),
+            'data': rows,
         })
     loadhome.exposed = True
 

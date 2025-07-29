@@ -8,6 +8,11 @@
 <%def name="body()">
         <input type="hidden" id="page_name" value="index" />
         <div class="table_wrapper" id="series_table_wrapper">
+            % if alphaindex:
+            <div class="clear">
+                <div class="alphabet" id="alphabetSearch"></div>
+            </div>
+            % endif
 	<table class="display" id="series_table">
 	    <thead>
 	        <tr>
@@ -41,14 +46,112 @@
 
 <%def name="headIncludes()">
         <link rel="stylesheet" href="interfaces/${interface}/css/data_table.css">
+
+        % if alphaindex:
+        <link rel="stylesheet" href="css/alphabetSearch.css">
+        % endif
 </%def>
 
 <%def name="javascriptIncludes()">
         <script src="js/libs/jquery.dataTables.1.10.25.min.js"></script>
         <script src="js/libs/full_numbers_no_ellipses.js"></script>
+
 	<script>
+        % if alphaindex:
+        function alphaLoadCallback(d) {
+            if ($('span.active').length > 0) {
+                d.selected = $('span.active').attr('value')
+            }
+            else {
+                d.selected = 'All'
+            }
+
+            // Update the counts on the header
+            buildAlphaIndex(run_async = true);
+        };
+
+        function showAlphaCount(){
+            var alphabetInfo = $('#alphabetInfo');
+            alphabetInfo.css({'opacity': 1, 'left' : $(this).position().left, 'width' : $(this).width()});
+            alphabetInfo.text($(this).attr("count"));
+        };
+
+        function hideAlphaCount() {
+            $('#alphabetInfo').css('opacity', 0);
+        };
+
+        function setActive(x) {
+            $('#alphabetSearch').find( '.active' ).removeClass( 'active' );
+            $('#alphabetSearch > span[value="' + x + '"').addClass( 'active' );
+        }
+
+        function buildAlphaIndex(run_async = false) {
+            $.ajax({
+                type: 'GET',
+                url: 'alpha_volume_counts',
+                async : run_async,
+                data: {as_json: true},
+                dataType: 'json',
+                success : function(data) {
+                    var container = $('#alphabetSearch')
+                    var prev_active = 'All';
+
+                    if ($('span.active').length > 0) {
+                         prev_active = $('span.active').attr('value')
+                    }
+
+                    if (container.children('span').length > 0) {
+                        for (const [letter, value] of Object.entries(data)) {
+                            let span = $('#alphabetSearch > span[value="' + letter + '"')
+                            
+                            span
+                                .removeClass('empty')
+                                .attr( 'count', value)
+                                .addClass(value > 0 ? '' : 'empty');
+                        }
+                    } else {
+                        container.empty()
+                        container.append('Search: ');
+
+                        for (const [letter, value] of Object.entries(data)) {
+                        $('<span>')
+                            .attr( 'count', value)
+                            .attr( 'value', letter)
+                            .html(letter.length > 1 ? letter : letter.toUpperCase())
+                            .addClass(value > 0 ? '' : 'empty')
+                            .appendTo(container);
+                        }
+
+                        $('<div class="alphabetInfo" id="alphabetInfo"></div>')
+                            .appendTo( container );
+
+                        attachAlphaEvents();
+                    }
+
+                    setActive(prev_active);
+                }
+            });            
+        }
+
+        function attachAlphaEvents() {
+            $('#alphabetSearch')
+                .on( 'click', 'span', function () {
+                    var newLetter = $( this ).attr('value')
+                    setActive(newLetter)
+                    $('#series_table').DataTable().ajax.reload(null, true);
+                } );
+            $('#alphabetSearch')
+                .on( 'mouseenter', 'span', showAlphaCount)
+                .on( 'mouseleave', 'span', hideAlphaCount);
+        }
+        % endif
+
         $.fn.DataTable.ext.pager.numbers_length = 3;
         function initThisPage() {
+            % if alphaindex:
+            buildAlphaIndex(run_async=false);
+            % endif
+
             $('#series_table').dataTable( {
                 "preDrawCallback": function (settings){
                     pageScrollPos = $('#series_table div.datatables_scrollBody').scrollTop();
@@ -56,8 +159,17 @@
                 "sDom": '<"clear"f><"clear"lp><"clear">rt<"clear"ip>',
                 "processing": true,
                 "serverSide": true,
-                "ajaxSource": 'loadhome',
+                "ajax": {
+                    "url" : 'loadhome',
+                    "type" : 'GET',                    
+                    % if alphaindex:
+                    "data": alphaLoadCallback,
+                    % endif
+                },
                 "destroy": true,
+                "fnInitComplete": function(oSettings, json)
+                {
+                },
                 "columnDefs": [
                     {
                        "sortable": true,
@@ -184,9 +296,11 @@
                     },
 
                 ],
+                "order": [[7, 'asc'],[1, 'asc']],
                 "paginationType": "simple_numbers",
                 "displayLength": 25,
                 "stateSave": true,
+                "stateDuration" : 0,
                 "lengthMenu": [[10, 15, 25, 50, 100, 200, -1], [10, 15, 25, 50, 100, 200, 'All' ]],
                 "language": {
                      "search":"Filter:",
@@ -197,43 +311,51 @@
                      "infoFiltered":"(filtered from _MAX_ total items)"
                 },
                 "rowCallback": function (nRow, aData, iDisplayIndex, iDisplayIndexFull) {
-                     if (aData[13] === 1){
+                    if (aData[13] === 1){
                         $('td', nRow).closest('tr').addClass("gradeU");
-                     } else {
+                    } else {
                         if (aData[6] === "Paused") {
-                           $('td', nRow).closest('tr').addClass("gradeT");
+                            $('td', nRow).closest('tr').addClass("gradeT");
                         } else if (aData[6] === "Loading") {
-                           $('td', nRow).closest('tr').addClass("gradeL");
+                            $('td', nRow).closest('tr').addClass("gradeL");
                         } else if (aData[6] === "Error" || aData[6] == "Failed") {
-                           $('td', nRow).closest('tr').addClass("gradeX");
-                       } else {
-                           $('td', nRow).closest('tr').addClass("gradeZ");
+                            $('td', nRow).closest('tr').addClass("gradeX");
+                        } else {
+                            $('td', nRow).closest('tr').addClass("gradeZ");
                         }
-                     }
-                     nRow.children[0].id = 'publisher';
-                     nRow.children[1].id = 'name';
-                     nRow.children[2].id = 'year';
-                     nRow.children[3].id = 'issue';
-                     nRow.children[4].id = 'published';
-                     nRow.children[5].id = 'have';
-                     nRow.children[6].id = 'status';
-                     nRow.children[7].id = 'active';
-                     return nRow;
-                 },
-                 "drawCallback": function (settings) {
-                     // Jump to top of page
-                     $('#series_table div.dataTables_scrollBody').scrollTop(pageScrollPos);
-                 },
-                 "serverData": function ( sSource, aoData, fnCallback ) {
-                            /* Add some extra data to the sender */
-                            $.getJSON(sSource, aoData, function (json) {
-                                    fnCallback(json)
-                            });
-                 },
-                 "fnInitComplete": function(oSettings, json)
-                 {
-                 },
+                    }
+                    nRow.children[0].id = 'publisher';
+                    nRow.children[1].id = 'name';
+                    nRow.children[2].id = 'year';
+                    nRow.children[3].id = 'issue';
+                    nRow.children[4].id = 'published';
+                    nRow.children[5].id = 'have';
+                    nRow.children[6].id = 'status';
+                    nRow.children[7].id = 'active';
+                    return nRow;
+                },
+                "drawCallback": function (settings) {
+                    // Jump to top of page
+                    $('#series_table div.dataTables_scrollBody').scrollTop(pageScrollPos);
+                },                
+                % if alphaindex:
+                "stateSaveParams": function(settings, data) {
+                    if ($('span.active').length != 0) {
+                        data.selected = $('span.active').attr('value')
+                    } else {
+                        data.selected = 'All'
+                    }
+                },
+                "stateLoadParams": function(settings, data) {
+                    setActive(data.selected);
+                },
+                % endif
             });
+
+            // Handlers for alphaindex controls
+            % if alphaindex:
+            attachAlphaEvents();
+            % endif
 
         };
         $(document).ready(function(){
