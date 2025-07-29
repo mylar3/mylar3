@@ -1039,20 +1039,27 @@ def LoadAlternateSearchNames(seriesname_alt, comicid):
 
         return Alternate_Names
 
-def havetotals(refreshit=None):
+def havetotals(refreshit=None, start_char_filter=None):
         #import db
 
         comics = []
         myDB = db.DBConnection()
 
+        start_char_where_clause = ''
+        if not start_char_filter is None:
+            if start_char_filter == '#':
+                start_char_where_clause = f"{'WHERE' if refreshit is None else 'AND'} NOT hex(lower(substr(comics.ComicName,1,1))) BETWEEN '61' AND '7A'"
+            else:
+                start_char_where_clause = f"{'WHERE' if refreshit is None else 'AND'} lower(substr(comics.ComicName,1,1)) = '{start_char_filter.lower()}'"
+
         if refreshit is None:
             if mylar.CONFIG.ANNUALS_ON:
-                comiclist = myDB.select('SELECT comics.*, COUNT(totalAnnuals.IssueID) AS TotalAnnuals FROM comics LEFT JOIN annuals as totalAnnuals on totalAnnuals.ComicID = comics.ComicID GROUP BY comics.ComicID order by comics.ComicSortName COLLATE NOCASE')
+                comiclist = myDB.select(f"SELECT comics.*, COUNT(totalAnnuals.IssueID) AS TotalAnnuals FROM comics LEFT JOIN annuals as totalAnnuals on totalAnnuals.ComicID = comics.ComicID {start_char_where_clause} GROUP BY comics.ComicID order by comics.ComicSortName COLLATE NOCASE")
             else:
-                comiclist = myDB.select('SELECT * FROM comics GROUP BY ComicID order by ComicSortName COLLATE NOCASE')
+                comiclist = myDB.select(f"SELECT * FROM comics {start_char_where_clause} GROUP BY ComicID order by ComicSortName COLLATE NOCASE")
         else:
             comiclist = []
-            comicref = myDB.selectone('SELECT comics.ComicID AS ComicID, comics.Have AS Have, comics.Total as Total, COUNT(totalAnnuals.IssueID) AS TotalAnnuals FROM comics LEFT JOIN annuals as totalAnnuals on totalAnnuals.ComicID = comics.ComicID WHERE comics.ComicID=? GROUP BY comics.ComicID', [refreshit]).fetchone()
+            comicref = myDB.selectone(f"SELECT comics.ComicID AS ComicID, comics.Have AS Have, comics.Total as Total, COUNT(totalAnnuals.IssueID) AS TotalAnnuals FROM comics LEFT JOIN annuals as totalAnnuals on totalAnnuals.ComicID = comics.ComicID WHERE comics.ComicID=? {start_char_where_clause} GROUP BY comics.ComicID", [refreshit]).fetchone()
             #refreshit is the ComicID passed from the Refresh Series to force/check numerical have totals
             comiclist.append({"ComicID":      comicref['ComicID'],
                               "Have":         comicref['Have'],
