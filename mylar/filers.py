@@ -340,14 +340,14 @@ class FileHandlers(object):
                 comloc = ck['ComicLocation']
                 if comloc == comlocation:
                     logger.info('[SERIES_FOLDER_COLLISION_DETECTION] %s already exists for %s (%s).' % (ck['ComicLocation'], ck['ComicName'], ck['ComicYear']))
-                    tmp_ff = os.path.basename(mylar.CONFIG.FOLDER_FORMAT)
+                    tmp_ff_head, tmp_ff = os.path.split(re.sub(r'[\/\\]$', '', mylar.CONFIG.FOLDER_FORMAT))
                     if ck['ComicYear'] != comicyear:
                         volumeyear = True
                     else:
                         volumeyear = False
                     if '$Type' not in tmp_ff and booktype != ck['Type']:
                         logger.fdebug('[SERIES_FOLDER_COLLISION_DETECTION] Trying to rename using BookType declaration.')
-                        new_format = '%s [%s]' % (tmp_ff, '$Type')
+                        new_format = os.path.join(tmp_ff_head, '%s [%s]' % (tmp_ff, '$Type'))
                     elif '$Volume' not in tmp_ff:
                         logger.fdebug('[SERIES_FOLDER_COLLISION_DETECTION] Trying to rename using Volume declaration.')
                         volume_choice = '$VolumeY'
@@ -359,7 +359,10 @@ class FileHandlers(object):
                                 volume_choice = '$VolumeN'
                         t_name = tmp_ff.find('$Series')
                         if t_name != -1:
-                            new_format = '%s %s %s' % (tmp_ff[:t_name+len('$Series'):], volume_choice, tmp_ff[t_name+len('$Series')+1:])
+                            new_format = os.path.join(tmp_ff_head, '%s %s %s' % (tmp_ff[:t_name+len('$Series'):], volume_choice, tmp_ff[t_name+len('$Series')+1:]))
+                    else:
+                        logger.fdebug('[SERIES_FOLDER_COLLISION_DETECTION] Defaulting to Series (Year).')
+                        new_format = os.path.join(tmp_ff_head, '$Series ($Year)')
 
                     self.comic = {'ComicPublisher': ck['ComicPublisher'],
                                   'PublisherImprint': ck['PublisherImprint'],
