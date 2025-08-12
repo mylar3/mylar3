@@ -293,7 +293,7 @@ class WebInterface(object):
             return serve_template(templatename="index.html", title="Home", legend_colors=legend_colors)
     home.exposed = True
 
-    def loadhome(self, iDisplayStart=0, iDisplayLength=100, iSortCol_0=5, sSortDir_0="desc", sSearch="", **kwargs):
+    def loadhome(self, iDisplayStart=0, iDisplayLength=100, sSearch="", **kwargs):
         resultlist = helpers.havetotals()
         iDisplayStart = int(iDisplayStart)
         iDisplayLength = int(iDisplayLength)
@@ -347,38 +347,46 @@ class WebInterface(object):
                 except Exception as e:
                     pass
 
-        sortcolumn = 'ComicPublisher'
-        if iSortCol_0 == '0':
-            sortcolumn = 'ComicPublisher'
-        elif iSortCol_0 == '1':
-            sortcolumn = 'ComicName'
-        elif iSortCol_0 == '2':
-            sortcolumn = 'ComicYear'
-        elif iSortCol_0 == '3':
-            sortcolumn = 'LatestIssue'
-        elif iSortCol_0 == '4':
-            sortcolumn = 'LatestDate'
-        elif iSortCol_0 == '5':
-            sortcolumn = 'percent'
-        elif iSortCol_0 == '6':
-            sortcolumn = 'Status'
+        # Multisort by using the stable nature of sort in reverse order
+        for sort_pos in range(int(kwargs['iSortingCols']), 0, -1):
+            iSortCol = kwargs[f'iSortCol_{sort_pos-1}']
+            sSortDir = kwargs[f'sSortDir_{sort_pos-1}']
+            
+            match iSortCol:
+                case '0':
+                    sortcolumn = 'ComicPublisher'
+                case '1':
+                    sortcolumn = 'ComicName'
+                case '2':
+                    sortcolumn = 'ComicYear'
+                case '3':
+                    sortcolumn = 'LatestIssue'
+                case '4':
+                    sortcolumn = 'LatestDate'
+                case '5':
+                    sortcolumn = 'percent'
+                case '6':
+                    sortcolumn = 'Status'
+                case _:
+                    sortcolumn = 'ComicPublisher'
 
-        #below sort is for multi-sort columns, maybe make them user configurable - not sure how to pass mutli-sort thru otherwise
-        #filtered.sort(key= itemgetter(sortcolumn2, sortcolumn), reverse=sSortDir_0 == "desc")
-        if sortcolumn == 'percent':
-            filtered.sort(key=lambda x: (x['totalissues'] is None, x['totalissues'] == '', x['totalissues']), reverse=sSortDir_0 == "asc")
-            filtered.sort(key=lambda x: (x['percent'] is None, x['percent'] == '', x['percent']), reverse=sSortDir_0 == "desc")
-            filtered.sort(key=lambda x: (x['haveissues'] is None, x['haveissues'] == '', x['haveissues']), reverse=sSortDir_0 == "desc")
-            filtered.sort(key=lambda x: (x['percent'] is None, x['percent'] == '', x['percent']), reverse=sSortDir_0 == "desc")
-        elif sortcolumn == 'LatestIssue':
-            filtered.sort(key=lambda x: (x['IntLatestIssue'] is None, x['IntLatestIssue'] == '', x['IntLatestIssue']), reverse=sSortDir_0 == "asc")
-        else:
-            filtered.sort(key=lambda x: (x[sortcolumn] is None, x[sortcolumn] == '', x[sortcolumn]), reverse=sSortDir_0 == "desc")
+            if sortcolumn == 'percent':
+                filtered.sort(key=lambda x: (x['totalissues'] is None, x['totalissues'] == '', x['totalissues']), reverse=sSortDir == "asc")
+                filtered.sort(key=lambda x: (x['percent'] is None, x['percent'] == '', x['percent']), reverse=sSortDir == "desc")
+                filtered.sort(key=lambda x: (x['haveissues'] is None, x['haveissues'] == '', x['haveissues']), reverse=sSortDir == "desc")
+                filtered.sort(key=lambda x: (x['percent'] is None, x['percent'] == '', x['percent']), reverse=sSortDir == "desc")
+            elif sortcolumn == 'LatestIssue':
+                filtered.sort(key=lambda x: (x['IntLatestIssue'] is None, x['IntLatestIssue'] == '', x['IntLatestIssue']), reverse=sSortDir == "asc")
+            else:
+                filtered.sort(key=lambda x: (x[sortcolumn] is None, x[sortcolumn] == '', x[sortcolumn]), reverse=sSortDir == "desc")
+
+
         if iDisplayLength != -1:
             rows = filtered[iDisplayStart:(iDisplayStart + iDisplayLength)]
         else:
             rows = filtered
         rows = [[row['ComicPublisher'], row['ComicName'], row['ComicYear'], row['LatestIssue'], row['LatestDate'], row['recentstatus'], row['Status'], row['percent'], row['haveissues'], row['totalissues'], row['ComicID'], row['displaytype'], row['ComicVolume'], row['cv_removed']] for row in rows]
+        
         return json.dumps({
             'iTotalDisplayRecords': len(filtered),
             'iTotalRecords': len(resultlist),
