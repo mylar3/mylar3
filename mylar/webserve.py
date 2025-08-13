@@ -1111,7 +1111,9 @@ class WebInterface(object):
         logger.info('# of results: %s' % len(filtered))
         iDisplayStart = int(iDisplayStart)
         iDisplayLength = int(iDisplayLength)
-        filtered = filtered[iDisplayStart:(iDisplayStart + iDisplayLength)]
+        # -1 is used for "All" in DataTables filters
+        if iDisplayLength > 0:
+            filtered = filtered[iDisplayStart:(iDisplayStart + iDisplayLength)]
         rows = [[row['comicid'], row['comicname'], row['publisher'], row['comicyear'], row['issues'], row['deck'], row['url'], row['type'], row['description'], row['haveit'], row['query_id']] for row in filtered]
 
         return json.dumps({
