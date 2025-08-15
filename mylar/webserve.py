@@ -6839,6 +6839,14 @@ class WebInterface(object):
                     "extra_newznabs": sorted(mylar.CONFIG.EXTRA_NEWZNABS, key=itemgetter(5), reverse=True),
                     "enable_ddl": helpers.checked(mylar.CONFIG.ENABLE_DDL),
                     "enable_getcomics": helpers.checked(mylar.CONFIG.ENABLE_GETCOMICS),
+                    "enable_airdcpp": helpers.checked(mylar.CONFIG.ENABLE_AIRDCPP),
+                    "airdcpp_host": mylar.CONFIG.AIRDCPP_HOST,
+                    "airdcpp_username": mylar.CONFIG.AIRDCPP_USERNAME,
+                    "airdcpp_password": mylar.CONFIG.AIRDCPP_PASSWORD,
+                    "airdcpp_download_dir": mylar.CONFIG.AIRDCPP_DOWNLOAD_DIR,
+                    "airdcpp_hubs": mylar.CONFIG.AIRDCPP_HUBS,
+                    "airdcpp_announce_hub": mylar.CONFIG.AIRDCPP_ANNOUNCE_HUB,
+                    "airdcpp_announce_bots": mylar.CONFIG.AIRDCPP_ANNOUNCE_BOTS,
                     "ddl_prefer_upscaled": helpers.checked(mylar.CONFIG.DDL_PREFER_UPSCALED),
                     "enable_external_server": helpers.checked(mylar.CONFIG.ENABLE_EXTERNAL_SERVER),
                     "external_server": mylar.CONFIG.EXTERNAL_SERVER,
@@ -7330,7 +7338,7 @@ class WebInterface(object):
                            'prowl_enabled', 'prowl_onsnatch', 'pushover_enabled', 'pushover_onsnatch', 'pushover_image', 'mattermost_enabled', 'mattermost_onsnatch', 'boxcar_enabled',
                            'boxcar_onsnatch', 'pushbullet_enabled', 'pushbullet_onsnatch', 'telegram_enabled', 'telegram_onsnatch', 'telegram_image', 'discord_enabled', 'discord_onsnatch', 'slack_enabled', 'slack_onsnatch',
                            'email_enabled', 'email_enc', 'email_ongrab', 'email_onpost', 'gotify_enabled', 'gotify_server_url', 'gotify_token', 'gotify_onsnatch', 'opds_enable', 'opds_authentication', 'opds_metainfo', 'opds_pagesize', 'enable_ddl',
-                           'enable_getcomics', 'enable_external_server', 'ddl_prefer_upscaled', 'deluge_pause'] #enable_public
+                           'enable_getcomics', 'enable_airdcpp', 'enable_external_server', 'ddl_prefer_upscaled', 'deluge_pause'] #enable_public
 
         for checked_config in checked_configs:
             if checked_config not in kwargs:
@@ -7507,6 +7515,96 @@ class WebInterface(object):
         return json.dumps({"status": True, "message": "Successfully verified API Key.", "version": str(version)})
 
     SABtest.exposed = True
+
+    def AirDCPPtest(self, airdcpphost=None, airdcppusername=None, airdcpppassword=None):
+        if airdcpphost is None:
+            airdcpphost = mylar.CONFIG.AIRDCPP_HOST
+        if airdcppusername is None:
+            airdcppusername = mylar.CONFIG.AIRDCPP_USERNAME
+        if airdcpppassword is None:
+            airdcpppassword = mylar.CONFIG.AIRDCPP_PASSWORD
+
+        logger.fdebug('Now attempting to test AirDC++ connection')
+        logger.fdebug('testing connection to AirDC++ @ ' + airdcpphost)
+
+        if not airdcpphost.endswith('/'):
+            airdcpphost = airdcpphost + '/'
+
+        api_url = airdcpphost
+        if not api_url.endswith('api/v1'):
+            api_url += 'api/v1'
+
+        query_url = f"{api_url}/system/system_info"
+
+        if airdcpphost.startswith('https'):
+            verify = True
+        else:
+            verify = False
+
+        version = 'Unknown'
+        try:
+            session = requests.Session()
+            if airdcppusername and airdcpppassword:
+                session.auth = (airdcppusername, airdcpppassword)
+
+            headers = {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/88.0.4324.182 Safari/537.36'
+            }
+
+            r = session.get(query_url, headers=headers, verify=verify, timeout=30)
+        except Exception as e:
+            logger.warn('Error fetching data from %s: %s' % (query_url, e))
+            if requests.exceptions.SSLError:
+                logger.warn(
+                    'Cannot verify ssl certificate. Attempting to authenticate with no ssl-certificate verification.')
+                try:
+                    from requests.packages.urllib3 import disable_warnings
+                    disable_warnings()
+                except:
+                    logger.warn('Unable to disable https warnings. Expect some spam if using https providers.')
+
+                verify = False
+
+                try:
+                    session = requests.Session()
+                    if airdcppusername and airdcpppassword:
+                        session.auth = (airdcppusername, airdcpppassword)
+
+                    r = session.get(query_url, headers=headers, verify=verify, timeout=30)
+                except Exception as e:
+                    logger.warn('Error fetching data from %s: %s' % (airdcpphost, e))
+                    return json.dumps(
+                        {"status": False, "message": "Unable to retrieve data from AirDC++.", "version": str(version)})
+            else:
+                return json.dumps(
+                    {"status": False, "message": "Unable to retrieve data from AirDC++.", "version": str(version)})
+
+        logger.fdebug('status code: ' + str(r.status_code))
+
+        if str(r.status_code) != '200':
+            logger.warn('Unable to properly query AirDC++ @' + airdcpphost + ' [Status Code returned: ' + str(
+                r.status_code) + ']')
+            return json.dumps(
+                {"status": False, "message": "Invalid credentials or connection error.", "version": str(version)})
+        else:
+            data = r.json()
+            try:
+                # Try to extract version from the response
+                version = data.get('client_version', 'Unknown')
+                logger.info('AirDC++ version: %s' % version)
+
+                # Save the version to config
+                mylar.CONFIG.AIRDCPP_VERSION = version
+                mylar.CONFIG.writeconfig(values={'airdcpp_version': version})
+
+                return json.dumps(
+                    {"status": True, "message": "Successfully connected to AirDC++.", "version": str(version)})
+            except Exception as e:
+                logger.error('Error parsing AirDC++ response: %s' % e)
+                return json.dumps(
+                    {"status": False, "message": "Error parsing AirDC++ response.", "version": str(version)})
+
+    AirDCPPtest.exposed = True
 
     def NZBGet_test(self, nzbhost=None, nzbport=None, nzbusername=None, nzbpassword=None, nzbsub=None):
         if any([nzbhost is None, nzbhost == 'None']):

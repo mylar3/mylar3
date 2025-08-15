@@ -358,6 +358,16 @@ _CONFIG_DEFINITIONS = OrderedDict({
 
     'ENABLE_DDL': (bool, 'DDL', False),
     'ENABLE_GETCOMICS': (bool, 'DDL', False),
+    'ENABLE_6DCC': (bool, 'DDL', False),
+    'ENABLE_AIRDCPP': (bool, 'DDL', False),
+    'AIRDCPP_HOST': (str, 'DDL', 'http://localhost:5600'),
+    'AIRDCPP_USERNAME': (str, 'DDL', ""),
+    'AIRDCPP_PASSWORD': (str, 'DDL', ""),
+    'AIRDCPP_DOWNLOAD_DIR': (str, 'DDL', ""),
+    'AIRDCPP_HUBS': (str, 'DDL', "myhub1.com:6423,dchub://myhub2.com:411"),
+    'AIRDCPP_VERSION': (str, 'DDL', ""),
+    'AIRDCPP_ANNOUNCE_HUB': (str, 'DDL', ""),
+    'AIRDCPP_ANNOUNCE_BOTS': (str, 'DDL', ""),
     'ENABLE_EXTERNAL_SERVER': (bool, 'DDL', False),
     'EXTERNAL_SERVER': (str, 'DDL', None),
     'EXTERNAL_USERNAME': (str, 'DDL', None),
@@ -1813,8 +1823,11 @@ class Config(object):
             if self.ENABLE_EXTERNAL_SERVER:
                 PR.append('DDL(External)')
                 PR_NUM +=1
+        if self.ENABLE_AIRDCPP:
+            PR.append('AirDCPP')
+            PR_NUM += 1
 
-        PPR = ['Experimental', 'DDL(GetComics)', 'DDL(External)']
+        PPR = ['Experimental', 'DDL(GetComics)', 'DDL(External)', 'AirDCPP']
         if self.NEWZNAB:
             for ens in self.EXTRA_NEWZNABS:
                 if str(ens[5]) == '1': # if newznabs are enabled
@@ -2016,6 +2029,9 @@ class Config(object):
                if 'DDL(External)' in tmp_prov:
                    t_type = 'DDL(External)'
                    t_id = 201
+               if 'AirDCPP' in tmp_prov:
+                   t_type = 'AirDCPP'
+                   t_id = 202
                elif any(['experimental' in tmp_prov, 'Experimental' in tmp_prov]):
                    tmp_prov = 'experimental'
                    t_type = 'experimental'
