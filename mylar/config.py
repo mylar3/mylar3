@@ -147,6 +147,7 @@ _CONFIG_DEFINITIONS = OrderedDict({
     'LOGIN_TIMEOUT': (int, 'Interface', 43800),
     'ALPHAINDEX': (bool, 'Interface', True),
     'CHERRYPY_LOGGING': (bool, 'Interface', False),
+    'INSTANCE_NAME': (str, 'Interface', None),
 
     'API_ENABLED' : (bool, 'API', False),
     'API_KEY' : (str, 'API', None),
