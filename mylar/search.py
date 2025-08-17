@@ -3193,16 +3193,16 @@ def searcher(
 
             if ddl_it['success'] is True:
                 logger.info(
-                    '[%s] Successfully snatched %s from DDL site. It is currently being queued'
+                    '[%s] Successfully snatched %s from External-DDL site. It is currently being queued'
                     ' to download in position %s' % (tnzbprov, nzbname, mylar.DDL_QUEUE.qsize())
                 )
             else:
-                logger.info('[%s] Failed to retrieve %s from the DDL site.' % (tnzbprov, nzbname))
+                logger.info('[%s] Failed to retrieve %s from the External-DDL site.' % (tnzbprov, nzbname))
                 return "ddl-fail"
 
         sent_to = "is downloading it directly via %s" % tnzbprov
 
-    if mylar.CONFIG.ENABLE_AIRDCPP and nzbprov.lower() == 'airdcpp':
+    elif mylar.CONFIG.ENABLE_AIRDCPP and nzbprov.lower() == 'airdcpp':
         if all([IssueID is None, IssueArcID is not None]):
             tmp_issueid = IssueArcID
         else:
