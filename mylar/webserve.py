@@ -35,6 +35,8 @@ from mako.template import Template
 from mako.lookup import TemplateLookup
 from mako import exceptions
 
+import traceback
+
 import time
 import random
 import threading
@@ -45,6 +47,8 @@ import shutil
 import fnmatch
 import simplejson as simplejson
 from operator import itemgetter
+
+import xml.etree.ElementTree as ET
 
 import mylar
 from mylar import (
@@ -1381,7 +1385,7 @@ class WebInterface(object):
         raise cherrypy.HTTPRedirect("comicDetails?ComicID=%s" % comicid)
     addComic.exposed = True
 
-    def addbyid(self, comicid, calledby=None, imported=None, ogcname=None, nothread=False, seriesyear=None, query_id=None, com_location=None, booktype=None, markupcoming=None, markall=None):
+    def addbyid(self, comicid, calledby=None, imported=None, ogcname=None, nothread=False, seriesyear=None, query_id=None, com_location=None, booktype=None, markupcoming=None, markall=None, suppress_addall=None):
         mismatch = "no"
         if com_location == 'null':
             com_location = None
@@ -1476,7 +1480,10 @@ class WebInterface(object):
             watch = []
             #if not any(ext['comicid'] == ComicID for ext in mylar.REFRESH_LIST):
             if not {"comicid": comicid, "comicname": ogcname} in mylar.ADD_LIST.queue:
-                watch.append({"comicid": comicid, "comicname": ogcname, "seriesyear": seriesyear})
+                comic_request = {"comicid": comicid, "comicname": ogcname, "seriesyear": seriesyear}
+                if suppress_addall:
+                    comic_request['suppress_addall'] = suppress_addall
+                watch.append(comic_request)
 
             if len(watch) > 0:
                 if all([ogcname != 'None', ogcname is not None]):
@@ -3158,16 +3165,13 @@ class WebInterface(object):
 
     def fly_me_to_the_moon(self):
         todaydate = datetime.datetime.today()
-        current_weeknumber = todaydate.strftime("%U")
+        weekinfo = helpers.weekly_info()
 
-        #find the given week number for the current day
-        weeknumber = current_weeknumber
-        stweek = datetime.datetime.strptime(todaydate.strftime('%Y-%m-%d'), '%Y-%m-%d')
-        startweek = stweek - timedelta(days = (stweek.weekday() + 1) % 7)
-        midweek = startweek + timedelta(days = 3)
-        endweek = startweek + timedelta(days = 6)
-        weekyear = todaydate.strftime("%Y")
-
+        weeknumber = weekinfo['current_weeknumber']
+        weekyear = weekinfo['year']
+        startweek = weekinfo['startweek']
+        midweek = weekinfo['midweek']
+        endweek = weekinfo['endweek']
 
         myDB = db.DBConnection()
         logger.info('weeknumber: %s' % weeknumber)
@@ -4349,6 +4353,10 @@ class WebInterface(object):
         return serve_template(templatename="managefailed.html", title="Failed DB Management", failed=results)
     manageFailed.exposed = True
 
+    def cblimport(self):
+        return serve_template(templatename="cblimport.html", title="CBL Import")
+    cblimport.exposed = True
+
     def flushImports(self):
         myDB = db.DBConnection()
         myDB.action('DELETE from importresults')
@@ -4500,11 +4508,31 @@ class WebInterface(object):
         raise cherrypy.HTTPRedirect("home")
     forceUpdate.exposed = True
 
-    def forceSearch(self):
+    def forceSearch(self, issueIds = None):
         #from mylar import search
         #threading.Thread(target=search.searchforissue).start()
         #raise cherrypy.HTTPRedirect("home")
-        self.schedulerForceCheck(jobid='search')
+        if issueIds is None:
+            self.schedulerForceCheck(jobid='search')
+        else:
+            myDB = db.DBConnection()
+
+            if not isinstance(issueIds, list):
+                issueIds = [issueIds]
+
+            for issueId in issueIds:
+                issue_data = myDB.selectone("SELECT C.Type, C.ComicYear, I.ComicName, I.Issue_Number, I.ComicID, I.IssueID FROM comics as C INNER JOIN issues as I on C.ComicID = I.ComicID WHERE I.IssueID=?", [issueId]).fetchone()
+                passInfo = {'issueid': issueId,
+                            'comicname': issue_data['ComicName'],
+                            'seriesyear': issue_data['ComicYear'],
+                            'comicid': issue_data['ComicID'],
+                            'issuenumber': issue_data['Issue_Number'],
+                            'booktype': issue_data['Type'],
+                            'manual': False}
+                logger.fdebug(f"Adding issue {issue_data['ComicName']} #{issue_data['Issue_Number']} [{issueId}] to search queue")
+                s = mylar.SEARCH_QUEUE.put(passInfo)
+
+        return json.dumps({'status': 'success'})
     forceSearch.exposed = True
 
     def forceRescan(self, ComicID, bulk=False, action='recheck', api=False):
@@ -7481,15 +7509,15 @@ class WebInterface(object):
     SABtest.exposed = True
 
     def NZBGet_test(self, nzbhost=None, nzbport=None, nzbusername=None, nzbpassword=None, nzbsub=None):
-        if nzbhost is None:
+        if any([nzbhost is None, nzbhost == 'None']):
             nzbhost = mylar.CONFIG.NZBGET_HOST
-        if nzbport is None:
+        if any([nzbport is None, nzbport == 'None']):
             nzbport = mylar.CONFIG.NZBGET_PORT
-        if nzbusername is None:
+        if any([nzbusername is None, nzbusername == 'None']):
             nzbusername = mylar.CONFIG.NZBGET_USERNAME
-        if nzbpassword is None:
+        if any([nzbpassword is None, nzbpassword == 'None']):
             nzbpassword = mylar.CONFIG.NZBGET_PASSWORD
-        if nzbsub is None:
+        if any([nzbsub is None, nzbsub == 'None']):
             nzbsub = mylar.CONFIG.NZBGET_SUB
 
         logger.fdebug('Now attempting to test NZBGet connection')
@@ -7505,8 +7533,12 @@ class WebInterface(object):
         url = '%s://%s:%s'
         nzbparams = (protocol,nzbgethost,nzbport)
         if nzbsub:
+            if not nzbsub.startswith('/'):
+                nzbsub = '/' + nzbsub
+            if nzbsub.endswith('/'):
+                nzbsub = nzbsub[:-1]
             url = '%s://%s:%s%s'
-            nzbparams += (nzbsub,)
+            nzbparams = nzbparams + (nzbsub,)
 
         logon_info = ''
         if all([nzbusername is not None, nzbpassword is not None]):
@@ -8051,6 +8083,60 @@ class WebInterface(object):
 
     manual_metatag.exposed = True
 
+    def bulk_metatag(self, ComicID, IssueIDs, threaded=False):
+        myDB = db.DBConnection()
+        cinfo = myDB.selectone('SELECT ComicLocation, ComicVersion, ComicYear, ComicName, AgeRating FROM comics WHERE ComicID=?', [ComicID]).fetchone()
+
+        comicinfo = {'ComicID': ComicID,
+                     'ComicName': cinfo['ComicName'],
+                     'ComicYear': cinfo['ComicYear'],
+                     'ComicVersion': cinfo['ComicVersion'],
+                     'AgeRating': cinfo['AgeRating'],
+                     'meta_dir': cinfo['ComicLocation']}
+        
+        if not isinstance(IssueIDs, list):
+            IssueIDs = [IssueIDs]
+        
+        issueList = ', '.join(IssueIDs)
+        groupinfo = myDB.select(f'SELECT IssueID, Location FROM issues WHERE ComicID={ComicID} and IssueID IN ({issueList}) and Location is not NULL')
+        if mylar.CONFIG.ANNUALS_ON:
+            groupinfo += myDB.select(f'SELECT IssueID, Location FROM annuals WHERE ComicID={ComicID} and IssueID IN ({issueList}) and Location is not NULL')
+
+        if len(groupinfo) == 0:
+            logger.warn('No issues physically exist for me to (re)-tag.')
+            return
+        
+        if mylar.CONFIG.CV_BATCH_LIMIT_PROTECTION and len(groupinfo) > mylar.CONFIG.CV_BATCH_LIMIT_THRESHOLD:
+            warningMessage = f"CV Batch Limit Protection ({mylar.CONFIG.CV_BATCH_LIMIT_THRESHOLD}) has been triggered trying to tag {len(groupinfo)} issues.  This will likely breach ComicVine API Limits."
+            logger.warn(f"[SERIES-METATAGGER][{comicinfo['ComicName']} ({comicinfo['ComicYear']})] {warningMessage}")
+            mylar.GLOBAL_MESSAGES = {'status': 'failure', 'comicname': cinfo['ComicName'], 'seriesyear': cinfo['ComicYear'], 'comicid': ComicID, 'tables': 'both', 'message': warningMessage}
+            return
+        
+        issueinfo = []
+        for ginfo in groupinfo:
+            issueinfo.append({'IssueID': ginfo['IssueID'],
+                              'Location': ginfo['Location']})        
+
+        if threaded is False:
+            threading.Thread(target=self.thread_that_bulk_meta, args=[comicinfo, issueinfo]).start()
+            return json.dumps({'status': 'success'})
+        else:
+            self.thread_that_bulk_meta(comicinfo, issueinfo)
+            return json.dumps({'status': 'success'})        
+    bulk_metatag.exposed = True
+
+    def thread_that_bulk_meta(self, comicinfo, issueinfo):
+        for ginfo in issueinfo:
+            #if multiple_dest_dirs is in effect, metadir will be pointing to the wrong location and cause a 'Unable to create temporary cache location' error message
+            self.manual_metatag(ginfo['IssueID'], group=True)
+        updater.forceRescan(comicinfo['ComicID'])
+        logger.info('[SERIES-METATAGGER][%s (%s)] Finished (re)tagging of metadata for selected issues.' % (comicinfo['ComicName'], comicinfo['ComicYear']))
+        issueline = '%s issues' % len(issueinfo)
+        if len(issueinfo) == 1:
+            issueline = '1 issue'
+        mylar.GLOBAL_MESSAGES = {'status': 'success', 'comicname': comicinfo['ComicName'], 'seriesyear': comicinfo['ComicYear'], 'comicid': comicinfo['ComicID'], 'tables': 'both', 'message': 'Finished (re)tagging of %s of %s (%s)' % (issueline, comicinfo['ComicName'], comicinfo['ComicYear'])}
+    thread_that_bulk_meta.exposed = True
+
     def group_metatag(self, ComicID, threaded=False):
         myDB = db.DBConnection()
         cinfo = myDB.selectone('SELECT ComicLocation, ComicVersion, ComicYear, ComicName, AgeRating FROM comics WHERE ComicID=?', [ComicID]).fetchone()
@@ -8066,8 +8152,14 @@ class WebInterface(object):
         if mylar.CONFIG.ANNUALS_ON:
             groupinfo += myDB.select('SELECT IssueID, Location FROM annuals WHERE ComicID=? and Location is not NULL', [ComicID])
 
-        if groupinfo is None:
+        if len(groupinfo) == 0:
             logger.warn('No issues physically exist within the series directory for me to (re)-tag.')
+            return
+
+        if mylar.CONFIG.CV_BATCH_LIMIT_PROTECTION and len(groupinfo) > mylar.CONFIG.CV_BATCH_LIMIT_THRESHOLD:
+            warningMessage = f"CV Batch Limit Protection ({mylar.CONFIG.CV_BATCH_LIMIT_THRESHOLD}) has been triggered trying to tag {len(groupinfo)} issues.  This will likely breach ComicVine API Limits."
+            logger.warn(f"[SERIES-METATAGGER][{comicinfo['ComicName']} ({comicinfo['ComicYear']})] {warningMessage}")
+            mylar.GLOBAL_MESSAGES = {'status': 'failure', 'comicname': cinfo['ComicName'], 'seriesyear': cinfo['ComicYear'], 'comicid': ComicID, 'tables': 'both', 'message': warningMessage}
             return
 
         issueinfo = []
@@ -9416,3 +9508,238 @@ class WebInterface(object):
             linemsg = 'Successfully Paused %s (%s) due to CV removal' % (comicname, comicyear)
             return json.dumps({'status': 'success', 'message': linemsg})
     fix_cv_removed.exposed = True
+
+    def checkCBLFile(self, cblFile, ignorearchived=False, issuesonly=False):
+        try:
+            cblXML = ET.parse(cblFile.file)
+            cblRoot = cblXML.getroot()
+        except ET.ParseError as e:
+            return json.dumps({'status': 'error', 'message' : f'XML Parsing Error: {e}'})            
+        
+        # Formdata only sends strings ...
+        ignorearchived = True if ignorearchived == 'true' else False
+        issuesonly = True if issuesonly == 'true' else False
+
+        results = []
+
+        try:
+            books = cblRoot.findall(".//Book")
+            # Using this to try to reduce unnecessary repeat DB calls.  Alternatively, could pre-pull a single call from Issues and reference that.  Potato potato.
+            volume_cache = {}
+            newvol_count = 0
+            missing_issue_count = 0
+
+            # Debatable whether it's worth doing this validation in its own loop to avoid wasted DB calls.
+            for book in books:
+                databaseEntry = book.find(".//Database[@Name='cv']")
+                if databaseEntry is None:
+                    return json.dumps({'status': 'error', 'message' : f'CBL Processing Error: No CV identifiers for entry {books.index(book)}'})            
+
+            myDB = db.DBConnection()
+
+            for book in books:
+                databaseEntry = book.find(".//Database[@Name='cv']")
+                
+                issueIndex = books.index(book)
+                volumeName = book.get('Series')
+                volumeYear = book.get('Volume')
+                issueNumber = book.get('Number')
+                cvSeriesID = databaseEntry.get('Series')
+                cvIssueID = databaseEntry.get('Issue')
+
+                if cvSeriesID in volume_cache.keys():
+                    vol_exists = volume_cache[cvSeriesID]
+                else:
+                    comic = myDB.selectone('SELECT * FROM comics WHERE ComicID=?', [cvSeriesID]).fetchone()
+                    vol_exists = False if comic is None else True
+                    volume_cache[cvSeriesID] = vol_exists
+                    if not vol_exists:
+                        newvol_count += 1
+                
+                if vol_exists:
+                    issue = myDB.selectone('SELECT * FROM issues WHERE IssueID=?', [cvIssueID]).fetchone()
+
+                    # Check in case the issue is an integrated annual
+                    if issue is None:
+                        issue = myDB.selectone('SELECT * FROM annuals WHERE IssueID=?', [cvIssueID]).fetchone()
+
+                    iss_exists = False if issue is None else True
+
+                    if iss_exists:
+                        iss_status = issue['Status']
+                        
+                        match iss_status:
+                            case 'Downloaded' | 'Wanted' | 'Snatched' | 'Failed':
+                                action_text = 'No action needed'
+                            case 'Archived':
+                                if ignorearchived :
+                                    action_text = 'No action needed' 
+                                else:
+                                    action_text = "Mark issue as Wanted"
+                                    missing_issue_count += 1
+                            case _:
+                                missing_issue_count += 1
+                                action_text = 'Mark issue as Wanted'
+                else:
+                    iss_exists = False
+                    iss_status = 'Missing'
+                    missing_issue_count += 1
+                    action_text = 'Add volume & mark issue as Wanted'
+                
+
+                # List to return to import table display: Entry, Volume, Issue, Status, Action
+                results.append([issueIndex, 
+                                f'<a href="{"comicDetails?ComicID=" if vol_exists else "https://comicvine.com/volume/4050-"}{cvSeriesID}" target="{"_self" if vol_exists else "_blank"}">{volumeName} ({volumeYear})</a>',
+                                issueNumber,
+                                iss_status,
+                                action_text])
+
+        except Exception as e:
+            return json.dumps({'status': 'error', 'message' : f'Error processing CBL file.  Unhandled Exception: {str(e)}'})
+        
+        if newvol_count > 200:
+            warning_text = 'Attempting to add more than 200 series may cause problems due to CV API limits.  Consider breaking up this list into smaller parts.'
+        elif newvol_count > 100:
+            warning_text = 'Attempting to add a lot of new series.  Consider your CV API limits before triggering the import.'
+        else:
+            warning_text = ''
+
+        return json.dumps({'status': 'success', 'warning_text' : warning_text, 'missing_volumes' : newvol_count, 'missing_issues' : missing_issue_count, 'results' : results,
+                           'message' : f'''CBL File "{cblFile.filename}" read successfully <br >
+                           <br >
+                           Total Volumes: {len(volume_cache.keys())} <br >                           
+                           Missing Volumes: {newvol_count} <br >
+                           <br >
+                           Total Issues: {len(results)} <br >
+                           Issues Not Currently Wanted: {missing_issue_count} <br >'''})
+    
+    checkCBLFile.exposed = True
+
+    # Assume this has been validated by check function
+    def processCBLFile(self, cblFile, ignorearchived=False, issuesonly=False):
+        # Track the volumes as they're added or queued
+        volume_index = {}
+        counters = {'volumes_added' : 0, 'issues_watched' : 0, 'issues_to_be_watched' : 0, 'issues_skipped' : 0}
+
+        # Formdata only sends strings ...
+        ignorearchived = True if ignorearchived == 'true' else False
+        issuesonly = True if issuesonly == 'true' else False
+
+        logger.info(f'Processing CBL File {cblFile.filename} to set up volumes and wanted issues')
+        warning_text = ''
+        warnings = {}
+
+        try:
+            cblXML = ET.parse(cblFile.file)
+            cblRoot = cblXML.getroot()
+        except ET.ParseError as e:
+            return json.dumps({'status': 'error', 'message' : f'XML Parsing Error: {e}', 'warning_text' : warning_text})
+            
+        try:
+            books = cblRoot.findall(".//Book")
+            
+            myDB = db.DBConnection()
+            
+            # Process the CBL File and build a dictionary of Wanted Issue IDs keyed on the ComicID
+            for book in books:
+                databaseEntry = book.find(".//Database[@Name='cv']")
+                if databaseEntry is None:
+                    return json.dumps({'status': 'error', 'message' : f'CBL Processing Error: No CV identifiers for entry {books.index(book)}', 'warning_text' : warning_text})            
+                
+                volumeName = book.get('Series')
+                volumeYear = book.get('Volume')
+                issueNumber = book.get('Number')
+                cvSeriesID = databaseEntry.get('Series')
+                cvIssueID = databaseEntry.get('Issue')
+
+                checkIssue = False
+                if cvSeriesID in volume_index.keys():
+                    # If we've seen this volume before, and already marked it for adding
+                    if volume_index[cvSeriesID]['NewVol']:
+                        logger.fdebug(f'CBL File: Volume "{volumeName} ({volumeYear})" to be added, Issue #{issueNumber} to be marked as Wanted')
+                        counters['issues_to_be_watched'] += 1
+                        # If Auto Want is on and not suppressed, we can avoid queueing this for addition
+                        if (issuesonly and mylar.CONFIG.AUTOWANT_ALL) or not mylar.CONFIG.AUTOWANT_ALL:
+                            volume_index[cvSeriesID]['IssueIDs'].append(cvIssueID)
+                    else:
+                        checkIssue = True
+                else:
+                    volume = myDB.selectone('SELECT * FROM comics WHERE ComicID=?', [cvSeriesID]).fetchone()
+                    if volume is None:
+                        logger.fdebug(f'CBL File: Volume "{volumeName} ({volumeYear})" does not exist exist.  Adding Volume, and Issue #{issueNumber} to be marked as Wanted')
+                        
+                        issueList = []
+                        # If Auto Want is on and not suppressed, we can avoid queueing this for addition
+                        if (issuesonly and mylar.CONFIG.AUTOWANT_ALL) or not mylar.CONFIG.AUTOWANT_ALL:
+                            issueList.append(cvIssueID)
+                        
+                        volume_index[cvSeriesID] = {'NewVol' : True, 'VolumeName' : volumeName, 'VolumeYear' : volumeYear, 'IssueIDs' : issueList}
+                        counters['volumes_added'] += 1
+                        counters['issues_to_be_watched'] += 1
+                    else:
+                        volume_index[cvSeriesID] = {'NewVol' : False, 'VolumeName' : volumeName, 'VolumeYear' : volumeYear, 'IssueIDs' : []}
+                        checkIssue = True
+                    
+                if checkIssue:
+                    issue = myDB.selectone('SELECT * FROM issues WHERE IssueID=?', [cvIssueID]).fetchone()
+
+                    # Check in case the issue is an integrated annual
+                    if issue is None:
+                        issue = myDB.selectone('SELECT * FROM annuals WHERE IssueID=?', [cvIssueID]).fetchone()
+
+                    if issue is None:
+                        logger.warning(f'CBL File: Volume "{volumeName} ({volumeYear})" exists but could not find Issue #{issueNumber} with ID {cvIssueID}')
+                        warnings.add(f'Some issues of existing volumes could not be found.  Check logs for details.')
+                    else:
+                        wantissue = False
+                        match issue['Status']:
+                            case 'Downloaded' | 'Wanted' | 'Snatched' | 'Failed':
+                                logger.fdebug(f'CBL File: Volume "{volumeName} ({volumeYear})" exists, Issue #{issueNumber} already Wanted')
+                                counters['issues_skipped'] += 1
+                            case 'Archived':
+                                if ignorearchived :
+                                    logger.fdebug(f'CBL File: Volume "{volumeName} ({volumeYear})" exists, Issue #{issueNumber} Archived.  Ignoring')
+                                    counters['issues_skipped'] += 1
+                                else:
+                                    wantissue = True
+                            case _:
+                                wantissue = True
+                        
+                        if wantissue:
+                            logger.fdebug(f'CBL File: Volume "{volumeName} ({volumeYear})" already exists, Issue #{issueNumber} to be marked as Wanted')
+                            counters['issues_watched'] += 1
+                            volume_index[cvSeriesID]['IssueIDs'].append(cvIssueID)
+
+            # No more holding back, let's get this stuff queued!
+            logger.fdebug(f"Finished analysing CBL File, adding volumes and issues to MASS-ADD queues")
+            for comicId,data in volume_index.items():
+                if data['NewVol']:
+                    comic_request = [{"comicid": comicId, "comicname": data['VolumeName'], "seriesyear": data['VolumeYear'], 'suppress_addall' : (issuesonly and mylar.CONFIG.AUTOWANT_ALL)}]
+                    importer.importer_thread(comic_request)
+
+                if len(data['IssueIDs']) > 0:
+                    importer.issue_watcher_thread(data['IssueIDs'])
+
+
+            # Give the MASS-ADD thread a little nudge in case it's not been started as we added no volumes
+            importer.importer_thread([])
+
+        except Exception as e:
+            logger.fdebug(f"Unhandled exception when processing CBL Reading List {cblFile.filename}:\n {traceback.format_exc()}")
+            return json.dumps({'status' : 'error', 'message' : f"Unhandled exception when processing CBL Reading List {cblFile.filename}: {str(e)}", 'warning_text' : warning_text})
+
+        logger.fdebug(f"Saving CBL import settings: CBL_IMPORT_ISSUESONLY={issuesonly}, CBL_IMPORT_IGNORE_ARCHIVED={ignorearchived}")
+        mylar.CONFIG.CBL_IMPORT_ISSUESONLY = issuesonly
+        mylar.CONFIG.CBL_IMPORT_IGNOREARCHIVED = ignorearchived
+        mylar.CONFIG.writeconfig(values={'CBL_IMPORT_ISSUESONLY': mylar.CONFIG.CBL_IMPORT_ISSUESONLY, 'CBL_IMPORT_IGNOREARCHIVED': mylar.CONFIG.CBL_IMPORT_IGNOREARCHIVED})
+
+        warning_text = '<br >'.join(warnings)
+        return json.dumps({'status': 'success', 'message' : f'''CBL File "{cblFile.filename}" fully imported <br >
+                           <br >
+                           Issues Already Watched: {counters['issues_skipped']} <br > 
+                           Existing Volume Issues to Watch: {counters['issues_watched']} <br >
+                           New Volumes Queued to Add: {counters['volumes_added']} <br >
+                           New Volume Issues to Watch: {counters['issues_to_be_watched']} <br > ''', 
+                           'warning_text' : warning_text})
+
+    processCBLFile.exposed = True

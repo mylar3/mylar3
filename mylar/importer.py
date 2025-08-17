@@ -48,30 +48,74 @@ def is_exists(comicid):
     else:
         return False
 
-def addvialist(queue):
+def addvialist(seriesQueue, issueWantQueue):
     while True:
-        if queue.qsize() >= 1:
+        if seriesQueue.qsize() >= 1:
             time.sleep(3)
-            item = queue.get(True)
+            item = seriesQueue.get(True)
             if item == 'exit':
                 break
             if item['comicname'] is not None:
                 if item['seriesyear'] is not None:
-                    logger.info('[MASS-ADD][1/%s] Now adding %s (%s) [%s] ' % (queue.qsize()+1, item['comicname'], item['seriesyear'], item['comicid']))
+                    logger.info('[MASS-ADD][1/%s] Now adding %s (%s) [%s] ' % (seriesQueue.qsize()+1, item['comicname'], item['seriesyear'], item['comicid']))
                     mylar.GLOBAL_MESSAGES = {'status': 'success', 'event': 'addbyid', 'comicname': item['comicname'], 'seriesyear': item['seriesyear'], 'comicid': item['comicid'], 'tables': 'None', 'message': 'Now adding %s (%s)' % (urllib.parse.unquote_plus(item['comicname']), item['seriesyear'])}
                 else:
-                    logger.info('[MASS-ADD][1/%s] Now adding %s [%s] ' % (queue.qsize()+1, item['comicname'], item['comicid']))
+                    logger.info('[MASS-ADD][1/%s] Now adding %s [%s] ' % (seriesQueue.qsize()+1, item['comicname'], item['comicid']))
                     mylar.GLOBAL_MESSAGES = {'status': 'success', 'event': 'addbyid', 'comicname': item['comicname'], 'seriesyear': item['seriesyear'], 'comicid': item['comicid'], 'tables': 'None', 'message': 'Now adding %s' % (urllib.parse.unquote_plus(item['comicname']))}
             else:
-                logger.info('[MASS-ADD][1/%s] Now adding ComicID: %s ' % (queue.qsize()+1, item['comicid']))
+                logger.info('[MASS-ADD][1/%s] Now adding ComicID: %s ' % (seriesQueue.qsize()+1, item['comicid']))
                 mylar.GLOBAL_MESSAGES = {'status': 'success', 'event': 'addbyid', 'comicname': item['comicname'], 'seriesyear': item['seriesyear'], 'comicid': item['comicid'], 'tables': 'None', 'message': 'Now adding via ComicID %s' % (item['comicid'])}
 
-            addComictoDB(item['comicid'])
+            if 'suppress_addall' in item.keys():
+                addComictoDB(item['comicid'], suppress_addall=item['suppress_addall'])
+            else:
+                addComictoDB(item['comicid'])
+        elif issueWantQueue.qsize() > 0:
+            time.sleep(1)
+            issueItem = issueWantQueue.get(True)
+            markIssueWantedById(issueItem)
         else:
             mylar.ADD_LIST.put('exit')
     return False
 
-def addComictoDB(comicid, mismatch=None, pullupd=None, imported=None, ogcname=None, calledfrom=None, annload=None, chkwant=None, issuechk=None, issuetype=None, latestissueinfo=None, csyear=None, fixed_type=None):
+def markIssueWantedById(issueId):
+    myDB = db.DBConnection()
+    issue = myDB.selectone("SELECT i.IssueId, c.ComicName, i.Issue_Number, c.ComicID, c.ComicYear, i.Status FROM issues i LEFT JOIN comics c ON i.ComicID=c.ComicID WHERE i.IssueID=?", [issueId]).fetchone()
+    annual_check = False
+    if issue is None:
+        issue = myDB.selectone("SELECT a.IssueId, c.ComicName, a.ReleaseComicName, a.Issue_Number, c.ComicID, c.ComicYear, a.Status FROM annuals a LEFT JOIN comics c ON a.ComicID=c.ComicID WHERE a.IssueID=? AND NOT a.Deleted", [issueId]).fetchone()
+        if issue is None:
+            logger.warning(f'Tried setting wanted status for issue with ID {issueId} in MASS-ADD thread but could not find issue')
+            return
+        else:
+            annual_check = True
+            comicname = issue['ReleaseComicName']
+            issuenumber = issue['Issue_Number']
+            comicid = issue['ComicID']
+    else:
+        comicname = issue['ComicName']
+        issuenumber = issue['Issue_Number']
+        comicid = issue['ComicID']
+
+    match issue['Status']:
+        case 'Downloaded' | 'Wanted' | 'Snatched' | 'Failed':
+            logger.info(f"Tried setting wanted status for {comicname} [ID:{comicid}] issue #{issuenumber} in MASS-ADD thread but it is already in the {issue['Status']} state")
+            return
+        case _:
+            logger.info(f"Changing status of {comicname} [ID:{comicid}] issue #{issuenumber} from {issue['Status']} to Wanted")
+
+    controlValueDict = {'IssueID' : issueId}
+    newValueDict = {'Status' : 'Wanted'}
+
+    if annual_check:
+        myDB.upsert("annuals", newValueDict, controlValueDict)
+    else:
+        myDB.upsert("issues", newValueDict, controlValueDict)
+
+    logger.fdebug(f"Finished changing status of {comicname} [ID:{comicid}] issue #{issuenumber} to Wanted")
+    
+
+def addComictoDB(comicid, mismatch=None, pullupd=None, imported=None, ogcname=None, calledfrom=None, annload=None, chkwant=None, issuechk=None, issuetype=None, latestissueinfo=None, csyear=None, fixed_type=None, suppress_addall=None):
     myDB = db.DBConnection()
 
     controlValueDict = {"ComicID":     comicid}
@@ -505,11 +549,11 @@ def addComictoDB(comicid, mismatch=None, pullupd=None, imported=None, ogcname=No
         if issued is None:
             logger.warn('Unable to retrieve data from ComicVine. Get your own API key already!')
             return {'status': 'incomplete'}
-    logger.info('Sucessfully retrieved issue details for ' + comic['ComicName'])
+    logger.info('Successfully retrieved issue details for ' + comic['ComicName'])
 
     #move to own function so can call independently to only refresh issue data
     #issued is from cv.getComic, comic['ComicName'] & comicid would both be already known to do independent call.
-    updateddata = updateissuedata(comicid, comic['ComicName'], issued, comicIssues, calledfrom, SeriesYear=SeriesYear, latestissueinfo=latestissueinfo, serieslast_updated=serieslast_updated, series_status=series_status)
+    updateddata = updateissuedata(comicid, comic['ComicName'], issued, comicIssues, calledfrom, SeriesYear=SeriesYear, latestissueinfo=latestissueinfo, serieslast_updated=serieslast_updated, series_status=series_status, suppress_addall=suppress_addall)
     try:
         if updateddata['status'] == 'failure':
             logger.warn('Unable to properly retrieve issue details - this is usually due to either irregular issue numbering, or problems with CV')
@@ -903,7 +947,7 @@ def GCDimport(gcomicid, pullupd=None, imported=None, ogcname=None):
     if pullupd is None:
         helpers.ComicSort(sequence='update')
 
-    logger.info("Sucessfully retrieved issue details for " + ComicName)
+    logger.info("Successfully retrieved issue details for " + ComicName)
     n = 0
     iscnt = int(comicIssues)
     issnum = []
@@ -1060,7 +1104,7 @@ def GCDimport(gcomicid, pullupd=None, imported=None, ogcname=None):
         logger.info("Finished grabbing what I could.")
 
 
-def issue_collection(issuedata, nostatus, serieslast_updated=None):
+def issue_collection(issuedata, nostatus, serieslast_updated=None, suppress_addall=None):
     #make sure serieslast_updated is in the correct format
     try:
         serieslast_updated = datetime.datetime.strptime(serieslast_updated, "%Y-%m-%d %H:%M:%S").strftime('%Y-%m-%d')
@@ -1130,7 +1174,7 @@ def issue_collection(issuedata, nostatus, serieslast_updated=None):
                             newValueDict['Status'] = "Skipped"
                             logger.fdebug('[PAUSE-CHECK-ISSUE-STATUS] Series is paused, setting status for new issue #%s to Skipped' % (issue['Issue_Number']))
                         else:
-                            if mylar.CONFIG.AUTOWANT_ALL:
+                            if mylar.CONFIG.AUTOWANT_ALL and not suppress_addall:
                                 newValueDict['Status'] = "Wanted"
                             elif serieslast_updated is None:
                                 #logger.fdebug('serieslast_update is None. Setting to Skipped')
@@ -1277,7 +1321,7 @@ def manualAnnual(manual_comicid=None, comicname=None, comicyear=None, comicid=No
     return
 
 
-def updateissuedata(comicid, comicname=None, issued=None, comicIssues=None, calledfrom=None, issuechk=None, issuetype=None, SeriesYear=None, latestissueinfo=None, serieslast_updated=None, series_status=None):
+def updateissuedata(comicid, comicname=None, issued=None, comicIssues=None, calledfrom=None, issuechk=None, issuetype=None, SeriesYear=None, latestissueinfo=None, serieslast_updated=None, series_status=None, suppress_addall=None):
     annualchk = []
     weeklyissue_check = []
     db_already_open = False
@@ -1333,8 +1377,8 @@ def updateissuedata(comicid, comicname=None, issued=None, comicIssues=None, call
     issname = []
     issdate = []
     issuedata = []
-    #let's start issue #'s at 0 -- thanks to DC for the new 52 reboot! :)
-    latestiss = "0"
+    # Start looking for the latest issue ID very low to accomodate series with only negative issues
+    latestiss = "-999999999"
     latestdate = "0000-00-00"
     latest_stdate = "0000-00-00"
     latestissueid = None
@@ -1602,10 +1646,10 @@ def updateissuedata(comicid, comicname=None, issued=None, comicIssues=None, call
         #if calledfrom == 'weeklycheck':
         if len(issuedata) >= 1 and not calledfrom  == 'dbupdate':
             logger.fdebug('initiating issue updating - info & status')
-            issue_collection(issuedata, nostatus='False', serieslast_updated=serieslast_updated)
+            issue_collection(issuedata, nostatus='False', serieslast_updated=serieslast_updated, suppress_addall=suppress_addall)
         else:
             logger.fdebug('initiating issue updating - just the info')
-            issue_collection(issuedata, nostatus='True', serieslast_updated=serieslast_updated)
+            issue_collection(issuedata, nostatus='True', serieslast_updated=serieslast_updated, suppress_addall=suppress_addall)
 
         styear = str(SeriesYear)
         if firstdate is not None:
@@ -1978,10 +2022,17 @@ def importer_thread(serieslist):
 
     if threaded_call is True:
         logger.info('[MASS-ADD] MASS_ADD thread not started. Started & submitting.')
-        mylar.MASS_ADD = threading.Thread(target=addvialist, args=(mylar.ADD_LIST,), name="mass-add")
+        mylar.MASS_ADD = threading.Thread(target=addvialist, args=(mylar.ADD_LIST, mylar.ISSUE_WATCH_LIST), name="mass-add")
         mylar.MASS_ADD.start()
         if not mylar.MASS_ADD:
             mylar.MASS_ADD.join(5)
+
+def issue_watcher_thread(issuelist):
+    # Issues to be watched in the future but are waiting for MASS_ADD to complete the serieslist backlog
+    if type(issuelist) != list:
+        issuelist = [issuelist]
+
+    list(map(mylar.ISSUE_WATCH_LIST.put, issuelist))
 
 
 def refresh_thread(serieslist):

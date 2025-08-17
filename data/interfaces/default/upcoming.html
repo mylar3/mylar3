@@ -6,7 +6,7 @@
 <%def name="headerIncludes()">
 	<div id="subhead_container">
 		<div id="subhead_menu">
-			<a href="#" id="menu_link_scan" onclick="doAjaxCall('forceSearch',$(this))" data-success="Checking for wanted issues successful" data-error="Error checking wanted issues">Force Check</a>
+			<a href="#" id="menu_link_scan" onclick="doAjaxCall('forceSearch',$(this))" data-success="Checking for wanted issues successful" data-error="Error checking wanted issues">Force Check Tier-1</a>
 		</div>
 	</div>
 </%def>
@@ -216,9 +216,39 @@
             });
         }
 
+        function search_the_issues() {
+            var checks = document.getElementsByName("issueid[]");
+            var checkboxesChecked = [];
+            for (var i=0; i<checks.length; i++) {
+                if (checks[i].checked) {
+                    // console.log(checks[i].value);
+                    checkboxesChecked.push(checks[i].value);
+                }
+            }
+
+            $.when($.ajax({
+                type: "GET",
+                url: "forceSearch",
+                data: { issueIds: checkboxesChecked },
+                traditional : true,
+                success: function(response) {
+                    obj = JSON.parse(response);
+                 },
+                 error: function(data)
+                     {
+                       alert('ERROR'+data.responseText);
+                     },
+            })).done(function(data) {
+                 reload_table();
+                 fc = document.getElementById("menu_link_scan");
+                 fc.getElementsByClassName('ui-button-text')[0].innerText = "Force Check Tier-1";
+            });
+        }
+
        function count_checks(){
             var checks = document.getElementsByName("issueid[]");
             cc = document.getElementById("markissue");
+            fc = document.getElementById("menu_link_scan");
             var checkfound = false;
             for (var i=0; i<checks.length; i++) {
                 if (checks[i].checked) {
@@ -228,8 +258,12 @@
             }
             if (checkfound == true){
                 cc.style.display = "block";
+                fc.onclick = function(){ search_the_issues() };
+                fc.getElementsByClassName('ui-button-text')[0].innerText = "Force Check Selected";
             } else {
                 cc.style.display = "none";
+                fc.onclick = function(){ doAjaxCall('forceSearch',this) };
+                fc.getElementsByClassName('ui-button-text')[0].innerText = "Force Check Tier-1";
             }
         }
 
@@ -452,6 +486,9 @@
                 },
             });
 	};
+
+    var lastChecked = null;
+
 	$(document).ready(function() {
             initThisPage();
             var tables = $('table.display').DataTable();
@@ -468,6 +505,30 @@
                // Check/uncheck checkboxes for all rows in the table
                $('input[type="checkbox"]', rows).prop('checked', this.checked);
                count_checks();
+            });
+
+            $('#wanted_table tbody').on('click', 'input[type="checkbox"]', function(e){
+                var chkboxes = Array.from(document.getElementsByName("issueid[]").values());
+
+                if (!lastChecked) {
+                    lastChecked = this;
+                } else {
+                    if (e.shiftKey) {
+                        var start = chkboxes.indexOf(lastChecked);
+                        var end = chkboxes.indexOf(this);
+
+                        var positive = start < end;
+
+                        for (var i = (positive ? start: end );
+                        (positive ? i <= end : i <= start); i++) {
+                            chkboxes[i].checked = lastChecked.checked;
+                        }
+                        lastChecked = null;
+                    }
+                    else {
+                        lastChecked = this;
+                    }
+                }
             });
 
             // Handle click on checkbox to set state of "Select all" control

@@ -114,7 +114,7 @@ _CONFIG_DEFINITIONS = OrderedDict({
     'SEARCH_TIER_CUTOFF': (int, 'General', 14), # days
 
     'RSS_CHECKINTERVAL': (int, 'Scheduler', 20),
-    'SEARCH_INTERVAL': (int, 'Scheduler', 360),
+    'SEARCH_INTERVAL': (int, 'Scheduler', 1440),
     'DOWNLOAD_SCAN_INTERVAL': (int, 'Scheduler', 5),
     'CHECK_GITHUB_INTERVAL' : (int, 'Scheduler', 360),
     'BLOCKLIST_TIMER': (int, 'Scheduler', 3600),
@@ -346,6 +346,9 @@ _CONFIG_DEFINITIONS = OrderedDict({
     'CMTAG_VOLUME': (bool, 'Metatagging', True),
     'CMTAG_START_YEAR_AS_VOLUME': (bool, 'Metatagging', True),
     'SETDEFAULTVOLUME': (bool, 'Metatagging', False),
+    'CV_BATCH_LIMIT_PROTECTION': (bool, 'Metatagging', True),
+    'CV_BATCH_LIMIT_THRESHOLD': (int, 'Metatagging', 200),
+
 
     'ENABLE_TORRENTS': (bool, 'Torrents', False),
     'ENABLE_TORRENT_SEARCH': (bool, 'Torrents', False),
@@ -443,6 +446,9 @@ _CONFIG_DEFINITIONS = OrderedDict({
     'OPDS_PASSWORD': (str, 'OPDS', None),
     'OPDS_METAINFO': (bool, 'OPDS', False),
     'OPDS_PAGESIZE': (int, 'OPDS', 30),
+
+    'CBL_IMPORT_ISSUESONLY' : (bool, 'CBLImport', True),
+    'CBL_IMPORT_IGNOREARCHIVED' : (bool, 'CBLImport', False),
 
 })
 

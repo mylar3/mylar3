@@ -342,10 +342,10 @@
                         <fieldset>
                     	<legend>Interval</legend>
 	                    <div class="row">
-	                    	<label>NZB Search Interval</label>
+	                    	<label>Auto-Search Interval</label>
 	                    	<input type="text" name="search_interval" value="${config['search_interval']}" size="4">mins
                                   <div class="row checkbox">
-                                    <input type="checkbox" name="nzb_startup_search" value="1" ${config['nzb_startup_search']} /><label>NZB Search on startup</label>
+                                    <input type="checkbox" name="nzb_startup_search" value="1" ${config['nzb_startup_search']} /><label>Search on startup</label>
                                   </div>
                                   <div class="row">
                                       <label>Search delay</label>
@@ -1191,6 +1191,7 @@
                                           <label>Folder location to monitor</label>
                                           <input type="text" name="check_folder" value="${config['check_folder']}" size="30">
                                           <small>enter in the absolute path to monitor for new issues</small>
+                                          <div id="check_folder_warning" style="display:none;color:red;">Do not monitor your comic or download paths</div>
                                        </div>
                                        <div class="row">
                                           <label>Folder Monitor Scan Interval</label>
@@ -1943,6 +1944,38 @@
         }
 
         </script>
+        <%
+            import os
+            sep = os.sep
+        %>
+        <script>
+            function pathIsParentOf(path, childPath) {
+                // Strip trailing slashes
+                re = new RegExp("\${sep}$", "g");
+                path = path.replace(re, "");
+                childPath = childPath.replace(re, "");
+
+                if (path == childPath) return true;
+
+                if (childPath.startsWith(path)) {
+                    // Check that if they have a common parent, they are not different paths with a common substring
+                    re = new RegExp("\${sep}[^\${sep}]*$", "g");
+                    pathParent = path.replace(re, "");
+                    childPathParent = childPath.replace(re, "");
+
+                    if (pathParent == childPathParent) {
+                        // We already checked if they are identical paths
+                        return false;
+                    } else {
+                        return true;
+                    }                
+                } else {
+                    return false;
+                }
+
+            };
+        </script>
+
        <script>
        function initThisPage()
 
@@ -3163,6 +3196,20 @@
                             }
                     });
                     $('#ajaxMsg').addClass('success').fadeIn().delay(3000).fadeOut();
+                });
+
+                $('input[name="check_folder"]').on('change keyup paste', function() {
+                    check_folder = $(this).val() //$('input[name="check_folder"]').val()
+                    comic_folder = $('#destination_dir').val()
+                    sab_folder = $('input[name="sab_directory"]').val()
+
+                    if (pathIsParentOf(check_folder, comic_folder) || pathIsParentOf(check_folder, sab_folder)) {
+                        $('#check_folder_warning').css("display", "block");
+                    }
+                    else {
+                        $('#check_folder_warning').css("display", "none");
+                    }
+                
                 });
 
                 $('#mattermost_test').click(function () {

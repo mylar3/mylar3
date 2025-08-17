@@ -1602,7 +1602,7 @@ div#artistheader h2 a {
   text-align: left;
   vertical-align: middle;
 }
-+#searchresults_table td#publisher {
+#searchresults_table td#publisher {
   width: 30px;
   text-align: center;
   vertical-align: middle;
@@ -1693,6 +1693,44 @@ div#artistheader h2 a {
   vertical-align: middle;
   text-align: left;
 }
+
+#cblimporttable th.list_index {
+  min-width: 50px;
+  text-align: center;
+}
+#cblimporttable td.list_index {
+  text-align: right;
+}
+#cblimporttable th.volume {
+  min-width: 325px;
+  text-align: left;
+}
+#cblimporttable td.volume {
+  text-align: left;
+}
+
+#cblimporttable th.issue {
+  min-width: 75px;
+  text-align: center;
+}
+#cblimporttable td.issue {
+  text-align: right;
+}
+#cblimporttable th.status {
+  min-width: 62px;
+  text-align: left;
+}
+#cblimporttable td.status {
+  text-align: left;
+}
+#cblimporttable th.action {
+  min-width: 325px;
+  text-align: left;
+}
+#cblimporttable td.action {
+  text-align: left;
+}
+
 #interactive_table th#series {
   max-width: 150px;
   vertical-align: middle;

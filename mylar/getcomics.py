@@ -336,18 +336,25 @@ class GC(object):
             else:
                 logger.fdebug('[PROVIDER-SEARCH-DELAY][DDL] Last search page fetch took place %s seconds ago. We\'re clear...' % (int(diff)))
 
-            page_html = self.session.get(
+            gc_page = self.session.get(
                 next_url + '/',
                 params={'s': queryline},
                 verify=True,
                 headers=self.headers,
                 timeout=(30,30)
-            ).text
+            )
+
+            # Either comms problems with the page, dead link, or a cloudflare issue
+            if gc_page.status_code != 200:
+                logger.warn(f"Search request not returned by GetComics (Code:{gc_page.status_code}).  This may be a CloudFlare block.")
+                break
+            
+            page_html = gc_page.text
 
             write_time = time.time()
             mylar.search.last_run_check(write={'DDL(GetComics)': {'id': 200, 'active': True, 'lastrun': write_time, 'type': 'DDL', 'hits': self.provider_stat['hits']+1}})
             self.provider_stat['lastrun'] = write_time
-            page_results, next_url = self.parse_search_result(page_html)
+            page_results, next_url = self.parse_search_result(page_html, gc_page.status_code)
 
             #logger.fdebug('page_results: %s' % page_results)
             possible_choices = []
@@ -366,7 +373,7 @@ class GC(object):
             #    logger.info('[pack-last choices] possible choices to check before page-loading next page..: %s' % possible_choices)
             #    yield possible_choices
 
-    def parse_search_result(self, page_html):
+    def parse_search_result(self, page_html, status_code):
         resultlist = []
         soup = BeautifulSoup(page_html, 'html.parser')
 
@@ -382,7 +389,7 @@ class GC(object):
             if current_page_span is not None:
                 page_no = current_page_span.text
 
-        logger.info('There are %d results on page %s (of %s)', len(articles), page_no, total_pages)
+        logger.info(f'There are {len(articles)} results on page {page_no} (of {total_pages}) [Status Code: {status_code}]')
 
         for f in articles:
             id = f['id']
