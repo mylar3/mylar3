@@ -2815,7 +2815,7 @@ class PostProcessor(object):
             #new CV API - removed all decimals...here we go AGAIN!
             issuenum = issuenzb['Issue_Number']
             
-            prettycomiss = helpers.issue_number_parser(issuenum, issue_id=issueid).asString
+            prettycomiss = helpers.issue_number_parser(issuenum, issue_id=issueid, pretty_string = True).asString
             
             if annchk == "yes":
                 self._log("Annual detected.")
