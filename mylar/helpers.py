@@ -1584,12 +1584,12 @@ def listLibrary(comicid=None):
     myDB = db.DBConnection()
     if comicid is None:
         if mylar.CONFIG.ANNUALS_ON is True:
-            list = myDB.select("SELECT a.comicid, b.releasecomicid, a.status FROM Comics AS a LEFT JOIN annuals AS b on a.comicid=b.comicid group by a.comicid")
+            list = myDB.select("SELECT a.comicid, b.releasecomicid, a.status FROM Comics AS a LEFT JOIN annuals AS b on a.comicid=b.comicid group by a.comicid, b.releasecomicid")
         else:
             list = myDB.select("SELECT comicid, status FROM Comics group by comicid")
     else:
         if mylar.CONFIG.ANNUALS_ON is True:
-            list = myDB.select("SELECT a.comicid, b.releasecomicid, a.status FROM Comics AS a LEFT JOIN annuals AS b on a.comicid=b.comicid WHERE a.comicid=? group by a.comicid", [re.sub('4050-', '', comicid).strip()])
+            list = myDB.select("SELECT a.comicid, b.releasecomicid, a.status FROM Comics AS a LEFT JOIN annuals AS b on a.comicid=b.comicid WHERE a.comicid=? group by a.comicid, b.releasecomicid", [re.sub('4050-', '', comicid).strip()])
         else:
             list = myDB.select("SELECT comicid, status FROM Comics WHERE comicid=? group by comicid", [re.sub('4050-', '', comicid).strip()])
 
