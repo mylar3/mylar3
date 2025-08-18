@@ -1333,6 +1333,11 @@ def forceRescan(ComicID, archive=None, module=None, recheck=False):
             p = shlex.quote(fcnew_af[0])
             fcnew = shlex.split(p)
 
+            if temploc is not None:
+                fcdigit = helpers.issue_number_parser(temploc).asInt
+            elif any([booktype == 'TPB', booktype == 'GN', booktype == 'HC', booktype == 'One-Shot']) and temploc is None:
+                fcdigit = helpers.issue_number_parser('1').asInt
+
             fcn = len(fcnew)
             n = 0
             while True:
@@ -1364,11 +1369,6 @@ def forceRescan(ComicID, archive=None, module=None, recheck=False):
                     break
 
                 fnd_iss_except = 'None'
-
-                if temploc is not None:
-                    fcdigit = helpers.issue_number_parser(temploc).asInt
-                elif any([booktype == 'TPB', booktype == 'GN', booktype == 'HC', booktype == 'One-Shot']) and temploc is None:
-                    fcdigit = helpers.issue_number_parser('1').asInt
 
                 if int(fcdigit) == int_iss:
                     logger.fdebug(module + ' [' + str(reiss['IssueID']) + '] Issue match - fcdigit: ' + str(fcdigit) + ' ... int_iss: ' + str(int_iss))
@@ -1508,6 +1508,18 @@ def forceRescan(ComicID, archive=None, module=None, recheck=False):
             fcn = len(fcnew)
             n = 0
             reann = None
+
+            year_check = re.findall(r'(\d{4})(?=[\s]|annual\b|$)', temploc, flags=re.I)
+            if year_check:
+                ann_line = '%s annual' % year_check[0]
+                logger.fdebug('ann_line: %s' % ann_line)
+                fcdigit = helpers.issue_number_parser('1').asInt
+            else:
+                fcdigit = helpers.issue_number_parser(re.sub('annual', '', temploc.lower()).strip()).asInt
+            # TODO: Another special case harcoded int_issue to look at
+            if fcdigit == 999999999999999:
+                fcdigit = helpers.issue_number_parser(re.sub('special', '', temploc.lower()).strip()).asInt
+
             while True:
                 try:
                     reann = reannuals[n]
@@ -1517,17 +1529,6 @@ def forceRescan(ComicID, archive=None, module=None, recheck=False):
                 #logger.fdebug(module + ' int_iss:' + str(int_iss))
                 issyear = reann['IssueDate'][:4]
                 old_status = reann['Status']
-
-                year_check = re.findall(r'(\d{4})(?=[\s]|annual\b|$)', temploc, flags=re.I)
-                if year_check:
-                    ann_line = '%s annual' % year_check[0]
-                    logger.fdebug('ann_line: %s' % ann_line)
-                    fcdigit = helpers.issue_number_parser('1').asInt
-                else:
-                    fcdigit = helpers.issue_number_parser(re.sub('annual', '', temploc.lower()).strip()).asInt
-                # TODO: Another special case harcoded int_issue to look at
-                if fcdigit == 999999999999999:
-                    fcdigit = helpers.issue_number_parser(re.sub('special', '', temploc.lower()).strip()).asInt
 
                 if int(fcdigit) == int_iss and ANNComicID is not None:
                     logger.fdebug(module + ' [' + str(ANNComicID) + '] Annual match - issue : ' + str(int_iss))

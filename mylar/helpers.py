@@ -416,7 +416,7 @@ def rename_param(comicid, comicname, issue, ofilename, comicyear=None, issueid=N
 
             unicodeissue = issuenum
             
-            prettycomiss = issue_number_parser(issuenum, issue_id=issueid).asString
+            prettycomiss = issue_number_parser(issuenum, issue_id=issueid, pretty_string = True).asString
             
             logger.fdebug('Pretty Comic Issue is : ' + str(prettycomiss))
             if mylar.CONFIG.UNICODE_ISSUENUMBER:
@@ -4603,7 +4603,7 @@ def check_file_condition(file_path):
         file_path (str): Location of the file to check
 
     Returns:
-        dict: A dictionary containing a status (True/False for good/bad file), type (known file type), 
+        dict: A dictionary containing a status (True/False for good/bad file), type (known file type),
             and quality (descriptive string)
     """
     logger.fdebug(f'Checking file condition of {file_path}')
@@ -4662,9 +4662,12 @@ def issue_number_to_int(number_part = None, string_part = None):
     An integer representation of the issue number
     """
     # TODO: Add a check for integer overflow (miniscule risk) for SQLITE maxint - either limit it here as a preventative check, or handle it in database handler class.
-    
+
     if number_part is None and string_part is None:
         return 0
+
+    if string_part is None and isinstance(number_part, int):
+        return number_part * 1000
 
     string_ordinal_sum = 0
     if string_part is not None:
@@ -4675,7 +4678,7 @@ def issue_number_to_int(number_part = None, string_part = None):
     # If the number is not visible within three decimal places, but non-zero, need to differentiate it from zero (e.g. Quantum and Woody)
     if (number_part is not None) and (0 < number_part < 0.001):
         string_ordinal_sum += 1
-    
+
     if (number_part is not None) and (number_part < 0):
         string_ordinal_sum *= -1
 
@@ -4709,9 +4712,10 @@ def format_issue_number(number, zero_padding=0):
     dec = 0 if len(split_num) == 1 else split_num[1]
 
     return f"{'-' if negative else ''}{whole:0>{zero_padding}}{'' if dec == 0 else f'.{dec}'}"
-    
 
-def issue_number_parser(issue_no, zero_padding=None, issue_id = None, from_data_source=False):
+
+IssueNumber = namedtuple('IssueNumber', ['asInt', 'asString', 'asLegacy'], defaults=[None])
+def issue_number_parser(issue_no, zero_padding=None, issue_id= None, from_data_source= False, pretty_string = False):
     """
     Returns a tuple of the integer representation of an issue "number", and the string representation for file naming.
 
@@ -4732,15 +4736,17 @@ def issue_number_parser(issue_no, zero_padding=None, issue_id = None, from_data_
     from_data_source : bool
         If this has been called using data from a data source of record (e.g. ComicVine) then any string parts may be
         considered for addition to the exceptions list for file identification / matching
+    pretty_string    : bool
+        For efficiency saving, it will not generate the string formatted version by default.
 
     The below parameter will default to the global mylar config if not set.
     zero_padding : int (optional)
-        The width of zero padding required for the numeric part string representation    
+        The width of zero padding required for the numeric part string representation
 
     Returns
     -------
     A namedtuple of issue number representations.
-    
+
     asInt    : int
         The integer representation of the issue number
     asString : str
@@ -4773,25 +4779,24 @@ def issue_number_parser(issue_no, zero_padding=None, issue_id = None, from_data_
     Haunt of Fear 1 [15] : https://comicvine.gamespot.com/haunt-of-fear/4050-1398/
     God is Dead Alpha/Omega : https://comicvine.gamespot.com/god-is-dead-the-book-of-acts/4050-76270/
     Quantum and Woody 0.0001½ : https://comicvine.gamespot.com/quantum-and-woody/4050-105656/
-    
+
     Still unsolved (need more filechecker changes):
     Army and Navy 1 #02: https://comicvine.gamespot.com/army-and-navy-fun-parade/4050-127823/
     Dark Fantasies 9 & 10: https://comicvine.gamespot.com/dark-fantasies/4050-24691/
     """
-    IssueNumber = namedtuple('IssueNumber', ['asInt', 'asString', 'asLegacy'], defaults=[None])
-    logger.debug(f'Attempting to process issue number "{issue_no}"')
-    
-    if not isinstance(issue_no, str):
-        logger.warn(f'Issue Number not a string, attempting to cast as one: {issue_no}')
-        try:
-            issue_no = str(issue_no)
-        except:
-            logger.error(f'Failed to convert issue number to string.  Defaulting to a large number.')
-            return IssueNumber(999999999999999,'999999999999999')
+    #logger.debug(f'Attempting to process issue number "{issue_no}"')
+
+    # if not isinstance(issue_no, str):
+    #     logger.warn(f'Issue Number not a string, attempting to cast as one: {issue_no}')
+    #     try:
+    #         issue_no = str(issue_no)
+    #     except:
+    #         logger.error(f'Failed to convert issue number to string.  Defaulting to a large number.')
+    #         return IssueNumber(999999999999999,'999999999999999')
 
     legacy_issue = None
 
-    # Grab mylar's settings for number formatting    
+    # Grab mylar's settings for number formatting
     #issueHashPrefix = False
     #if r'#$Issue' in mylar.CONFIG.FILE_FORMAT:
     #    issueHashPrefix = True
@@ -4804,10 +4809,13 @@ def issue_number_parser(issue_no, zero_padding=None, issue_id = None, from_data_
                 case '00x':
                     zero_padding = 3
                 case 'none'|_:
-                    zero_padding = 0                
+                    zero_padding = 0
         else:
             zero_padding = 0
-    
+
+    if issue_no.isdigit():
+        return IssueNumber(issue_number_to_int(int(issue_no)),format_issue_number(issue_no,zero_padding) if pretty_string else None, legacy_issue)
+
     # - Filename safety characters
     # - Hash marks as special for mylar identification
     if len(issue_no) > 0 and issue_no[0] == '#':
@@ -4823,32 +4831,32 @@ def issue_number_parser(issue_no, zero_padding=None, issue_id = None, from_data_
         logger.fdebug(f'Issue number {issue_no} provided as range, sorting based on first number {first_no}')
         formatted_first_no = format_issue_number(first_no,zero_padding)
         formatted_last_no = format_issue_number(last_no,zero_padding)
-        return IssueNumber(issue_number_to_int(float(first_no)), f"{formatted_first_no}-{formatted_last_no}", legacy_issue)
-    
+        return IssueNumber(issue_number_to_int(float(first_no)), f"{formatted_first_no}-{formatted_last_no}" if pretty_string else None, legacy_issue)
+
     issue_no = re.sub(r'[\\/&#]', '.', issue_no)
 
     if issue_no == '':
         return IssueNumber(1,'')
-    
+
     # Extract any legacy issue numbers and drop the legacy part
     if all([ '[' in issue_no, ']' in issue_no ]):
         legacy_start = issue_no.find('[')
         legacy_issue = issue_no[legacy_start+1:issue_no.find(']')]
         issue_no = issue_no[:legacy_start].strip()
-        logger.debug(f'Found legacy issue number [{legacy_issue}] and treating this as #{issue_no}')
+        #logger.debug(f'Found legacy issue number [{legacy_issue}] and treating this as #{issue_no}')
 
     # Make the assumption that infinity is a) large for sorting b) uses the whole string for
     # differentiation (if not solo) and c) can be expressed in a filename without error
     if '\u221e' in issue_no:
-        logger.debug(f'Found infinity issue - setting to be very large')    
-        return IssueNumber(issue_number_to_int(9999999,issue_no), issue_no, legacy_issue)
+        #logger.debug(f'Found infinity issue - setting to be very large')
+        return IssueNumber(issue_number_to_int(9999999,issue_no), issue_no if pretty_string else None, legacy_issue)
 
     # Tries its best to account for multiple fractions in a number, but there really is a limit ...
     # fraction_chars = {'\xbc' : '25', '\xbd' : '5', '\xbe' : '75', '\u2152' : '1', '\u2153' : '33', '\u2154' : '67'}
     fraction_chars = {chr(x) : str(round(unicodedata.numeric(chr(x)),2))[2:] for x in itertools.chain(range(0x00BC, 0x00BF),range(0x2150,0x215F))}
     fractions_present = [x for x in fraction_chars.keys() if x in issue_no]
-    if len(fractions_present) > 0:
-        logger.debug(f'Found fractions in issue number ({fractions_present}) - converting to decimal form')
+    # if len(fractions_present) > 0:
+    #     logger.debug(f'Found fractions in issue number ({fractions_present}) - converting to decimal form')
 
     for fraction_char in fractions_present:
         # Substitue in order of solo entry (quickest), existing decimal prefix, then existing whole number prefix
@@ -4873,9 +4881,9 @@ def issue_number_parser(issue_no, zero_padding=None, issue_id = None, from_data_
         #logger.debug('Issue Number is not solely numeric, moving on')
         pass
     else:
-        logger.debug(f'Issue identified as numeric {issue_no}')
-        return IssueNumber(issue_number_to_int(float(issue_no)),format_issue_number(issue_no,zero_padding), legacy_issue)
-    
+        #logger.debug(f'Issue identified as numeric {issue_no}')
+        return IssueNumber(issue_number_to_int(float(issue_no)),format_issue_number(issue_no,zero_padding) if pretty_string else None, legacy_issue)
+
     # Find the first recognisable numeric string, and use that to denote the issue "number"
     # Note that the regex will match empty strings so we need to filter this result set.  This was to
     # allow for decimals <1 with no leading 0
@@ -4883,10 +4891,10 @@ def issue_number_parser(issue_no, zero_padding=None, issue_id = None, from_data_
 
     if len(numeric_parts) == 0:
         # Issue number is a pure string.
-        logger.debug('Issue Number is entirely String based')
+        #logger.debug('Issue Number is entirely String based')
         if from_data_source:
             add_issue_exception(issue_no, exception_type='Exact')
-        return IssueNumber(issue_number_to_int(string_part=issue_no), issue_no, legacy_issue)
+        return IssueNumber(issue_number_to_int(string_part=issue_no), issue_no if pretty_string else None, legacy_issue)
     else:
         numeric_part = numeric_parts[0]
         match_position = issue_no.find(numeric_part)
@@ -4904,9 +4912,9 @@ def issue_number_parser(issue_no, zero_padding=None, issue_id = None, from_data_
             else:
                 add_issue_exception(re.sub(r'[\. ]','',suffix), exception_type='Exact')
 
-        logger.debug(f'Breaking Issue Number into parts and formatting number ({prefix},{numeric_part},{suffix})')
+        #logger.debug(f'Breaking Issue Number into parts and formatting number ({prefix},{numeric_part},{suffix})')
         formatted_number = format_issue_number(numeric_part,zero_padding)
-        return IssueNumber(issue_number_to_int(float(numeric_part), intIssueNumStringPart), prefix + formatted_number + suffix, legacy_issue)
+        return IssueNumber(issue_number_to_int(float(numeric_part), intIssueNumStringPart), (prefix + formatted_number + suffix) if pretty_string else None, legacy_issue)
 
     logger.error(f'Something went horribly wrong and I could not work out the issue number from {issue_no}.  Somehow I have also bypassed the conditional above.')
     return IssueNumber(999999999999999,'999999999999999')
@@ -4928,8 +4936,8 @@ def issue_exception_list(exception_type = 'Exact'):
             mylar.CONFIG.CUSTOM_ISSUE_EXCEPTIONS = json.loads(mylar.CONFIG.CUSTOM_ISSUE_EXCEPTIONS)
         except Exception:
             pass
-    
-    return [x[0] for x in 
+
+    return [x[0] for x in
             [list(item) for item in set([tuple(entry) for entry in mylar.INBUILT_ISSUE_EXCEPTIONS] +
                                          [tuple(entry) for entry in mylar.CONFIG.CUSTOM_ISSUE_EXCEPTIONS])]
               if x[1] == exception_type]
