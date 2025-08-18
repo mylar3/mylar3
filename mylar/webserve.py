@@ -5495,7 +5495,7 @@ class WebInterface(object):
             for m_arc in arc_match:
                 #now we cycle through the issues looking for a match.
                 if m_arc['match_annual']:
-                    issue = myDB.selectone("SELECT a.Issue_Number, a.Status, a.IssueID, a.ComicName, a.IssueDate, a.Location, b.readingorder FROM annuals AS a INNER JOIN storyarcs AS b ON a.comicid = b.comicid where a.comicid=? and a.issue_number=? and a.issueid=?", [m_arc['match_id'], m_arc['match_issue'], m_arc['match_issueid']]).fetchone()
+                    issue = myDB.selectone("SELECT a.Issue_Number, a.Status, a.IssueID, a.ComicName, a.IssueDate, a.Location, b.readingorder FROM annuals AS a INNER JOIN storyarcs AS b ON a.releasecomicid = b.comicid where a.comicid=? and a.issue_number=? and a.issueid=?", [m_arc['match_id'], m_arc['match_issue'], m_arc['match_issueid']]).fetchone()
                 else:
                     issue = myDB.selectone("SELECT a.Issue_Number, a.Status, a.IssueID, a.ComicName, a.IssueDate, a.Location, b.readingorder FROM issues AS a INNER JOIN storyarcs AS b ON a.comicid = b.comicid where a.comicid=? and a.issue_number=?", [m_arc['match_id'], m_arc['match_issue']]).fetchone()
                 if issue is None: pass
