@@ -359,16 +359,6 @@ _CONFIG_DEFINITIONS = OrderedDict({
 
     'ENABLE_DDL': (bool, 'DDL', False),
     'ENABLE_GETCOMICS': (bool, 'DDL', False),
-    'ENABLE_6DCC': (bool, 'DDL', False),
-    'ENABLE_AIRDCPP': (bool, 'DDL', False),
-    'AIRDCPP_HOST': (str, 'DDL', 'http://localhost:5600'),
-    'AIRDCPP_USERNAME': (str, 'DDL', ""),
-    'AIRDCPP_PASSWORD': (str, 'DDL', ""),
-    'AIRDCPP_DOWNLOAD_DIR': (str, 'DDL', ""),
-    'AIRDCPP_HUBS': (str, 'DDL', "myhub1.com:6423,dchub://myhub2.com:411"),
-    'AIRDCPP_VERSION': (str, 'DDL', ""),
-    'AIRDCPP_ANNOUNCE_HUB': (str, 'DDL', ""),
-    'AIRDCPP_ANNOUNCE_BOTS': (str, 'DDL', ""),
     'ENABLE_EXTERNAL_SERVER': (bool, 'DDL', False),
     'EXTERNAL_SERVER': (str, 'DDL', None),
     'EXTERNAL_USERNAME': (str, 'DDL', None),
@@ -384,6 +374,16 @@ _CONFIG_DEFINITIONS = OrderedDict({
     'ENABLE_PROXY': (bool, 'DDL', False),
     'HTTP_PROXY': (str, 'DDL', None),
     'HTTPS_PROXY': (str, 'DDL', None),
+
+    'ENABLE_AIRDCPP': (bool, 'DCPP', False),
+    'AIRDCPP_HOST': (str, 'DCPP', ""),
+    'AIRDCPP_USERNAME': (str, 'DCPP', ""),
+    'AIRDCPP_PASSWORD': (str, 'DCPP', ""),
+    'AIRDCPP_DOWNLOAD_DIR': (str, 'DCPP', ""),
+    'AIRDCPP_HUBS': (str, 'DCPP', ""),
+    'AIRDCPP_VERSION': (str, 'DCPP', ""),
+    'AIRDCPP_ANNOUNCE_HUB': (str, 'DCPP', ""),
+    'AIRDCPP_ANNOUNCE_BOTS': (str, 'DCPP', ""),
 
     'AUTO_SNATCH': (bool, 'AutoSnatch', False),
     'AUTO_SNATCH_SCRIPT': (str, 'AutoSnatch', None),
@@ -479,6 +479,15 @@ _BAD_DEFINITIONS = OrderedDict({
     'DOGNZB': ('DOGnzb', 'dognzb', bool, None),
     'DOGNZB_APIKEY': ('DOGnzb', 'dognzb_apikey', str, None),
     'DOGNZB_VERIFY': ('DOGnzb', 'dognzb_verify', bool, None),
+    'ENABLE_AIRDCPP': ('DDL', 'enable_airdcpp', bool, None),
+    'AIRDCPP_HOST': ('DDL', 'airdcpp_host', str, None),
+    'AIRDCPP_USERNAME': ('DDL', 'airdcpp_username', str, None),
+    'AIRDCPP_PASSWORD': ('DDL', 'airdcpp_password', str, None),
+    'AIRDCPP_DOWNLOAD_DIR': ('DDL', 'airdcpp_download_dir', str, None),
+    'AIRDCPP_HUBS': ('DDL', 'airdcpp_hubs', str, None),
+    'AIRDCPP_VERSION': ('DDL', 'airdcpp_version', str, None),
+    'AIRDCPP_ANNOUNCE_HUB': ('DDL', 'airdcpp_announce_hub', str, None),
+    'AIRDCPP_ANNOUNCE_BOTS': ('DDL', 'airdcpp_announce_bots', str, None),
 })
 
 class Config(object):
@@ -498,7 +507,7 @@ class Config(object):
                 count = 0
 
             #this is the current version at this particular point in time.
-            self.newconfig = 14
+            self.newconfig = 15
 
             OLDCONFIG_VERSION = 0
             if count == 0:
@@ -522,6 +531,22 @@ class Config(object):
         setattr(self, 'MINIMAL_INI', MINIMALINI)
 
         config_values = []
+
+        #this section retains values of variables that are no longer being saved to the ini
+        #in case they are needed prior to wiping out things
+        self.OLD_VALUES = {}
+        for b, bv in _BAD_DEFINITIONS.items():
+            if len(bv) == 4:  #removal of option...
+                if bv[1] not in self.OLD_VALUES:
+                    try:
+                        if bv[2] == bool:
+                             self.OLD_VALUES[bv[1]] = config.getboolean(bv[0], bv[1])
+                        elif bv[2] == str:
+                             self.OLD_VALUES[bv[1]] = config.get(bv[0], bv[1])
+                        elif bv[2] == int:
+                             self.OLD_VALUES[bv[1]] = config.getint(bv[0], bv[1])
+                    except (configparser.NoSectionError, configparser.NoOptionError) as e:
+                        pass
 
         for k,v in _CONFIG_DEFINITIONS.items():
             xv = []
@@ -618,22 +643,6 @@ class Config(object):
                     elif k == 'MINIMAL_INI':
                         config.set(v[1], k.lower(), str(self.MINIMAL_INI))
 
-        #this section retains values of variables that are no longer being saved to the ini
-        #in case they are needed prior to wiping out things
-        self.OLD_VALUES = {}
-        for b, bv in _BAD_DEFINITIONS.items():
-            if len(bv) == 4:  #removal of option...
-                if bv[1] not in self.OLD_VALUES:
-                    try:
-                        if bv[2] == bool:
-                             self.OLD_VALUES[bv[1]] = config.getboolean(bv[0], bv[1])
-                        elif bv[2] == str:
-                             self.OLD_VALUES[bv[1]] = config.get(bv[0], bv[1])
-                        elif bv[2] == int:
-                             self.OLD_VALUES[bv[1]] = config.getint(bv[0], bv[1])
-                    except (configparser.NoSectionError, configparser.NoOptionError):
-                        pass
-
     def read(self, startup=False):
         self.config_vals()
 
@@ -676,7 +685,7 @@ class Config(object):
             cc = maintenance.Maintenance('backup')
             bcheck = cc.backup_files(cfg=True, dbs=False, backupinfo=backupinfo)
 
-            if self.CONFIG_VERSION < 14:
+            if self.CONFIG_VERSION < 15:
                 print('Attempting to update configuration..')
                 #8-torznab multiple entries merged into extra_torznabs value
                 #9-remote rtorrent ssl option
@@ -684,6 +693,7 @@ class Config(object):
                 #11-provider ids
                 #12-ddl seperation into multiple providers, new keys, update tables
                 #13-remove dognzb and nzbsu as independent options (throw them under newznabs if present)
+                #14-put airdcpp variables into it's own section (DCPP) instead of under the DDL section
                 self.config_update()
             setattr(self, 'OLDCONFIG_VERSION', str(self.CONFIG_VERSION))
             setattr(self, 'CONFIG_VERSION', self.newconfig)
@@ -895,6 +905,28 @@ class Config(object):
             except Exception as e:
                 #if the table doesn't exist yet, it'll get created after the config loads on new installs.
                 pass
+
+        if self.newconfig < 16:
+            # move aircdpp settings into it's own section since it's technically not ddl
+            self.ENABLE_AIRDCCP =  self.OLD_VALUES['enable_airdcpp']
+            self.AIRDCPP_HOST = self.OLD_VALUES['airdcpp_host']
+            self.AIRDCPP_USERNAME = self.OLD_VALUES['airdcpp_username']
+            self.AIRDCPP_PASSWORD = self.OLD_VALUES['airdcpp_password']
+            self.AIRDCPP_DOWNLOAD_DIR = self.OLD_VALUES['airdcpp_download_dir']
+            self.AIRDCPP_HUBS = self.OLD_VALUES['airdcpp_hubs']
+            self.AIRDCPP_VERSION = self.OLD_VALUES['airdcpp_version']
+            self.AIRDCPP_ANNOUNCE_HUB = self.OLD_VALUES['airdcpp_announce_hub']
+            self.AIRDCPP_ANNOUNCE_BOTS = self.OLD_VALUES['airdcpp_announce_bots']
+
+            config.set('DCPP', 'enable_airdcpp', str(self.ENABLE_AIRDCPP))
+            config.set('DCPP', 'airdcpp_host', self.AIRDCPP_HOST)
+            config.set('DCPP', 'airdcpp_username', self.AIRDCPP_USERNAME)
+            config.set('DCPP', 'airdcpp_password', self.AIRDCPP_PASSWORD)
+            config.set('DCPP', 'airdcpp_download_dir', self.AIRDCPP_DOWNLOAD_DIR)
+            config.set('DCPP', 'airdcpp_hubs', self.AIRDCPP_HUBS)
+            config.set('DCPP', 'airdcpp_version', self.AIRDCPP_VERSION)
+            config.set('DCPP', 'airdcpp_announce_hub', self.AIRDCPP_ANNOUNCE_HUB)
+            config.set('DCPP', 'airdcpp_announce_bots', self.AIRDCPP_ANNOUNCE_BOTS)
 
         logger.info('Configuration upgraded to version %s' % self.newconfig)
 

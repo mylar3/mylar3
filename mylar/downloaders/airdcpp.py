@@ -49,7 +49,7 @@ class AirDCPP(object):
         if mylar.CONFIG.AIRDCPP_USERNAME and mylar.CONFIG.AIRDCPP_PASSWORD:
             self.session.auth = (mylar.CONFIG.AIRDCPP_USERNAME, mylar.CONFIG.AIRDCPP_PASSWORD)
 
-        self.search_format = ['"%s #%s (%s)"', '%s #%s (%s)', '%s #%s', '%s %s']
+        self.search_format = ['%s %s %s', '%s %s', '%s']
         self.comic_extensions = ["cbr", "cbz"]
 
     def search(self, is_info=None):
