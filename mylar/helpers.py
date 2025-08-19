@@ -1105,6 +1105,7 @@ def havetotals(refreshit=None, start_char_filter=None):
                     percent = 101
             except (ZeroDivisionError, TypeError):
                 percent = 0
+                # TODO: This should be turned into an integer (0 or -1 preferably) to avoid issues with downstream expectations that this value is an int.  Need to follow through usages of havetotals()
                 totalissues = '?'
 
             if comic['LatestDate'] is None:

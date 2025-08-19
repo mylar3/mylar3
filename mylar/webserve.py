@@ -389,7 +389,7 @@ class WebInterface(object):
         for sort_pos in range(sort_columns, 0, -1):
             iSortCol = kwargs[f'order[{sort_pos-1}][column]']
             sSortDir = kwargs[f'order[{sort_pos-1}][dir]']
-            
+           
             match iSortCol:
                 case '0':
                     sortcolumn = 'ComicPublisher'
@@ -404,12 +404,14 @@ class WebInterface(object):
                 case '5':
                     sortcolumn = 'percent'
                 case '6':
+                    sortcolumn = 'recentstatus'
+                case '7':
                     sortcolumn = 'Status'
                 case _:
                     sortcolumn = 'ComicPublisher'
 
             if sortcolumn == 'percent':
-                filtered.sort(key=lambda x: (x['totalissues'] is None, x['totalissues'] == '', x['totalissues']), reverse=sSortDir == "asc")
+                filtered.sort(key=lambda x: (x['totalissues'] is None, x['totalissues'] == '', x['totalissues'] == '?', x['totalissues']), reverse=sSortDir == "asc")
                 filtered.sort(key=lambda x: (x['percent'] is None, x['percent'] == '', x['percent']), reverse=sSortDir == "desc")
                 filtered.sort(key=lambda x: (x['haveissues'] is None, x['haveissues'] == '', x['haveissues']), reverse=sSortDir == "desc")
                 filtered.sort(key=lambda x: (x['percent'] is None, x['percent'] == '', x['percent']), reverse=sSortDir == "desc")
