@@ -909,25 +909,20 @@ class Config(object):
 
         if self.newconfig < 16:
             # move aircdpp settings into it's own section since it's technically not ddl
-            self.ENABLE_AIRDCCP =  self.OLD_VALUES['enable_airdcpp']
-            self.AIRDCPP_HOST = self.OLD_VALUES['airdcpp_host']
-            self.AIRDCPP_USERNAME = self.OLD_VALUES['airdcpp_username']
-            self.AIRDCPP_PASSWORD = self.OLD_VALUES['airdcpp_password']
-            self.AIRDCPP_DOWNLOAD_DIR = self.OLD_VALUES['airdcpp_download_dir']
-            self.AIRDCPP_HUBS = self.OLD_VALUES['airdcpp_hubs']
-            self.AIRDCPP_VERSION = self.OLD_VALUES['airdcpp_version']
-            self.AIRDCPP_ANNOUNCE_HUB = self.OLD_VALUES['airdcpp_announce_hub']
-            self.AIRDCPP_ANNOUNCE_BOTS = self.OLD_VALUES['airdcpp_announce_bots']
+            dcpp_migrate_list = [('ENABLE_AIRDCPP', 'enable_airdcpp'),
+                ('AIRDCPP_HOST', 'airdcpp_host'),
+                ('AIRDCPP_USERNAME', 'airdcpp_username'),
+                ('AIRDCPP_PASSWORD', 'airdcpp_password'),
+                ('AIRDCPP_DOWNLOAD_DIR', 'airdcpp_download_dir'),
+                ('AIRDCPP_HUBS', 'airdcpp_hubs'),
+                ('AIRDCPP_VERSION', 'airdcpp_version'),
+                ('AIRDCPP_ANNOUNCE_HUB', 'airdcpp_announce_hub'),
+                ('AIRDCPP_ANNOUNCE_BOTS', 'airdcpp_announce_bots')]
 
-            config.set('DCPP', 'enable_airdcpp', str(self.ENABLE_AIRDCPP))
-            config.set('DCPP', 'airdcpp_host', self.AIRDCPP_HOST)
-            config.set('DCPP', 'airdcpp_username', self.AIRDCPP_USERNAME)
-            config.set('DCPP', 'airdcpp_password', self.AIRDCPP_PASSWORD)
-            config.set('DCPP', 'airdcpp_download_dir', self.AIRDCPP_DOWNLOAD_DIR)
-            config.set('DCPP', 'airdcpp_hubs', self.AIRDCPP_HUBS)
-            config.set('DCPP', 'airdcpp_version', self.AIRDCPP_VERSION)
-            config.set('DCPP', 'airdcpp_announce_hub', self.AIRDCPP_ANNOUNCE_HUB)
-            config.set('DCPP', 'airdcpp_announce_bots', self.AIRDCPP_ANNOUNCE_BOTS)
+            for dcp_attr, dcp_key in dcpp_migrate_list:
+                if dcp_key in self.OLD_VALUES.keys():
+                    setattr(self, dcp_attr, self.OLD_VALUES[dcp_key])
+                    config.set('DCPP', dcp_key, str(getattr(self, dcp_attr)))
 
         logger.info('Configuration upgraded to version %s' % self.newconfig)
 
