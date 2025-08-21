@@ -2016,12 +2016,15 @@
         %>
         <script>
             function pathIsParentOf(path, childPath) {
-                // Strip trailing slashes
-                var flags = ("${mylar.OS_DETECT}" == "Windows" ? "gi" : "g")
-
-                re = new RegExp("\${sep}$", flags);
-                path = path.replace(re, "");
-                childPath = childPath.replace(re, "");
+                if (path == 'None' || childPath == 'None') { return false;}
+                
+                // Restore trailing slashes
+                if (path.slice(-1) != "\${sep}") {
+                    path = path + "\${sep}";
+                }
+                if (childPath.slice(-1) != "\${sep}") {
+                    childPath = childPath + "\${sep}";
+                }
 
                 if ("${mylar.OS_DETECT}" == "Windows") {
                     path = path.toLowerCase();
@@ -2030,9 +2033,12 @@
 
                 if (path == childPath) return true;
 
+                // Strip trailing slashes
+                var flags = ("${mylar.OS_DETECT}" == "Windows" ? "gi" : "g")
+
                 if (childPath.startsWith(path)) {
                     // Check that if they have a common parent, they are not different paths with a common substring
-                    re = new RegExp("\${sep}[^\${sep}]*$", flags);
+                    re = new RegExp("\\\${sep}[^\\\\${sep}]*$", flags);
                     pathParent = path.replace(re, "");                    
                     childPathParent = childPath.replace(re, "");
 

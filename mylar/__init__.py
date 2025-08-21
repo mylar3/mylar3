@@ -187,7 +187,6 @@ INBUILT_ISSUE_EXCEPTIONS = [
     ["AU", "Exact"],
     ["AI", "Exact"],
     ["INH", "Exact"],
-    ["NOW", "Exact"],
     ["BEY", "Exact"],
     ["MU", "Exact"],
     ["HU", "Exact"],

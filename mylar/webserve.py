@@ -3961,7 +3961,7 @@ class WebInterface(object):
                     si_status = ''
 
                 if si['pack']:
-                    if si['year'] not in si['filename']:
+                    if si['year'] is not None and si['year'] not in si['filename']:
                         series = '%s (%s)' % (si['filename'], si['year'])
                     else:
                         series = si['filename']
@@ -9668,6 +9668,7 @@ class WebInterface(object):
         issuesonly = True if issuesonly == 'true' else False
 
         results = []
+        warnings = set()
 
         try:
             books = cblRoot.findall(".//Book")
@@ -9726,6 +9727,10 @@ class WebInterface(object):
                         else:
                             missing_issue_count += 1
                             action_text = 'Mark issue as Wanted'
+                    else:
+                        action_text = f'Warning: Could not find issue {cvIssueID} in volume {cvSeriesID}.'
+                        missing_issue_count += 1
+                        warnings.add('Volumes in Mylar do not recognise some Issue IDs.  This may be due to a list error.')
                 else:
                     iss_exists = False
                     iss_status = 'Missing'
@@ -9743,9 +9748,12 @@ class WebInterface(object):
             return json.dumps({'status': 'error', 'message' : f'Error processing CBL file.  Unhandled Exception: {str(e)}'})
         
         if newvol_count > 200:
-            warning_text = 'Attempting to add more than 200 series may cause problems due to CV API limits.  Consider breaking up this list into smaller parts.'
+            warnings.add('Attempting to add more than 200 series may cause problems due to CV API limits.  Consider breaking up this list into smaller parts.')
         elif newvol_count > 100:
-            warning_text = 'Attempting to add a lot of new series.  Consider your CV API limits before triggering the import.'
+            warnings.add('Attempting to add a lot of new series.  Consider your CV API limits before triggering the import.')
+
+        if len(warnings) > 0:
+            warning_text = '<br >'.join(warnings)
         else:
             warning_text = ''
 
@@ -9772,7 +9780,7 @@ class WebInterface(object):
 
         logger.info(f'Processing CBL File {cblFile.filename} to set up volumes and wanted issues')
         warning_text = ''
-        warnings = {}
+        warnings = set()
 
         try:
             cblXML = ET.parse(cblFile.file)
