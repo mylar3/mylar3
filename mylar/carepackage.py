@@ -67,6 +67,8 @@ class carePackage(object):
                             ('DISCORD', 'discord_webhook_url'),
                             ('DDL', 'external_username'),
                             ('DDL', 'external_apikey'),
+                            ('DCPP', 'airdcpp_username'),
+                            ('DCPP', 'airdcpp_password')
                             }
         self.hostname_list = {
                             ('SABnzbd', 'sab_host'),
@@ -87,6 +89,11 @@ class carePackage(object):
                             ('DDL', 'flaresolverr_url'),
                             ('DDL', 'http_proxy'),
                             ('DDL', 'https_proxy'),
+                            ('DCPP', 'airdcpp_host'),
+                            ('DCPP', 'airdcpp_download_dir'),
+                            ('DCPP', 'airdcpp_hubs'),
+                            ('DCPP', 'airdcpp_announce_hub'),
+                            ('DCPP', 'airdcpp_announce_bots')
                              }
 
     def loaders(self):
