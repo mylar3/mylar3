@@ -3662,7 +3662,8 @@ def cdh_monitor(queue, item, nzstat, readd=False):
         if item not in queue.queue:
             mylar.NZB_QUEUE.put(item)
     elif nzstat['status'] is True:
-        if nzstat['failed'] is False:
+        # Currently only checks SAB at this point as nzbget filename not available
+        if nzstat['failed'] is False and mylar.USE_SABNZBD is True:
             fullpath = Path(nzstat['location']) / nzstat['name']
             filecondition = check_file_condition(fullpath)
             if not filecondition['status']:
@@ -5016,6 +5017,9 @@ def check_file_condition(file_path):
         dict: A dictionary containing a status (True/False for good/bad file), type (known file type), 
             and quality (descriptive string)
     """
+    if not os.path.isfile(file_path):
+        return {'status': True, 'type' : 'unknown', 'quality': 'Asked to check something that does not exist or is a diretory.  Passing it for now.'}
+
     logger.fdebug(f'Checking file condition of {file_path}')
 
     max_number_length = max(len(m) for m in magic_numbers.values())
