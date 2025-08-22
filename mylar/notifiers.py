@@ -89,8 +89,8 @@ class PROWL:
 # No extra care has been put into API friendliness at the moment (read: https://pushover.net/api#friendly)
 class PUSHOVER:
 
-    def __init__(self, test_apikey=None, test_userkey=None, test_device=None):
-        if all([test_apikey is None, test_userkey is None, test_device is None]):
+    def __init__(self, test_apikey=None, test_userkey=None, test_device=None, test_sound=None):
+        if all([test_apikey is None, test_userkey is None, test_device is None, test_sound is None]):
             self.PUSHOVER_URL = 'https://api.pushover.net/1/messages.json'
             self.test = False
         else:
@@ -116,6 +116,11 @@ class PUSHOVER:
         else:
             self.userkey = test_userkey
 
+        if test_sound is None:
+            self.sound = mylar.CONFIG.PUSHOVER_SOUND
+        else:
+            self.sound = test_sound
+
         self.priority = mylar.CONFIG.PUSHOVER_PRIORITY
 
         self._session = requests.Session()
@@ -138,7 +143,11 @@ class PUSHOVER:
                 'user': mylar.CONFIG.PUSHOVER_USERKEY,
                 'message': message.encode("utf-8"),
                 'title': event,
-                'priority': mylar.CONFIG.PUSHOVER_PRIORITY}
+                'priority': mylar.CONFIG.PUSHOVER_PRIORITY,
+                'sound': mylar.CONFIG.PUSHOVER_SOUND}
+
+        if hasattr(self, 'sound') and self.sound and self.sound != 'None':
+            data.update({'sound': self.sound})
 
         files = None
         if imageFile:
