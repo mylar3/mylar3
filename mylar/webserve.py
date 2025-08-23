@@ -389,26 +389,25 @@ class WebInterface(object):
         for sort_pos in range(sort_columns, 0, -1):
             iSortCol = kwargs[f'order[{sort_pos-1}][column]']
             sSortDir = kwargs[f'order[{sort_pos-1}][dir]']
-           
-            match iSortCol:
-                case '0':
-                    sortcolumn = 'ComicPublisher'
-                case '1':
-                    sortcolumn = 'ComicName'
-                case '2':
-                    sortcolumn = 'ComicYear'
-                case '3':
-                    sortcolumn = 'LatestIssue'
-                case '4':
-                    sortcolumn = 'LatestDate'
-                case '5':
-                    sortcolumn = 'percent'
-                case '6':
-                    sortcolumn = 'recentstatus'
-                case '7':
-                    sortcolumn = 'Status'
-                case _:
-                    sortcolumn = 'ComicPublisher'
+        
+            if iSortCol == '0':
+                sortcolumn = 'ComicPublisher'
+            elif iSortCol == '1':
+                sortcolumn = 'ComicName'
+            elif iSortCol == '2':
+                sortcolumn = 'ComicYear'
+            elif iSortCol == '3':
+                sortcolumn = 'LatestIssue'
+            elif iSortCol == '4':
+                sortcolumn = 'LatestDate'
+            elif iSortCol == '5':
+                sortcolumn = 'percent'
+            elif iSortCol == '6':
+                sortcolumn = 'recentstatus'
+            elif iSortCol == '7':
+                sortcolumn = 'Status'
+            else:
+                sortcolumn = 'ComicPublisher'
 
             if sortcolumn == 'percent':
                 filtered.sort(key=lambda x: (x['totalissues'] is None, x['totalissues'] == '', x['totalissues'] == '?', x['totalissues']), reverse=sSortDir == "asc")
@@ -9716,25 +9715,23 @@ class WebInterface(object):
                     if iss_exists:
                         iss_status = issue['Status']
                         
-                        match iss_status:
-                            case 'Downloaded' | 'Wanted' | 'Snatched' | 'Failed':
-                                action_text = 'No action needed'
-                            case 'Archived':
-                                if ignorearchived :
-                                    action_text = 'No action needed' 
-                                else:
-                                    action_text = "Mark issue as Wanted"
-                                    missing_issue_count += 1
-                            case _:
+                        if iss_status in ['Downloaded', 'Wanted', 'Snatched', 'Failed']:
+                            action_text = 'No action needed'
+                        elif iss_status == 'Archived':
+                            if ignorearchived :
+                                action_text = 'No action needed' 
+                            else:
+                                action_text = "Mark issue as Wanted"
                                 missing_issue_count += 1
-                                action_text = 'Mark issue as Wanted'
+                        else:
+                            missing_issue_count += 1
+                            action_text = 'Mark issue as Wanted'
                 else:
                     iss_exists = False
                     iss_status = 'Missing'
                     missing_issue_count += 1
                     action_text = 'Add volume & mark issue as Wanted'
                 
-
                 # List to return to import table display: Entry, Volume, Issue, Status, Action
                 results.append([issueIndex, 
                                 f'<a href="{"comicDetails?ComicID=" if vol_exists else "https://comicvine.com/volume/4050-"}{cvSeriesID}" target="{"_self" if vol_exists else "_blank"}">{volumeName} ({volumeYear})</a>',
@@ -9840,18 +9837,17 @@ class WebInterface(object):
                         warnings.add(f'Some issues of existing volumes could not be found.  Check logs for details.')
                     else:
                         wantissue = False
-                        match issue['Status']:
-                            case 'Downloaded' | 'Wanted' | 'Snatched' | 'Failed':
-                                logger.fdebug(f'CBL File: Volume "{volumeName} ({volumeYear})" exists, Issue #{issueNumber} already Wanted')
+                        if issue['Status'] in ['Downloaded', 'Wanted', 'Snatched', 'Failed']:
+                            logger.fdebug(f'CBL File: Volume "{volumeName} ({volumeYear})" exists, Issue #{issueNumber} already Wanted')
+                            counters['issues_skipped'] += 1
+                        elif issue['Status'] == 'Archived':
+                            if ignorearchived :
+                                logger.fdebug(f'CBL File: Volume "{volumeName} ({volumeYear})" exists, Issue #{issueNumber} Archived.  Ignoring')
                                 counters['issues_skipped'] += 1
-                            case 'Archived':
-                                if ignorearchived :
-                                    logger.fdebug(f'CBL File: Volume "{volumeName} ({volumeYear})" exists, Issue #{issueNumber} Archived.  Ignoring')
-                                    counters['issues_skipped'] += 1
-                                else:
-                                    wantissue = True
-                            case _:
+                            else:
                                 wantissue = True
+                        else:
+                            wantissue = True
                         
                         if wantissue:
                             logger.fdebug(f'CBL File: Volume "{volumeName} ({volumeYear})" already exists, Issue #{issueNumber} to be marked as Wanted')
