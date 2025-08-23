@@ -796,6 +796,18 @@ class Api(object):
         newValueDict = {'Status': 'Skipped'}
         myDB.upsert("issues", newValueDict, controlValueDict)
 
+def _addIssue(self, **kwargs):
+        if 'id' not in kwargs:
+            self.data = self._failureResponse('Missing parameter: id')
+            return
+        else:
+            self.id = kwargs['id']
+
+        myDB = db.DBConnection()
+        controlValueDict = {'IssueID': self.id}
+        newValueDict = {'Status': 'Archived'}
+        myDB.upsert("issues", newValueDict, controlValueDict)
+                
     def _seriesjsonListing(self, **kwargs):
         if 'missing' in kwargs:
             json_present = "WHERE seriesjsonPresent = 0 OR seriesjsonPresent is NULL"
