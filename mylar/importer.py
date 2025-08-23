@@ -96,13 +96,12 @@ def markIssueWantedById(issueId):
         comicname = issue['ComicName']
         issuenumber = issue['Issue_Number']
         comicid = issue['ComicID']
-
-    match issue['Status']:
-        case 'Downloaded' | 'Wanted' | 'Snatched' | 'Failed':
-            logger.info(f"Tried setting wanted status for {comicname} [ID:{comicid}] issue #{issuenumber} in MASS-ADD thread but it is already in the {issue['Status']} state")
-            return
-        case _:
-            logger.info(f"Changing status of {comicname} [ID:{comicid}] issue #{issuenumber} from {issue['Status']} to Wanted")
+    
+    if issue['Status'] in ['Downloaded', 'Wanted', 'Snatched', 'Failed']:
+        logger.info(f"Tried setting wanted status for {comicname} [ID:{comicid}] issue #{issuenumber} in MASS-ADD thread but it is already in the {issue['Status']} state")
+        return
+    else:
+        logger.info(f"Changing status of {comicname} [ID:{comicid}] issue #{issuenumber} from {issue['Status']} to Wanted")
 
     controlValueDict = {'IssueID' : issueId}
     newValueDict = {'Status' : 'Wanted'}
