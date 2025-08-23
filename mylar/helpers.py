@@ -4814,14 +4814,10 @@ def issue_number_parser(issue_no, zero_padding=None, issue_id= None, from_data_s
     #    issueHashPrefix = True
 
     if zero_padding is None:
-        if mylar.CONFIG.ZERO_LEVEL:
-            match mylar.CONFIG.ZERO_LEVEL_N:
-                case '0x':
-                    zero_padding = 2
-                case '00x':
-                    zero_padding = 3
-                case 'none'|_:
-                    zero_padding = 0
+        if mylar.CONFIG.ZERO_LEVEL_N == '0x':
+            zero_padding = 2
+        elif mylar.CONFIG.ZERO_LEVEL_N == '00x':
+            zero_padding = 3
         else:
             zero_padding = 0
 
