@@ -34,7 +34,7 @@ import datetime
 
 cmd_list = ['getIndex', 'getComic', 'getUpcoming', 'getWanted', 'getHistory',
             'getLogs', 'getAPI', 'clearLogs','findComic', 'addComic', 'delComic',
-            'pauseComic', 'resumeComic', 'refreshComic', 'addIssue', 'recheckFiles',
+            'pauseComic', 'resumeComic', 'refreshComic', 'addIssue', 'archiveIssue', 'recheckFiles',
             'queueIssue', 'unqueueIssue', 'forceSearch', 'forceProcess', 'changeStatus',
             'getVersion', 'checkGithub','shutdown', 'restart', 'update', 'changeBookType',
             'getComicInfo', 'getIssueInfo', 'getArt', 'downloadIssue', 'regenerateCovers',
@@ -794,6 +794,18 @@ class Api(object):
         myDB = db.DBConnection()
         controlValueDict = {'IssueID': self.id}
         newValueDict = {'Status': 'Skipped'}
+        myDB.upsert("issues", newValueDict, controlValueDict)
+
+    def _archiveIssue(self, **kwargs):
+        if 'id' not in kwargs:
+            self.data = self._failureResponse('Missing parameter: id')
+            return
+        else:
+            self.id = kwargs['id']
+
+        myDB = db.DBConnection()
+        controlValueDict = {'IssueID': self.id}
+        newValueDict = {'Status': 'Archived'}
         myDB.upsert("issues", newValueDict, controlValueDict)
 
     def _seriesjsonListing(self, **kwargs):
