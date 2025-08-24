@@ -546,27 +546,20 @@ class FileChecker(object):
                     #if the issue number & alpha character(s) don't have a space seperating them (ie. 15A)
                     #test_exception is the alpha-numeric
                     logger.fdebug('Possible alpha numeric issue (or non-numeric only). Testing my theory.')
-                    if sf.lower() == test_exception.lower():
-                        logger.fdebug('[%s] Exception is exact match to %s (Pure String Issue Number)' % (test_exception, sf))
+                    test_sf = re.sub(test_exception.lower(), '', sf.lower()).strip()
+                    logger.fdebug('[%s] Removing possible alpha issue leaves: %s (Should be a numeric)' % (test_exception, test_sf))
+                    if test_sf.isdigit():
                         possible_issuenumbers.append({'number':       sf,
-                                                        'position':     current_pos,
-                                                        'mod_position': self.char_file_position(modfilename, sf, lastmod_position),
-                                                        'validcountchk': validcountchk})
+                                                    'position':     split_file.index(sf),
+                                                    'mod_position': self.char_file_position(modfilename, sf, lastmod_position),
+                                                    'validcountchk': validcountchk})
                     else:
-                        test_sf = re.sub(test_exception.lower(), '', sf.lower()).strip()
-                        logger.fdebug('[%s] Removing possible alpha issue leaves: %s (Should be a numeric)' % (test_exception, test_sf))
-                        if test_sf.isdigit():
+                        test_position = modfilename[self.char_file_position(modfilename, sf,lastmod_position)-1]
+                        if test_position == '#':
                             possible_issuenumbers.append({'number':       sf,
                                                         'position':     split_file.index(sf),
                                                         'mod_position': self.char_file_position(modfilename, sf, lastmod_position),
                                                         'validcountchk': validcountchk})
-                        else:
-                            test_position = modfilename[self.char_file_position(modfilename, sf,lastmod_position)-1]
-                            if test_position == '#':
-                                possible_issuenumbers.append({'number':       sf,
-                                                            'position':     split_file.index(sf),
-                                                            'mod_position': self.char_file_position(modfilename, sf, lastmod_position),
-                                                            'validcountchk': validcountchk})
 
             if sf == 'XCV':
 #  new 2016-09-19 \ attempt to check for XCV which replaces any unicode above

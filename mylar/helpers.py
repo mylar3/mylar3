@@ -4825,8 +4825,19 @@ def issue_number_parser(issue_no, zero_padding=None, issue_id= None, from_data_s
         else:
             zero_padding = 0
 
-    if issue_no.isdigit():
-        return IssueNumber(issue_number_to_int(int(issue_no)),format_issue_number(issue_no,zero_padding) if pretty_string else None, legacy_issue)
+    try:
+        if issue_no.isdigit():
+            return IssueNumber(issue_number_to_int(int(issue_no)),format_issue_number(issue_no,zero_padding) if pretty_string else None, legacy_issue)
+    except:
+        if issue_no is None:
+            return IssueNumber(999999999999999,'999999999999999')
+        
+        try:
+            test_issue_no = str(issue_no)
+            if test_issue_no.isdigit():
+                return IssueNumber(issue_number_to_int(int(test_issue_no)),format_issue_number(test_issue_no,zero_padding) if pretty_string else None, legacy_issue)
+        except:
+            return IssueNumber(999999999999999,'999999999999999')
 
     # - Filename safety characters
     # - Hash marks as special for mylar identification
