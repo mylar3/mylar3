@@ -3335,7 +3335,7 @@ $("#enable_airdcpp").click(function(){
                 
                 };
 
-                checkCheckFolder("${config['check_folder']}");
+                checkCheckFolder($('input[name="check_folder"]').val());
 
                 $('input[name="check_folder"]').on('change keyup paste', function() {
                     checkCheckFolder($(this).val());
