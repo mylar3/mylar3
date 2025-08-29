@@ -1,0 +1,1 @@
+Default comic storage location mapped to the devcontainer

@@ -1,0 +1,7 @@
+# Specific requirements for pytest tests (plugins, additional libraries, etc.)
+# Not required for a stock mylar install, but assumes root requirements.txt is satisfied
+pytest>=8.3.5
+pytest-cov>=5.0.0
+mockito>=1.5.4
+pytest-mockito>=0.0.4
+#pytest-benchmark>=5.1.0

@@ -1,0 +1,11 @@
+[run]
+omit = 
+    # Quis custodiet ...
+    tests/*
+    # Libraries are not, like, my problem man
+    lib/*
+; Default branch coverage to false for now
+branch = False
+
+[report]
+skip_empty=True

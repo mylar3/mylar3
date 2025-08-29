@@ -1,0 +1,32 @@
+# Workflow for basic testing of pushes to development branches
+name: Push to Feature Branches
+permissions:
+  actions: read
+  contents: read
+  deployments: write
+  statuses: read
+
+# Run on any branch that isn't master or p3-dev
+on:
+    push:
+        branches-ignore:
+            - 'master'
+            - 'python3-dev'
+
+# Cancel previous run on this branch if a new push is made
+concurrency:
+    group: btb-${{ github.ref }}
+    cancel-in-progress: true
+
+jobs:
+    build_and_test:
+        strategy:
+            fail-fast: true
+            matrix:
+                os: [ubuntu-latest, windows-latest]
+                python-version: ["3.8", "3.9", "3.10","3.11"]        
+        uses: ./.github/workflows/mylar_build_deploy_test.yml
+        with:
+          os: ${{ matrix.os }}
+          py: ${{ matrix.python-version }}
+          run_basic: true

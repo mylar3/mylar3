@@ -1,0 +1,29 @@
+# Workflow to manually trigger pytest run
+name: Execute pytest on max/min python on Windows/Linux
+permissions:
+  actions: read
+  contents: read
+  deployments: write
+  statuses: read
+
+# Run on any branch that isn't master or p3-dev
+on: workflow_dispatch
+
+# Cancel previous run on this branch if a new push is made
+concurrency:
+    group: pytest-${{ github.ref }}
+    cancel-in-progress: true
+
+jobs:
+    pytest:
+        strategy:
+            fail-fast: true
+            matrix:
+                os: [ubuntu-latest, windows-latest]
+                python-version: ["3.8", "3.11"]        
+        uses: ./.github/workflows/mylar_build_deploy_test.yml
+        with:
+          os: ${{ matrix.os }}
+          py: ${{ matrix.python-version }}
+          run_basic: false
+          run_pytest: true

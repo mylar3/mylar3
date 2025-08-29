@@ -19,3 +19,13 @@ env/
 *.swp
 # git mergetool backup files
 *.orig
+.ComicTagger
+# Testing outputs, caches, etc.
+__pycache__
+.coverage
+# Local VS code config files
+.vscode
+# devcontainer local changes
+.devcontainer/config
+.devcontainer/comics
+.devcontainer/downloads

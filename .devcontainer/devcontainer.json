@@ -1,0 +1,35 @@
+{
+    "image" : "mcr.microsoft.com/devcontainers/python:3.8",
+    "customizations": {
+        "vscode": {
+            "extensions": ["ms-python.flake8", "ms-python.debugpy"],
+            "settings" : {
+                "launch" :{
+                    "version": "0.2.0",
+                    "configurations": [ {
+                            "name": "Debug Mylar in Dev Container",
+                            "type": "debugpy",
+                            "request": "launch",
+                            "program": "Mylar.py",
+                            "console": "integratedTerminal",
+                            "args": ["--datadir", "/config/"]
+                        }
+                    ]
+                },
+                "remote.autoForwardPorts": false
+            }
+        }
+    },
+    "workspaceMount": "source=${localWorkspaceFolder},target=/app/mylar3,type=bind",    
+    "workspaceFolder": "/app/mylar3",
+    "mounts": [
+        "source=${localWorkspaceFolder}/.devcontainer/comics,target=/comics,type=bind,consistency=cached",
+        "source=${localWorkspaceFolder}/.devcontainer/config,target=/config,type=bind,consistency=cached",
+        "source=${localWorkspaceFolder}/.devcontainer/downloads,target=/downloads,type=bind,consistency=cached"
+    ],
+    "forwardPorts" : [8090],
+    "portsAttributes": {"8090": {"label": "Application port", "onAutoForward": "silent", "requireLocalPort": false}},
+    "otherPortsAttributes": {"onAutoForward": "ignore"},
+    "postStartCommand" : "sudo apt-get update && sudo apt-get install -y unrar-free python3-pytest && python -m pip install -r requirements.txt && sudo chown -R vscode:vscode /app/mylar3",
+    "remoteUser": "vscode"
+}

@@ -1,0 +1,58 @@
+filename,series,issue,year,volume,xfail,testnotes
+2000 AD Prog 2000.cbz,2000 AD Prog,2000,None,None,False,
+2000 AD Prog 2001.cbz,2000 AD Prog,2001,None,None,False,
+2000 AD Prog 2000 (2016).cbz,2000 AD Prog,2000,2016,None,False,
+2000 AD Prog 2001 (2016).cbz,2000 AD Prog,2001,2016,None,False,
+2000 AD Prog 2000 (2000).cbz,2000 AD Prog,2000,2000,None,False,
+2000 AD Prog 2001 (2000).cbz,2000 AD Prog,2001,2001,None,True,Will pick the wrong year because of the repeated 2k
+Batman - The 10¢ Adventure 01 (2002) (digital) (OkC.O.M.P.U.T.O.-Novus).cbz,Batman - The 10 ¢ Adventure,01,2002,None,False,Check matching against space introduced due to non-alhpanum character
+Spider-Man 2099 v3 001 2016.cbz,Spider-Man 2099,001,2016,v3,False,Generic file naming
+Ranma ½.cbr,Ranma,½,None,None,False,Unicode fraction ½
+Assassin 's Creed - A03 - The Chain Deel 2A.cbr,Assassin\'s Creed - A03 - The Chain Deel,2A,None,None,True,Generally horrible naming
+Araña - Heart of the Spider 004 (2005).cbz,Araña - Heart of the Spider,004,2005,None,False,Generic with accented character
+Valerian_20HS_20-_20Par_20Les_20Chemins_20De_20L_27Espace.cbr,Valerian HS Par Les Chemins De L Espace,27,None,None,True,Rogue characters in filename
+"Deadpool 008 V2016 (May, 2016)",Deadpool,008,2016,v2016,False,
+"Deadpool 008 (May, 2016)",Deadpool,008,2016,None,False,
+Spider-Man 2099 001.cbz,Spider-Man 2099,001,None,None,False,
+5 Ronin 1 V2011 (2011).cbz,5 Ronin,1,2011,v2011,False,
+ODY-C 008 (2015) (Digital) (Zone-Empire).cbr,ODY-C,008,2015,None,False,
+Vision.005.(2016).cbz,Vision,005,2016,None,False,
+Lucifer 015 2001.cbz,Lucifer,015,2001,None,False,
+The.Infinity.Gauntlet.002.(2015).cbz,The Infinity Gauntlet,002,2015,None,False,
+Peter Parker Spider-Man 156.1 (2012),Peter Parker Spider-Man,156.1,2012,None,False,Standard decimal
+Peter Parker Spider-Man #156.1 (2012),Peter Parker Spider-Man,156.1,2012,None,False,Standard decimal with hash
+Ravage 2099 #001 (1992),Ravage 2099,001,1992,None,False,
+Batman - Earth One V2012 #1 - Volume One.cbz,Batman - Earth One,1,None,v2012,False,
+Spider-Man.2099.003.(2016).cbz,Spider-Man 2099,003,2016,None,False,
+Earth 2 - World’s End #7.cbz,Earth 2 - World’s End,7,None,None,False,
+The.Uncanny.X-Men.-001.(1997).cbr,The Uncanny X-Men,-001,1997,None,False,
+Detective Comics 509 36p ctc (12-1981) flattermann.cbr,Detective Comics,509,1981,None,False,
+"Gotham Underground, 2008-04-00 (#07) (digital) (.-Novus-HD).cbz",Gotham Underground,07,2008,None,False,
+Captain America 025-00fc (WWLA variant) [Steam-DCP].cbr,Captain America,025,None,None,False,
+Aquaman Vol. 01 - The Trench (2012).cbr,Aquaman,None,2012,None,False,Volume gets picked up instead of issue
+S.H.I.E.L.D. ∞ (2011).cbr,S H I E L D,∞,2011,None,False,
+Michael Avon Oeming's The Victories Vol.2012 #01 (of 05) (2012).cbz,Michael Avon Oeming's The Victories,01,2012,v2012,False,
+The fist.cbr,The fist,None,None,v1,False,
+Tokyo Storm Warning - 2003 - 001.cbz,Tokyo Storm Warning,001,2003,None,False,
+Eagle 459 {1991-01-05].cbz,Eagle,459,1991,None,False,
+Wonder_Woman_010-2017-2_covers-digital-Minutemen-Thoth-.cbz,Wonder Woman,010,2017,None,True,"Fails on volume, needs investigating"
+"G.I. Joe vs. The Transformers, Vol. III - The Art of War - 004 (2006).cbz",G I Joe vs The Transformers Vol III - The Art of War,004,2006,None,False,
+Captain America 045 (villain incentive variant cover) [Minutemen-DizzynTheRain].cbr,Captain America,045,None,None,False,
+Incredible Hulk 86b (Nick Fury's Howling Commandos #1).cbr,Incredible Hulk 86 b Nick Fury's Howling Commandos,1,None,None,False,
+Grimm Tales Of Terror Vol 3 002 (2017).cbr,Grimm Tales Of Terror,002,2017,v3,False,
+Fear Itself 01 (of 7.3) (2011) (Digital) (Zone-Empire),Fear Itself,01,2011,None,True,X of [non-integer] not yet supported
+"The Invisibles, volume two #8 (September 1997).cbz",The Invisibles volume two,8,1997,None,False,
+Free Comic Book Day 2016 (Civil War II) V2016 #1 (2016).cbz,Free Comic Book Day 2016 (Civil War II),1,2016,v2016,False,
+Batman-Deadman Death and Glory V1996 #1 (1996).cbz,Batman-Deadman Death and Glory,1,1996,v1996,False,
+Quantum and Woody! #000.0001½ (2017).cbz,Quantum and Woody,000.0001½,2017,None,False,Complex issue number
+Cerebus 112-113 (1988).cbz,Cerebus,112-113,1988,None,True,Handling of range issues not yet supported
+(2018-07) Justice League No Justice 003.cbr,Justice League No Justice,003,2018,None,False,
+Avengers Shards of Infinity 001 (2018).cbz,Avengers Shards of Infinity,001,2018,None,False,
+Universe X #X (2001).cbr,Universe X,X,2001,None,False,
+High.Level.001.2019.2.covers.Digital.Oracle-SWA.cbr,High Level,001,2019,None,False,
+Spider-Man 2099 v3 - (2019-05) - 008.cbr,Spider-Man 2099,008,2019,v3,True,Expected fail on date
+All-New X-Men 1.MU v2 (2017).cbr,All-New X-Men,1 MU,2017,v2,False,
+Haunted Horror 029(2017)(Digital)(TLK-EMPIRE-HD).cbr,Haunted Horror,029,2017,None,False,
+"Excalibur, 2019-11-20 (02) (digital) (Glorith-HD).cbr",Excalibur,02,2019,None,False,
+Weapon Zero T-2.cbz,Weapon Zero,T-2,None,None,True,Prefix string issues not yet supported
+God Is Dead The Book of Acts Alpha.cbz,God Is Dead The Book of Acts,Alpha,None,None,True,Pure string issue not yet covered
