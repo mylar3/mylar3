@@ -111,7 +111,9 @@ class carePackage(object):
         if vers_vals['current_branch'] == 'master' and vers_vals['current_version_name'] is not None:
             panic_name = 'carepackage_%s.zip' % (vers_vals['current_version_name'])
         else:
-            panic_name = 'carepackage_%s_(%s).zip' % (vers_vals['current_version'], vers_vals['current_branch'])
+            # If there are multiple refs listed in current_branch, concatenate and sanitse them for file naming
+            branch = re.sub(r'[\\\/\#& ]', '.', '_'.join(map(str.strip, vers_vals['current_branch'].split(','))))
+            panic_name = 'carepackage_%s_(%s).zip' % (vers_vals['current_version'], branch)
 
         self.panicfile = os.path.join(self.log_dir, panic_name)
 
