@@ -1981,6 +1981,10 @@
                  if (obj['rar']['rar_message']) {
                      document.getElementById("rar_reqcheck").innerHTML = obj['rar']['rar_message'];
                  }
+                 if (obj['rar']['rar_failure'] === true) {
+                    document.getElementById("warnings_check").className = 'fieldset_header_check';
+                 }
+
                  document.getElementById("config_messages").style.display = 'none';
                  document.getElementById("release_messages").style.display = 'none';
                  var cck = false;
