@@ -1145,6 +1145,16 @@ def nzbdbsearch(seriesname, issue, comicid=None, nzbprov=None, searchYear=None, 
                                  })
                 #logger.fdebug("entered info for " + nzb['Title'])
 
+    # Sort results by provider order if available so that results can be taken in priority order
+    # TODO Would prefer to do this using the passed provider_list but it has the prov_order with additional string manipulation.
+    # Ideally loop back at some point to add a raw order to the generator function
+    if mylar.CONFIG.PROVIDER_ORDER is not None and isinstance(mylar.CONFIG.PROVIDER_ORDER, dict):
+        nzbtheinfo = sorted(nzbtheinfo,
+                            key=lambda x:
+                                list(mylar.CONFIG.PROVIDER_ORDER.values()).index(x['site'])
+                                if x['site'] in mylar.CONFIG.PROVIDER_ORDER.values()
+                                else 99999)
+    
     nzbinfo['entries'] = nzbtheinfo
     return nzbinfo
 
