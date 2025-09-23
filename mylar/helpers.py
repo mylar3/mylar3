@@ -44,7 +44,7 @@ from PIL import Image
 from pathlib import Path
 
 import zipfile
-from lib.rarfile import rarfile
+import rarfile
 
 import mylar
 from . import logger

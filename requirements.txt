@@ -19,7 +19,7 @@ portend>=2.6
 pycryptodome>=3.19.0
 pystun>=0.1.0
 pytz>=2019.3
-rarfile>=4.0
+rarfile==4.2
 requests[socks]>=2.22.0
 simplejson>=3.17.0
 six>=1.13.0

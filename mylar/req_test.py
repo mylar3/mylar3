@@ -22,7 +22,7 @@ import codecs
 import configparser
 import platform
 from packaging.version import parse as parse_version
-from lib.rarfile import rarfile
+import rarfile
 
 import mylar
 from mylar import logger
@@ -198,6 +198,13 @@ class Req(object):
 
         cmds.append('unrar')
 
+        if platform.system() == 'Windows':
+            cmds.append('RaR')
+            if os.path.exists("C:\\Program Files\\WinRAR\\Rar.exe"):
+                cmds.append("C:\\Program Files\\WinRAR\\Rar.exe")
+            elif os.path.exists("C:\\Program Files (x86)\\WinRAR\\Rar.exe"):
+                cmds.append("C:\\Program Files (x86)\\WinRAR\\Rar.exe")
+
         # check the ct_settingspath
         ctpath = os.path.join(mylar.CONFIG.CT_SETTINGSPATH, 'settings')
         config = configparser.ConfigParser()
@@ -209,9 +216,7 @@ class Req(object):
                 logger.fdebug('comictagger .settings file path added to cmd checker: %s' % ctrarpath)
 
         itworked = False
-        output = None
-        if platform.system() == 'Windows':
-            cmds.append('RaR')
+        output = None        
 
         for cmd in cmds:
             try:
@@ -237,7 +242,7 @@ class Req(object):
             elif itworked:
                 tmp_chk = output.stdout.split(r'\n')
                 for tc in tmp_chk:
-                    if 'unrar' in tc:
+                    if 'unrar' or 'RAR' in tc:
                         tt = tc.lower().find('copyright')
                         if tt != -1:
                             output = tc[:tt]

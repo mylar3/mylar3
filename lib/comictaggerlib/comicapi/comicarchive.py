@@ -34,7 +34,7 @@ try:
     from unrar.cffi import rarfile
     unrar_cffi = True
 except ImportError:
-    from lib.rarfile import rarfile
+    import rarfile
     unrar_cffi = False
 
 try:

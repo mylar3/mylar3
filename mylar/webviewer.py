@@ -4,7 +4,7 @@ import cherrypy
 import stat
 import zipfile
 import urllib.parse
-from lib.rarfile import rarfile
+import rarfile
 
 import mylar
 
