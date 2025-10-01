@@ -3976,7 +3976,7 @@ class WebInterface(object):
                     si_status = ''
 
                 if si['pack']:
-                    if si['year'] not in si['filename']:
+                    if si['year'] is not None and si['year'] not in si['filename']:
                         series = '%s (%s)' % (si['filename'], si['year'])
                     else:
                         series = si['filename']
