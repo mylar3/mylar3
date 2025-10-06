@@ -1377,6 +1377,11 @@ class Config(object):
         elif self.ENABLE_RSS is False and mylar.RSS_STATUS == 'Waiting':
             mylar.RSS_STATUS = 'Paused'
 
+        if self.ENABLE_CHECK_FOLDER is True and mylar.MONITOR_STATUS == 'Paused':
+            mylar.MONITOR_STATUS = 'Waiting'
+        elif self.ENABLE_CHECK_FOLDER is False and mylar.MONITOR_STATUS == 'Waiting':
+            mylar.MONITOR_STATUS = 'Paused'
+
         if self.DUPECONSTRAINT is None:
             #default dupecontraint to filesize
             setattr(self, 'DUPECONSTRAINT', 'filesize')
