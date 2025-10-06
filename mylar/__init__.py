@@ -659,15 +659,19 @@ def start():
 
             ##run checkFolder every X minutes (basically Manual Run Post-Processing)
             if MONITOR_STATUS != 'Paused':
-                if CONFIG.CHECK_FOLDER is not None:
-                    if CONFIG.DOWNLOAD_SCAN_INTERVAL >0:
-                        logger.info('[FOLDER MONITOR] Enabling folder monitor for : ' + str(CONFIG.CHECK_FOLDER) + ' every ' + str(CONFIG.DOWNLOAD_SCAN_INTERVAL) + ' minutes.')
-                        MONITOR_SCHEDULER.resume()
+                if CONFIG.ENABLE_CHECK_FOLDER:
+                    if CONFIG.CHECK_FOLDER is not None:
+                        if CONFIG.DOWNLOAD_SCAN_INTERVAL >0:
+                            logger.info('[FOLDER MONITOR] Enabling folder monitor for : ' + str(CONFIG.CHECK_FOLDER) + ' every ' + str(CONFIG.DOWNLOAD_SCAN_INTERVAL) + ' minutes.')
+                            MONITOR_SCHEDULER.resume()
+                        else:
+                            logger.error('[FOLDER MONITOR] You need to specify a monitoring time for the check folder option to work')
+                            MONITOR_SCHEDULER.pause()
                     else:
-                        logger.error('[FOLDER MONITOR] You need to specify a monitoring time for the check folder option to work')
+                        logger.error('[FOLDER MONITOR] You need to specify a location in order to use the Folder Monitor. Disabling Folder Monitor')
                         MONITOR_SCHEDULER.pause()
                 else:
-                    logger.error('[FOLDER MONITOR] You need to specify a location in order to use the Folder Monitor. Disabling Folder Monitor')
+                    logger.info('[FOLDER MONITOR] Folder monitoring is not enabled.')
                     MONITOR_SCHEDULER.pause()
 
             logger.info('Firing up the Background Schedulers now....')
