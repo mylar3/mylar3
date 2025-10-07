@@ -375,33 +375,41 @@ def initialize(config_file):
             pub_path = os.path.join(mylar.CONFIG.CACHE_DIR, 'imprints.json')
             update_imprints = True
             if os.path.exists(pub_path):
-                filetime = max(os.path.getctime(pub_path), os.path.getmtime(pub_path))
-                pub_diff = ((time.time() - filetime) / 3600)
-                if pub_diff > 24:
-                    logger.info('[IMPRINT_LOADS] Publisher imprint listing found, but possibly stale ( > 24hrs). Retrieving up-to-date listing')
+                if os.path.getsize(pub_path) > 0:
+                    filetime = max(os.path.getctime(pub_path), os.path.getmtime(pub_path))
+                    pub_diff = ((time.time() - filetime) / 3600)
+                    if pub_diff > 24:
+                        logger.info('[IMPRINT_LOADS] Publisher imprint listing found, but possibly stale ( > 24hrs). Retrieving up-to-date listing')
+                    else:
+                        logger.info('[IMPRINT_LOADS] Loading Publisher imprints data from local file.')
+                        try:
+                            with open(pub_path) as json_file:
+                                PUBLISHER_IMPRINTS = json.load(json_file)
+                        except (OSError, json.JSONDecodeError) as e:
+                            logger.error('Error reading publisher imprint file - %s. Going to retrieve a new listing...' % e)
+                        except Exception as e:
+                            logger.error('General error attempting to read file - %s. Going to retrieve a new listing...' % e)
+                        else:
+                            update_imprints = False
                 else:
-                    update_imprints = False
-                    logger.info('[IMPRINT_LOADS] Loading Publisher imprints data from local file.')
-                    with open(pub_path) as json_file:
-                        PUBLISHER_IMPRINTS = json.load(json_file)
+                    logger.error('Error reading publisher imprint file - invalid filesize. Going to retrieve a new listing...')
             else:
                 logger.info('[IMPRINT_LOADS] No data for publisher imprints locally. Retrieving up-to-date listing')
 
             if update_imprints is True:
+                PUBLISHER_IMPRINTS = None
                 req_pub = requests.get('https://mylar3.github.io/publisher_imprints/imprints.json', verify=True)
                 try:
                     json_pub = req_pub.json()
                     with open(pub_path, 'w', encoding='utf-8') as outfile:
                         json.dump(json_pub, outfile, indent=4, ensure_ascii=False)
+                except (OSError, json.JSONDecodeError, requests.exceptions.RequestException) as e:
+                    logger.warn('[IMPRINT_LOADS] Unable to retrieve publisher imprints listing at this time. Error: %s' % e)
                 except Exception as e:
                     logger.error('Unable to write imprints.json to %s. Error returned: %s' % (pub_path, e))
                 else:
                     logger.fdebug('Successfully written imprints.json file to %s' % pub_path)
-                    PUBLISHER_IMPRINTS = json_pub
 
-        except requests.exceptions.RequestException as e:
-            logger.warn('[IMPRINT_LOADS] Unable to retrieve publisher imprints listing at this time. Error: %s' % e)
-            PUBLISHER_IMPRINTS = None
         except Exception as e:
             logger.warn('[IMPRINT_LOADS] Unable to load publisher -> imprint file. Error: %s' % e)
             PUBLISHER_IMPRINTS = None
@@ -409,8 +417,8 @@ def initialize(config_file):
             if PUBLISHER_IMPRINTS is not None:
                 logger.info('[IMPRINT_LOADS] Successfully loaded imprints for %s publishers' % (len(PUBLISHER_IMPRINTS['publishers'])))
 
-            logger.info('Remapping the sorting to allow for new additions.')
-            COMICSORT = helpers.ComicSort(sequence='startup')
+        logger.info('Remapping the sorting to allow for new additions.')
+        COMICSORT = helpers.ComicSort(sequence='startup')
 
         if CONFIG.LOCMOVE:
             helpers.updateComicLocation()
