@@ -229,7 +229,7 @@ class WebInterface(object):
 
             if os.path.exists(test_path):
                 try:
-                    shutil.remove(test_path)
+                    shutil.rmtree(test_path)
                 except Exception:
                     return
 
@@ -270,6 +270,21 @@ class WebInterface(object):
                 #else:
                 #    logger.info('[COMIC-LOCATION-CHECK] Copying from cache to series directory successful (for metadata writing)')
                 #    c_status = 'success'
+
+        # Perform checks for a valid unrar (more important now this is a pre-requisite for CRC checks)
+        
+        if mylar.REQS['rar']['rar_failure']:
+            if 'windows' in mylar.OS_DETECT.lower():
+                rartool = 'unrar/WinRAR'
+            else:
+                rartool = 'unrar'
+
+            rar_msg = f'<center>Could not find a valid unrar executable in the PATH for the user running Mylar.  You must install {rartool}.</center>'
+            if c_status == 'failure':
+                c_msg += '<br />' + rar_msg
+            else:
+                c_msg = rar_msg
+                c_status = 'failure'
 
         #only display a popup on error
         mylar.START_UP = False
