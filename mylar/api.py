@@ -237,11 +237,14 @@ class Api(object):
             ComicImageURL as imageURL,\
             Status as status,\
             ComicPublisher as publisher,\
+            ComicPublished as publishYear, \
             ComicYear as year,\
             LatestIssue as latestIssue,\
             Total as totalIssues,\
-            DetailURL as detailsURL\
+            DetailURL as detailsURL,\
+            AlternateSearch as alternateSearch \
         FROM comics'
+
 
     def _selectForIssues(self):
         return 'SELECT \
