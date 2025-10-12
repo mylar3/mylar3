@@ -440,15 +440,15 @@ class PostProcessor(object):
                         return self.queue.put(self.valreturn)
                     logger.info('I have located %s files that I should be able to post-process. Continuing...' % filelist['comiccount'])
                 else:
-                    if all([self.comicid is None, '_' not in self.issueid]):
-                         cid = myDB.selectone('SELECT ComicID FROM issues where IssueID=?', [str(self.issueid)]).fetchone()
-                         self.comicid = cid[0]
+                    if self.comicid is None and self.issueid is not None and '_' not in str(self.issueid):
+                        cid = myDB.selectone('SELECT ComicID FROM issues where IssueID=?', [str(self.issueid)]).fetchone()
+                        self.comicid = cid[0]
                     else:
-                         if '_' in self.issueid:
-                             logger.fdebug('Story Arc post-processing request detected.')
-                             self.issuearcid = self.issueid
-                             self.issueid = None
-                             logger.fdebug('%s Now post-processing directly against StoryArcs -  ComicID: %s / IssueArcID: %s' % (module, self.comicid, self.issuearcid))
+                        if self.issueid is not None and '_' in str(self.issueid):
+                            logger.fdebug('Story Arc post-processing request detected.')
+                            self.issuearcid = self.issueid
+                            self.issueid = None
+                            logger.fdebug('%s Now post-processing directly against StoryArcs -  ComicID: %s / IssueArcID: %s' % (module, self.comicid, self.issuearcid))
                     if self.issueid is not None:
                         logger.fdebug('%s Now post-processing directly against ComicID: %s / IssueID: %s' % (module, self.comicid, self.issueid))
                     if self.issuearcid is None:
