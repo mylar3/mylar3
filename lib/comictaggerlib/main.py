@@ -45,6 +45,12 @@ def ctmain():
         if opts.cv_api_key != SETTINGS.cv_api_key:
             SETTINGS.cv_api_key = opts.cv_api_key
             SETTINGS.save()
+
+    if opts.cv_api_url:
+        if opts.cv_api_url != (SETTINGS.cv_api_url or ""):
+            SETTINGS.cv_api_url = opts.cv_api_url
+            SETTINGS.save()
+
     if opts.only_set_key:
         print("Key set")
         return
@@ -54,6 +60,7 @@ def ctmain():
             SETTINGS.save()
 
     ComicVineTalker.api_key = SETTINGS.cv_api_key
+    ComicVineTalker.api_base_url = SETTINGS.cv_api_url
     ComicVineTalker.cv_user_agent = SETTINGS.cv_user_agent
 
     signal.signal(signal.SIGINT, signal.SIG_DFL)

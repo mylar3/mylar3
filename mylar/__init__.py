@@ -360,8 +360,8 @@ def initialize(config_file):
             SEARCH_TIER_DATE = STD.strftime('%Y-%m-%d')
             logger.fdebug('SEARCH_TIER_DATE set to : %s' % SEARCH_TIER_DATE)
 
-        #set the default URL for ComicVine API here.
-        CVURL = 'https://comicvine.gamespot.com/api/'
+        #set the ComicVine API URL from the configurations.
+        CVURL = mylar.CONFIG.COMICVINE_URL
 
         #set default URL for Public trackers (just in case it changes more frequently)
         WWTURL = 'https://worldwidetorrents.to/'

@@ -96,6 +96,8 @@ If no options are given, {0} will run in windowed mode.
 -R, --recursive             Recursively include files in sub-folders.
     --cv-api-key=KEY        Use the given Comic Vine API Key (persisted
                             in settings).
+    --cv-api-url=URL        Override the Comic Vine API base URL (persisted
+                            in settings).
     --only-set-cv-key       Only set the Comic Vine API key and quit.
 -w, --wait-on-cv-rate-limit When encountering a Comic Vine rate limit
                             error, wait and retry query.
@@ -131,6 +133,7 @@ For more help visit the wiki at: https://github.com/comictagger/comictagger/wiki
         self.show_save_summary = True
         self.raw = False
         self.cv_api_key = None
+        self.cv_api_url = None
         self.only_set_key = False
         self.rename_file = False
         self.no_overwrite = False
@@ -273,7 +276,7 @@ For more help visit the wiki at: https://github.com/comictagger/comictagger/wiki
                                         "raw", "noabort", "terse", "nooverwrite", "interactive",
                                         "nosummary", "version", "id=", "recursive", "script=",
                                         "export-to-zip", "delete-rar", "abort-on-conflict",
-                                        "assume-issue-one", "cv-api-key=", "only-set-cv-key", "configfolder=",
+                                        "assume-issue-one", "cv-api-key=", "cv-api-url=", "only-set-cv-key", "configfolder=",
                                         "notes_format=", "wait-on-cv-rate-limit"])
 
         except getopt.GetoptError as err:
@@ -348,6 +351,8 @@ For more help visit the wiki at: https://github.com/comictagger/comictagger/wiki
                 self.no_overwrite = True
             if o == "--cv-api-key":
                 self.cv_api_key = a
+            if o == "--cv-api-url":
+                self.cv_api_url = a
             if o == "--only-set-cv-key":
                 self.only_set_key = True
             if o == "--version":

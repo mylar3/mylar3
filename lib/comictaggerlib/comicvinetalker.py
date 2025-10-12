@@ -77,6 +77,7 @@ class ComicVineTalker(QObject):
 
     logo_url = "http://static.comicvine.com/bundles/comicvinesite/images/logo.png"
     api_key = ""
+    api_base_url = "https://comicvine.gamespot.com/api"
 
     @staticmethod
     def getRateLimitMessage():
@@ -88,7 +89,10 @@ class ComicVineTalker(QObject):
     def __init__(self):
         QObject.__init__(self)
 
-        self.api_base_url = "https://comicvine.gamespot.com/api"
+        if ComicVineTalker.api_base_url in ("", None):
+            self.api_base_url = "https://comicvine.gamespot.com/api"
+        else:
+            self.api_base_url = ComicVineTalker.api_base_url.strip().rstrip('/')
         self.wait_for_rate_limit = False
 
         # key that is registered to comictagger

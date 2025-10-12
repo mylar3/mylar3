@@ -97,6 +97,7 @@ class ComicTaggerSettings:
         self.clear_form_before_populating_from_cv = False
         self.remove_html_tables = False
         self.cv_api_key = ""
+        self.cv_api_url = "https://comicvine.gamespot.com/api"
         self.notes_format = 'Issue ID'
         self.cv_user_agent = None
 
@@ -269,6 +270,12 @@ class ComicTaggerSettings:
                 'comicvine', 'remove_html_tables')
         if self.config.has_option('comicvine', 'cv_api_key'):
             self.cv_api_key = self.config.get('comicvine', 'cv_api_key')
+        if self.config.has_option('comicvine', 'cv_api_url'):
+            self.cv_api_url = self.config.get('comicvine', 'cv_api_url')
+        if self.cv_api_url:
+            self.cv_api_url = self.cv_api_url.strip().rstrip('/')
+        else:
+            self.cv_api_url = "https://comicvine.gamespot.com/api"
         if self.config.has_option('comicvine', 'notes_format'):
             self.notes_format = self.config.get('comicvine', 'notes_format')
         if self.config.has_option('comicvine', 'cv_user_agent'):
@@ -426,6 +433,7 @@ class ComicTaggerSettings:
         self.config.set(
             'comicvine', 'remove_html_tables', self.remove_html_tables)
         self.config.set('comicvine', 'cv_api_key', self.cv_api_key)
+        self.config.set('comicvine', 'cv_api_url', self.cv_api_url)
         self.config.set('comicvine', 'notes_format', self.notes_format)
         self.config.set('comicvine', 'cv_user_agent', self.cv_user_agent)
 

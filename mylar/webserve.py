@@ -6794,6 +6794,7 @@ class WebInterface(object):
 
         config = {
                     "comicvine_api": mylar.CONFIG.COMICVINE_API,
+                    "comicvine_url": mylar.CONFIG.COMICVINE_URL,
                     "http_host": mylar.CONFIG.HTTP_HOST,
                     "http_user": mylar.CONFIG.HTTP_USERNAME,
                     "http_port": mylar.CONFIG.HTTP_PORT,

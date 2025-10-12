@@ -154,6 +154,7 @@ _CONFIG_DEFINITIONS = OrderedDict({
 
     'CVAPI_RATE' : (int, 'CV', 2),
     'COMICVINE_API': (str, 'CV', None),
+    'COMICVINE_URL': (str, 'CV', 'https://comicvine.gamespot.com/api/'),
     'IGNORED_PUBLISHERS' : (str, 'CV', ""),
     'CV_VERIFY': (bool, 'CV', True),
     'CV_ONLY': (bool, 'CV', True),
@@ -1359,6 +1360,17 @@ class Config(object):
             logger.warn('Comicvine API key starts with a None, working around for now, please fix')
             # Set the actual API key, so mylar does not appear broken from the start
             self.COMICVINE_API = self.COMICVINE_API[4:]
+
+        # Ensure ComicVine URL is always set and normalized according to previous url 
+        if any([self.COMICVINE_URL is None, self.COMICVINE_URL == '', self.COMICVINE_URL == 'None']):
+            self.COMICVINE_URL = 'https://comicvine.gamespot.com/api/'
+        else:
+            self.COMICVINE_URL = helpers.clean_url(self.COMICVINE_URL)
+            if not self.COMICVINE_URL.endswith('/'):
+                self.COMICVINE_URL += '/'
+        config.set('CV', 'comicvine_url', self.COMICVINE_URL)
+
+        mylar.CVURL = self.COMICVINE_URL
 
         if self.SEARCH_INTERVAL < 360:
             logger.fdebug('Search interval too low. Resetting to 6 hour minimum')
