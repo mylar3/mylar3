@@ -414,6 +414,11 @@ def ddl(forcerss=False):
     for entry in feedme.entries:
         soup = BeautifulSoup(entry.summary, 'html.parser')
         orig_find = soup.find("p", {"style": "text-align: center;"})
+
+        # Non-comic posts don't have the centered header of data so can be skipped
+        if orig_find is None:
+            continue
+
         i = 0
         option_find = orig_find
         while True: #i <= 10:
