@@ -89,6 +89,7 @@ class carePackage(object):
                             ('DDL', 'flaresolverr_url'),
                             ('DDL', 'http_proxy'),
                             ('DDL', 'https_proxy'),
+                            ('DDL', 'jd2_url'),
                             ('DCPP', 'airdcpp_host'),
                             ('DCPP', 'airdcpp_download_dir'),
                             ('DCPP', 'airdcpp_hubs'),

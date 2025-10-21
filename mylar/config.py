@@ -375,6 +375,9 @@ _CONFIG_DEFINITIONS = OrderedDict({
     'ENABLE_PROXY': (bool, 'DDL', False),
     'HTTP_PROXY': (str, 'DDL', None),
     'HTTPS_PROXY': (str, 'DDL', None),
+    'JD2_ENABLE': (bool, 'DDL', False),
+    'JD2_DEST_DIR': (str, 'DDL', None),
+    'JD2_URL': (str, 'DDL', None),
 
     'ENABLE_AIRDCPP': (bool, 'DCPP', False),
     'AIRDCPP_HOST': (str, 'DCPP', ""),
@@ -1605,6 +1608,13 @@ class Config(object):
                 mylar.queue_schedule('ddl_queue', 'start')
             elif self.ENABLE_DDL is False:
                 mylar.queue_schedule('ddl_queue', 'stop')
+
+            if getattr(self, 'JD2_ENABLE', False) is True:
+                if not getattr(self, 'JD2_DEST_DIR', None):
+                    self.JD2_DEST_DIR = mylar.CONFIG.DDL_LOCATION
+                mylar.queue_schedule('jd2_queue', 'start')
+            else:
+                mylar.queue_schedule('jd2_queue', 'stop')
 
         if self.FOLDER_FORMAT is None:
             setattr(self, 'FOLDER_FORMAT', '$Series ($Year)')

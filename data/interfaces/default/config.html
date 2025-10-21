@@ -912,6 +912,23 @@
                                                 <input type="checkbox" id="ddl_prefer_upscaled" name="ddl_prefer_upscaled" value="1" ${config['ddl_prefer_upscaled']} /><label>Prefer HD-Upscale/HD-Digital <small>(if available></small></label>
                                            </div>
                                        </div>
+                                       <div class="row checkbox left clearfix">
+                                            <input type="checkbox" id="jd2_enable" onclick="initConfigCheckbox($(this));" name="jd2_enable" value="1" ${config['jd2_enable']} /><label>Send to JDownloader2</label>
+                                       </div>
+                                       <div class="config">
+                                           <div id="jd2_options" style="display:none">
+                                               <div class="row">
+                                                   <label>JDownloader2 URL</label>
+                                                   <input type="text" name="jd2_url" id="jd2_url" value="${config['jd2_url']}" size="30">
+                                                   <small>(ex. http://127.0.0.1:3128)</small>
+                                               </div>
+                                                <div class="row">
+                                                    <label>Download Path</label>
+                                                    <input type="text" name="jd2_dest_dir" id="jd2_dest_dir" value="${config['jd2_dest_dir']}" size="30">
+                                                    <small>absolute JD2 destination directory</small>
+                                                </div>
+                                           </div>
+                                       </div>
                                        %if mylar.EXT_SERVER:
                                        <div class="row checkbox left clearfix">
                                             <input type="checkbox" id="enable_external_server" onclick="initConfigCheckbox($this));" name="enable_external_server" value="1" ${config['enable_external_server']} /><label>Enable External Server</label>
@@ -2181,6 +2198,25 @@ $("#enable_airdcpp").click(function(){
                                 //document.getElementById("enable_getcomics").checked = false;
                                 $("#ddl_providers").slideUp();
                                 $("#gc_options").slideUp();
+                        }
+                });
+
+                if ($("#jd2_enable").is(":checked"))
+                        {
+                                $("#jd2_options").slideDown();
+                        }
+                else    {
+                                $("#jd2_options").slideUp();
+                        }
+
+                $("#jd2_enable").click(function(){
+                        if ($("#jd2_enable").is(":checked"))
+                        {
+                                $("#jd2_options").slideDown();
+                        }
+                        else
+                        {
+                                $("#jd2_options").slideUp();
                         }
                 });
 
