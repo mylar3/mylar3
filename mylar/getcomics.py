@@ -909,8 +909,6 @@ class GC(object):
             ' (go get some take-out)...' % (dl_selection, series, year, size)
         )
 
-        tmp_filename = '%s (%s)' % (series, year)
-
         links = []
 
         if link is None and possible_more.name == 'ul':
@@ -1098,6 +1096,8 @@ class GC(object):
                 # this is needed so that we assign some tmp filename
                 # (it will get renamed upon completion anyways)
                 #tmp_filename = comicinfo[0]['nzbtitle']
+                
+            tmp_filename = '%s (%s)' % (x['series'], x['year'])    
 
             mylar.DDL_QUEUE.put(
                 {
