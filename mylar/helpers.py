@@ -3184,12 +3184,12 @@ def jd2_queue_monitor(queue):
                         if not isinstance(item, dict):
                             logger.warn('[JD2-QUEUE] Unexpected item type %s for job %s; skipping post-processing.', type(item), job_id)
                             continue
-
+                        job_filename = (status_payload or {}).get('data').get('name')
                         if mylar.CONFIG.POST_PROCESSING is True:
                             dest_root = getattr(mylar.CONFIG, 'JD2_DEST_DIR', None) or None
                             folder_name = item.get('filename') or '%s (%s) - %s' % (series, year, record_id)
                             nzb_folder = os.path.join(dest_root, folder_name)
-                            job_filename = (status_payload or {}).get('data').get('name')
+                            
                             
                             if nzb_folder:
                                 try:
@@ -3203,11 +3203,11 @@ def jd2_queue_monitor(queue):
                                         'ddl': True,
                                         'download_info': {'provider': 'JD2', 'id': record_id, 'job_id': job_id},
                                     })
-                                    logger.info('[JD2-QUEUE] Submitted %s for post-processing (folder: %s).', filename, nzb_folder)
+                                    logger.info('[JD2-QUEUE] Submitted %s for post-processing (folder: %s).', job_filename, nzb_folder)
                                 except Exception as err:
-                                    logger.warn('[JD2-QUEUE] Unable to enqueue %s for post-processing: %s', filename, err)
+                                    logger.warn('[JD2-QUEUE] Unable to enqueue %s for post-processing: %s', job_filename, err)
                             else:
-                                logger.warn('[JD2-QUEUE] JD2 destination is not configured; skipping post-processing enqueue for %s.', filename)
+                                logger.warn('[JD2-QUEUE] JD2 destination is not configured; skipping post-processing enqueue for %s.', job_filename)
                         else:
                             logger.info('[JD2-QUEUE] Post-processing disabled, please manually handle your files.')
                         continue
@@ -3221,7 +3221,7 @@ def jd2_queue_monitor(queue):
                                 },
                                 {'id': record_id},
                             )
-                        logger.warn('[JD2-QUEUE] Download %s reported failure state (%s).', filename, job_status)
+                        logger.warn('[JD2-QUEUE] Download %s reported failure state (%s).', job_filename, job_status)
                         continue
 
                     if job_status not in completed_states:
