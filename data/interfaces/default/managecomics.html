@@ -88,7 +88,7 @@
                                 <td class="hidden" id="stat_title">${comic['Status']}</td>
 				<td id="latest">${comic['LatestIssue']} (${comic['LatestDate']})</td>
                                 <td id="publisher">${comic['ComicPublisher']}</td>
-                                <td id="have" valign="center"><span title="${comic['percent']}"></span>${css}<div style="width:${comic['percent']}%"><div style="width:${comic['percent']}%"><div class="havetracks">${comic['haveissues']}/${comic['totalissues']}</div></div></div></td>
+                                <td id="have" valign="center" data-order="${comic['percent'] or 0}"><span title="${comic['percent']}"></span>${css}<div style="width:${comic['percent']}%"><div style="width:${comic['percent']}%"><div class="havetracks">${comic['haveissues']}/${comic['totalissues']}</div></div></div></td>
 				<td id="lastupdated">${comic['DateAdded']}</td>
 			</tr>
 		%endfor
