@@ -1129,8 +1129,6 @@ class GC(object):
             }
 
             if self.jd2 is not None:
-                package_name = '%s (%s) - %s' % (x['series'], x['year'], mod_id)
-                logger.info('[JD2] Submitting %s to JD2', package_name)
                 
                 jd2_priority_links = {}
                 jd2_priority_list = ["HIGHEST", "HIGH", "DEFAULT", "LOWEST"]
@@ -1148,27 +1146,17 @@ class GC(object):
                                 jd2_priority_links[url] = jd2_priority_map['main']
                             else:
                                 jd2_priority_links[url] = jd2_priority_map[jd2_lt_site]
-                                
-                submit_result = self.jd2.submit(jd2_priority_links, package_name, record_id=mod_id)
-                
-                if not submit_result.get('status'):
-                    logger.warn('[JD2] Submission failed for %s; falling back to internal queue. Details: %s', package_name, submit_result)
-                    mylar.DDL_QUEUE.put(queue_payload)
-                else:
-                    logger.debug('[JD2] Submission response for %s: %s', package_name, submit_result)
-                    job_id = submit_result.get('jobid')
-                    if job_id:
-                        jd2_queue_payload = dict(queue_payload)
-                        jd2_queue_payload.update({
-                            'jd2_job_id': job_id,
-                        })
-                        try:
-                            mylar.JD2_QUEUE.put(jd2_queue_payload)
-                            logger.info('[JD2] Enqueued %s for monitoring.', package_name)
-                        except Exception as err:
-                            logger.warn('[JD2] Unable to enqueue %s for monitoring: %s', package_name, err)
-                    else:
-                        logger.warn('[JD2] Submission for %s returned no job id; JD2 monitoring unavailable.', package_name)
+            
+                jd2_queue_payload = dict(queue_payload)
+                jd2_queue_payload.update({
+                    'jd2_job_id': 0,
+                    'jd2_priority_links': jd2_priority_links,
+                })
+                try:
+                    mylar.JD2_QUEUE.put(jd2_queue_payload)
+                    logger.info('[JD2] Enqueued %s for downloading.', tmp_filename)
+                except Exception as err:
+                    logger.warn('[JD2] Unable to enqueue %s for downloading: %s', tmp_filename, err)
             else:
                 mylar.DDL_QUEUE.put(queue_payload)
             cnt += 1

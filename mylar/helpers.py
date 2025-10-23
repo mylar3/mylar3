@@ -3056,7 +3056,7 @@ def ddl_cleanup(record_id):
 
 
 def jd2_queue_monitor(queue):
-    jd2_client = None
+    jd2_client = JDownloader2()
     myDB = db.DBConnection()
     while True:
         if queue.qsize() >= 1:
@@ -3107,18 +3107,43 @@ def jd2_queue_monitor(queue):
                             'resume': None,
                             'jd2_job_id': job_id,
                         }
-                        jd2_queue_payload = dict(queue_payload)
-                        queue.put(jd2_queue_payload)
+                        queue.put(queue_payload)
                 continue
+            # if the job id is 0 it's a special case where we need to run the download with self.jd2.submit(jd2_priority_links, package_name, record_id=mod_id). 
+            
+            
+            if item.get('jd2_job_id') == 0:
+                jd2_priority_links = item.get('jd2_priority_links')
+                queue_payload = dict(item)
+                queue_payload.pop('jd2_job_id', None)
+                queue_payload.pop('jd2_priority_links', None)
+                if not jd2_priority_links:
+                    logger.warn('Priority links don\'t exist; cannot process JD2 job. Falling back to DDL queue.')
+                    mylar.DDL_QUEUE.put(queue_payload)
+                    continue
+                record_id = item.get('id') or item.get('ID')
+                package_name = '%s (%s) - %s' % (item.get('series'), item.get('year'), record_id)
+                submit_result = jd2_client.submit(jd2_priority_links, package_name, record_id)
+                
+                if not submit_result.get('status'):
+                    logger.warn('[JD2] Submission failed for %s; falling back to DDL queue. Details: %s', package_name, submit_result)
+                    mylar.DDL_QUEUE.put(queue_payload)
+                else:
+                    logger.debug('[JD2] Submission response for %s: %s', package_name, submit_result)
+                    job_id = submit_result.get('jobid')
+                    if not job_id:
+                        mylar.DDL_QUEUE.put(queue_payload)
+                        continue
+                    queue_payload['jd2_job_id'] = job_id
+                    mylar.JD2_QUEUE.put(queue_payload)
+                    logger.info('[JD2] JD2 job %s submitted for %s', job_id, package_name)
+                    time.sleep(10) # allow the job to start
+                    continue
+                    
             logger.info('[JD2-QUEUE] Now loading from queue: %s' % item)
             record_id = item.get('ID') or item.get('id')
             job_id = item.get('jd2_job_id') if isinstance(item, dict) else None
-            if jd2_client is None:
-                try:
-                    jd2_client = JDownloader2()
-                except Exception as err:
-                    logger.warn('[JD2-QUEUE] Unable to initialize JD2 client: %s', err)
-                    jd2_client = None
+            
 
             if jd2_client is not None and job_id:
                 try:
@@ -3187,7 +3212,11 @@ def jd2_queue_monitor(queue):
                         job_filename = (status_payload or {}).get('data').get('name')
                         if mylar.CONFIG.POST_PROCESSING is True:
                             dest_root = getattr(mylar.CONFIG, 'JD2_DEST_DIR', None) or None
-                            folder_name = item.get('filename') or '%s (%s) - %s' % (series, year, record_id)
+                            folder_name = (
+                                "%s - %s" % (item.get('filename'), record_id)
+                                if item.get('filename')
+                                else "%s (%s) - %s" % (series, year, record_id)
+                            )
                             nzb_folder = os.path.join(dest_root, folder_name)
                             
                             

@@ -6,6 +6,7 @@
 import json
 import os
 import datetime
+import time
 from typing import Any, Dict, List, Optional
 
 import requests
@@ -76,6 +77,7 @@ class JDownloader2(object):
                         data = payload.get('data', payload)
                         if isinstance(data, dict):
                             job_id = data.get('id') or data.get('jobID')
+                            time.sleep(1)
                 except Exception as json_err:
                     logger.warn('[JD2] Unable to decode submit response JSON: %s', json_err)
                     
@@ -96,7 +98,7 @@ class JDownloader2(object):
                     {'id': record_id},
                 )
             except Exception as err:
-                logger.error('[JD2] Unable to update database for job id %s for record %s: %s', job_key, record_id, err)
+                logger.error('[JD2] Unable to update database for job id %s for record %s: %s', job_id, record_id, err)
                 return {'status': False, 'jobid': None, 'error': err}
     
         return {'status': True, 'jobid': str(job_id), 'payload': payload}
