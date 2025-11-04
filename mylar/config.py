@@ -159,7 +159,7 @@ _CONFIG_DEFINITIONS = OrderedDict({
     'CV_ONLY': (bool, 'CV', True),
     'CV_ONETIMER': (bool, 'CV', True),
     'CVINFO': (bool, 'CV', False),
-    'CV_USER_AGENT': (str, 'CV', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36'),
+    'CV_USER_AGENT': (str, 'CV', 'comictagger image fetcher'),
     'IMPRINT_MAPPING_TYPE': (str, 'CV', 'CV'),  # either 'CV' for ComicVine or 'JSON' for imprints.json to choose which naming to use for imprints
 
     'LOG_DIR' : (str, 'Logs', None),
@@ -1548,7 +1548,9 @@ class Config(object):
 
         #make sure the user_agent is running a current version and write it to the .ComicTagger file for use with CT
         if '42.0.2311.135' in self.CV_USER_AGENT:
-            self.CV_USER_AGENT = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36'
+            self.CV_USER_AGENT = 'comictagger image fetcher'
+        if '122.0.0.0' in self.CV_USER_AGENT:
+            self.CV_USER_AGENT = 'comictagger image fetcher'
 
         ct_settingsfile = os.path.join(self.CT_SETTINGSPATH, 'settings')
         if os.path.exists(ct_settingsfile):
