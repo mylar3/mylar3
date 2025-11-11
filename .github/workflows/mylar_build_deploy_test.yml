@@ -11,7 +11,7 @@ on:
       inputs:
         os:
           description: 'OS Runner'
-          default: 'ubuntu-latest'
+          default: 'ubuntu-22.04'
           required: false
           type: string
         py:
