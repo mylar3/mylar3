@@ -1311,7 +1311,7 @@ def forceRescan(ComicID, archive=None, module=None, recheck=False):
         if tmpfc['JusttheDigits'] is not None:
             temploc= tmpfc['JusttheDigits'].replace('_', ' ')
             if "Director's Cut" not in temploc:
-                temploc = re.sub('[\#\']', '', temploc)
+                temploc = re.sub(r'[\#\']', '', temploc)
             logger.fdebug('temploc: %s' % temploc)
         else:
             #assume 1 if not given
@@ -1329,7 +1329,7 @@ def forceRescan(ComicID, archive=None, module=None, recheck=False):
             if temploc.lower().endswith(extensions):
                 logger.fdebug(module + ' Removed extension for issue: ' + temploc)
                 temploc = temploc[:-4]
-            fcnew_af = re.findall('[^\()]+', temploc)
+            fcnew_af = re.findall(r'[^\()]+', temploc)
             p = shlex.quote(fcnew_af[0])
             fcnew = shlex.split(p)
 

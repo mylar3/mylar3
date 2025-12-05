@@ -34,9 +34,9 @@ def Startit(searchName, searchIssue, searchYear, ComicVersion, IssDateFix, bookt
             else:
                 searchName = searchName.replace(x, ' ', cnt)
 
-    searchName = re.sub('\s+', ' ', searchName)
-    searchName = re.sub("[\,\:]", "", searchName).strip()
-    searchName = re.sub("[\/]", " ", searchName).strip()
+    searchName = re.sub(r'\s+', ' ', searchName)
+    searchName = re.sub(r"[\,\:]", "", searchName).strip()
+    searchName = re.sub(r"[\/]", " ", searchName).strip()
     splitSearch = searchName.split(" ")
 
     tmpsearchIssue = searchIssue
@@ -191,7 +191,7 @@ def Startit(searchName, searchIssue, searchYear, ComicVersion, IssDateFix, bookt
         title = entry['title']
         splitTitle = title.split("\"")
         noYear = 'False'
-        _digits = re.compile('\d')
+        _digits = re.compile(r'\d')
         subcnt = 0
         for subs in splitTitle:
             regExCount = 0

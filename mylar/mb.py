@@ -123,7 +123,7 @@ def findComic(name, mode, issue, limityear=None, search_type=None, annual_check=
 
     originalname = name
     if '+' in name:
-       name = re.sub('\+', 'PLUS', name)
+        name = re.sub(r'\+', 'PLUS', name)
 
     pattern = re.compile(r'\w+', re.UNICODE)
     name = pattern.findall(name)
@@ -346,7 +346,7 @@ def findComic(name, mode, issue, limityear=None, search_type=None, annual_check=
                         else: xmlYr = "0000"
 
                         yearRange = []
-                        tmpYr = re.sub('\?', '', xmlYr)
+                        tmpYr = re.sub(r'\?', '', xmlYr)
 
                         if tmpYr.isdigit():
 
@@ -654,4 +654,3 @@ def storyarcinfo(xmlid):
             }
 
     return arcinfo
-

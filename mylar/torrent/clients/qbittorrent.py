@@ -65,7 +65,7 @@ class TorrentClient(object):
             logger.info('Checking if Torrent Exists!')
 
             if filepath.startswith('magnet'):
-                torrent_hash = re.findall("urn:btih:([\w]{32,40})", filepath)[0]
+                torrent_hash = re.findall(r"urn:btih:([\w]{32,40})", filepath)[0]
                 if len(torrent_hash) == 32:
                     torrent_hash = b16encode(b32decode(torrent_hash)).lower()
                 hash = torrent_hash.upper()
@@ -164,4 +164,3 @@ class TorrentClient(object):
         info = metainfo['info']
         thehash = hashlib.sha1(bencode.encode(info)).hexdigest().upper()
         return thehash
-

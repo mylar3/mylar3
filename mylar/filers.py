@@ -129,7 +129,7 @@ class FileHandlers(object):
             booktype = self.comic['Type']
 
         if any([booktype is None, booktype == 'None', booktype == 'Print']) or all([booktype != 'Print', mylar.CONFIG.FORMAT_BOOKTYPE is False]):
-            chunk_fb = re.sub('\$Type', '', folder_format)
+            chunk_fb = re.sub(r'\$Type', '', folder_format)
             chunk_b = re.compile(r'\s+')
             chunk_folder_format = chunk_b.sub(' ', chunk_fb)
             if booktype != 'Print':
@@ -149,14 +149,14 @@ class FileHandlers(object):
 
         #if comversion is None, remove it so it doesn't populate with 'None'
         if comicVol == 'None':
-            chunk_f_f = re.sub('\$VolumeN', '', chunk_folder_format)
+            chunk_f_f = re.sub(r'\$VolumeN', '', chunk_folder_format)
             chunk_f = re.compile(r'\s+')
             chunk_folder_format = chunk_f.sub(' ', chunk_f_f)
 
         if any([imprint is None, imprint == 'None']):
             imprint = self.comic['PublisherImprint']
         if any([imprint is None, imprint == 'None']):
-            chunk_f_f = re.sub('\$Imprint', '', chunk_folder_format)
+            chunk_f_f = re.sub(r'\$Imprint', '', chunk_folder_format)
             chunk_f = re.compile(r'\s+')
             chunk_folder_format = chunk_f.sub(' ', chunk_f_f)
 
@@ -164,7 +164,7 @@ class FileHandlers(object):
         ccf = chunk_folder_format.find('/ ')
         if ccf != -1:
             chunk_folder_format = chunk_folder_format[:ccf+1] + chunk_folder_format[ccf+2:]
-        ccf = chunk_folder_format.find('\ ')
+        ccf = chunk_folder_format.find(r'\ ')
         if ccf != -1:
             chunk_folder_format = chunk_folder_format[:ccf+1] + chunk_folder_format[ccf+2:]
         ccf = chunk_folder_format.find(' /')
@@ -510,7 +510,7 @@ class FileHandlers(object):
                 booktype = self.comic['Type']
 
             if booktype == 'Print' or all([booktype != 'Print', mylar.CONFIG.FORMAT_BOOKTYPE is False]):
-                chunk_fb = re.sub('\$Type', '', file_format)
+                chunk_fb = re.sub(r'\$Type', '', file_format)
                 chunk_b = re.compile(r'\s+')
                 chunk_file_format = chunk_b.sub(' ', chunk_fb)
             else:
@@ -521,14 +521,14 @@ class FileHandlers(object):
 
             #if comversion is None, remove it so it doesn't populate with 'None'
             if comversion == 'None':
-                chunk_f_f = re.sub('\$VolumeN', '', chunk_file_format)
+                chunk_f_f = re.sub(r'\$VolumeN', '', chunk_file_format)
                 chunk_f = re.compile(r'\s+')
                 chunk_file_format = chunk_f.sub(' ', chunk_f_f)
                 logger.fdebug('No version # found for series, removing from filename')
                 logger.fdebug("new format: " + str(chunk_file_format))
 
             if annualize is None:
-                chunk_f_f = re.sub('\$Annual', '', chunk_file_format)
+                chunk_f_f = re.sub(r'\$Annual', '', chunk_file_format)
                 chunk_f = re.compile(r'\s+')
                 chunk_file_format = chunk_f.sub(' ', chunk_f_f)
                 logger.fdebug('not an annual - removing from filename paramaters')
@@ -545,7 +545,7 @@ class FileHandlers(object):
                             logger.fdebug('[%s][ANNUALS-ON][ANNUAL IN SERIES][NO ANNUAL FORMAT] prettycomiss: %s' % (series, prettycomiss))
                         else:
                             #because it exists within title, strip it then use formatting tag for placement of wording.
-                            chunk_f_f = re.sub('\$Annual', '', chunk_file_format)
+                            chunk_f_f = re.sub(r'\$Annual', '', chunk_file_format)
                             chunk_f = re.compile(r'\s+')
                             chunk_file_format = chunk_f.sub(' ', chunk_f_f)
                             logger.fdebug('[%s][ANNUALS-ON][ANNUAL IN SERIES][ANNUAL FORMAT] prettycomiss: %s' % (series, prettycomiss))
@@ -569,7 +569,7 @@ class FileHandlers(object):
                             logger.fdebug('[%s][ANNUALS-OFF][ANNUAL IN SERIES][NO ANNUAL FORMAT] prettycomiss: %s' % (series, prettycomiss))
                         else:
                             #because it exists within title, strip it then use formatting tag for placement of wording.
-                            chunk_f_f = re.sub('\$Annual', '', chunk_file_format)
+                            chunk_f_f = re.sub(r'\$Annual', '', chunk_file_format)
                             chunk_f = re.compile(r'\s+')
                             chunk_file_format = chunk_f.sub(' ', chunk_f_f)
                             logger.fdebug('[%s][ANNUALS-OFF][ANNUAL IN SERIES][ANNUAL FORMAT] prettycomiss: %s' % (series, prettycomiss))
@@ -586,7 +586,7 @@ class FileHandlers(object):
                     logger.fdebug('Annual detected within series title of ' + series + '. Not auto-correcting issue #')
 
             seriesfilename = seriesfilename #.encode('ascii', 'ignore').strip()
-            filebad = [':', ',', '/', '?', '!', '\'', '\"', '\*'] #in u_comicname or '/' in u_comicname or ',' in u_comicname or '?' in u_comicname:
+            filebad = [':', ',', '/', '?', '!', '\'', '\"', r'\*'] #in u_comicname or '/' in u_comicname or ',' in u_comicname or '?' in u_comicname:
             for dbd in filebad:
                 if dbd in seriesfilename:
                     if any([dbd == '/', dbd == '*']): 
@@ -631,7 +631,7 @@ class FileHandlers(object):
                     #mylar.CONFIG.REPLACE_CHAR ...determines what to replace spaces with underscore or dot
                     nfilename = nfilename.replace(' ', mylar.CONFIG.REPLACE_CHAR)
 
-            nfilename = re.sub('[\,\:]', '', nfilename) + ext.lower()
+            nfilename = re.sub(r'[\,\:]', '', nfilename) + ext.lower()
             logger.fdebug('New Filename: ' + nfilename)
 
             if mylar.CONFIG.LOWERCASE_FILENAMES:
@@ -751,7 +751,7 @@ class FileHandlers(object):
             if watchmatch['justthedigits'] is not None:
                 temploc= watchmatch['justthedigits'].replace('_', ' ')
                 if "Director's Cut" not in temploc:
-                    temploc = re.sub('[\#\']', '', temploc)
+                    temploc = re.sub(r'[\#\']', '', temploc)
             else:
                 if any([booktype == 'TPB', booktype =='GN', booktype == 'HC', booktype == 'One-Shot']):
                     temploc = '1'

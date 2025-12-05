@@ -89,7 +89,7 @@ def parse_torrent_ids(args):
                 addition = [torrent_id]
             if not addition:
                 # handle index ranges i.e. 5:10
-                match = re.match('^(\d+):(\d+)$', item)
+                match = re.match(r'^(\d+):(\d+)$', item)
                 if match:
                     try:
                         idx_from = int(match.group(1))
@@ -309,7 +309,7 @@ class Client(object):
             version_major = 1
             version_minor = 30
             version_changeset = 0
-            version_parser = re.compile('(\d).(\d+) \((\d+)\)')
+            version_parser = re.compile(r'(\d).(\d+) \((\d+)\)')
             if hasattr(self.session, 'version'):
                 match = version_parser.match(self.session.version)
                 if match:

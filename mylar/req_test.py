@@ -104,7 +104,7 @@ class Req(object):
             for rq in self.req_list:
                 version_match = False
                 for pl in self.pip_list:
-                    if re.sub('[\-\_]', '', rq['module'].lower()).strip() == re.sub('[\-\_]', '', pl['module'].lower()).strip():
+                    if re.sub(r'[\-\_]', '', rq['module'].lower()).strip() == re.sub(r'[\-\_]', '', pl['module'].lower()).strip():
                         if parse_version(pl['version']) == parse_version(rq['version']):
                             version_match = 'OK'
                         elif parse_version(pl['version']) < parse_version(rq['version']):

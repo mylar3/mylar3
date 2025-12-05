@@ -189,7 +189,7 @@ def libraryScan(dir=None, append=False, ComicID=None, ComicName=None, cron=None,
         watchdisplaycomic = watch['ComicName']
         # let's clean up the name, just in case for comparison purposes...
         try:
-            watchcomic = re.sub('[\_\#\,\/\:\;\.\-\!\$\%\&\+\'\?\@]', '', watch['ComicName_Filesafe'])
+            watchcomic = re.sub(r'[\_\#\,\/\:\;\.\-\!\$\%\&\+\'\?\@]', '', watch['ComicName_Filesafe'])
         except Exception as e:
             logger.warn('[IMPORT] Unable to properly retrieve series name from watchlist.'
                         ' This is due most likely to previous problems refreshing/adding the seriess %s [error: %s]'
@@ -206,7 +206,7 @@ def libraryScan(dir=None, append=False, ComicID=None, ComicName=None, cron=None,
 
         # account for alternate names as well
         if watch['AlternateSearch'] is not None and watch['AlternateSearch'] != 'None':
-            altcomic = re.sub('[\_\#\,\/\:\;\.\-\!\$\%\&\+\'\?\@]', '', watch['AlternateSearch'])
+            altcomic = re.sub(r'[\_\#\,\/\:\;\.\-\!\$\%\&\+\'\?\@]', '', watch['AlternateSearch'])
             #altcomic = re.sub('\s+', ' ', str(altcomic)).strip()
             AltName.append(altcomic)
             alt_chk = "yes"  # alt-checker flag
@@ -670,7 +670,7 @@ def scanLibrary(scan=None, queue=None):
                     abc = [x for x in soma['issueid_list'] if x['issueid'] == i['IssueID']]
                     ghi = abc[0]['importinfo']
 
-                    nspace_dynamicname = re.sub('[\|\s]', '', ghi['dynamicname'].lower()).strip()                   
+                    nspace_dynamicname = re.sub(r'[\|\s]', '', ghi['dynamicname'].lower()).strip()                   
                     #these all have related ComicID/IssueID's...just add them as is.
                     controlValue = {"impID":        ghi['impid']}
                     newValue = {"Status":           "Not Imported",
@@ -691,7 +691,7 @@ def scanLibrary(scan=None, queue=None):
             if int(soma['import_count']) > 0:
                 for ss in soma['import_by_comicids']:
 
-                    nspace_dynamicname = re.sub('[\|\s]', '', ss['dynamicname'].lower()).strip()                   
+                    nspace_dynamicname = re.sub(r'[\|\s]', '', ss['dynamicname'].lower()).strip()                   
 
                     controlValue = {"impID":        ss['impid']}
                     newValue = {"ComicYear":        ss['comicyear'],

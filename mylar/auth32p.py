@@ -251,7 +251,7 @@ class info32p(object):
                 #generate the dynamic name of the series here so we can match it up
                 as_d = filechecker.FileChecker()
                 as_dinfo = as_d.dynamic_replace(series_search)
-                mod_series = re.sub('\|','', as_dinfo['mod_seriesname']).strip()
+                mod_series = re.sub(r'\|','', as_dinfo['mod_seriesname']).strip()
                 as_puinfo = as_d.dynamic_replace(publisher_search)
                 pub_series = as_puinfo['mod_seriesname']
 
@@ -267,8 +267,8 @@ class info32p(object):
                 logger.fdebug('config.search_32p: %s' % mylar.CONFIG.SEARCH_32P)
                 if mylar.CONFIG.SEARCH_32P is False:
                     url = 'https://walksoftly.itsaninja.party/serieslist.php'
-                    params = {'series': re.sub('\|','', mod_series.lower()).strip()} #series_search}
-                    logger.fdebug('search query: %s' % re.sub('\|', '', mod_series.lower()).strip())
+                    params = {'series': re.sub(r'\|','', mod_series.lower()).strip()} #series_search}
+                    logger.fdebug('search query: %s' % re.sub(r'\|', '', mod_series.lower()).strip())
                     try:
                         t = requests.get(url, params=params, verify=True, headers={'USER-AGENT': mylar.USER_AGENT[:mylar.USER_AGENT.find('/')+7] + mylar.USER_AGENT[mylar.USER_AGENT.find('(')+1]})
                     except requests.exceptions.RequestException as e:
@@ -324,7 +324,7 @@ class info32p(object):
 
                     as_d = filechecker.FileChecker()
                     as_dinfo = as_d.dynamic_replace(torrentname)
-                    seriesresult = re.sub('\|','', as_dinfo['mod_seriesname']).strip()
+                    seriesresult = re.sub(r'\|','', as_dinfo['mod_seriesname']).strip()
                     logger.fdebug('searchresult: %s --- %s [%s]' % (seriesresult, mod_series, publisher_search))
                     if seriesresult.lower() == mod_series.lower():
                         logger.fdebug('[MATCH] %s [%s]' % (torrentname, torrentid))
@@ -335,7 +335,7 @@ class info32p(object):
                         tmp_torrentname = re.sub(publisher_search.lower(), '', seriesresult.lower()).strip()
                         as_t = filechecker.FileChecker()
                         as_tinfo = as_t.dynamic_replace(tmp_torrentname)
-                        if re.sub('\|', '', as_tinfo['mod_seriesname']).strip() == mod_series.lower():
+                        if re.sub(r'\|', '', as_tinfo['mod_seriesname']).strip() == mod_series.lower():
                             logger.fdebug('[MATCH] %s [%s]' % (torrentname, torrentid))
                             pdata.append({"id":      torrentid,
                                           "series":  torrentname})
@@ -728,4 +728,3 @@ class info32p(object):
 #if __name__ == '__main__':
 #   ab = DoIt()
 #    c = ab.loadit()
-

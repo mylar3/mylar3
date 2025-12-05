@@ -55,9 +55,9 @@ def cbdb(comicnm, ComicYear):
             print("CBDB ID: " + resultID)
 
             print(("resultname: " + resultName))
-            CleanComicName = re.sub('[\,\.\:\;\'\[\]\(\)\!\@\#\$\%\^\&\*\-\_\+\=\?\/]', '', comicnm)
+            CleanComicName = re.sub(r'[\,\.\:\;\'\[\]\(\)\!\@\#\$\%\^\&\*\-\_\+\=\?\/]', '', comicnm)
             CleanComicName = re.sub(' ', '', CleanComicName).lower()
-            CleanResultName = re.sub('[\,\.\:\;\'\[\]\(\)\!\@\#\$\%\^\&\*\-\_\+\=\?\/]', '', resultName)
+            CleanResultName = re.sub(r'[\,\.\:\;\'\[\]\(\)\!\@\#\$\%\^\&\*\-\_\+\=\?\/]', '', resultName)
             CleanResultName = re.sub(' ', '', CleanResultName).lower()
             print(("CleanComicName: " + CleanComicName))
             print(("CleanResultName: " + CleanResultName))

@@ -54,7 +54,7 @@ class FileChecker(object):
         if watchcomic:
             #watchcomic = unicode name of series that is being searched against
             self.og_watchcomic = watchcomic
-            self.watchcomic = re.sub('\?', '', watchcomic).strip()  #strip the ? seperate since it affects the regex.
+            self.watchcomic = re.sub(r'\?', '', watchcomic).strip()  #strip the ? seperate since it affects the regex.
             #replace variations of unicode dashes with a normal - because this world is f'd up enough to have something like that.
             self.watchcomic = re.sub(r'[\u2014|\u2013|\u2e3a|\u2e3b]', ' - ', self.watchcomic).strip()
             self.watchcomic = re.sub(r'\u2019', " ' ", self.watchcomic).strip()  #replace the \u2019 with a normal ' because again, people are dumb.
@@ -283,7 +283,7 @@ class FileChecker(object):
                     logger.fdebug('[SARC] Removed Reading Order sequence from subname. Now set to : %s' % modfilename)
 
         #make sure all the brackets are properly spaced apart
-        if modfilename.find('\s') == -1:
+        if modfilename.find(r'\s') == -1:
             #if no spaces exist, assume decimals being used as spacers (ie. nzb name)
             modspacer = '.'
         else:
@@ -335,7 +335,7 @@ class FileChecker(object):
                         if m[cnt] == ' ':
                             pass
                         elif rp.lower() in m[cnt].lower():
-                            scangroup = re.sub('[\(\)]', '', m[cnt]).strip()
+                            scangroup = re.sub(r'[\(\)]', '', m[cnt]).strip()
                             logger.fdebug('Scanner group tag discovered: %s' % scangroup)
                             modfilename = modfilename.replace(m[cnt],'').strip()
                             break
@@ -383,7 +383,7 @@ class FileChecker(object):
 
         ret_sf2 = ' '.join(split_file3)
 
-        sf = re.findall('''\( [^\)]* \) |\[ [^\]]* \] |\[ [^\#]* \]|\S+''', ret_sf2, re.VERBOSE)
+        sf = re.findall(r'''\( [^\)]* \) |\[ [^\]]* \] |\[ [^\#]* \]|\S+''', ret_sf2, re.VERBOSE)
         #sf = re.findall('''\( [^\)]* \) |\[ [^\]]* \] |\S+''', ret_sf2, re.VERBOSE)
 
         ret_sf1 = ' '.join(sf)
@@ -393,15 +393,15 @@ class FileChecker(object):
         #c11 = '\+'
         #f11 = '\&'
         #g11 = '\''
-        ret_sf1 = re.sub('\+', 'c11', ret_sf1).strip()
-        ret_sf1 = re.sub('\&', 'f11', ret_sf1).strip()
+        ret_sf1 = re.sub(r'\+', 'c11', ret_sf1).strip()
+        ret_sf1 = re.sub(r'\&', 'f11', ret_sf1).strip()
         ret_sf1 = re.sub('\'', 'g11', ret_sf1).strip()
-        ret_sf1 = re.sub('\@', 'h11', ret_sf1).strip()
+        ret_sf1 = re.sub(r'\@', 'h11', ret_sf1).strip()
 
         #split_file = re.findall('(?imu)\([\w\s-]+\)|[-+]?\d*\.\d+|\d+[\s]COVERS+|\d{4}-\d{2}-\d{2}|\d+[(th|nd|rd|st)]+|[\(^\)+]|\d+|[\w-]+|#?\d\.\d+|#[\.-]\w+|#[\d*\.\d+|\w+\d+]+|#(?<![\w\d])XCV(?![\w\d])+|#[\w+]|\)', ret_sf1, re.UNICODE)
 
         #updated to keep words within square brackets together.
-        split_file = re.findall('(?imu)\([\w\s-]+\)|[-+]?\d*\.\d+|\d+[\s]COVERS+|\d+[(\s|\-)]PAGE+|\d{4}-\d{2}-\d{2}|\d+[(th|nd|rd|st)]+|[\(^\)+]|\[.*?\]|\d+|[\w-]+|#?\d\.\d+|#[\.-]\w+|#[\d*\.\d+|\w+\d+]+|#(?<![\w\d])XCV(?![\w\d])+|#[\w+]|\)', ret_sf1, re.UNICODE)
+        split_file = re.findall(r'(?imu)\([\w\s-]+\)|[-+]?\d*\.\d+|\d+[\s]COVERS+|\d+[(\s|\-)]PAGE+|\d{4}-\d{2}-\d{2}|\d+[(th|nd|rd|st)]+|[\(^\)+]|\[.*?\]|\d+|[\w-]+|#?\d\.\d+|#[\.-]\w+|#[\d*\.\d+|\w+\d+]+|#(?<![\w\d])XCV(?![\w\d])+|#[\w+]|\)', ret_sf1, re.UNICODE)
 
         #10-20-2018 ---START -- attempt to detect '01 (of 7.3)'
         #10-20-2018          -- attempt to detect '36p ctc' as one element
@@ -458,8 +458,8 @@ class FileChecker(object):
 
         if len(split_file) == 1:
             logger.fdebug('Improperly formatted filename - there is no seperation using appropriate characters between wording.')
-            ret_sf1 = re.sub('\-',' ', ret_sf1).strip()
-            split_file = re.findall('(?imu)\([\w\s-]+\)|[-+]?\d*\.\d+|\d+|[\w-]+|#?\d\.\d+|#(?<![\w\d])XCV(?![\w\d])+|\)', ret_sf1, re.UNICODE)
+            ret_sf1 = re.sub(r'\-',' ', ret_sf1).strip()
+            split_file = re.findall(r'(?imu)\([\w\s-]+\)|[-+]?\d*\.\d+|\d+|[\w-]+|#?\d\.\d+|#(?<![\w\d])XCV(?![\w\d])+|\)', ret_sf1, re.UNICODE)
 
 
         possible_issuenumbers = []
@@ -487,7 +487,7 @@ class FileChecker(object):
             current_pos +=1
             #the series title will always be first and be AT LEAST one word.
             if split_file.index(sf) >= 0 and not volumeprior:
-                dtcheck = re.sub('[\(\)\,]', '', sf).strip()
+                dtcheck = re.sub(r'[\(\)\,]', '', sf).strip()
                 #if there's more than one date, assume the right-most date is the actual issue date.
                 if any(['19' in dtcheck, '20' in dtcheck]) and not any([dtcheck.lower().startswith('v19'), dtcheck.lower().startswith('v20')]) and len(dtcheck) >=4:
                     logger.fdebug('checking date : %s' % dtcheck)
@@ -575,14 +575,14 @@ class FileChecker(object):
             count = None
             found = False
 
-            match = re.search('(?<=\sof\s)\d+(?=\s)', sf, re.IGNORECASE)
+            match = re.search(r'(?<=\sof\s)\d+(?=\s)', sf, re.IGNORECASE)
             if match:
                 logger.fdebug('match')
                 count = match.group()
                 found = True
 
             if found is False:
-                match = re.search('(?<=\(of\s)\d+(?=\))', sf,  re.IGNORECASE)
+                match = re.search(r'(?<=\(of\s)\d+(?=\))', sf,  re.IGNORECASE)
                 if match:
                     count = match.group()
                     found = True
@@ -596,7 +596,7 @@ class FileChecker(object):
                 logger.fdebug('Issue Number SHOULD BE: %s' % lastissue_label)
                 validcountchk = True
 
-            match2 = re.search('(\d+[\s])covers', sf, re.IGNORECASE)
+            match2 = re.search(r'(\d+[\s])covers', sf, re.IGNORECASE)
             if match2:
                 num_covers = re.sub('[^0-9]', '', match2.group()).strip()
                 #logger.fdebug('%s covers detected within filename' % num_covers)
@@ -678,7 +678,7 @@ class FileChecker(object):
                 if locateiss_end == -1:
                     locateiss_end = modfilename.find('_', locateiss_st)
                     if locateiss_end == -1:
-                        locateiss_end = modfilename.find('\.', locateiss_st)
+                        locateiss_end = modfilename.find(r'\.', locateiss_st)
                         if locateiss_end == -1:
                             locateiss_end = len(modfilename)
                 if modfilename[locateiss_end-1] == ')':
@@ -840,7 +840,7 @@ class FileChecker(object):
                         elif sf.lower() == 'of' and lastissue_label is not None and lastissue_position == int(split_file.index(sf))-1:
                             logger.fdebug('MINI-SERIES DETECTED')
                         else:
-                            if any([re.sub('[\(\)]', '', sf.lower()).strip() == 'tpb', re.sub('[\(\)]', '', sf.lower()).strip() == 'digital tpb']):
+                            if any([re.sub(r'[\(\)]', '', sf.lower()).strip() == 'tpb', re.sub(r'[\(\)]', '', sf.lower()).strip() == 'digital tpb']):
                                 logger.fdebug('TRADE PAPERBACK DETECTED. NOT DETECTING ISSUE NUMBER - ASSUMING VOLUME')
                                 booktype = 'TPB'
                                 try:
@@ -1239,7 +1239,7 @@ class FileChecker(object):
             series_name = ' '.join(split_file[:highest_series_pos])
         else:
             if highest_series_pos <= issue_number_position and all([len(split_file[0]) == 4, split_file[0].isdigit()]):
-                if re.sub('[\.\s]', '', split_file[yearposition+1]).strip().lower() == 'ad' or all([split_file[yearposition+1].lower() == 'a' and split_file[yearposition+2].lower() == 'd']):
+                if re.sub(r'[\.\s]', '', split_file[yearposition+1]).strip().lower() == 'ad' or all([split_file[yearposition+1].lower() == 'a' and split_file[yearposition+2].lower() == 'd']):
                     series_name = ' '.join(split_file[yearposition:highest_series_pos]) #logger.info('BOOOOYYYYAHHHHH')
                     issue_year = None
                 else:
@@ -1272,8 +1272,8 @@ class FileChecker(object):
 
         if series_name.endswith('-'): 
             series_name = series_name[:-1].strip()
-        if '\?' in series_name:
-            series_name = re.sub('\?', '', series_name).strip()
+        if '?' in series_name:
+            series_name = re.sub(r'\?', '', series_name).strip()
 
         logger.fdebug('series title possibly: %s' % series_name)
         if splitvalue is not None:
@@ -1366,7 +1366,7 @@ class FileChecker(object):
 
         if self.justparse:
             return {'parse_status':           'success',
-                    'type':                   re.sub('\.','', filetype).strip(),
+                    'type':                   re.sub(r'\.','', filetype).strip(),
                     'sub':                    path_list,
                     'comicfilename':          filename,
                     'comiclocation':          self.dir,
@@ -1385,7 +1385,7 @@ class FileChecker(object):
 
         series_info = {}
         series_info = {'sub':                    path_list,
-                       'type':                   re.sub('\.','', filetype).strip(),
+                       'type':                   re.sub(r'\.','', filetype).strip(),
                        'comicfilename':          filename,
                        'comiclocation':          self.dir,
                        'series_name':            series_name,
@@ -1491,7 +1491,7 @@ class FileChecker(object):
 
         seriesalt = False
         if nspace_altseriesname is not None:
-            if re.sub('\|','', nspace_altseriesname.lower()).strip() == re.sub('\|', '', nspace_watchcomic.lower()).strip():
+            if re.sub(r'\|','', nspace_altseriesname.lower()).strip() == re.sub(r'\|', '', nspace_watchcomic.lower()).strip():
                 seriesalt = True
                 qmatch_chk = 'alt_match'
 
@@ -1504,16 +1504,16 @@ class FileChecker(object):
         if any(
                   [
                        seriesalt is True,
-                       re.sub('\|','', nspace_seriesname.lower()).strip() == re.sub('\|', '', nspace_watchcomic.lower()).strip(),
-                       re.sub('\|','', nspace_seriesname_decoded.lower()).strip() == re.sub('\|', '', nspace_watchname_decoded.lower()).strip(),
+                       re.sub(r'\|','', nspace_seriesname.lower()).strip() == re.sub(r'\|', '', nspace_watchcomic.lower()).strip(),
+                       re.sub(r'\|','', nspace_seriesname_decoded.lower()).strip() == re.sub(r'\|', '', nspace_watchname_decoded.lower()).strip(),
                    ]
        ) or all(
                    [
                        annualisation is True,
-                       re.sub(n_name, '', re.sub('\|', '', nspace_watchcomic.lower()).strip()) == re.sub('\|', '', nspace_seriesname.lower()).strip(),
+                       re.sub(n_name, '', re.sub(r'\|', '', nspace_watchcomic.lower()).strip()) == re.sub(r'\|', '', nspace_seriesname.lower()).strip(),
                    ]
        ) or any(
-                   re.sub('[\|\s]','', x.lower()).strip() == re.sub('[\|\s]','', nspace_seriesname.lower()).strip() for x in self.AS_Alt
+           re.sub(r'[\|\s]','', x.lower()).strip() == re.sub(r'[\|\s]','', nspace_seriesname.lower()).strip() for x in self.AS_Alt
        ):
             if qmatch_chk is None:
                 qmatch_chk = 'match'
@@ -1521,11 +1521,11 @@ class FileChecker(object):
             #logger.fdebug('[%s][MATCH: %s][seriesALT: %s] %s' % (qmatch_chk, seriesalt, series_info['series_name'], filename))
             enable_annual = False
             annual_comicid = None
-            if any(re.sub('[\|\s]','', x.lower()).strip() == re.sub('[\|\s]','', nspace_seriesname.lower()).strip() for x in self.AS_Alt):
+            if any(re.sub(r'[\|\s]','', x.lower()).strip() == re.sub(r'[\|\s]','', nspace_seriesname.lower()).strip() for x in self.AS_Alt):
                 #if the alternate search name is almost identical, it won't match up because it will hit the 'normal' first.
                 #not important for series' matches, but for annuals, etc it is very important.
                 #loop through the Alternates picking out the ones that match and then do an overall loop.
-                loopchk = [x for x in self.AS_Alt if re.sub('[\|\s]','', x.lower()).strip() == re.sub('[\|\s]','', nspace_seriesname.lower()).strip()]
+                loopchk = [x for x in self.AS_Alt if re.sub(r'[\|\s]','', x.lower()).strip() == re.sub(r'[\|\s]','', nspace_seriesname.lower()).strip()]
                 if len(loopchk) > 0 and loopchk[0] != '':
                     if mylar.CONFIG.FOLDER_SCAN_LOG_VERBOSE:
                         logger.fdebug('[FILECHECKER] This should be an alternate: %s' % loopchk)
@@ -1539,7 +1539,7 @@ class FileChecker(object):
                     #logger.info('loopchk: ' + str(loopchk))
 
                 #if the names match up, and enable annuals isn't turned on - keep it all together.
-                if re.sub('\|', '', nspace_watchcomic.lower()).strip() == re.sub('\|', '', nspace_seriesname.lower()).strip() and enable_annual is False:
+                if re.sub(r'\|', '', nspace_watchcomic.lower()).strip() == re.sub(r'\|', '', nspace_seriesname.lower()).strip() and enable_annual is False:
                     loopchk.append(nspace_watchcomic)
                     if any(['annual' in nspace_seriesname.lower(), 'special' in nspace_seriesname.lower()]):
                         if 'biannual' in nspace_seriesname.lower():
@@ -1573,7 +1573,7 @@ class FileChecker(object):
                         for ATS in self.AS_Tuple:
                             if mylar.CONFIG.FOLDER_SCAN_LOG_VERBOSE:
                                 logger.fdebug('[FILECHECKER] %s comparing to %s' % (ATS['AS_Alternate'], nspace_seriesname))
-                            if re.sub('\|','', ATS['AS_Alternate'].lower()).strip() == re.sub('\|','', nspace_seriesname.lower()).strip():
+                            if re.sub(r'\|','', ATS['AS_Alternate'].lower()).strip() == re.sub(r'\|','', nspace_seriesname.lower()).strip():
                                 if mylar.CONFIG.FOLDER_SCAN_LOG_VERBOSE:
                                     logger.fdebug('[FILECHECKER] Associating ComiciD : %s' % ATS['ComicID'])
                                 annual_comicid = str(ATS['ComicID'])
@@ -1700,8 +1700,8 @@ class FileChecker(object):
             #logger.fdebug('watch dynamic handlers recognized : ' + str(watchdynamic_handlers_match))
             watchdynamic_replacements_match = [x for x in self.dynamic_replacements if x.lower() in self.watchcomic.lower()]
             #logger.fdebug('watch dynamic replacements recognized : ' + str(watchdynamic_replacements_match))
-            mod_watchcomic = re.sub('[\s\s+\_\.]', '%$', self.watchcomic)
-            mod_watchcomic = re.sub('[\#]', '', mod_watchcomic)
+            mod_watchcomic = re.sub(r'[\s\s+\_\.]', '%$', self.watchcomic)
+            mod_watchcomic = re.sub(r'[\#]', '', mod_watchcomic)
             mod_find = []
             wdrm_find = []
             if any([watchdynamic_handlers_match, watchdynamic_replacements_match]):
@@ -1731,8 +1731,8 @@ class FileChecker(object):
         #logger.fdebug('series dynamic handlers recognized : ' + str(seriesdynamic_handlers_match))
         seriesdynamic_replacements_match = [x for x in self.dynamic_replacements if x.lower() in series_name.lower()]
         #logger.fdebug('series dynamic replacements recognized : ' + str(seriesdynamic_replacements_match))
-        mod_seriesname = re.sub('[\s\s+\_\.]', '%$', series_name)
-        mod_seriesname = re.sub('[\#]', '', mod_seriesname)
+        mod_seriesname = re.sub(r'[\s\s+\_\.]', '%$', series_name)
+        mod_seriesname = re.sub(r'[\#]', '', mod_seriesname)
         ser_find = []
         sdrm_find = []
         if any([seriesdynamic_handlers_match, seriesdynamic_replacements_match]):
@@ -1756,15 +1756,15 @@ class FileChecker(object):
                         mod_seriesname = mod_seriesname[:sd] + spacer + mod_seriesname[sd+len(sdrm):]
 
         if mod_watchcomic:
-            mod_watchcomic = re.sub('\|+', '|', mod_watchcomic)
+            mod_watchcomic = re.sub(r'\|+', '|', mod_watchcomic)
             if mod_watchcomic.endswith('|'):
                 mod_watchcomic = mod_watchcomic[:-1]
-            mod_watchcomic = re.sub('[\%\$]+', '', mod_watchcomic)
+            mod_watchcomic = re.sub(r'[\%\$]+', '', mod_watchcomic)
 
-        mod_seriesname = re.sub('\|+', '|', mod_seriesname)
+        mod_seriesname = re.sub(r'\|+', '|', mod_seriesname)
         if mod_seriesname.endswith('|'):
             mod_seriesname = mod_seriesname[:-1]
-        mod_seriesname = re.sub('[\%\$]+', '', mod_seriesname)
+        mod_seriesname = re.sub(r'[\%\$]+', '', mod_seriesname)
 
         return {'mod_watchcomic':  mod_watchcomic,
                 'mod_seriesname':  mod_seriesname}
@@ -1845,7 +1845,7 @@ class FileChecker(object):
             for e in txt.split():
                 if cnt == 0:
                     for x in mnths:
-                        mnth = re.sub('\.', '', e.lower())
+                        mnth = re.sub(r'\.', '', e.lower())
                         if x.lower() in mnth and len(mnth) <= 4:
                             add_date = x + ' '
                             cnt+=1
@@ -1857,7 +1857,7 @@ class FileChecker(object):
                         add_date += issnumb + ', '
                         cnt+=1
                 elif cnt == 2:
-                    possyear = helpers.cleanhtml(re.sub('\.', '', e).strip())
+                    possyear = helpers.cleanhtml(re.sub(r'\.', '', e).strip())
                     if type(possyear) == bytes:
                         possyear = possyear.decode('utf-8')
                     if possyear.isdigit() and int(possyear) > 1970 and int(possyear) < 2020:

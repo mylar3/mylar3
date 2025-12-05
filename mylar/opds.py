@@ -26,7 +26,6 @@ import glob
 import urllib.request, urllib.error, urllib.parse
 from urllib.parse import urlencode, quote_plus
 from . import cache
-import imghdr
 from operator import itemgetter
 from cherrypy.lib.static import serve_file, serve_download, serve_fileobj
 import datetime

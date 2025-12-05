@@ -476,7 +476,7 @@ def search_init(
                         else:
                             issuedisplay = StoreDate[5:]
                             if 'annual' in ComicName.lower():
-                                if re.findall('(?:19|20)\d{2}', ComicName):
+                                if re.findall(r'(?:19|20)\d{2}', ComicName):
                                     issuedisplay = None
 
                     if issuedisplay is None:
@@ -1942,7 +1942,7 @@ def searchforissue(issueid=None, new=False, rsschecker=None, manual=False):
                     elif rsschecker:
                         if not [x for x in rss_queue if result['IssueID'] == x[8]]: #comic['ComicName'] == x[0]]: #result['ComicID'] == x[15]]: #co$
                             #remove - or : from the series titles and replace with an sqlite wildcard operator.
-                            sqlquery_name = re.sub('[\:\-]', '%', comic['ComicName']).strip()
+                            sqlquery_name = re.sub(r'[\:\-]', '%', comic['ComicName']).strip()
                             rss_queue.append((comic['ComicName'], sqlquery_name, result['Issue_Number'], ComicYear, SeriesYear, Publisher, IssueDate, StoreDate, result['IssueID'], AlternateSearch, UseFuzzy, ComicVersion, result['SARC'], result['IssueArcID'], result['mode'], rsschecker, result['ComicID'], Comicname_filesafe, AllowPacks, OneOff, TorrentID_32p, DigitalDate, booktype, ignore_booktype))
                     else:
                         logger.fdebug('[TIER2] %s #%s [%s < %s]' % (comicname, result['Issue_Number'], DateAdded, mylar.SEARCH_TIER_DATE))
@@ -4271,7 +4271,7 @@ def gen_altnames(ComicName, AlternateSearch, filesafe, smode):
 
     if AlternateSearch is not None and AlternateSearch != "None":
         #chkthealt = list(filter(None, re.split("[[\#\#]|[\!\!]]+", AlternateSearch)))
-        chkthealt = list(filter(None, re.split("[\!\!]+|[\#\#]+", AlternateSearch)))
+        chkthealt = list(filter(None, re.split(r"[\!\!]+|[\#\#]+", AlternateSearch)))
         for AS_Alternate in chkthealt:
             if helpers.filesafe(AS_Alternate).lower() == helpers.filesafe(ComicName).lower():
                 logger.info('Alternate search pattern is an exact match to previous query. Not recreating')

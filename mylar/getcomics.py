@@ -1384,7 +1384,7 @@ class GC(object):
 
         if year is not None:
             title = re.sub(year, '', title).strip()
-            title = re.sub('\(\)', '', title).strip()
+            title = re.sub(r'\(\)', '', title).strip()
 
         issfind_st = title.find('#')
         #logger.fdebug('issfind_st: %s' % issfind_st)
@@ -1568,12 +1568,12 @@ class GC(object):
             #logger.fdebug('title: %s' % title)
             #logger.fdebug('final nott: %s' % nott)
             if nott != title:
-                series = re.sub('\s+', ' ', nott).strip()
+                series = re.sub(r'\s+', ' ', nott).strip()
                 series = re.sub(r'[\(\)\[\]]', '', series).strip()
-                title = re.sub('\s+', ' ', nott).strip()
+                title = re.sub(r'\s+', ' ', nott).strip()
                 title = re.sub(r'[\(\)\[\]]', '', title).strip()
             else:
-                series = re.sub('\s+', ' ', nott).strip()
+                series = re.sub(r'\s+', ' ', nott).strip()
 
             if pack is True:
                 if year is not None:

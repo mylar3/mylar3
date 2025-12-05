@@ -127,7 +127,7 @@ def locg(pulldate=None,weeknumber=None,year=None):
 
                 cl_d = mylar.filechecker.FileChecker()
                 cl_dyninfo = cl_d.dynamic_replace(comicname)
-                dynamic_name = re.sub('[\|\s]','', cl_dyninfo['mod_seriesname'].lower()).strip()
+                dynamic_name = re.sub(r'[\|\s]','', cl_dyninfo['mod_seriesname'].lower()).strip()
 
                 controlValueDict = {'DYNAMICNAME':   dynamic_name,
                                     'ISSUE':   re.sub('#', '', x['issue']).strip()}
@@ -163,4 +163,3 @@ def locg(pulldate=None,weeknumber=None,year=None):
             else:
                 logger.warn('[%s] The error returned is: %s' % (r.status_code, r.headers))
                 return {'status': 'failure'}
-

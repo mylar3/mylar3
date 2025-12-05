@@ -323,7 +323,7 @@ def pullit(forcecheck=None, weeknumber=None, year=None):
                         while (n < comicend + 1):
                             comicnm = comicnm + " " + issname[n]
                             n+=1
-                        comcnm = re.sub('1 FOR \$1', '', comicnm).strip()
+                        comcnm = re.sub(r'1 FOR \$1', '', comicnm).strip()
                         #logger.info("Comicname: " + str(comicnm) )
                         #get remainder
                         try:
@@ -483,7 +483,7 @@ def pullit(forcecheck=None, weeknumber=None, year=None):
             try:
                 cl_d = mylar.filechecker.FileChecker()
                 cl_dyninfo = cl_d.dynamic_replace(row[3])
-                dynamic_name = re.sub('[\|\s]','', cl_dyninfo['mod_seriesname'].lower()).strip()
+                dynamic_name = re.sub(r'[\|\s]','', cl_dyninfo['mod_seriesname'].lower()).strip()
                 controlValueDict = {'COMIC': row[3],
                                     'ISSUE': row[2],
                                     'EXTRA': row[4]}
@@ -672,7 +672,7 @@ def pullitcheck(comic1off_name=None, comic1off_id=None, forcecheck=None, futurep
                 logger.fdebug("looking for : " + lines[cnt])
                 cl_d = mylar.filechecker.FileChecker()
                 cl_dyninfo = cl_d.dynamic_replace(lines[cnt])
-                dynamic_name = re.sub('[\|\s]','', cl_dyninfo['mod_seriesname'].lower()).strip()
+                dynamic_name = re.sub(r'[\|\s]','', cl_dyninfo['mod_seriesname'].lower()).strip()
                 sqlsearch = '%' + dynamic_name + '%'
                 logger.fdebug("searchsql: " + sqlsearch)
                 if futurepull is None:
@@ -1668,14 +1668,14 @@ def future_check():
                     logger.fdebug('Publisher of series to be added: ' + str(ser['Publisher']))
                     for sr in searchresults:
                         logger.fdebug('Comparing ' + sr['name'] + ' - to - ' + ser['ComicName'])
-                        tmpsername = re.sub('[\'\*\^\%\$\#\@\!\/\,\.\:\(\)]', '', ser['ComicName']).strip()
-                        tmpsrname = re.sub('[\'\*\^\%\$\#\@\!\/\,\.\:\(\)]', '', sr['name']).strip()
-                        tmpsername = re.sub('\-', '', tmpsername)
+                        tmpsername = re.sub(r'[\'\*\^\%\$\#\@\!\/\,\.\:\(\)]', '', ser['ComicName']).strip()
+                        tmpsrname = re.sub(r'[\'\*\^\%\$\#\@\!\/\,\.\:\(\)]', '', sr['name']).strip()
+                        tmpsername = re.sub(r'\-', '', tmpsername)
                         if tmpsername.lower().startswith('the '):
                             tmpsername = re.sub('the ', '', tmpsername.lower()).strip()
                         else:
                             tmpsername = re.sub(' the ', '', tmpsername.lower()).strip()
-                        tmpsrname = re.sub('\-', '', tmpsrname)
+                        tmpsrname = re.sub(r'\-', '', tmpsrname)
                         if tmpsrname.lower().startswith('the '):
                             tmpsrname = re.sub('the ', '', tmpsrname.lower()).strip()
                         else:
@@ -1690,8 +1690,8 @@ def future_check():
                         search_results.append({'name':    tmpsrname,
                                                'comicid':  sr['comicid']})
 
-                        tmpsername = re.sub('\s', '', tmpsername).strip()
-                        tmpsrname = re.sub('\s', '', tmpsrname).strip()
+                        tmpsername = re.sub(r'\s', '', tmpsername).strip()
+                        tmpsrname = re.sub(r'\s', '', tmpsrname).strip()
 
                         logger.fdebug('Comparing modified names: ' + tmpsrname + ' - to - ' + tmpsername)
                         if tmpsername.lower() == tmpsrname.lower():
@@ -1804,4 +1804,3 @@ def future_check_add(comicid, serinfo, chkthewanted=None, theissdate=None):
     logger.info('Removed ' + ser['ComicName'] + ' (' + str(theissdate) + ') from the future upcoming list as it is now added.')
 
     return
-

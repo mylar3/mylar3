@@ -136,7 +136,7 @@ class utorrentclient(object):
             logger.info('Hash: ' + thehash)
         else:
             if link.startswith("magnet:"):
-                torrent_hash = re.findall("urn:btih:([\w]{32,40})", link)[0]
+                torrent_hash = re.findall(r"urn:btih:([\w]{32,40})", link)[0]
                 if len(torrent_hash) == 32:
                     torrent_hash = b16encode(b32decode(torrent_hash)).lower()
                 thehash = torrent_hash.upper()

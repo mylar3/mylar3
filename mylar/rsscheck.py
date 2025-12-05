@@ -332,7 +332,7 @@ def torrents(pickfeed=None, seriesname=None, issue=None, feedinfo=None):
                     series = re.sub('&amp;', '&', series).strip()
                     #logger.fdebug('series title: ' + series)
                     iss_st = feedme.entries[i].title.find(' - ', vol_find)
-                    vol = re.sub('\.', '', feedme.entries[i].title[vol_find:iss_st]).strip()
+                    vol = re.sub(r'\.', '', feedme.entries[i].title[vol_find:iss_st]).strip()
                     #logger.fdebug('volume #: ' + str(vol))
                     issue = feedme.entries[i].title[iss_st +3:].strip()
                     #logger.fdebug('issue # : ' + str(issue))
@@ -421,7 +421,7 @@ def ddl(forcerss=False):
             option_find = option_find.findNext(text=True)
             if 'Year' in option_find:
                 year = option_find.findNext(text=True)
-                year = re.sub('\|', '', year).strip()
+                year = re.sub(r'\|', '', year).strip()
             else:
                if 'Size' in prev_option:
                    size = option_find #.findNext(text=True)
@@ -634,7 +634,7 @@ def experimental_cleaner(rls):
     except_list=['releases', 'gold line', 'distribution', '0-day', '0 day', '0day', 'o-day', '.jpg', '.pdf']
     block_regex = r"\[\d{1,3}\/\d{1,3}\]"
     splitTitle = rls.split("\"")
-    _digits = re.compile('\d')
+    _digits = re.compile(r'\d')
     subcnt = 0
     filename = None
     for subs in splitTitle:
@@ -719,8 +719,8 @@ def ddl_dbsearch(seriesname, issue, comicid=None, nzbprov=None, oneoff=False):
 
     dsearch_rem1 = re.sub("\\band\\b", "%", seriesname.lower())
     dsearch_rem2 = re.sub("\\bthe\\b", "%", dsearch_rem1.lower())
-    dsearch_removed = re.sub('\s+', ' ', dsearch_rem2)
-    dsearch_seriesname = re.sub('[\'\!\@\#\$\%\:\-\;\/\\=\?\&\.\s\,]', '%', dsearch_removed)
+    dsearch_removed = re.sub(r'\s+', ' ', dsearch_rem2)
+    dsearch_seriesname = re.sub(r'[\'\!\@\#\$\%\:\-\;\/\\=\?\&\.\s\,]', '%', dsearch_removed)
     dsearch = '%' + dsearch_seriesname + '%'
     dresults = myDB.select("SELECT * FROM rssdb WHERE ComicName like ? COLLATE NOCASE AND Site='DDL(GetComics)'", [dsearch])
     ddltheinfo = []
@@ -758,8 +758,8 @@ def torrentdbsearch(seriesname, issue, comicid=None, nzbprov=None, oneoff=False)
     #remove 'and' and 'the':
     tsearch_rem1 = re.sub("\\band\\b", "%", seriesname.lower())
     tsearch_rem2 = re.sub("\\bthe\\b", "%", tsearch_rem1.lower())
-    tsearch_removed = re.sub('\s+', ' ', tsearch_rem2)
-    tsearch_seriesname = re.sub('[\'\!\@\#\$\%\:\-\;\/\\=\?\&\.\s\,]', '%', tsearch_removed)
+    tsearch_removed = re.sub(r'\s+', ' ', tsearch_rem2)
+    tsearch_seriesname = re.sub(r'[\'\!\@\#\$\%\:\-\;\/\\=\?\&\.\s\,]', '%', tsearch_removed)
     if mylar.CONFIG.PREFERRED_QUALITY == 0:
         tsearch = tsearch_seriesname + "%"
     elif mylar.CONFIG.PREFERRED_QUALITY == 1:
@@ -801,22 +801,22 @@ def torrentdbsearch(seriesname, issue, comicid=None, nzbprov=None, oneoff=False)
             AS_Altrem = re.sub("\\band\\b", "", u_altsearchcomic.lower())
             AS_Altrem = re.sub("\\bthe\\b", "", AS_Altrem.lower())
 
-            AS_Alternate = re.sub('[\_\#\,\/\:\;\.\-\!\$\%\+\'\&\?\@\s]', '%', AS_Altrem)
+            AS_Alternate = re.sub(r'[\_\#\,\/\:\;\.\-\!\$\%\+\'\&\?\@\s]', '%', AS_Altrem)
 
-            AS_Altrem_mod = re.sub('[\&]', ' ', AS_Altrem)
-            AS_formatrem_seriesname = re.sub('[\'\!\@\#\$\%\:\;\/\\=\?\.\,]', '', AS_Altrem_mod)
-            AS_formatrem_seriesname = re.sub('\s+', ' ', AS_formatrem_seriesname)
+            AS_Altrem_mod = re.sub(r'[\&]', ' ', AS_Altrem)
+            AS_formatrem_seriesname = re.sub(r'[\'\!\@\#\$\%\:\;\/\\=\?\.\,]', '', AS_Altrem_mod)
+            AS_formatrem_seriesname = re.sub(r'\s+', ' ', AS_formatrem_seriesname)
             if AS_formatrem_seriesname[:1] == ' ': AS_formatrem_seriesname = AS_formatrem_seriesname[1:]
             AS_Alt.append(AS_formatrem_seriesname)
 
             if mylar.CONFIG.PREFERRED_QUALITY == 0:
-                 AS_Alternate += "%"
+                AS_Alternate += "%"
             elif mylar.CONFIG.PREFERRED_QUALITY == 1:
-                 AS_Alternate += "%cbr%"
+                AS_Alternate += "%cbr%"
             elif mylar.CONFIG.PREFERRED_QUALITY == 2:
-                 AS_Alternate += "%cbz%"
+                AS_Alternate += "%cbz%"
             else:
-                 AS_Alternate += "%"
+                AS_Alternate += "%"
 
             AS_Alternate = '%' + AS_Alternate
             if mylar.CONFIG.ENABLE_32P and nzbprov == '32P':
@@ -862,19 +862,19 @@ def torrentdbsearch(seriesname, issue, comicid=None, nzbprov=None, oneoff=False)
         seriesname_mod = re.sub("\\bthe\\b", " ", seriesname_mod.lower())
         foundname_mod = re.sub("\\bthe\\b", " ", foundname_mod.lower())
 
-        seriesname_mod = re.sub('[\&]', ' ', seriesname_mod)
-        foundname_mod = re.sub('[\&]', ' ', foundname_mod)
+        seriesname_mod = re.sub(r'[\&]', ' ', seriesname_mod)
+        foundname_mod = re.sub(r'[\&]', ' ', foundname_mod)
 
-        formatrem_seriesname = re.sub('[\'\!\@\#\$\%\:\;\=\?\.\,]', '', seriesname_mod)
-        formatrem_seriesname = re.sub('[\-]', ' ', formatrem_seriesname)
-        formatrem_seriesname = re.sub('[\/]', ' ', formatrem_seriesname)  #not necessary since seriesname in a torrent file won't have /
-        formatrem_seriesname = re.sub('\s+', ' ', formatrem_seriesname)
+        formatrem_seriesname = re.sub(r'[\'\!\@\#\$\%\:\;\=\?\.\,]', '', seriesname_mod)
+        formatrem_seriesname = re.sub(r'[\-]', ' ', formatrem_seriesname)
+        formatrem_seriesname = re.sub(r'[\/]', ' ', formatrem_seriesname)  #not necessary since seriesname in a torrent file won't have /
+        formatrem_seriesname = re.sub(r'\s+', ' ', formatrem_seriesname)
         if formatrem_seriesname[:1] == ' ': formatrem_seriesname = formatrem_seriesname[1:]
 
-        formatrem_torsplit = re.sub('[\'\!\@\#\$\%\:\;\\=\?\.\,]', '', foundname_mod)
-        formatrem_torsplit = re.sub('[\-]', ' ', formatrem_torsplit)  #we replace the - with space so we'll get hits if differnces
-        formatrem_torsplit = re.sub('[\/]', ' ', formatrem_torsplit)  #not necessary since if has a /, should be removed in above line
-        formatrem_torsplit = re.sub('\s+', ' ', formatrem_torsplit)
+        formatrem_torsplit = re.sub(r'[\'\!\@\#\$\%\:\;\\=\?\.\,]', '', foundname_mod)
+        formatrem_torsplit = re.sub(r'[\-]', ' ', formatrem_torsplit)  #we replace the - with space so we'll get hits if differnces
+        formatrem_torsplit = re.sub(r'[\/]', ' ', formatrem_torsplit)  #not necessary since if has a /, should be removed in above line
+        formatrem_torsplit = re.sub(r'\s+', ' ', formatrem_torsplit)
         #logger.fdebug(str(len(formatrem_torsplit)) + ' - formatrem_torsplit : ' + formatrem_torsplit.lower())
         #logger.fdebug(str(len(formatrem_seriesname)) + ' - formatrem_seriesname :' + formatrem_seriesname.lower())
 
@@ -882,7 +882,7 @@ def torrentdbsearch(seriesname, issue, comicid=None, nzbprov=None, oneoff=False)
             #logger.fdebug('matched to : ' + torTITLE)
             #logger.fdebug('matched on series title: ' + seriesname)
             titleend = formatrem_torsplit[len(formatrem_seriesname):]
-            titleend = re.sub('\-', '', titleend)   #remove the '-' which is unnecessary
+            titleend = re.sub(r'\-', '', titleend)   #remove the '-' which is unnecessary
             #remove extensions
             titleend = re.sub('cbr', '', titleend)
             titleend = re.sub('cbz', '', titleend)
@@ -992,7 +992,7 @@ def nzbdbsearch(seriesname, issue, comicid=None, nzbprov=None, searchYear=None, 
                 #logger.fdebug('matched to : %s' % nzbTITLE)
                 #logger.fdebug('matched on series title: %s' % nzb['ComicName'])
                 titleend = formatrem_nzbsplit[len(formatrem_seriesname):]
-                titleend = re.sub('\-', '', titleend)   #remove the '-' which is unnecessary
+                titleend = re.sub(r'\-', '', titleend)   #remove the '-' which is unnecessary
                 #remove extensions
                 titleend = re.sub('cbr', '', titleend)
                 titleend = re.sub('cbz', '', titleend)
@@ -1047,8 +1047,8 @@ def nzbdbsearch(seriesname, issue, comicid=None, nzbprov=None, searchYear=None, 
         #logger.info('nzbinfo: %s' % nzbtheinfo)
         logger.info('[RSS-QUERY] Searched through RSSDB looking for %s Wanted items in %s RSS entries. Rough matching to %s items.' % (len(rsslist), totalcnt, len(nzbtheinfo)))
     else:
-        nsearch_seriesname = re.sub('[\'\!\@\#\$\%\:\;\/\\=\?\.\-\s]', '%', seriesname)
-        formatrem_seriesname = re.sub('[\'\!\@\#\$\%\:\;\/\\=\?\.]', '', seriesname)
+        nsearch_seriesname = re.sub(r'[\'\!\@\#\$\%\:\;\/\\=\?\.\-\s]', '%', seriesname)
+        formatrem_seriesname = re.sub(r'[\'\!\@\#\$\%\:\;\/\\=\?\.]', '', seriesname)
 
         nsearch = '%' + nsearch_seriesname + "%"
 
@@ -1094,7 +1094,7 @@ def nzbdbsearch(seriesname, issue, comicid=None, nzbprov=None, searchYear=None, 
                 #logger.fdebug("titlesplit: " + str(title.split("\"")))
                 splitTitle = title.split("\"")
                 noYear = 'False'
-                _digits = re.compile('\d')
+                _digits = re.compile(r'\d')
                 for subs in splitTitle:
                     #logger.fdebug(subs)
                     if len(subs) >= len(seriesname) and not any(d in subs.lower() for d in except_list) and bool(_digits.search(subs)) is True:
@@ -1128,7 +1128,7 @@ def nzbdbsearch(seriesname, issue, comicid=None, nzbprov=None, searchYear=None, 
 
                             nzbtheinfo.append({
                                       'title':   subs,
-                                      'link':    re.sub('\/release\/', '/download/', results['Link']),
+                                      'link':    re.sub(r'\/release\/', '/download/', results['Link']),
                                       'pubdate': str(results['PubDate']),
                                       'site':    str(results['Site']),
                                       'length':  str(results['Size'])})

@@ -38,7 +38,7 @@ def GCDScraper(ComicName, ComicYear, Total, ComicID, quickmatch=None):
     #print ( "comicyear: " + str(comicyr) )
     #print ( "comichave: " + str(comicis) )
     #print ( "comicid: " + str(comicid) )
-    comicnm_1 = re.sub('\+', '%2B', comicnm)
+    comicnm_1 = re.sub(r'\+', '%2B', comicnm)
     comicnm = re.sub(' ', '+', comicnm_1)
     input = 'http://www.comics.org/search/advanced/process/?target=series&method=icontains&logic=False&order2=date&order3=&start_date=' + str(comicyr) + '-01-01&end_date=' + str(NOWyr) + '-12-31&series=' + str(comicnm) + '&is_indexed=None'
     response = urllib.request.urlopen (input)
@@ -83,9 +83,9 @@ def GCDScraper(ComicName, ComicYear, Total, ComicID, quickmatch=None):
         resultIssues[n] = resultIssues[n].replace(' ', '')
         #print ( "Year: " + str(resultYear[n]) )
         #print ( "Issues: " + str(resultIssues[n]) )
-        CleanComicName = re.sub('[\,\.\:\;\'\[\]\(\)\!\@\#\$\%\^\&\*\-\_\+\=\?\/]', '', comicnm)
+        CleanComicName = re.sub(r'[\,\.\:\;\'\[\]\(\)\!\@\#\$\%\^\&\*\-\_\+\=\?\/]', '', comicnm)
         CleanComicName = re.sub(' ', '', CleanComicName).lower()
-        CleanResultName = re.sub('[\,\.\:\;\'\[\]\(\)\!\@\#\$\%\^\&\*\-\_\+\=\?\/]', '', resultName[n])
+        CleanResultName = re.sub(r'[\,\.\:\;\'\[\]\(\)\!\@\#\$\%\^\&\*\-\_\+\=\?\/]', '', resultName[n])
         CleanResultName = re.sub(' ', '', CleanResultName).lower()
         #print ("CleanComicName: " + str(CleanComicName))
         #print ("CleanResultName: " + str(CleanResultName))
@@ -286,10 +286,10 @@ def GCDdetails(comseries, resultURL, vari_loop, ComicID, TotalIssues, issvariati
             resultGID = fid['href']
             resultID = resultGID[7:-1]
 
-            if ',' in ParseIssue: ParseIssue = re.sub("\,", "", ParseIssue)
+            if ',' in ParseIssue: ParseIssue = re.sub(r"\,", "", ParseIssue)
             variant="no"
             if 'Vol' in ParseIssue or '[' in ParseIssue or 'a' in ParseIssue or 'b' in ParseIssue or 'c' in ParseIssue:
-                m = re.findall('[^\[\]]+', ParseIssue)
+                m = re.findall(r'[^\[\]]+', ParseIssue)
                 # ^^ takes care of []
                 # if it's a decimal - variant ...whoo-boy is messed.
                 if '.' in m[0]:
@@ -298,7 +298,7 @@ def GCDdetails(comseries, resultURL, vari_loop, ComicID, TotalIssues, issvariati
                     dec_st = dec_chk.find('.')
                     dec_b4 = dec_chk[:dec_st]
                     dec_ad = dec_chk[dec_st +1:]
-                    dec_ad = re.sub("\s", "", dec_ad)
+                    dec_ad = re.sub(r"\s", "", dec_ad)
                     if dec_b4.isdigit() and dec_ad.isdigit():
                         #logger.fdebug("Alternate decimal issue...*Whew* glad I caught that")
                         ParseIssue = dec_b4 + "." + dec_ad
@@ -327,7 +327,7 @@ def GCDdetails(comseries, resultURL, vari_loop, ComicID, TotalIssues, issvariati
                 #let's use the FIRST record, and ignore all other covers for the given issue.
                 isschk = ParseIssue[:isslen]
             #logger.fdebug("Parsed Issue#: " + str(isschk))
-            ParseIssue = re.sub("\s", "", ParseIssue)
+            ParseIssue = re.sub(r"\s", "", ParseIssue)
             #check if decimal or '1/2' exists or not, and store decimal results
             halfchk = "no"
             if '.' in isschk:
@@ -602,8 +602,8 @@ def ComChk(ComicName, ComicYear, ComicPublisher, Total, ComicID):
         cruncnt+=1
     # to increase the likely hood of matches and to get a broader scope...
     # lets remove extra characters
-    if re.sub('[\.\,\:]', '', comicnm) != comicnm:
-        comicrun.append(re.sub('[\.\,\:]', '', comicnm))
+    if re.sub(r'[\.\,\:]', '', comicnm) != comicnm:
+        comicrun.append(re.sub(r'[\.\,\:]', '', comicnm))
         cruncnt+=1
     # one more addition - if the title contains a 'the', remove it ;)
     if comicnm.lower().startswith('the'):
@@ -716,7 +716,7 @@ def annualCheck(gcomicid, comicid, comicname, comicyear):
     print(("comicname: " + comicname))
     print(("comicyear: " + str(comicyear)))
     comicnm = comicname.encode('utf-8').strip()
-    comicnm_1 = re.sub('\+', '%2B', comicnm + " annual")
+    comicnm_1 = re.sub(r'\+', '%2B', comicnm + " annual")
     comicnm = re.sub(' ', '+', comicnm_1)
     input = 'http://www.comics.org/search/advanced/process/?target=series&method=icontains&logic=False&order2=date&order3=&start_date=' + str(comicyear) + '-01-01&end_date=' + str(comicyear) + '-12-31&series=' + str(comicnm) + '&is_indexed=None'
 
@@ -764,10 +764,10 @@ def annualCheck(gcomicid, comicid, comicname, comicyear):
         resultIssues[n] = resultIssues[n].replace(' ', '')
         print(("Year: " + str(resultYear[n])))
         print(("Issues: " + str(resultIssues[n])))
-        CleanComicName = re.sub('[\,\.\:\;\'\[\]\(\)\!\@\#\$\%\^\&\*\-\_\+\=\?\/]', '', comicnm)
+        CleanComicName = re.sub(r'[\,\.\:\;\'\[\]\(\)\!\@\#\$\%\^\&\*\-\_\+\=\?\/]', '', comicnm)
 
         CleanComicName = re.sub(' ', '', CleanComicName).lower()
-        CleanResultName = re.sub('[\,\.\:\;\'\[\]\(\)\!\@\#\$\%\^\&\*\-\_\+\=\?\/]', '', resultName[n])
+        CleanResultName = re.sub(r'[\,\.\:\;\'\[\]\(\)\!\@\#\$\%\^\&\*\-\_\+\=\?\/]', '', resultName[n])
         CleanResultName = re.sub(' ', '', CleanResultName).lower()
         print(("CleanComicName: " + str(CleanComicName)))
         print(("CleanResultName: " + str(CleanResultName)))

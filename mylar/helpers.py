@@ -225,13 +225,13 @@ def replace_all(text, dic):
 def cleanName(string):
 
     pass1 = latinToAscii(string).lower()
-    out_string = re.sub('[\/\@\#\$\%\^\*\+\"\[\]\{\}\<\>\=\_]', ' ', pass1) #.encode('utf-8')
+    out_string = re.sub(r'[\/\@\#\$\%\^\*\+\"\[\]\{\}\<\>\=\_]', ' ', pass1) #.encode('utf-8')
 
     return out_string
 
 def cleanTitle(title):
 
-    title = re.sub('[\.\-\/\_]', ' ', title).lower()
+    title = re.sub(r'[\.\-\/\_]', ' ', title).lower()
 
     # Strip out extra whitespace
     title = ' '.join(title.split())
@@ -437,7 +437,7 @@ def rename_param(comicid, comicname, issue, ofilename, comicyear=None, issueid=N
                 comversion = 'None'
             #if comversion is None, remove it so it doesn't populate with 'None'
             if comversion == 'None':
-                chunk_f_f = re.sub('\$VolumeN', '', mylar.CONFIG.FILE_FORMAT)
+                chunk_f_f = re.sub(r'\$VolumeN', '', mylar.CONFIG.FILE_FORMAT)
                 chunk_f = re.compile(r'\s+')
                 chunk_file_format = chunk_f.sub(' ', chunk_f_f)
                 logger.fdebug('No version # found for series, removing from filename')
@@ -446,7 +446,7 @@ def rename_param(comicid, comicname, issue, ofilename, comicyear=None, issueid=N
                 chunk_file_format = mylar.CONFIG.FILE_FORMAT
 
             if annualize is None:
-                chunk_f_f = re.sub('\$Annual', '', chunk_file_format)
+                chunk_f_f = re.sub(r'\$Annual', '', chunk_file_format)
                 chunk_f = re.compile(r'\s+')
                 chunk_file_format = chunk_f.sub(' ', chunk_f_f)
                 logger.fdebug('not an annual - removing from filename paramaters')
@@ -463,7 +463,7 @@ def rename_param(comicid, comicname, issue, ofilename, comicyear=None, issueid=N
                             logger.fdebug('[%s][ANNUALS-ON][ANNUAL IN SERIES][NO ANNUAL FORMAT] prettycomiss: %s' % (series, prettycomiss))
                         else:
                             #because it exists within title, strip it then use formatting tag for placement of wording.
-                            chunk_f_f = re.sub('\$Annual', '', chunk_file_format)
+                            chunk_f_f = re.sub(r'\$Annual', '', chunk_file_format)
                             chunk_f = re.compile(r'\s+')
                             chunk_file_format = chunk_f.sub(' ', chunk_f_f)
                             logger.fdebug('[%s][ANNUALS-ON][ANNUAL IN SERIES][ANNUAL FORMAT] prettycomiss: %s' % (series, prettycomiss))
@@ -487,7 +487,7 @@ def rename_param(comicid, comicname, issue, ofilename, comicyear=None, issueid=N
                             logger.fdebug('[%s][ANNUALS-OFF][ANNUAL IN SERIES][NO ANNUAL FORMAT] prettycomiss: %s' % (series, prettycomiss))
                         else:
                             #because it exists within title, strip it then use formatting tag for placement of wording.
-                            chunk_f_f = re.sub('\$Annual', '', chunk_file_format)
+                            chunk_f_f = re.sub(r'\$Annual', '', chunk_file_format)
                             chunk_f = re.compile(r'\s+')
                             chunk_file_format = chunk_f.sub(' ', chunk_f_f)
                             logger.fdebug('[%s][ANNUALS-OFF][ANNUAL IN SERIES][ANNUAL FORMAT] prettycomiss: %s' % (series, prettycomiss))
@@ -504,7 +504,7 @@ def rename_param(comicid, comicname, issue, ofilename, comicyear=None, issueid=N
                     logger.fdebug('Annual detected within series title of ' + series + '. Not auto-correcting issue #')
 
             seriesfilename = seriesfilename #.encode('ascii', 'ignore').strip()
-            filebad = [':', ',', '/', '?', '!', '\'', '\"', '\*'] #in u_comicname or '/' in u_comicname or ',' in u_comicname or '?' in u_comicname:
+            filebad = [':', ',', '/', '?', '!', '\'', '\"', r'\*'] #in u_comicname or '/' in u_comicname or ',' in u_comicname or '?' in u_comicname:
             for dbd in filebad:
                 if dbd in seriesfilename:
                     if any([dbd == '/', dbd == '*']): 
@@ -547,7 +547,7 @@ def rename_param(comicid, comicname, issue, ofilename, comicyear=None, issueid=N
                     #mylar.CONFIG.REPLACE_CHAR ...determines what to replace spaces with underscore or dot
                     nfilename = nfilename.replace(' ', mylar.CONFIG.REPLACE_CHAR)
 
-            nfilename = re.sub('[\,\:]', '', nfilename) + ext.lower()
+            nfilename = re.sub(r'[\,\:]', '', nfilename) + ext.lower()
             logger.fdebug('New Filename: ' + nfilename)
 
             if mylar.CONFIG.LOWERCASE_FILENAMES:
@@ -713,7 +713,7 @@ def updateComicLocation():
                 else:
                     booktype = dl['Type']
                 if booktype == 'Print' or all([booktype != 'Print', mylar.CONFIG.FORMAT_BOOKTYPE is False]):
-                    chunk_fb = re.sub('\$Type', '', mylar.CONFIG.FOLDER_FORMAT)
+                    chunk_fb = re.sub(r'\$Type', '', mylar.CONFIG.FOLDER_FORMAT)
                     chunk_b = re.compile(r'\s+')
                     chunk_folder_format = chunk_b.sub(' ', chunk_fb)
                 else:
@@ -724,7 +724,7 @@ def updateComicLocation():
                     comversion = 'None'
                 #if comversion is None, remove it so it doesn't populate with 'None'
                 if comversion == 'None':
-                    chunk_f_f = re.sub('\$VolumeN', '', chunk_folder_format)
+                    chunk_f_f = re.sub(r'\$VolumeN', '', chunk_folder_format)
                     chunk_f = re.compile(r'\s+')
                     chunk_folder = chunk_f.sub(' ', chunk_f_f)
                 else:
@@ -732,7 +732,7 @@ def updateComicLocation():
 
                 imprint = dl['PublisherImprint']
                 if any([imprint is None, imprint == 'None']):
-                    chunk_f_f = re.sub('\$Imprint', '', chunk_folder)
+                    chunk_f_f = re.sub(r'\$Imprint', '', chunk_folder)
                     chunk_f = re.compile(r'\s+')
                     folderformat = chunk_f.sub(' ', chunk_f_f)
                 else:
@@ -964,7 +964,7 @@ def upgrade_dynamic():
     for cl in clist:
         cl_d = mylar.filechecker.FileChecker(watchcomic=cl['ComicName'])
         cl_dyninfo = cl_d.dynamic_replace(cl['ComicName'])
-        dynamic_comiclist.append({'DynamicComicName': re.sub('[\|\s]','', cl_dyninfo['mod_seriesname'].lower()).strip(),
+        dynamic_comiclist.append({'DynamicComicName': re.sub(r'[\|\s]','', cl_dyninfo['mod_seriesname'].lower()).strip(),
                              'ComicID':          cl['ComicID']})
 
     if len(dynamic_comiclist) > 0:
@@ -979,7 +979,7 @@ def upgrade_dynamic():
     for rl in rlist:
         rl_d = mylar.filechecker.FileChecker(watchcomic=rl['ComicName'])
         rl_dyninfo = cl_d.dynamic_replace(rl['ComicName'])
-        dynamic_storylist.append({'DynamicComicName': re.sub('[\|\s]','', rl_dyninfo['mod_seriesname'].lower()).strip(),
+        dynamic_storylist.append({'DynamicComicName': re.sub(r'[\|\s]','', rl_dyninfo['mod_seriesname'].lower()).strip(),
                                   'IssueArcID':          rl['IssueArcID']})
 
     if len(dynamic_storylist) > 0:
@@ -1026,7 +1026,7 @@ def LoadAlternateSearchNames(seriesname_alt, comicid):
         for calt in chkthealt:
             AS_Alter = re.sub('##', '', calt)
             u_altsearchcomic = AS_Alter #.encode('ascii', 'ignore').strip()
-            AS_formatrem_seriesname = re.sub('\s+', ' ', u_altsearchcomic)
+            AS_formatrem_seriesname = re.sub(r'\s+', ' ', u_altsearchcomic)
             if AS_formatrem_seriesname[:1] == ' ': AS_formatrem_seriesname = AS_formatrem_seriesname[1:]
 
             AS_Alt.append({"AlternateName": AS_formatrem_seriesname})
@@ -1214,11 +1214,11 @@ def filesafe(comic):
     #logger.info('comic-type: %s' % type(u_comic))
 
     if type(u_comic) != bytes:
-        comicname_filesafe = re.sub('[\:\'\"\,\?\!\\\]', '', u_comic)
-        comicname_filesafe = re.sub('[\/\*]', '-', comicname_filesafe)
+        comicname_filesafe = re.sub(r'[\:\'\"\,\?\!\\\]', '', u_comic)
+        comicname_filesafe = re.sub(r'[\/\*]', '-', comicname_filesafe)
     else:
-        comicname_filesafe = re.sub('[\:\'\"\,\?\!\\\]', '', u_comic.decode('utf-8'))
-        comicname_filesafe = re.sub('[\/\*]', '-', comicname_filesafe)
+        comicname_filesafe = re.sub(r'[\:\'\"\,\?\!\\\]', '', u_comic.decode('utf-8'))
+        comicname_filesafe = re.sub(r'[\/\*]', '-', comicname_filesafe)
 
     return comicname_filesafe
 
@@ -1659,7 +1659,7 @@ def manualArc(issueid, reading_order, storyarcid):
     comicname = arcval['ComicName']
     st_d = mylar.filechecker.FileChecker(watchcomic=comicname)
     st_dyninfo = st_d.dynamic_replace(comicname)
-    dynamic_name = re.sub('[\|\s]','', st_dyninfo['mod_seriesname'].lower()).strip()
+    dynamic_name = re.sub(r'[\|\s]','', st_dyninfo['mod_seriesname'].lower()).strip()
     issname = arcval['Issue_Name']
     issid = str(arcval['IssueID'])
     comicid = str(arcval['ComicID'])
@@ -2506,7 +2506,7 @@ def arcformat(arc, spanyears, publisher):
 
     if tmp_folderformat is not None:
         if publisher == 'None':
-            chunk_f_f = re.sub('\$publisher', '', tmp_folderformat)
+            chunk_f_f = re.sub(r'\$publisher', '', tmp_folderformat)
             chunk_f = re.compile(r'\s+')
             tmp_folderformat = chunk_f.sub(' ', chunk_f_f)
 
@@ -4262,7 +4262,7 @@ def lookupthebitches(filelist, folder, nzbname, nzbid, prov, hash, pulldate):
         pp = mylar.filechecker.FileChecker(justparse=True, file=file)
         parsedinfo = pp.listFiles()
         if parsedinfo['parse_status'] == 'success':
-            dyncheck = re.sub('[\|\s]', '', parsedinfo['dynamic_name'].lower()).strip()
+            dyncheck = re.sub(r'[\|\s]', '', parsedinfo['dynamic_name'].lower()).strip()
             check = myDB.selectone('SELECT * FROM weekly WHERE DynamicName=? AND weeknumber=? AND year=? AND STATUS<>"Downloaded"', [dyncheck, weeknumber, year]).fetchone()
             if check is not None:
                 logger.fdebug('[%s] found match: %s #%s' % (file, check['COMIC'], check['ISSUE']))
@@ -5111,4 +5111,3 @@ class ThreadWithReturnValue(Thread):
     def join(self):
         Thread.join(self)
         return self._return
-

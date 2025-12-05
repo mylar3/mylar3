@@ -25,7 +25,6 @@ import json
 import urllib.request, urllib.parse, urllib.error
 import urllib.request, urllib.error, urllib.parse
 import shutil
-import imghdr
 import sqlite3
 import cherrypy
 import requests
@@ -474,7 +473,7 @@ def addComictoDB(comicid, mismatch=None, pullupd=None, imported=None, ogcname=No
     as_d = filechecker.FileChecker(watchcomic=comic['ComicName'])
     as_dinfo = as_d.dynamic_replace(comic['ComicName'])
     tmpseriesname = as_dinfo['mod_seriesname']
-    dynamic_seriesname = re.sub('[\|\s]','', tmpseriesname.lower()).strip()
+    dynamic_seriesname = re.sub(r'[\|\s]','', tmpseriesname.lower()).strip()
 
     if comic['Issue_List'] != 'None':
         issue_list = json.dumps(comic['Issue_List'])
@@ -1637,7 +1636,7 @@ def annual_check(ComicName, SeriesYear, comicid, issuetype, issuechk, annualslis
                         annualslist += tmp_the_annuals
                 annualids.append(manchk['ReleaseComicID'])
 
-        annualcomicname = re.sub('[\,\:]', '', ComicName)
+        annualcomicname = re.sub(r'[\,\:]', '', ComicName)
 
         if annualcomicname.lower().startswith('the'):
             annComicName = annualcomicname[4:] + ' annual'
@@ -1882,4 +1881,3 @@ def refresh_thread(serieslist):
         mylar.MASS_REFRESH.start()
         if not mylar.MASS_REFRESH:
             mylar.MASS_REFRESH.join(5)
-

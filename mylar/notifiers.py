@@ -130,7 +130,7 @@ class PUSHOVER:
         module += '[NOTIFIER]'
 
         if snatched_nzb:
-            if snatched_nzb[-1] == '\.': 
+            if snatched_nzb[-1] == r'\.': 
                 snatched_nzb = snatched_nzb[:-1]
             message = "Mylar has snatched: " + snatched_nzb + " from " + prov + " and " + sent_to
 

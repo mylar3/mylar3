@@ -481,7 +481,7 @@ class PostProcessor(object):
                 manual_list = []
                 for fl in filelist['comiclist']:
                     if all([fl['series_name'] is not None, fl['series_name'] != '']) and mylar.CONFIG.IGNORE_COVERS is True:
-                        cvchk = re.sub('[\s\s+\_\.]', '', fl['series_name']).lower()
+                        cvchk = re.sub(r'[\s\s+\_\.]', '', fl['series_name']).lower()
                         if any(['coveronly' in cvchk, 'coversonly' in cvchk]):
                             logger.fdebug('Cover only detected. Ignoring result.')
                             continue
@@ -517,17 +517,17 @@ class PostProcessor(object):
                             mod_altseriesname = re.sub('2021annual', '', mod_altseriesname, flags=re.I).strip()
                             mod_altseriesname = re.sub('annual', '', mod_altseriesname, flags=re.I).strip()
                             mod_altseriesname = re.sub('special', '', mod_altseriesname, flags=re.I).strip()
-                        if not any(re.sub('[\|\s]', '', mod_altseriesname).lower() == x for x in loopchk):
-                            loopchk.append(re.sub('[\|\s]', '', mod_altseriesname.lower()))
+                        if not any(re.sub(r'[\|\s]', '', mod_altseriesname).lower() == x for x in loopchk):
+                            loopchk.append(re.sub(r'[\|\s]', '', mod_altseriesname.lower()))
 
                     for x in alt_list:
                         cname = x['AS_DyComicName']
                         for ab in x['AS_Alt']:
                             tmp_ab = re.sub(' ', '', ab)
                             tmp_mod_seriesname = re.sub(' ', '', mod_seriesname)
-                            if re.sub('\|', '', tmp_mod_seriesname.lower()).strip() == re.sub('\|', '', tmp_ab.lower()).strip():
-                                if not any(re.sub('[\|\s]', '', cname.lower()) == x for x in loopchk):
-                                    loopchk.append(re.sub('[\|\s]', '', cname.lower()))
+                            if re.sub(r'\|', '', tmp_mod_seriesname.lower()).strip() == re.sub(r'\|', '', tmp_ab.lower()).strip():
+                                if not any(re.sub(r'[\|\s]', '', cname.lower()) == x for x in loopchk):
+                                    loopchk.append(re.sub(r'[\|\s]', '', cname.lower()))
 
                     if all([mylar.CONFIG.ANNUALS_ON, 'annual' in mod_seriesname.lower()]) or all([mylar.CONFIG.ANNUALS_ON, 'special' in mod_seriesname.lower()]):
                         mod_seriesname = re.sub('2021annual', '', mod_seriesname, flags=re.I).strip()
@@ -535,8 +535,8 @@ class PostProcessor(object):
                         mod_seriesname = re.sub('special', '', mod_seriesname, flags=re.I).strip()
 
                     #make sure we add back in the original parsed filename here.
-                    if not any(re.sub('[\|\s]', '', mod_seriesname).lower() == x for x in loopchk):
-                        loopchk.append(re.sub('[\|\s]', '', mod_seriesname.lower()))
+                    if not any(re.sub(r'[\|\s]', '', mod_seriesname).lower() == x for x in loopchk):
+                        loopchk.append(re.sub(r'[\|\s]', '', mod_seriesname.lower()))
 
                     if any([self.issueid is not None, self.comicid is not None]) and fl['issueid'] is None:
                         comicseries = myDB.select('SELECT * FROM comics WHERE ComicID=?', [self.comicid])
@@ -790,10 +790,10 @@ class PostProcessor(object):
 
                     if not comicseries or orig_seriesname != mod_seriesname:
                         if any(['special' in orig_seriesname.lower(), 'annual' in orig_seriesname.lower()]) and all([mylar.CONFIG.ANNUALS_ON, orig_seriesname != mod_seriesname]):
-                            if not any(re.sub('[\|\s]', '', orig_seriesname).lower() == x for x in loopchk):
-                                loopchk.append(re.sub('[\|\s]', '', orig_seriesname.lower()))
-                                tmpsql = "SELECT * FROM comics WHERE DynamicComicName IN ({seq}) COLLATE NOCASE".format(seq=','.join('?' * len(loopchk)))
-                                comicseries = myDB.select(tmpsql, tuple(loopchk))
+                            if not any(re.sub(r'[\|\s]', '', orig_seriesname).lower() == x for x in loopchk):
+                                loopchk.append(re.sub(r'[\|\s]', '', orig_seriesname.lower()))
+                            tmpsql = "SELECT * FROM comics WHERE DynamicComicName IN ({seq}) COLLATE NOCASE".format(seq=','.join('?' * len(loopchk)))
+                            comicseries = myDB.select(tmpsql, tuple(loopchk))
                                 #if not comicseries:
                                 #    logger.error('[%s][%s] No Series named %s - checking against Story Arcs (just in case). If I do not find anything, maybe you should be running Import?' % (module, fl['comicfilename'], fl['series_name']))
                                 #    continue
@@ -978,9 +978,9 @@ class PostProcessor(object):
                             try:
                                 if (any([cs['WatchValues']['Type'] == 'TPB', cs['WatchValues']['Type'] == 'HC', cs['WatchValues']['Type'] == 'GN']) and cs['WatchValues']['Total'] > 1) or all([cs['WatchValues']['Type'] == 'One-Shot', cs['WatchValues']['Total'] == 1]):
                                     if watchmatch['series_volume'] is not None:
-                                        just_the_digits = re.sub('[^0-9]', '', watchmatch['series_volume']).strip()
+                                        just_the_digits = re.sub(r'[^0-9]', '', watchmatch['series_volume']).strip()
                                     else:
-                                        just_the_digits = re.sub('[^0-9.\-\u00BC-\u00BE\u2150-\u215E\u221E]', '', watchmatch['justthedigits']).strip()
+                                        just_the_digits = re.sub(r'[^0-9.\-\u00BC-\u00BE\u2150-\u215E\u221E]', '', watchmatch['justthedigits']).strip()
                                 else:
                                     just_the_digits = watchmatch['justthedigits']
                             except Exception as e:
@@ -990,7 +990,7 @@ class PostProcessor(object):
 
                             if just_the_digits is not None:
                                 temploc= just_the_digits.replace('_', ' ')
-                                temploc = re.sub('[\#\']', '', temploc)
+                                temploc = re.sub(r'[\#\']', '', temploc)
                                 #logger.fdebug('temploc: %s' % temploc)
                             else:
                                 if any([cs['WatchValues']['Type'] == 'TPB', cs['WatchValues']['Type'] == 'GN', cs['WatchValues']['Type'] == 'HC', cs['WatchValues']['Type'] == 'One-Shot']):
@@ -1164,7 +1164,7 @@ class PostProcessor(object):
                                             tmpseriesname = re.sub('2021annual', '', tmpseriesname, flags=re.I).strip()
                                             tmpseriesname = re.sub('annual', '', tmpseriesname, flags=re.I).strip()
                                             tmpseriesname = re.sub('special', '', tmpseriesname, flags=re.I).strip()
-                                        dynamic_seriesname = re.sub('[\|\s]','', tmpseriesname.lower()).strip()
+                                        dynamic_seriesname = re.sub(r'[\|\s]','', tmpseriesname.lower()).strip()
 
                                         alts = []
                                         for x in alt_list:
@@ -1349,7 +1349,7 @@ class PostProcessor(object):
                             xmld2 = xmld.dynamic_replace(watchmatch['series_name']) #helpers.conversion(watchmatch['series_name']))
                             xfile = xmld2['mod_seriesname'].lower()
 
-                            if re.sub('\|', '', xseries) == re.sub('\|', '', xfile):
+                            if re.sub(r'\|', '', xseries) == re.sub(r'\|', '', xfile):
                                 logger.fdebug('%s[DEFINITIVE-NAME MATCH] Definitive name match exactly to : %s [%s]' % (module, watchmatch['series_name'], cs['ComicID']))
                                 if len(manual_list) > 1:
                                     manual_list = [item for item in manual_list if all([item['IssueID'] == isc['IssueID'], item['AnnualType'] is not None]) or all([item['IssueID'] == isc['IssueID'], item['ComicLocation'] == clocation]) or all([item['IssueID'] != isc['IssueID'], item['ComicLocation'] != clocation])]
@@ -1464,7 +1464,7 @@ class PostProcessor(object):
 
                                     if just_the_digits is not None:
                                         temploc= just_the_digits.replace('_', ' ')
-                                        temploc = re.sub('[\#\']', '', temploc)
+                                        temploc = re.sub(r'[\#\']', '', temploc)
                                         #logger.fdebug('temploc: %s' % temploc)
                                     else:
                                         if any([v[i]['WatchValues']['Type'] == 'TPB', v[i]['WatchValues']['Type'] == 'GN', v[i]['WatchValues']['Type'] == 'HC', v[i]['WatchValues']['Type'] == 'One-Shot']):
@@ -1733,7 +1733,7 @@ class PostProcessor(object):
                                 xseries = xmld1['mod_seriesname'].lower()
                                 xmld2 = xmld.dynamic_replace(arcmatch['series_name']) #helpers.conversion(watchmatch['series_name']))
                                 xfile = xmld2['mod_seriesname'].lower()
-                                if re.sub('\|', '', xseries) == re.sub('\|', '', xfile):
+                                if re.sub(r'\|', '', xseries) == re.sub(r'\|', '', xfile):
                                     logger.fdebug('%s[DEFINITIVE-NAME MATCH] Definitive name match exactly to : %s [%s]' % (module, arcmatch['series_name'], x['ComicID']))
                                     keep_match.append(x['IssueID'])
                                     self.matched = True
@@ -1808,7 +1808,7 @@ class PostProcessor(object):
 
                                         if just_the_digits is not None:
                                             temploc= just_the_digits.replace('_', ' ')
-                                            temploc = re.sub('[\#\']', '', temploc)
+                                            temploc = re.sub(r'[\#\']', '', temploc)
                                             logger.fdebug('temploc: %s' % temploc)
                                         else:
                                             temploc = None
@@ -2065,16 +2065,16 @@ class PostProcessor(object):
                         # let's change all space to decimals for simplicity
                         logger.fdebug('[NZBNAME]: ' + nzbname)
                         #gotta replace & or escape it
-                        nzbname = re.sub("\&", 'and', nzbname)
-                        nzbname = re.sub('[\,\:\?\'\+]', '', nzbname)
-                        nzbname = re.sub('[\(\)]', ' ', nzbname)
+                        nzbname = re.sub(r"\&", 'and', nzbname)
+                        nzbname = re.sub(r'[\,\:\?\'\+]', '', nzbname)
+                        nzbname = re.sub(r'[\(\)]', ' ', nzbname)
                         logger.fdebug('[NZBNAME] nzbname (remove chars): ' + nzbname)
                         nzbname = re.sub('.cbr', '', nzbname).strip()
                         nzbname = re.sub('.cbz', '', nzbname).strip()
-                        nzbname = re.sub('[\.\_]', ' ', nzbname).strip()
-                        nzbname = re.sub('\s+', ' ', nzbname)  #make sure we remove the extra spaces.
+                        nzbname = re.sub(r'[\.\_]', ' ', nzbname).strip()
+                        nzbname = re.sub(r'\s+', ' ', nzbname)  #make sure we remove the extra spaces.
                         logger.fdebug('[NZBNAME] nzbname (remove extensions, double spaces, convert underscores to spaces): ' + nzbname)
-                        nzbname = re.sub('\s', '.', nzbname)
+                        nzbname = re.sub(r'\s', '.', nzbname)
 
                         logger.fdebug('%s After conversions, nzbname is : %s' % (module, nzbname))
                         self._log("nzbname: %s" % nzbname)
@@ -2085,7 +2085,7 @@ class PostProcessor(object):
                             self._log("Failure - could not initially locate nzbfile in my database to rename.")
                             logger.fdebug('%s Failure - could not locate nzbfile initially' % module)
                             # if failed on spaces, change it all to decimals and try again.
-                            nzbname = re.sub('[\(\)]', '', str(nzbname))
+                            nzbname = re.sub(r'[\(\)]', '', str(nzbname))
                             self._log("trying again with this nzbname: %s" % nzbname)
                             logger.fdebug('%s Trying to locate nzbfile again with nzbname of : %s' % (module, nzbname))
                             nzbiss = myDB.selectone("SELECT * from nzblog WHERE nzbname=? or altnzbname=?", [nzbname, nzbname]).fetchone()
@@ -2855,7 +2855,7 @@ class PostProcessor(object):
                 comversion = 'None'
             #if comversion is None, remove it so it doesn't populate with 'None'
             if comversion == 'None':
-                chunk_f_f = re.sub('\$VolumeN', '', mylar.CONFIG.FILE_FORMAT)
+                chunk_f_f = re.sub(r'\$VolumeN', '', mylar.CONFIG.FILE_FORMAT)
                 chunk_f = re.compile(r'\s+')
                 chunk_file_format = chunk_f.sub(' ', chunk_f_f)
                 self._log("No version # found for series - tag will not be available for renaming.")
@@ -2865,7 +2865,7 @@ class PostProcessor(object):
                 chunk_file_format = mylar.CONFIG.FILE_FORMAT
 
             if annchk == "no":
-                chunk_f_f = re.sub('\$Annual', '', chunk_file_format)
+                chunk_f_f = re.sub(r'\$Annual', '', chunk_file_format)
                 chunk_f = re.compile(r'\s+')
                 chunk_file_format = chunk_f.sub(' ', chunk_f_f)
                 logger.fdebug('%s Not an annual - removing from filename parameters' % module)
@@ -3084,8 +3084,8 @@ class PostProcessor(object):
                 if mylar.CONFIG.REPLACE_SPACES:
                     #mylar.CONFIG.REPLACE_CHAR ...determines what to replace spaces with underscore or dot
                     nfilename = nfilename.replace(' ', mylar.CONFIG.REPLACE_CHAR)
-            nfilename = re.sub('[\,\:\?\"\']', '', nfilename)
-            nfilename = re.sub('[\/\*]', '-', nfilename)
+            nfilename = re.sub(r'[\,\:\?\"\']', '', nfilename)
+            nfilename = re.sub(r'[\/\*]', '-', nfilename)
             if ml is not None and ml['ForcedMatch'] is True:
                 xyb = nfilename.find('[__')
                 if xyb != -1:
