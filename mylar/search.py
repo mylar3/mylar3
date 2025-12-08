@@ -1096,7 +1096,7 @@ def NZB_SEARCH(
 
                     # bypass for local newznabs
                     # remove the protocol string (http/https)
-                    localbypass = True
+                    localbypass = False
                     if provider_stat['type'] == 'newznab':
                         if host_newznab_fix.startswith('http'):
                             hnc = host_newznab_fix.replace('http://', '')
