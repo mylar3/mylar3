@@ -7605,7 +7605,7 @@ class WebInterface(object):
     def getComicArtwork(self, ComicID=None, imageURL=None):
 
         from mylar import cache
-        logger.info("Retrieving image for : " + comicID)
+        logger.info("Retrieving image for : " + ComicID)
         return cache.getArtwork(ComicID, imageURL)
 
     getComicArtwork.exposed = True
@@ -7845,8 +7845,10 @@ class WebInterface(object):
             if meta_data['cover_artist'] is not None:
                 issuecoverartist = meta_data['cover_artist']
             issuesummary = meta_data['summary']
+
+        iss_filename = None
+
         if meta_data is not None:
-            iss_filename = None
             if filelocation is not None:
                 iss_filename = os.path.split(filelocation)[1]
 
