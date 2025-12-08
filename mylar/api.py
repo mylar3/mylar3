@@ -342,20 +342,20 @@ class Api(object):
         else:
             self.id = kwargs['id']
 
-        comicQuery = '{select} WHERE ComicID="{id}" ORDER BY ComicSortName COLLATE NOCASE'.format(
+        comicQuery = "{select} WHERE ComicID='{id}' ORDER BY ComicSortName COLLATE NOCASE".format(
             select = self._selectForComics(),
             id = self.id
         )
         comic = self._resultsFromQuery(comicQuery)
 
-        issuesQuery = '{select} WHERE ComicID="{id}" ORDER BY Int_IssueNumber DESC'.format(
+        issuesQuery = "{select} WHERE ComicID='{id}' ORDER BY Int_IssueNumber DESC".format(
             select = self._selectForIssues(),
             id = self.id
         )
         issues = self._resultsFromQuery(issuesQuery)
 
         if mylar.CONFIG.ANNUALS_ON:
-            annualsQuery = '{select} WHERE ComicID="{id}"'.format(
+            annualsQuery = "{select} WHERE ComicID='{id}'".format(
                 select = self._selectForAnnuals(),
                 id = self.id
             )
@@ -454,15 +454,15 @@ class Api(object):
 
         try:
             myDB = db.DBConnection()
-            delchk = myDB.selectone('SELECT ComicName, ComicYear, ComicLocation FROM comics where ComicID="' + self.id + '"').fetchone()
+            delchk = myDB.selectone(f"SELECT ComicName, ComicYear, ComicLocation FROM comics where ComicID='{self.id}'").fetchone()
             if not delchk:
                 logger.error('ComicID %s not found in watchlist.' %  self.id)
                 self.data = self._failureResponse('ComicID %s not found in watchlist.' % self.id)
                 return
             logger.fdebug('Deletion request received for %s (%s) [%s]' % (delchk['ComicName'], delchk['ComicYear'], self.id))
-            myDB.action('DELETE from comics WHERE ComicID="' + self.id + '"')
-            myDB.action('DELETE from issues WHERE ComicID="' + self.id + '"')
-            myDB.action('DELETE from upcoming WHERE ComicID="' + self.id + '"')
+            myDB.action(f"DELETE from comics WHERE ComicID='{self.id}'")
+            myDB.action(f"DELETE from issues WHERE ComicID='{self.id}'")
+            myDB.action(f"DELETE from upcoming WHERE ComicID='{self.id}'")
             if directory_del is True:
                 if os.path.exists(delchk['ComicLocation']):
                     shutil.rmtree(delchk['ComicLocation'])
@@ -604,7 +604,7 @@ class Api(object):
             if comicid.startswith('4050-'):
                 comicid = re.sub('4050-', '', comicid).strip()
 
-            chkdb = myDB.selectone('SELECT ComicName, ComicYear FROM comics WHERE ComicID="' + comicid + '"').fetchone()
+            chkdb = myDB.selectone(f"SELECT ComicName, ComicYear FROM comics WHERE ComicID='{comicid}'").fetchone()
             if not chkdb:
                 notfound.append({'comicid': comicid})
             else:
@@ -665,7 +665,7 @@ class Api(object):
             booktype = booktype.lower()
 
         myDB = db.DBConnection()
-        btresp = myDB.selectone('SELECT ComicName, ComicYear, Type, Corrected_Type FROM Comics WHERE ComicID="' + self.id +'"').fetchone()
+        btresp = myDB.selectone(f"SELECT ComicName, ComicYear, Type, Corrected_Type FROM Comics WHERE ComicID='{self.id}'").fetchone()
         if not btresp:
             self.data = self._failureResponse('Unable to locate ComicID %s within watchlist' % self.id)
             return
@@ -1043,7 +1043,7 @@ class Api(object):
                 return
         else:
             # If we cant find the image, lets check the db for a url.
-            comic = self._resultsFromQuery('SELECT * from comics WHERE ComicID="' + self.id + '"')
+            comic = self._resultsFromQuery(f"SELECT * from comics WHERE ComicID='{self.id}'")
 
             # Try every img url in the db
             try:
@@ -1098,7 +1098,7 @@ class Api(object):
 
         self.id = id
         # Fetch a list of dicts from issues table
-        i = self._resultsFromQuery('SELECT * from issues WHERE issueID="' + self.id + '"')
+        i = self._resultsFromQuery(f"SELECT * from issues WHERE issueID='{self.id}'")
 
         if not len(i):
             self.data = self._failureResponse('Couldnt find a issue with issueID %s' % self.id)
@@ -1112,7 +1112,7 @@ class Api(object):
         # Check the issue is downloaded
         if issuelocation is not None:
             # Find the comic location
-            comic = self._resultsFromQuery('SELECT * from comics WHERE comicID="' + issue['ComicID'] + '"')[0]
+            comic = self._resultsFromQuery(f"SELECT * from comics WHERE comicID='{issue['ComicID']}'")[0]
             comiclocation = comic.get('ComicLocation')
             f = os.path.join(comiclocation, issuelocation)
             if not os.path.isfile(f):
@@ -1154,13 +1154,13 @@ class Api(object):
     def _getStoryArc(self, **kwargs):
         if not 'id' in kwargs:
             if 'customOnly' in kwargs and kwargs['customOnly']:
-                self.data = self._resultsFromQuery('SELECT StoryArcID, StoryArc, MAX(ReadingOrder) AS HighestOrder from storyarcs WHERE StoryArcID LIKE "C%" GROUP BY StoryArcID ORDER BY StoryArc')
+                self.data = self._resultsFromQuery("SELECT StoryArcID, StoryArc, MAX(ReadingOrder) AS HighestOrder from storyarcs WHERE StoryArcID LIKE 'C%' GROUP BY StoryArcID ORDER BY StoryArc")
             else:
-                self.data = self._resultsFromQuery('SELECT StoryArcID, StoryArc, MAX(ReadingOrder) AS HighestOrder from storyarcs GROUP BY StoryArcID ORDER BY StoryArc')
+                self.data = self._resultsFromQuery("SELECT StoryArcID, StoryArc, MAX(ReadingOrder) AS HighestOrder from storyarcs GROUP BY StoryArcID ORDER BY StoryArc")
         else:
             self.id = kwargs['id']
-            self.data = self._resultsFromQuery('SELECT StoryArc, ReadingOrder, ComicID, ComicName, IssueNumber, IssueID, \
-                                            IssueDate, IssueName, IssuePublisher from storyarcs WHERE StoryArcID="' + self.id + '" ORDER BY ReadingOrder')
+            self.data = self._resultsFromQuery(f"SELECT StoryArc, ReadingOrder, ComicID, ComicName, IssueNumber, IssueID, \
+                                               IssueDate, IssueName, IssuePublisher from storyarcs WHERE StoryArcID='{self.id}' ORDER BY ReadingOrder")
         return
 
     def _addStoryArc(self, **kwargs):
@@ -1174,7 +1174,7 @@ class Api(object):
                 storyarcname = kwargs.pop('storyarcname')
         else:
             self.id = kwargs.pop('id')
-            arc = self._resultsFromQuery('SELECT * from storyarcs WHERE StoryArcID="' + self.id + '" ORDER by ReadingOrder')
+            arc = self._resultsFromQuery(f"SELECT * from storyarcs WHERE StoryArcID='{self.id}' ORDER by ReadingOrder")
             storyarcname = arc[0]['StoryArc']
             issuecount = len(arc)
         if not 'issues' in kwargs and not 'arclist' in kwargs:
@@ -1930,10 +1930,10 @@ class REST(object):
                     else:
                         return('No Comic with the ID %s :-(' % comic_id)
                 elif issuemode == 'issues':
-                    self.issues = self._dic_from_query('SELECT * from issues where comicid="' + comic_id + '"')
+                    self.issues = self._dic_from_query(f"SELECT * from issues where comicid='{comic_id}'")
                     return json.dumps(self.issues, ensure_ascii=False)
                 elif issuemode == 'issue' and issue_id is not None:
-                    self.issues = self._dic_from_query('SELECT * from issues where comicid="' + comic_id + '" and issueid="' + issue_id + '"')
+                    self.issues = self._dic_from_query(f"SELECT * from issues where comicid='{comic_id}' and issueid='{issue_id}'")
                     return json.dumps(self.issues, ensure_ascii=False)
                 else:
                     return('Nothing to do.')

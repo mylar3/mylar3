@@ -332,7 +332,7 @@ class FileHandlers(object):
 
     def series_folder_collision_detection(self, comlocation, comicid, booktype, comicyear, volume):
         myDB = db.DBConnection()
-        chk = myDB.select('SELECT * FROM comics WHERE ComicLocation LIKE "%'+comlocation+'%" AND ComicID !=?', [comicid])
+        chk = myDB.select(f"SELECT * FROM comics WHERE ComicLocation LIKE '%{comlocation}%' AND ComicID !=?", [comicid])
 
         tryit = None
         if chk:
@@ -340,14 +340,14 @@ class FileHandlers(object):
                 comloc = ck['ComicLocation']
                 if comloc == comlocation:
                     logger.info('[SERIES_FOLDER_COLLISION_DETECTION] %s already exists for %s (%s).' % (ck['ComicLocation'], ck['ComicName'], ck['ComicYear']))
-                    tmp_ff = os.path.basename(mylar.CONFIG.FOLDER_FORMAT)
+                    tmp_ff_head, tmp_ff = os.path.split(re.sub(r'[\/\\]$', '', mylar.CONFIG.FOLDER_FORMAT))
                     if ck['ComicYear'] != comicyear:
                         volumeyear = True
                     else:
                         volumeyear = False
                     if '$Type' not in tmp_ff and booktype != ck['Type']:
                         logger.fdebug('[SERIES_FOLDER_COLLISION_DETECTION] Trying to rename using BookType declaration.')
-                        new_format = '%s [%s]' % (tmp_ff, '$Type')
+                        new_format = os.path.join(tmp_ff_head, '%s [%s]' % (tmp_ff, '$Type'))
                     elif '$Volume' not in tmp_ff:
                         logger.fdebug('[SERIES_FOLDER_COLLISION_DETECTION] Trying to rename using Volume declaration.')
                         volume_choice = '$VolumeY'
@@ -359,7 +359,10 @@ class FileHandlers(object):
                                 volume_choice = '$VolumeN'
                         t_name = tmp_ff.find('$Series')
                         if t_name != -1:
-                            new_format = '%s %s %s' % (tmp_ff[:t_name+len('$Series'):], volume_choice, tmp_ff[t_name+len('$Series')+1:])
+                            new_format = os.path.join(tmp_ff_head, '%s %s %s' % (tmp_ff[:t_name+len('$Series'):], volume_choice, tmp_ff[t_name+len('$Series')+1:]))
+                    else:
+                        logger.fdebug('[SERIES_FOLDER_COLLISION_DETECTION] Defaulting to Series (Year).')
+                        new_format = os.path.join(tmp_ff_head, '$Series ($Year)')
 
                     self.comic = {'ComicPublisher': ck['ComicPublisher'],
                                   'PublisherImprint': ck['PublisherImprint'],
@@ -406,11 +409,11 @@ class FileHandlers(object):
                 if chkissue is None:
                     #rechk chkissue against int value of issue #
                     if arc:
-                        chkissue = self.myDB.selectone("SELECT * from storyarcs WHERE ComicID=? AND Int_IssueNumber=?", [comicid, issuedigits(issue)]).fetchone()
+                        chkissue = self.myDB.selectone("SELECT * from storyarcs WHERE ComicID=? AND Int_IssueNumber=?", [comicid, helpers.issue_number_parser(issue).asInt]).fetchone()
                     else:
-                        chkissue = self.myDB.selectone("SELECT * from issues WHERE ComicID=? AND Int_IssueNumber=?", [comicid, issuedigits(issue)]).fetchone()
+                        chkissue = self.myDB.selectone("SELECT * from issues WHERE ComicID=? AND Int_IssueNumber=?", [comicid, helpers.issue_number_parser(issue).asInt]).fetchone()
                         if all([chkissue is None, annualize == 'yes', mylar.CONFIG.ANNUALS_ON]):
-                            chkissue = self.myDB.selectone("SELECT * from annuals WHERE ComicID=? AND Int_IssueNumber=?", [comicid, issuedigits(issue)]).fetchone()
+                            chkissue = self.myDB.selectone("SELECT * from annuals WHERE ComicID=? AND Int_IssueNumber=?", [comicid, helpers.issue_number_parser(issue).asInt]).fetchone()
 
                     if chkissue is None:
                         logger.error('Invalid Issue_Number - please validate.')
@@ -480,160 +483,8 @@ class FileHandlers(object):
 
             unicodeissue = issuenum
 
-            if type(issuenum) == str:
-               vals = {'\xbd':'.5','\xbc':'.25','\xbe':'.75','\u221e':'9999999999','\xe2':'9999999999'}
-            else:
-               vals = {'\xbd':'.5','\xbc':'.25','\xbe':'.75','\\u221e':'9999999999','\xe2':'9999999999'}
-            x = [vals[key] for key in vals if key in issuenum]
-            if x:
-                issuenum = x[0]
-                logger.fdebug('issue number formatted: %s' % issuenum)
-
-            #comicid = issueinfo['ComicID']
-            #issueno = str(issuenum).split('.')[0]
-            issue_except = 'None'
-            valid_spaces = ('.', '-')
-            for issexcept in mylar.ISSUE_EXCEPTIONS:
-                if issexcept.lower() in issuenum.lower():
-                    logger.fdebug('ALPHANUMERIC EXCEPTION : [' + issexcept + ']')
-                    v_chk = [v for v in valid_spaces if v in issuenum]
-                    if v_chk:
-                        iss_space = v_chk[0]
-                        logger.fdebug('character space denoted as : ' + iss_space)
-                    else:
-                        logger.fdebug('character space not denoted.')
-                        iss_space = ''
-#                    if issexcept == 'INH':
-#                       issue_except = '.INH'
-                    if issexcept == 'NOW':
-                       if '!' in issuenum: issuenum = re.sub('\!', '', issuenum)
-#                       issue_except = '.NOW'
-
-                    issue_except = iss_space + issexcept
-                    logger.fdebug('issue_except denoted as : %s' % issue_except)
-                    if issuenum.lower() != issue_except.lower():
-                        issuenum = re.sub("[^0-9]", "", issuenum)
-                        if any([issuenum == '', issuenum is None]):
-                            issuenum = issue_except
-                    break
-
-#            if 'au' in issuenum.lower() and issuenum[:1].isdigit():
-#                issue_except = ' AU'
-#            elif 'ai' in issuenum.lower() and issuenum[:1].isdigit():
-#                issuenum = re.sub("[^0-9]", "", issuenum)
-#                issue_except = ' AI'
-#            elif 'inh' in issuenum.lower() and issuenum[:1].isdigit():
-#                issuenum = re.sub("[^0-9]", "", issuenum)
-#                issue_except = '.INH'
-#            elif 'now' in issuenum.lower() and issuenum[:1].isdigit():
-#                if '!' in issuenum: issuenum = re.sub('\!', '', issuenum)
-#                issuenum = re.sub("[^0-9]", "", issuenum)
-#                issue_except = '.NOW'
-            if '.' in issuenum:
-                iss_find = issuenum.find('.')
-                iss_b4dec = issuenum[:iss_find]
-                if iss_find == 0:
-                    iss_b4dec = '0'
-                iss_decval = issuenum[iss_find +1:]
-                if iss_decval.endswith('.'):
-                    iss_decval = iss_decval[:-1]
-                if int(iss_decval) == 0:
-                    iss = iss_b4dec
-                    issdec = int(iss_decval)
-                    issueno = iss
-                else:
-                    if len(iss_decval) == 1:
-                        iss = iss_b4dec + "." + iss_decval
-                        issdec = int(iss_decval) * 10
-                    else:
-                        iss = iss_b4dec + "." + iss_decval.rstrip('0')
-                        issdec = int(iss_decval.rstrip('0')) * 10
-                    issueno = iss_b4dec
-            else:
-                iss = issuenum
-                issueno = iss
-            # issue zero-suppression here
-            if mylar.CONFIG.ZERO_LEVEL is False:
-                zeroadd = ""
-            else:
-                if any([mylar.CONFIG.ZERO_LEVEL_N  == "none", mylar.CONFIG.ZERO_LEVEL_N is None]): zeroadd = ""
-                elif mylar.CONFIG.ZERO_LEVEL_N == "0x": zeroadd = "0"
-                elif mylar.CONFIG.ZERO_LEVEL_N == "00x": zeroadd = "00"
-
-            logger.fdebug('Zero Suppression set to : ' + str(mylar.CONFIG.ZERO_LEVEL_N))
-            prettycomiss = None
-
-            if issueno.isalpha():
-                logger.fdebug('issue detected as an alpha.')
-                prettycomiss = str(issueno)
-            else:
-                try:
-                    x = float(issuenum)
-                    #validity check
-                    if x < 0:
-                        logger.info('I\'ve encountered a negative issue #: %s. Trying to accomodate.' % issueno)
-                        prettycomiss = '-' + str(zeroadd) + str(issueno[1:])
-                    elif x == 9999999999:
-                        logger.fdebug('Infinity issue found.')
-                        issuenum = 'infinity'
-                    elif x >= 0:
-                        pass
-                    else:
-                        raise ValueError
-                except ValueError as e:
-                    logger.warn('Unable to properly determine issue number [ %s] - you should probably log this on github for help.' % issueno)
-                    return
-
-            if all([prettycomiss is None, len(str(issueno)) > 0]):
-                #if int(issueno) < 0:
-                #    self._log("issue detected is a negative")
-                #    prettycomiss = '-' + str(zeroadd) + str(abs(issueno))
-                if int(issueno) < 10:
-                    logger.fdebug('issue detected less than 10')
-                    if '.' in iss:
-                        if int(iss_decval) > 0:
-                            issueno = str(iss)
-                            prettycomiss = str(zeroadd) + str(iss)
-                        else:
-                            prettycomiss = str(zeroadd) + str(int(issueno))
-                    else:
-                        prettycomiss = str(zeroadd) + str(iss)
-                    if issue_except != 'None':
-                        prettycomiss = str(prettycomiss) + issue_except
-                    logger.fdebug('Zero level supplement set to ' + str(mylar.CONFIG.ZERO_LEVEL_N) + '. Issue will be set as : ' + str(prettycomiss))
-                elif int(issueno) >= 10 and int(issueno) < 100:
-                    logger.fdebug('issue detected greater than 10, but less than 100')
-                    if any([mylar.CONFIG.ZERO_LEVEL_N == "none", mylar.CONFIG.ZERO_LEVEL_N is None, mylar.CONFIG.ZERO_LEVEL is False]):
-                        zeroadd = ""
-                    else:
-                        zeroadd = "0"
-                    if '.' in iss:
-                        if int(iss_decval) > 0:
-                            issueno = str(iss)
-                            prettycomiss = str(zeroadd) + str(iss)
-                        else:
-                           prettycomiss = str(zeroadd) + str(int(issueno))
-                    else:
-                        prettycomiss = str(zeroadd) + str(iss)
-                    if issue_except != 'None':
-                        prettycomiss = str(prettycomiss) + issue_except
-                    logger.fdebug('Zero level supplement set to ' + str(mylar.CONFIG.ZERO_LEVEL_N) + '.Issue will be set as : ' + str(prettycomiss))
-                else:
-                    logger.fdebug('issue detected greater than 100')
-                    if issuenum == 'infinity':
-                        prettycomiss = 'infinity'
-                    else:
-                        if '.' in iss:
-                            if int(iss_decval) > 0:
-                                issueno = str(iss)
-                        prettycomiss = str(issueno)
-                    if issue_except != 'None':
-                        prettycomiss = str(prettycomiss) + issue_except
-                    logger.fdebug('Zero level supplement set to ' + str(mylar.CONFIG.ZERO_LEVEL_N) + '. Issue will be set as : ' + str(prettycomiss))
-            elif len(str(issueno)) == 0:
-                prettycomiss = str(issueno)
-                logger.fdebug('issue length error - cannot determine length. Defaulting to None:  ' + str(prettycomiss))
-
+            _, prettycomiss, _ = helpers.issue_number_parser(issuenum, issue_id = issueid)
+            
             logger.fdebug('Pretty Comic Issue is : ' + str(prettycomiss))
             if mylar.CONFIG.UNICODE_ISSUENUMBER:
                 logger.fdebug('Setting this to Unicode format as requested: %s' % prettycomiss)
@@ -908,16 +759,16 @@ class FileHandlers(object):
                     temploc = None
                     continue
 
-            int_iss = helpers.issuedigits(issuenumber)
+            int_iss = helpers.issue_number_parser(issuenumber).asInt
             issyear = issuedate[:4]
             old_status = issuestatus
             issname = issuename
 
 
             if temploc is not None:
-                fcdigit = helpers.issuedigits(temploc)
+                fcdigit = helpers.issue_number_parser(temploc).asInt
             elif any([booktype == 'TPB', booktype == 'GN', booktype == 'GC', booktype == 'One-Shot']) and temploc is None:
-                fcdigit = helpers.issuedigits('1')
+                fcdigit = helpers.issue_number_parser('1').asInt
 
             if int(fcdigit) == int_iss:
                 logger.fdebug('[%s] Issue match - #%s' % (self.issueid, self.issue['Issue_Number']))

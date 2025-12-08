@@ -17,4 +17,5 @@ version.py
 env/
 .nova/
 *.swp
-venv
+# git mergetool backup files
+*.orig

@@ -371,9 +371,9 @@ class OPDS(object):
         if not comic:
             self.data = self._error_with_message('Comic Not Found')
             return
-        issues = self._dic_from_query('SELECT * from issues WHERE ComicID="' + kwargs['comicid'] + '"order by Int_IssueNumber DESC')
+        issues = self._dic_from_query(f"SELECT * from issues WHERE ComicID='{kwargs['comicid']}' order by Int_IssueNumber DESC")
         if mylar.CONFIG.ANNUALS_ON:
-            annuals = self._dic_from_query('SELECT * FROM annuals WHERE ComicID="' + kwargs['comicid'] + '"')
+            annuals = self._dic_from_query(f"SELECT * FROM annuals WHERE ComicID='{kwargs['comicid']}'")
         else:
             annuals = []
         for annual in annuals:

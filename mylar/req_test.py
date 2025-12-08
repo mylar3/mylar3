@@ -26,6 +26,8 @@ from packaging.version import parse as parse_version
 import mylar
 from mylar import logger
 
+from lib.rarfile import rarfile
+
 class Req(object):
 
     def __init__(self):
@@ -187,13 +189,22 @@ class Req(object):
 
     def find_the_unrar(self):
 
-        cmds = ['unrar']
+        cmds = []
         rar_failure = True
 
-        # check the ini first
+        # Prioritise checking the ini if specified
         if mylar.CONFIG.UNRAR_CMD:
             cmds.append(mylar.CONFIG.UNRAR_CMD)
             logger.fdebug('unrar_cmd location added to cmd checker: %s' % mylar.CONFIG.UNRAR_CMD)
+
+        cmds.append('unrar')
+
+        if platform.system() == 'Windows':
+            cmds.append('RaR')
+            if os.path.exists("C:\\Program Files\\WinRAR\\Rar.exe"):
+                cmds.append("C:\\Program Files\\WinRAR\\Rar.exe")
+            elif os.path.exists("C:\\Program Files (x86)\\WinRAR\\Rar.exe"):
+                cmds.append("C:\\Program Files (x86)\\WinRAR\\Rar.exe")
 
         # check the ct_settingspath
         ctpath = os.path.join(mylar.CONFIG.CT_SETTINGSPATH, 'settings')
@@ -206,9 +217,7 @@ class Req(object):
                 logger.fdebug('comictagger .settings file path added to cmd checker: %s' % ctrarpath)
 
         itworked = False
-        output = None
-        if platform.system() == 'Windows':
-            cmds.append('RaR')
+        output = None        
 
         for cmd in cmds:
             try:
@@ -225,21 +234,25 @@ class Req(object):
                     logger.fdebug('Encountered error: %s' % output.stderr)
                     itworked = False
 
-            if "not found" in output.stdout or "not recognized as an internal or external command" in output.stdout:
+            # Current windows execution has the error on stderr, but leaving stdout check for belt & braces
+            if "not found" in output.stdout or "not recognized as an internal or external command" in output.stdout \
+                    or "not recognized as an internal or external command" in output.stderr:
                 logger.fdebug('[%s] Unable to find executable with command: %s' % (output.stdout, cmd))
                 output = None
                 itworked = False
             elif itworked:
                 tmp_chk = output.stdout.split(r'\n')
                 for tc in tmp_chk:
-                    if 'unrar' in tc:
+                    if 'unrar' or 'RAR' in tc:
                         tt = tc.lower().find('copyright')
                         if tt != -1:
                             output = tc[:tt]
                             rar_failure = False
                             break
 
+            # If we have a working tool, override the rarfile library's choice of tool
             if rar_failure is False:
+                rarfile.UNRAR_TOOL = cmd
                 break
 
         if output is None:
@@ -250,7 +263,7 @@ class Req(object):
         rar_message = 'Unable to locate unrar'
         try:
             if rar_exe_path is not None:
-                rar_message = rar_exe_path # set the message to be the path to the binary
+                rar_message = rar_exe_path  # Set the message to be the version text from stdout
                 rar_failure = rar_failure
         except Exception as e:
             pass

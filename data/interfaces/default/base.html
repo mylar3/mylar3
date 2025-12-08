@@ -11,7 +11,7 @@
 	<meta charset="UTF-8" />
 	<meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1" />
 	
-	<title>Mylar - ${title}</title>
+	<title>Mylar ${f'- {mylar.CONFIG.INSTANCE_NAME} ' if mylar.CONFIG.INSTANCE_NAME else ''}- ${title}</title>
 	<meta name="description" content="Mylar 'default' interface - made by Elmar Kouwenhoven" />
 	<meta name="author" content="Elmar Kouwenhoven" />
 	
@@ -362,7 +362,7 @@
                     if (data.status == 'success'){
                         $('#ajaxMsg').addClass('success').fadeIn().delay(3000).fadeOut();
                         console.log('data.comicid:'+data.comicid)
-                        if ( ( tt.value != "config" ) && (data.tables == 'both' || data.tables == 'tables') && ( document.body.innerHTML.search(data.comicid) || tt.value == "history" || tt.value == "search_results") ){
+                        if ( ( tt.value != "config" ) && ( tt.value != "cblimport") && (data.tables == 'both' || data.tables == 'tables') && ( document.body.innerHTML.search(data.comicid) || tt.value == "history" || tt.value == "search_results") ){
                             console.log('reloading table1...');
                             reload_table();
                         }

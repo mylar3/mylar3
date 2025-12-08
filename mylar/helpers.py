@@ -29,6 +29,8 @@ import ctypes
 import platform
 import calendar
 import itertools
+import traceback
+import unicodedata
 import shutil
 import hashlib
 import gzip
@@ -39,11 +41,16 @@ from urllib.parse import urljoin
 from io import StringIO
 from apscheduler.triggers.interval import IntervalTrigger
 from PIL import Image
+from pathlib import Path
+
+import zipfile
+from lib.rarfile import rarfile
 
 import mylar
 from . import logger
 from mylar import db, sabnzbd, nzbget, process, getcomics, getimage
 from mylar.downloaders import mega, pixeldrain, mediafire
+
 
 def multikeysort(items, columns):
 
@@ -324,11 +331,11 @@ def rename_param(comicid, comicname, issue, ofilename, comicyear=None, issueid=N
                 if chkissue is None:
                     #rechk chkissue against int value of issue #
                     if arc:
-                        chkissue = myDB.selectone("SELECT * from storyarcs WHERE ComicID=? AND Int_IssueNumber=?", [comicid, issuedigits(issue)]).fetchone()
+                        chkissue = myDB.selectone("SELECT * from storyarcs WHERE ComicID=? AND Int_IssueNumber=?", [comicid, issue_number_parser(issue).asInt]).fetchone()
                     else:
-                        chkissue = myDB.selectone("SELECT * from issues WHERE ComicID=? AND Int_IssueNumber=?", [comicid, issuedigits(issue)]).fetchone()
+                        chkissue = myDB.selectone("SELECT * from issues WHERE ComicID=? AND Int_IssueNumber=?", [comicid, issue_number_parser(issue).asInt]).fetchone()
                         if all([chkissue is None, annualize == 'yes', mylar.CONFIG.ANNUALS_ON]):
-                            chkissue = myDB.selectone("SELECT * from annuals WHERE ComicID=? AND Int_IssueNumber=? AND NOT Deleted", [comicid, issuedigits(issue)]).fetchone()
+                            chkissue = myDB.selectone("SELECT * from annuals WHERE ComicID=? AND Int_IssueNumber=? AND NOT Deleted", [comicid, issue_number_parser(issue).asInt]).fetchone()
 
                     if chkissue is None:
                         logger.error('Invalid Issue_Number - please validate.')
@@ -408,161 +415,9 @@ def rename_param(comicid, comicname, issue, ofilename, comicyear=None, issueid=N
                 comversion = comicnzb['ComicVersion']
 
             unicodeissue = issuenum
-
-            if type(issuenum) == str:
-               vals = {'\xbd':'.5','\xbc':'.25','\xbe':'.75','\u221e':'9999999999','\xe2':'9999999999'}
-            else:
-               vals = {'\xbd':'.5','\xbc':'.25','\xbe':'.75','\\u221e':'9999999999','\xe2':'9999999999'}
-            x = [vals[key] for key in vals if key in issuenum]
-            if x:
-                issuenum = x[0]
-                logger.fdebug('issue number formatted: %s' % issuenum)
-
-            #comicid = issuenzb['ComicID']
-            #issueno = str(issuenum).split('.')[0]
-            issue_except = 'None'
-            valid_spaces = ('.', '-')
-            for issexcept in mylar.ISSUE_EXCEPTIONS:
-                if issexcept.lower() in issuenum.lower():
-                    logger.fdebug('ALPHANUMERIC EXCEPTION : [' + issexcept + ']')
-                    v_chk = [v for v in valid_spaces if v in issuenum]
-                    if v_chk:
-                        iss_space = v_chk[0]
-                        logger.fdebug('character space denoted as : ' + iss_space)
-                    else:
-                        logger.fdebug('character space not denoted.')
-                        iss_space = ''
-#                    if issexcept == 'INH':
-#                       issue_except = '.INH'
-                    if issexcept == 'NOW':
-                       if '!' in issuenum: issuenum = re.sub('\!', '', issuenum)
-#                       issue_except = '.NOW'
-
-                    issue_except = iss_space + issexcept
-                    logger.fdebug('issue_except denoted as : %s' % issue_except)
-                    if issuenum.lower() != issue_except.lower():
-                        issuenum = re.sub("[^0-9]", "", issuenum)
-                        if any([issuenum == '', issuenum is None]):
-                            issuenum = issue_except
-                    break
-
-#            if 'au' in issuenum.lower() and issuenum[:1].isdigit():
-#                issue_except = ' AU'
-#            elif 'ai' in issuenum.lower() and issuenum[:1].isdigit():
-#                issuenum = re.sub("[^0-9]", "", issuenum)
-#                issue_except = ' AI'
-#            elif 'inh' in issuenum.lower() and issuenum[:1].isdigit():
-#                issuenum = re.sub("[^0-9]", "", issuenum)
-#                issue_except = '.INH'
-#            elif 'now' in issuenum.lower() and issuenum[:1].isdigit():
-#                if '!' in issuenum: issuenum = re.sub('\!', '', issuenum)
-#                issuenum = re.sub("[^0-9]", "", issuenum)
-#                issue_except = '.NOW'
-            if '.' in issuenum:
-                iss_find = issuenum.find('.')
-                iss_b4dec = issuenum[:iss_find]
-                if iss_find == 0:
-                    iss_b4dec = '0'
-                iss_decval = issuenum[iss_find +1:]
-                if iss_decval.endswith('.'):
-                    iss_decval = iss_decval[:-1]
-                if int(iss_decval) == 0:
-                    iss = iss_b4dec
-                    issdec = int(iss_decval)
-                    issueno = iss
-                else:
-                    if len(iss_decval) == 1:
-                        iss = iss_b4dec + "." + iss_decval
-                        issdec = int(iss_decval) * 10
-                    else:
-                        iss = iss_b4dec + "." + iss_decval.rstrip('0')
-                        issdec = int(iss_decval.rstrip('0')) * 10
-                    issueno = iss_b4dec
-            else:
-                iss = issuenum
-                issueno = iss
-            # issue zero-suppression here
-            if mylar.CONFIG.ZERO_LEVEL is False:
-                zeroadd = ""
-            else:
-                if any([mylar.CONFIG.ZERO_LEVEL_N  == "none", mylar.CONFIG.ZERO_LEVEL_N is None]): zeroadd = ""
-                elif mylar.CONFIG.ZERO_LEVEL_N == "0x": zeroadd = "0"
-                elif mylar.CONFIG.ZERO_LEVEL_N == "00x": zeroadd = "00"
-
-            logger.fdebug('Zero Suppression set to : ' + str(mylar.CONFIG.ZERO_LEVEL_N))
-            prettycomiss = None
-
-            if issueno.isalpha():
-                logger.fdebug('issue detected as an alpha.')
-                prettycomiss = str(issueno)
-            else:
-                try:
-                    x = float(issuenum)
-                    #validity check
-                    if x < 0:
-                        logger.info('I\'ve encountered a negative issue #: %s. Trying to accomodate.' % issueno)
-                        prettycomiss = '-' + str(zeroadd) + str(issueno[1:])
-                    elif x == 9999999999:
-                        logger.fdebug('Infinity issue found.')
-                        issuenum = 'infinity'
-                    elif x >= 0:
-                        pass
-                    else:
-                        raise ValueError
-                except ValueError as e:
-                    logger.warn('Unable to properly determine issue number [ %s] - you should probably log this on github for help.' % issueno)
-                    return
-
-            if all([prettycomiss is None, len(str(issueno)) > 0]):
-                #if int(issueno) < 0:
-                #    self._log("issue detected is a negative")
-                #    prettycomiss = '-' + str(zeroadd) + str(abs(issueno))
-                if int(issueno) < 10:
-                    logger.fdebug('issue detected less than 10')
-                    if '.' in iss:
-                        if int(iss_decval) > 0:
-                            issueno = str(iss)
-                            prettycomiss = str(zeroadd) + str(iss)
-                        else:
-                            prettycomiss = str(zeroadd) + str(int(issueno))
-                    else:
-                        prettycomiss = str(zeroadd) + str(iss)
-                    if issue_except != 'None':
-                        prettycomiss = str(prettycomiss) + issue_except
-                    logger.fdebug('Zero level supplement set to ' + str(mylar.CONFIG.ZERO_LEVEL_N) + '. Issue will be set as : ' + str(prettycomiss))
-                elif int(issueno) >= 10 and int(issueno) < 100:
-                    logger.fdebug('issue detected greater than 10, but less than 100')
-                    if any([mylar.CONFIG.ZERO_LEVEL_N == "none", mylar.CONFIG.ZERO_LEVEL_N is None, mylar.CONFIG.ZERO_LEVEL is False]):
-                        zeroadd = ""
-                    else:
-                        zeroadd = "0"
-                    if '.' in iss:
-                        if int(iss_decval) > 0:
-                            issueno = str(iss)
-                            prettycomiss = str(zeroadd) + str(iss)
-                        else:
-                           prettycomiss = str(zeroadd) + str(int(issueno))
-                    else:
-                        prettycomiss = str(zeroadd) + str(iss)
-                    if issue_except != 'None':
-                        prettycomiss = str(prettycomiss) + issue_except
-                    logger.fdebug('Zero level supplement set to ' + str(mylar.CONFIG.ZERO_LEVEL_N) + '.Issue will be set as : ' + str(prettycomiss))
-                else:
-                    logger.fdebug('issue detected greater than 100')
-                    if issuenum == 'infinity':
-                        prettycomiss = 'infinity'
-                    else:
-                        if '.' in iss:
-                            if int(iss_decval) > 0:
-                                issueno = str(iss)
-                        prettycomiss = str(issueno)
-                    if issue_except != 'None':
-                        prettycomiss = str(prettycomiss) + issue_except
-                    logger.fdebug('Zero level supplement set to ' + str(mylar.CONFIG.ZERO_LEVEL_N) + '. Issue will be set as : ' + str(prettycomiss))
-            elif len(str(issueno)) == 0:
-                prettycomiss = str(issueno)
-                logger.fdebug('issue length error - cannot determine length. Defaulting to None:  ' + str(prettycomiss))
-
+            
+            prettycomiss = issue_number_parser(issuenum, issue_id=issueid, pretty_string = True).asString
+            
             logger.fdebug('Pretty Comic Issue is : ' + str(prettycomiss))
             if mylar.CONFIG.UNICODE_ISSUENUMBER:
                 logger.fdebug('Setting this to Unicode format as requested: %s' % prettycomiss)
@@ -975,267 +830,6 @@ def cleanhtml(raw_html):
     return flipflop
 
 
-def issuedigits(issnum):
-    #import db
-
-    int_issnum = None
-
-    try:
-        tst = issnum.isdigit()
-    except:
-        try:
-            isstest = str(issnum)
-            tst = isstest.isdigit()
-        except:
-            return 9999999999
-        else:
-            issnum = str(issnum)
-
-    if issnum.isdigit():
-        int_issnum = int(issnum) * 1000
-    else:
-        #count = 0
-        #for char in issnum:
-        #    if char.isalpha():
-        #        count += 1
-        #if count > 5:
-        #    logger.error('This is not an issue number - not enough numerics to parse')
-        #    int_issnum = 999999999999999
-        #    return int_issnum
-        try:
-            if 'au' in issnum.lower() and issnum[:1].isdigit():
-                int_issnum = (int(issnum[:-2]) * 1000) + ord('a') + ord('u')
-            elif 'ai' in issnum.lower() and issnum[:1].isdigit():
-                int_issnum = (int(issnum[:-2]) * 1000) + ord('a') + ord('i')
-            elif 'inh' in issnum.lower():
-                remdec = issnum.find('.')  #find the decimal position.
-                if remdec == -1:
-                #if no decimal, it's all one string
-                #remove the last 3 characters from the issue # (INH)
-                    int_issnum = (int(issnum[:-3]) * 1000) + ord('i') + ord('n') + ord('h')
-                else:
-                    int_issnum = (int(issnum[:-4]) * 1000) + ord('i') + ord('n') + ord('h')
-            elif 'now' in issnum.lower():
-                if '!' in issnum: issnum = re.sub('\!', '', issnum)
-                remdec = issnum.find('.')  #find the decimal position.
-                if remdec == -1:
-                #if no decimal, it's all one string
-                #remove the last 3 characters from the issue # (NOW)
-                    int_issnum = (int(issnum[:-3]) * 1000) + ord('n') + ord('o') + ord('w')
-                else:
-                    int_issnum = (int(issnum[:-4]) * 1000) + ord('n') + ord('o') + ord('w')
-            elif 'bey' in issnum.lower():
-                remdec = issnum.find('.')  #find the decimal position.
-                if remdec == -1:
-                #if no decimal, it's all one string
-                #remove the last 3 characters from the issue # (BEY)
-                    int_issnum = (int(issnum[:-3]) * 1000) + ord('b') + ord('e') + ord('y')
-                else:
-                    int_issnum = (int(issnum[:-4]) * 1000) + ord('b') + ord('e') + ord('y')
-            elif 'mu' in issnum.lower():
-                remdec = issnum.find('.')
-                if remdec == -1:
-                    int_issnum = (int(issnum[:-2]) * 1000) + ord('m') + ord('u')
-                else:
-                    int_issnum = (int(issnum[:-3]) * 1000) + ord('m') + ord('u')
-            elif 'lr' in issnum.lower():
-                remdec = issnum.find('.')
-                if remdec == -1:
-                    int_issnum = (int(issnum[:-2]) * 1000) + ord('l') + ord('r')
-                else:
-                    int_issnum = (int(issnum[:-3]) * 1000) + ord('l') + ord('r')
-            elif 'hu' in issnum.lower():
-                remdec = issnum.find('.')  #find the decimal position.
-                if remdec == -1:
-                    int_issnum = (int(issnum[:-2]) * 1000) + ord('h') + ord('u')
-                else:
-                    int_issnum = (int(issnum[:-3]) * 1000) + ord('h') + ord('u')
-            elif 'black' in issnum.lower():
-                remdec = issnum.find('.')  #find the decimal position.
-                if remdec != -1:
-                    issnum = '%s %s' % (issnum[:remdec], issnum[remdec+1:])
-                    #int_issnum = (int(issnum[:-2]) * 1000) + ord('b') + ord('l')
-                #else:
-                #    int_issnum = (int(issnum[:-3]) * 1000) + ord('h') + ord('u')
-            elif 'deaths' in issnum.lower():
-                remdec = issnum.find('.')  #find the decimal position.
-                if remdec == -1:
-                    int_issnum = (int(issnum[:-6]) * 1000) + ord('d') + ord('e') + ord('a') + ord('t') + ord('h') + ord('s')
-                else:
-                    int_issnum = (int(issnum[:-7]) * 1000) + ord('d') + ord('e') + ord('a') + ord('t') + ord('h') + ord('s')
-
-        except ValueError as e:
-            logger.error('[' + issnum + '] Unable to properly determine the issue number. Error: %s', e)
-            return 9999999999
-
-        if int_issnum is not None:
-            return int_issnum
-
-        #try:
-        #    issnum.decode('ascii')
-        #    logger.fdebug('ascii character.')
-        #except:
-        #    logger.fdebug('Unicode character detected: ' + issnum)
-        #else: issnum.decode(mylar.SYS_ENCODING).decode('utf-8')
-        #if type(issnum) == str:
-        #    try:
-        #        issnum = issnum.decode('utf-8')
-        #    except:
-        #        issnum = issnum.decode('windows-1252')
-
-        if type(issnum) == str:
-            vals = {'\xbd':.5,'\xbc':.25,'\xbe':.75,'\u221e':9999999999,'\xe2':9999999999}
-        else:
-            vals = {'\xbd':.5,'\xbc':.25,'\xbe':.75,'\\u221e':9999999999,'\xe2':9999999999}
-
-        x = [vals[key] for key in vals if key in issnum]
-
-        if x:
-            chk = re.sub('[^0-9]', '', issnum).strip()
-            if len(chk) == 0:
-                int_issnum = x[0] * 1000
-            else:
-                int_issnum = (int(re.sub('[^0-9]', '', issnum).strip()) + x[0]) * 1000
-            #logger.fdebug('int_issnum: ' + str(int_issnum))
-        else:
-            if any(['.' in issnum, ',' in issnum]):
-                #logger.fdebug('decimal detected.')
-                if ',' in issnum: issnum = re.sub(',', '.', issnum)
-                issst = str(issnum).find('.')
-                if issst == 0:
-                    issb4dec = 0
-                else:
-                    issb4dec = str(issnum)[:issst]
-                decis = str(issnum)[issst +1:]
-                if len(decis) == 1:
-                    decisval = int(decis) * 10
-                    issaftdec = str(decisval)
-                elif len(decis) == 2:
-                    decisval = int(decis)
-                    issaftdec = str(decisval)
-                else:
-                    decisval = decis
-                    issaftdec = str(decisval)
-                #if there's a trailing decimal (ie. 1.50.) and it's either intentional or not, blow it away.
-                if issaftdec[-1:] == '.':
-                    issaftdec = issaftdec[:-1]
-                try:
-                    int_issnum = (int(issb4dec) * 1000) + (int(issaftdec) * 10)
-                except ValueError:
-                    try:
-                        ordtot = 0
-                        if any(ext == issaftdec.upper() for ext in mylar.ISSUE_EXCEPTIONS):
-                            inu = 0
-                            while (inu < len(issaftdec)):
-                                ordtot += ord(issaftdec[inu].lower())  #lower-case the letters for simplicty
-                                inu+=1
-                            int_issnum = (int(issb4dec) * 1000) + ordtot
-                    except Exception as e:
-                            logger.warn('error: %s' % e)
-                            ordtot = 0
-                    if ordtot == 0:
-                        #logger.error('This has no issue # for me to get - Either a Graphic Novel or one-shot.')
-                        int_issnum = 999999999999999
-            elif all([ '[' in issnum, ']' in issnum ]):
-                issnum_tmp = issnum.find('[')
-                int_issnum = int(issnum[:issnum_tmp].strip()) * 1000
-                legacy_num = issnum[issnum_tmp+1:issnum.find(']')]
-            else:
-                try:
-                    x = float(issnum)
-                    #logger.info(x)
-                    #validity check
-                    if x < 0:
-                        #logger.info("I've encountered a negative issue #: " + str(issnum) + ". Trying to accomodate.")
-                        int_issnum = (int(x) *1000) - 1
-                    elif bool(x):
-                        logger.fdebug('Infinity issue found.')
-                        int_issnum = 9999999999 * 1000
-                    else: raise ValueError
-                except ValueError as e:
-                    #this will account for any alpha in a issue#, so long as it doesn't have decimals.
-                    x = 0
-                    tstord = None
-                    issno = None
-                    invchk = "false"
-                    if issnum.lower() != 'preview':
-                        while (x < len(issnum)):
-                            if issnum[x].isalpha():
-                            #take first occurance of alpha in string and carry it through
-                                tstord = issnum[x:].rstrip()
-                                tstord = re.sub('[\-\,\.\+]', '', tstord).rstrip()
-                                issno = issnum[:x].rstrip()
-                                issno = re.sub('[\-\,\.\+]', '', issno).rstrip()
-                                try:
-                                    isschk = float(issno)
-                                except ValueError as e:
-                                    if len(issnum) == 1 and issnum.isalpha():
-                                        break
-                                    #logger.fdebug('[' + issno + '] Invalid numeric for issue - cannot be found. Ignoring.')
-                                    issno = None
-                                    tstord = None
-                                    invchk = "true"
-                                break
-                            x+=1
-                    if tstord is not None and issno is not None:
-                        a = 0
-                        ordtot = 0
-                        if len(issnum) == 1 and issnum.isalpha():
-                            int_issnum = ord(tstord.lower())
-                        else:
-                            while (a < len(tstord)):
-                                ordtot += ord(tstord[a].lower())  #lower-case the letters for simplicty
-                                a+=1
-                            int_issnum = (int(issno) * 1000) + ordtot
-                    elif invchk == "true":
-                        if any([issnum.lower() == 'alpha', issnum.lower() == 'omega', issnum.lower() == 'fall', issnum.lower() == 'spring', issnum.lower() == 'summer', issnum.lower() == 'winter']):
-                            inu = 0
-                            ordtot = 0
-                            while (inu < len(issnum)):
-                                ordtot += ord(issnum[inu].lower())  #lower-case the letters for simplicty
-                                inu+=1
-                            int_issnum = ordtot
-                        else:
-                            logger.fdebug('this does not have an issue # that I can parse properly.')
-                            return 999999999999999
-                    else:
-                        match = re.match(r"(?P<first>\d+)\s?[-&/\\]\s?(?P<last>\d+)", issnum)
-                        if match:
-                            first_num, last_num = map(int, match.groups())
-                            if last_num > first_num:
-                                int_issnum = (first_num * 1000) + int(((last_num - first_num) * .5) * 1000)
-                            else:
-                                int_issnum = (first_num * 1000) + (.5 * 1000)
-                        elif issnum == '9-5':
-                            issnum = '9\xbd'
-                            logger.fdebug('issue: 9-5 is an invalid entry. Correcting to : ' + issnum)
-                            int_issnum = (9 * 1000) + (.5 * 1000)
-                        elif issnum == '2 & 3':
-                            logger.fdebug('issue: 2 & 3 is an invalid entry. Ensuring things match up')
-                            int_issnum = (2 * 1000) + (.5 * 1000)
-                        elif issnum == '4 & 5':
-                            logger.fdebug('issue: 4 & 5 is an invalid entry. Ensuring things match up')
-                            int_issnum = (4 * 1000) + (.5 * 1000)
-                        elif issnum == '112/113':
-                            int_issnum = (112 * 1000) + (.5 * 1000)
-                        elif issnum == '14-16':
-                            int_issnum = (15 * 1000) + (.5 * 1000)
-                        elif issnum == '380/381':
-                            int_issnum = (380 * 1000) + (.5 * 1000)
-                        elif issnum.lower() == 'preview':
-                            inu = 0
-                            ordtot = 0
-                            while (inu < len(issnum)):
-                                ordtot += ord(issnum[inu].lower())  #lower-case the letters for simplicty
-                                inu+=1
-                            int_issnum = ordtot
-                        else:
-                            logger.error(issnum + ' this has an alpha-numeric in the issue # which I cannot account for.')
-                            return 999999999999999
-
-    return int_issnum
-
-
 def checkthepub(ComicID):
     #import db
     myDB = db.DBConnection()
@@ -1445,20 +1039,27 @@ def LoadAlternateSearchNames(seriesname_alt, comicid):
 
         return Alternate_Names
 
-def havetotals(refreshit=None):
+def havetotals(refreshit=None, start_char_filter=None):
         #import db
 
         comics = []
         myDB = db.DBConnection()
 
+        start_char_where_clause = ''
+        if not start_char_filter is None:
+            if start_char_filter == '#':
+                start_char_where_clause = f"{'WHERE' if refreshit is None else 'AND'} NOT hex(lower(substr(comics.ComicName,1,1))) BETWEEN '61' AND '7A'"
+            else:
+                start_char_where_clause = f"{'WHERE' if refreshit is None else 'AND'} lower(substr(comics.ComicName,1,1)) = '{start_char_filter.lower()}'"
+
         if refreshit is None:
             if mylar.CONFIG.ANNUALS_ON:
-                comiclist = myDB.select('SELECT comics.*, COUNT(totalAnnuals.IssueID) AS TotalAnnuals FROM comics LEFT JOIN annuals as totalAnnuals on totalAnnuals.ComicID = comics.ComicID GROUP BY comics.ComicID order by comics.ComicSortName COLLATE NOCASE')
+                comiclist = myDB.select(f"SELECT comics.*, COUNT(totalAnnuals.IssueID) AS TotalAnnuals FROM comics LEFT JOIN annuals as totalAnnuals on totalAnnuals.ComicID = comics.ComicID {start_char_where_clause} GROUP BY comics.ComicID order by comics.ComicSortName COLLATE NOCASE")
             else:
-                comiclist = myDB.select('SELECT * FROM comics GROUP BY ComicID order by ComicSortName COLLATE NOCASE')
+                comiclist = myDB.select(f"SELECT * FROM comics {start_char_where_clause} GROUP BY ComicID order by ComicSortName COLLATE NOCASE")
         else:
             comiclist = []
-            comicref = myDB.selectone('SELECT comics.ComicID AS ComicID, comics.Have AS Have, comics.Total as Total, COUNT(totalAnnuals.IssueID) AS TotalAnnuals FROM comics LEFT JOIN annuals as totalAnnuals on totalAnnuals.ComicID = comics.ComicID WHERE comics.ComicID=? GROUP BY comics.ComicID', [refreshit]).fetchone()
+            comicref = myDB.selectone(f"SELECT comics.ComicID AS ComicID, comics.Have AS Have, comics.Total as Total, COUNT(totalAnnuals.IssueID) AS TotalAnnuals FROM comics LEFT JOIN annuals as totalAnnuals on totalAnnuals.ComicID = comics.ComicID WHERE comics.ComicID=? {start_char_where_clause} GROUP BY comics.ComicID", [refreshit]).fetchone()
             #refreshit is the ComicID passed from the Refresh Series to force/check numerical have totals
             comiclist.append({"ComicID":      comicref['ComicID'],
                               "Have":         comicref['Have'],
@@ -1504,6 +1105,7 @@ def havetotals(refreshit=None):
                     percent = 101
             except (ZeroDivisionError, TypeError):
                 percent = 0
+                # TODO: This should be turned into an integer (0 or -1 preferably) to avoid issues with downstream expectations that this value is an int.  Need to follow through usages of havetotals()
                 totalissues = '?'
 
             if comic['LatestDate'] is None:
@@ -1945,7 +1547,7 @@ def get_issue_title(IssueID=None, ComicID=None, IssueNumber=None, IssueArcID=Non
                 logger.fdebug('Unable to locate given IssueID within the db. Assuming Issue Title is None.')
                 return None
     else:
-        issue = myDB.selectone('SELECT * FROM issues WHERE ComicID=? AND Int_IssueNumber=?', [ComicID, issuedigits(IssueNumber)]).fetchone()
+        issue = myDB.selectone('SELECT * FROM issues WHERE ComicID=? AND Int_IssueNumber=?', [ComicID, issue_number_parser(issue).asInt]).fetchone()
         if issue is None:
             issue = myDB.selectone('SELECT * FROM annuals WHERE IssueID=?', [IssueID]).fetchone()
             if issue is None:
@@ -1982,12 +1584,12 @@ def listLibrary(comicid=None):
     myDB = db.DBConnection()
     if comicid is None:
         if mylar.CONFIG.ANNUALS_ON is True:
-            list = myDB.select("SELECT a.comicid, b.releasecomicid, a.status FROM Comics AS a LEFT JOIN annuals AS b on a.comicid=b.comicid group by a.comicid")
+            list = myDB.select("SELECT a.comicid, b.releasecomicid, a.status FROM Comics AS a LEFT JOIN annuals AS b on a.comicid=b.comicid group by a.comicid, b.releasecomicid")
         else:
             list = myDB.select("SELECT comicid, status FROM Comics group by comicid")
     else:
         if mylar.CONFIG.ANNUALS_ON is True:
-            list = myDB.select("SELECT a.comicid, b.releasecomicid, a.status FROM Comics AS a LEFT JOIN annuals AS b on a.comicid=b.comicid WHERE a.comicid=? group by a.comicid", [re.sub('4050-', '', comicid).strip()])
+            list = myDB.select("SELECT a.comicid, b.releasecomicid, a.status FROM Comics AS a LEFT JOIN annuals AS b on a.comicid=b.comicid WHERE a.comicid=? group by a.comicid, b.releasecomicid", [re.sub('4050-', '', comicid).strip()])
         else:
             list = myDB.select("SELECT comicid, status FROM Comics WHERE comicid=? group by comicid", [re.sub('4050-', '', comicid).strip()])
 
@@ -2089,7 +1691,7 @@ def manualArc(issueid, reading_order, storyarcid):
     issnum = arcval['Issue_Number']
     issdate = str(arcval['Issue_Date'])
     storedate = str(arcval['Store_Date'])
-    int_issnum = issuedigits(issnum)
+    int_issnum = issue_number_parser(issnum).asInt
 
     comicid_results = mylar.cv.getComic(comicid=None, rtype='comicyears', comicidlist=cidlist)
     seriesYear = 'None'
@@ -2626,12 +2228,12 @@ def issue_find_ids(ComicName, ComicID, pack, IssueNumber, pack_id):
     issueinfo = []
     write_valids = []  # to keep track of snatched packs already downloading so we don't re-queue/download again
 
-    Int_IssueNumber = issuedigits(IssueNumber)
+    Int_IssueNumber = issue_number_parser(IssueNumber).asInt
     valid = False
 
     ignores = []
     for iss in pack_issues:
-       int_iss = issuedigits(str(iss))
+       int_iss = issue_number_parser(str(iss)).asInt
        for xb in issuelist:
            if xb['Status'] != 'Downloaded':
                if xb['Int_IssueNumber'] == int_iss:
@@ -3246,7 +2848,7 @@ def weekly_info(week=None, year=None, current=None):
 def latestdate_update():
     #import db
     myDB = db.DBConnection()
-    ccheck = myDB.select('SELECT a.ComicID, b.IssueID, a.LatestDate, b.ReleaseDate, b.Issue_Number from comics as a left join issues as b on a.comicid=b.comicid where a.LatestDate < b.ReleaseDate or a.LatestDate like "%Unknown%" group by a.ComicID')
+    ccheck = myDB.select("SELECT a.ComicID, b.IssueID, a.LatestDate, b.ReleaseDate, b.Issue_Number from comics as a left join issues as b on a.comicid=b.comicid where a.LatestDate < b.ReleaseDate or a.LatestDate like '%Unknown%' group by a.ComicID")
     if ccheck is None or len(ccheck) == 0:
         return
     logger.info('Now preparing to update ' + str(len(ccheck)) + ' series that have out-of-date latest date information.')
@@ -3273,7 +2875,7 @@ def latestissue_update():
         c_list = []
         for ck in cck:
             c_list.append({'ComicID': ck['ComicID'],
-                           'intLatestIssue': issuedigits(ck['LatestIssue'])})
+                           'intLatestIssue': issue_number_parser(ck['LatestIssue']).asInt})
 
         logger.info('[LATEST_ISSUE_TO_INT] Updating the latestIssue field for %s series' % (len(c_list)))
 
@@ -3343,6 +2945,15 @@ def ddl_downloader(queue):
             elif item['site'] == 'DDL(External)':
                 meganz = mega.MegaNZ()
                 ddzstat = meganz.ddl_download(item['link'], item['filename'], item['id'], item['issueid'], item['link_type'])
+
+            # Check for file validity post download and mark as failure if file is not a zip, rar, or pdf
+            # Can only check single downloads.  Packs will have to be managed by post-processing if enabled
+            if ddzstat['success'] and ddzstat['filename'] is not None:
+                filecondition = check_file_condition(ddzstat['path'])
+                if not filecondition['status']:
+                    logger.warn(f"CRC Check: File {ddzstat['path']} failed condition check ({filecondition['quality']}).  Marking as failed.")
+                    ddzstat['success'] = False
+                    ddzstat['link_type_failure'] = item['link_type']
 
             if ddzstat['success'] is True:
                 tdnow = datetime.datetime.now()
@@ -3508,6 +3119,14 @@ def search_queue(queue):
                             issueid = None # required for storyarcs to work
                     mofo = mylar.filers.FileHandlers(ComicID=comicid, IssueID=issueid, arcID=arcid)
                     local_check = mofo.walk_the_walk()
+
+                    if local_check['status']:
+                        fullpath = Path(local_check['filepath']) / local_check['filename']
+                        filecondition = check_file_condition(fullpath)
+                        if not filecondition['status']:
+                            logger.warn(f"CRC Check: File {fullpath} failed condition check ({filecondition['quality']}).  Ignoring.")
+                            local_check['status'] = False
+
                     if local_check['status'] is True:
                         mylar.PP_QUEUE.put({'nzb_name':     local_check['filename'],
                                             'nzb_folder':   local_check['filepath'],
@@ -3641,6 +3260,14 @@ def cdh_monitor(queue, item, nzstat, readd=False):
         if item not in queue.queue:
             mylar.NZB_QUEUE.put(item)
     elif nzstat['status'] is True:
+        # Currently only checks SAB at this point as nzbget filename not available
+        if nzstat['failed'] is False and mylar.USE_SABNZBD is True:
+            fullpath = Path(nzstat['location']) / nzstat['name']
+            filecondition = check_file_condition(fullpath)
+            if not filecondition['status']:
+                logger.warn(f"CRC Check: File {fullpath} failed condition check ({filecondition['quality']}).  Marking as failed.")
+                nzstat['failed'] = True
+
         if nzstat['failed'] is False:
             logger.info('File successfully downloaded - now initiating completed downloading handling.')
         else:
@@ -4968,6 +4595,507 @@ def tail_that_log():
 
     return lines_found[-lines:]
 
+# Magic numbers for checks below
+# Reference: https://www.garykessler.net/library/file_sigs.html
+magic_numbers = {
+    'PDF' : bytes([0x25, 0x50, 0x44, 0x46]),
+    'ZIP' : bytes([0x50, 0x4B, 0x03, 0x04]),
+    'RAR' : bytes([0x52, 0x61, 0x72, 0x21, 0x1A, 0x07]), # Should cover both v4 and v5
+    '7Z' :  bytes([0x37, 0x7A, 0xBC, 0xAF, 0x27, 0x1C])
+}
+
+def check_file_condition(file_path):
+    """ Use magic numbers to confirm a file type, and do some sanity checks for quality of
+        the file (CRC checks, etc.)
+
+    Args:
+        file_path (str): Location of the file to check
+
+    Returns:
+        dict: A dictionary containing a status (True/False for good/bad file), type (known file type),
+            and quality (descriptive string)
+    """
+    if not os.path.isfile(file_path):
+        return {'status': True, 'type' : 'unknown', 'quality': 'Asked to check something that does not exist or is a diretory.  Passing it for now.'}
+
+    logger.fdebug(f'Checking file condition of {file_path}')
+
+    max_number_length = max(len(m) for m in magic_numbers.values())
+    try:
+        with open(file_path, 'rb') as file:
+            header = file.read(max_number_length)
+    except Exception as e:
+        logger.error(f"Could not open {file_path} to check for file type")
+        return {'status': False, 'type' : 'unknown', 'quality': f'Failed to open file to check quality {e}.'}
+
+    if header.startswith(magic_numbers['ZIP']):
+        try:
+            with zipfile.ZipFile(file_path, mode='r') as zf:
+                test_result = zf.testzip()
+                if test_result is not None:
+                    return {'status': False, 'type' : 'ZIP', 'quality': f'CRC error in file {test_result}.'}
+        except Exception as e:
+            logger.fdebug("Issue working with zip file.  Likely a broken archive.")
+            return {'status': False, 'type' : 'ZIP', 'quality': f'Error processing zip compressed file: {e}.'}
+
+        return {'status': True, 'type' : 'ZIP', 'quality': 'Good condition.'}
+    elif header.startswith(magic_numbers['RAR']):
+        try:
+            with rarfile.RarFile(file_path, mode='r') as rarf:
+                test_result = rarf.testrar()
+                if test_result is not None:
+                    return {'status': False, 'type' : 'RAR', 'quality': f'CRC error in file {test_result}.'}
+        except Exception as e:
+            logger.fdebug("Issue working with rar file.  Likely a broken archive.")
+            return {'status': False, 'type' : 'RAR', 'quality': f'Error processing rar compressed file: {e}.'}
+
+        return {'status': True, 'type' : 'RAR', 'quality': 'Good condition.'}
+    elif header.startswith(magic_numbers['7Z']):
+        return {'status': True, 'type' : '7Z', 'quality': 'File is using 7zip compression.'}
+    elif header.startswith(magic_numbers['PDF']):
+        return {'status': True, 'type' : 'PDF', 'quality': 'PDF file.  No quality checks performed.'}
+    else:
+        return {'status': False, 'type' : 'unknown', 'quality': 'Unknown file type, unknown condition'}
+
+def issue_number_to_int(number_part = None, string_part = None):
+    """
+    Calculate the numeric representation of an issue number based on the numeric and string components.  This prioritised the
+    numeric part for sorting purposes.
+
+    Parameters
+    ----------
+    number_part : float
+        The numeric part of the issue number
+    string_part : str
+        The string decorations of the issue number
+
+    Returns
+    -------
+    An integer representation of the issue number
+    """
+    # TODO: Add a check for integer overflow (miniscule risk) for SQLITE maxint - either limit it here as a preventative check, or handle it in database handler class.
+
+    if number_part is None and string_part is None:
+        return 0
+
+    if string_part is None and isinstance(number_part, int):
+        return number_part * 1000
+
+    string_ordinal_sum = 0
+    if string_part is not None:
+        string_part = string_part.lower()
+        for x in string_part:
+            string_ordinal_sum += ord(x)
+
+    # If the number is not visible within three decimal places, but non-zero, need to differentiate it from zero (e.g. Quantum and Woody)
+    if (number_part is not None) and (0 < number_part < 0.001):
+        string_ordinal_sum += 1
+
+    if (number_part is not None) and (number_part < 0):
+        string_ordinal_sum *= -1
+
+    int_issuenum = round((0 if number_part is None else number_part) * 1000) + string_ordinal_sum
+
+    return int_issuenum
+
+def format_issue_number(number, zero_padding=0):
+    """
+    Consistent formatting string for numbers
+
+    Parameters
+    ----------
+    number: str
+        The numeric part of the issue number
+    zero_padding : int
+        Significant figures for padding the whole number part
+
+    Returns
+    -------
+    Formatted string
+    """
+    negative = False
+    if number[0] == '-':
+        negative = True
+        number = number[1:]
+
+    split_num = number.split('.')
+
+    whole = 0 if split_num[0] == '' else split_num[0]
+    dec = 0 if len(split_num) == 1 else split_num[1]
+
+    return f"{'-' if negative else ''}{whole:0>{zero_padding}}{'' if dec == 0 else f'.{dec}'}"
+
+
+IssueNumber = namedtuple('IssueNumber', ['asInt', 'asString', 'asLegacy'], defaults=[None])
+def issue_number_parser(issue_no, zero_padding=None, issue_id= None, from_data_source= False, pretty_string = False):
+    """
+    Returns a tuple of the integer representation of an issue "number", and the string representation for file naming.
+
+    For ordering purposes, it will choose the first valid numeric string found in the issue number, and treat all remaining
+    characters as decoration for differentiation purposes between two different "numbers".
+
+    General approach is to minimise change to the raw issue number for the filename, for naming stability and avoiding
+    creating a situation where a rename stops mylar from identifying the number again causing an archive status.  Any
+    characters that are ill supported on filesystems should be dealt with, any any characters that represent numbers
+    (fractions, infinity, etc.) should be converted for some semblance of sensible ordering.
+
+    Parameters
+    ----------
+    issue_no         : str
+        The issue number as a string
+    issue_id         : str (optional)
+        The IssueID for this issue for potential dupe detection within volumes
+    from_data_source : bool
+        If this has been called using data from a data source of record (e.g. ComicVine) then any string parts may be
+        considered for addition to the exceptions list for file identification / matching
+    pretty_string    : bool
+        For efficiency saving, it will not generate the string formatted version by default.
+
+    The below parameter will default to the global mylar config if not set.
+    zero_padding : int (optional)
+        The width of zero padding required for the numeric part string representation
+
+    Returns
+    -------
+    A namedtuple of issue number representations.
+
+    asInt    : int
+        The integer representation of the issue number
+    asString : str
+        The formatted string representation of the issue number
+    asLegacy : str
+        The legacy issue number denoted by square brackets (if one exists)
+
+    References
+    ----------
+    Here are a list of known awkward issue numbering examples that have been used to inform this method and
+    their CV URLs correct at time of writing.
+
+    Amazing Spider-Man 65.Deaths : https://comicvine.gamespot.com/the-amazing-spider-man/4050-142577/
+    Ninjak 0 and 00 : https://comicvine.gamespot.com/ninjak/4050-5348/
+    Wolverine & the X-Men 027AU : https://comicvine.gamespot.com/wolverine-the-x-men/4050-43539/
+    Weapon Zero T-4 : https://comicvine.gamespot.com/weapon-zero/4050-19915/
+    Super DC Giant S-27 : https://comicvine.gamespot.com/super-dc-giant/4050-2466/
+    Earth X X, Earth X ½ : https://comicvine.gamespot.com/earth-x/4050-6354/
+    Avengers 1½ : https://comicvine.gamespot.com/the-avengers/4050-2128/
+    Shield Infinity 1 : https://comicvine.gamespot.com/shield-infinity/4050-112433/
+    Prime Infinity ∞ : https://comicvine.gamespot.com/prime-infinity/4050-61187/ (see also https://comicvine.gamespot.com/the-night-man-infinity/4050-61188/)
+    Wizard 207 (duplicated) : https://comicvine.gamespot.com/wizard-the-comics-magazine/4050-18692/
+    X-O Manowar 050X : https://comicvine.gamespot.com/x-o-manowar/4050-4831/
+    Amazing Spider-Man 92.BEY : https://comicvine.gamespot.com/the-amazing-spider-man/4050-112161/
+    U-Comix 170/171 : https://comicvine.gamespot.com/u-comix-170-171/4000-472797/
+    Spider-Man Badrock 1A : https://comicvine.gamespot.com/spider-manbadrock/4050-20275/
+    Totally Awesome Hulk 1.MU : https://comicvine.gamespot.com/the-totally-awesome-hulk/4050-86408/
+    Hulk -1 : https://comicvine.gamespot.com/the-incredible-hulk/4050-2406/
+    Original Sin 3.3 : https://comicvine.gamespot.com/original-sin/4050-73241/
+    Haunt of Fear 1 [15] : https://comicvine.gamespot.com/haunt-of-fear/4050-1398/
+    God is Dead Alpha/Omega : https://comicvine.gamespot.com/god-is-dead-the-book-of-acts/4050-76270/
+    Quantum and Woody 0.0001½ : https://comicvine.gamespot.com/quantum-and-woody/4050-105656/
+
+    Still unsolved (need more filechecker changes):
+    Army and Navy 1 #02: https://comicvine.gamespot.com/army-and-navy-fun-parade/4050-127823/
+    Dark Fantasies 9 & 10: https://comicvine.gamespot.com/dark-fantasies/4050-24691/
+    """
+    #logger.debug(f'Attempting to process issue number "{issue_no}"')
+
+    # if not isinstance(issue_no, str):
+    #     logger.warn(f'Issue Number not a string, attempting to cast as one: {issue_no}')
+    #     try:
+    #         issue_no = str(issue_no)
+    #     except:
+    #         logger.error(f'Failed to convert issue number to string.  Defaulting to a large number.')
+    #         return IssueNumber(999999999999999,'999999999999999')
+
+    legacy_issue = None
+
+    # Grab mylar's settings for number formatting
+    #issueHashPrefix = False
+    #if r'#$Issue' in mylar.CONFIG.FILE_FORMAT:
+    #    issueHashPrefix = True
+
+    if zero_padding is None:
+        if mylar.CONFIG.ZERO_LEVEL_N == '0x':
+            zero_padding = 2
+        elif mylar.CONFIG.ZERO_LEVEL_N == '00x':
+            zero_padding = 3
+        else:
+            zero_padding = 0
+
+    try:
+        if issue_no.isdigit():
+            return IssueNumber(issue_number_to_int(int(issue_no)),format_issue_number(issue_no,zero_padding) if pretty_string else None, legacy_issue)
+    except:
+        if issue_no is None:
+            return IssueNumber(999999999999999,'999999999999999')
+        
+        try:
+            test_issue_no = str(issue_no)
+            if test_issue_no.isdigit():
+                return IssueNumber(issue_number_to_int(int(test_issue_no)),format_issue_number(test_issue_no,zero_padding) if pretty_string else None, legacy_issue)
+        except:
+            return IssueNumber(999999999999999,'999999999999999')
+
+    # - Filename safety characters
+    # - Hash marks as special for mylar identification
+    if len(issue_no) > 0 and issue_no[0] == '#':
+        issue_no = issue_no[1:]
+
+    # Numbers traversing issues listed in CV as either A/B or C-D will get picked up as separate numbers by
+    # the file checker.  Let's just consider them to be the first number for sorting and ordering purposes
+    # Examples are Cerebus and U-Comix
+    check_range = re.fullmatch(r'(?P<firstno>\d+)(?P<splitter>[\/\-])(?P<lastno>\d+)', issue_no)
+    if check_range:
+        first_no = check_range.group('firstno')
+        last_no  = check_range.group('lastno')
+        logger.fdebug(f'Issue number {issue_no} provided as range, sorting based on first number {first_no}')
+        formatted_first_no = format_issue_number(first_no,zero_padding)
+        formatted_last_no = format_issue_number(last_no,zero_padding)
+        return IssueNumber(issue_number_to_int(float(first_no)), f"{formatted_first_no}-{formatted_last_no}" if pretty_string else None, legacy_issue)
+
+    issue_no = re.sub(r'[\\/&#]', '.', issue_no)
+
+    if issue_no == '':
+        return IssueNumber(1,'')
+
+    # Extract any legacy issue numbers and drop the legacy part
+    if all([ '[' in issue_no, ']' in issue_no ]):
+        legacy_start = issue_no.find('[')
+        legacy_issue = issue_no[legacy_start+1:issue_no.find(']')]
+        issue_no = issue_no[:legacy_start].strip()
+        #logger.debug(f'Found legacy issue number [{legacy_issue}] and treating this as #{issue_no}')
+
+    # Make the assumption that infinity is a) large for sorting b) uses the whole string for
+    # differentiation (if not solo) and c) can be expressed in a filename without error
+    if '\u221e' in issue_no:
+        #logger.debug(f'Found infinity issue - setting to be very large')
+        return IssueNumber(issue_number_to_int(9999999,issue_no), issue_no if pretty_string else None, legacy_issue)
+
+    # Tries its best to account for multiple fractions in a number, but there really is a limit ...
+    # fraction_chars = {'\xbc' : '25', '\xbd' : '5', '\xbe' : '75', '\u2152' : '1', '\u2153' : '33', '\u2154' : '67'}
+    fraction_chars = {chr(x) : str(round(unicodedata.numeric(chr(x)),2))[2:] for x in itertools.chain(range(0x00BC, 0x00BF),range(0x2150,0x215F))}
+    fractions_present = [x for x in fraction_chars.keys() if x in issue_no]
+    # if len(fractions_present) > 0:
+    #     logger.debug(f'Found fractions in issue number ({fractions_present}) - converting to decimal form')
+
+    for fraction_char in fractions_present:
+        # Substitue in order of solo entry (quickest), existing decimal prefix, then existing whole number prefix
+        if issue_no == fraction_char:
+            issue_no = f'0.{fraction_chars[fraction_char]}'
+        else:
+            decimal_search = fr'(?P<decimal>\.\d*)(?P<fraction>{fraction_char})'
+            wholenum_search = fr'(?P<wholenum>\d*)(?P<fraction>{fraction_char})'
+
+            # This has to be done sequentially for special case of 0.000¼0000¼
+            while re.search(decimal_search, issue_no) is not None:
+                issue_no = re.sub(decimal_search,fr'\g<decimal>{fraction_chars[fraction_char]}', issue_no, count=1)
+            issue_no = re.sub(wholenum_search,fr'\g<wholenum>.{fraction_chars[fraction_char]}', issue_no)
+
+    # Pre-scrub any commas within numbers for thousandths seperators
+    issue_no = re.sub(r'(?P<prenum>\d),(?P<postnum>\d)',r'\g<prenum>\g<postnum>',issue_no)
+
+    # Quick finish if we've already got a number after pre-processing
+    try:
+        float(issue_no)
+    except ValueError:
+        #logger.debug('Issue Number is not solely numeric, moving on')
+        pass
+    else:
+        #logger.debug(f'Issue identified as numeric {issue_no}')
+        return IssueNumber(issue_number_to_int(float(issue_no)),format_issue_number(issue_no,zero_padding) if pretty_string else None, legacy_issue)
+
+    # Find the first recognisable numeric string, and use that to denote the issue "number"
+    # Note that the regex will match empty strings so we need to filter this result set.  This was to
+    # allow for decimals <1 with no leading 0
+    numeric_parts = [x for x in re.findall(r'(?:-|\+)?\d*(?:\.\d{1,3})?', issue_no) if x != '']
+
+    if len(numeric_parts) == 0:
+        # Issue number is a pure string.
+        #logger.debug('Issue Number is entirely String based')
+        if from_data_source:
+            add_issue_exception(issue_no, exception_type='Exact')
+        return IssueNumber(issue_number_to_int(string_part=issue_no), issue_no if pretty_string else None, legacy_issue)
+    else:
+        numeric_part = numeric_parts[0]
+        match_position = issue_no.find(numeric_part)
+        # The filechecker has to operate on a l-r basis to avoid picking part of the volume as the issue number.  It also will remove full-stops, 
+        # and spaces when processing so we need to remove these from the int calculation to ensure comparisons.  The calculation itself is case insensitive
+        prefix = issue_no[:match_position]
+        suffix = issue_no[match_position + len(numeric_part):]
+        intIssueNumStringPart = re.sub(r'[\.\-]','',(prefix.strip() + suffix.strip()))
+
+        # Manage the exception list if this issue number has come from CV
+        # For string prefixed issues, the whole issue should be considered for matching, otherwise just the suffix
+        if from_data_source:
+            if len(prefix) > 0:
+                add_issue_exception(issue_no, exception_type='Exact')
+            else:
+                add_issue_exception(re.sub(r'[\. ]','',suffix), exception_type='Exact')
+
+        #logger.debug(f'Breaking Issue Number into parts and formatting number ({prefix},{numeric_part},{suffix})')
+        formatted_number = format_issue_number(numeric_part,zero_padding)
+        return IssueNumber(issue_number_to_int(float(numeric_part), intIssueNumStringPart), (prefix + formatted_number + suffix) if pretty_string else None, legacy_issue)
+
+    logger.error(f'Something went horribly wrong and I could not work out the issue number from {issue_no}.  Somehow I have also bypassed the conditional above.')
+    return IssueNumber(999999999999999,'999999999999999')
+
+def issueExceptionCheck(checkString, full_match=True):
+    if full_match:
+        return any(re.fullmatch(pattern, checkString, re.IGNORECASE) for pattern in issue_exception_list('Pattern')) or any(exact.lower() == checkString.lower() for exact in issue_exception_list('Exact'))
+    else:
+        return any(re.search(pattern, checkString, re.IGNORECASE) for pattern in issue_exception_list('Pattern')) or any(exact.lower() in checkString.lower() for exact in issue_exception_list('Exact'))
+
+def issue_exception_list(exception_type = 'Exact'):
+    """Returns the superset of the inbuilt INBUILT_ISSUE_EXCEPTIONS and any stored in config.ini as CUSTOM_ISSUE_EXCEPTIONS
+
+    Returns:
+        list[str] : Issue numbering exceptions
+    """
+    if type(mylar.CONFIG.CUSTOM_ISSUE_EXCEPTIONS) != list:
+        try:
+            mylar.CONFIG.CUSTOM_ISSUE_EXCEPTIONS = json.loads(mylar.CONFIG.CUSTOM_ISSUE_EXCEPTIONS)
+        except Exception:
+            pass
+
+    return [x[0] for x in
+            [list(item) for item in set([tuple(entry) for entry in mylar.INBUILT_ISSUE_EXCEPTIONS] +
+                                         [tuple(entry) for entry in mylar.CONFIG.CUSTOM_ISSUE_EXCEPTIONS])]
+              if x[1] == exception_type]
+
+def add_issue_exception(exception, exception_type='Exact'):
+    """Check if a non-numeric issue number part is already covered by existing issue exceptions, and add it to
+    the list if not covered.
+
+    Args:
+        exception (str) : The string exception to be checked against
+        exception_type (Exact/Pattern) : The type of exception being checked
+    """
+    exception_exists = False
+    if exception_type == 'Exact':
+        if exception.lower() in [x.lower() for x in issue_exception_list(exception_type)] or any(re.fullmatch(pattern, exception, re.IGNORECASE) for pattern in issue_exception_list('Pattern')):
+            exception_exists = True
+    else:
+        if exception.lower() in [x.lower() for x in issue_exception_list('Pattern')]:
+            exception_exists = True
+
+    if not exception_exists:
+        logger.info(f'Issue numbering exception "{exception}" not found in list.  Adding to CUSTOM_ISSUE_EXCEPTIONS.')
+
+        # Storing numeric exceptions is likely to cause problems.  Let's not.  If we can cast it, GTFO
+        try:
+            float(exception)
+            logger.fdebug(f"Attempted to add {exception} as an issue number exception but it is numeric")
+            return
+        except ValueError:
+            pass
+
+        mylar.CONFIG.CUSTOM_ISSUE_EXCEPTIONS.append([exception, exception_type])
+        mylar.CONFIG.writeconfig(values={'custom_issue_exceptions': json.dumps(mylar.CONFIG.CUSTOM_ISSUE_EXCEPTIONS)})
+
+def where_am_i(ignore_host_return=False):
+    """ Attempt to determine the externally facing URL for mylar.
+
+    Args:
+        ignore_host_return (bool, optional): Ignore the host_return config override. Defaults to False.
+
+    Returns:
+        str: A URL for mylar in the form protocol://address:port/
+    """
+    # generate the mylar host address if applicable.
+    if mylar.CONFIG.ENABLE_HTTPS:
+        proto = 'https://'
+    else:
+        proto = 'http://'
+
+    if mylar.CONFIG.HTTP_ROOT is None:
+        hroot = '/'
+    elif mylar.CONFIG.HTTP_ROOT.endswith('/'):
+        hroot = mylar.CONFIG.HTTP_ROOT
+    else:
+        if mylar.CONFIG.HTTP_ROOT != '/':
+            hroot = mylar.CONFIG.HTTP_ROOT + '/'
+        else:
+            hroot = mylar.CONFIG.HTTP_ROOT
+
+    if mylar.LOCAL_IP is None:
+        # if mylar's local, get the local IP using socket.
+        try:
+            import socket
+
+            s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+            s.connect(('8.8.8.8', 80))
+            mylar.LOCAL_IP = s.getsockname()[0]
+            s.close()
+        except Exception as e:
+            logger.warn(
+                'Unable to determine local IP. Defaulting to host address for'
+                ' Mylar provided as : %s. Error returned: %s'
+                % (mylar.CONFIG.HTTP_HOST, e)
+            )
+
+    if mylar.CONFIG.HOST_RETURN and not ignore_host_return:
+        # mylar has the return value already provided
+        # (easier and will work if it's right)
+        if mylar.CONFIG.HOST_RETURN.endswith('/'):
+            mylar_host = mylar.CONFIG.HOST_RETURN
+        else:
+            mylar_host = mylar.CONFIG.HOST_RETURN + '/'
+
+    elif mylar.CONFIG.SAB_TO_MYLAR:
+        # if sab & mylar are on different machines, check to see if they are
+        # local or external IP's provided for host.
+        if (
+            mylar.CONFIG.HTTP_HOST == 'localhost'
+            or mylar.CONFIG.HTTP_HOST == '0.0.0.0'
+            or mylar.CONFIG.HTTP_HOST.startswith('10.')
+            or mylar.CONFIG.HTTP_HOST.startswith('192.')
+            or mylar.CONFIG.HTTP_HOST.startswith('172.')
+        ):
+            # if mylar's local, use the local IP already assigned to LOCAL_IP.
+            mylar_host = (
+                '%s%s:%s%s'
+                % (proto, mylar.LOCAL_IP, mylar.CONFIG.HTTP_PORT, hroot)
+                )
+        else:
+            if mylar.EXT_IP is None:
+                # if mylar isn't local, get the external IP using pystun.
+                import stun
+
+                sip = mylar.CONFIG.HTTP_HOST
+                port = int(mylar.CONFIG.HTTP_PORT)
+                try:
+                    nat_type, ext_ip, ext_port = stun.get_ip_info(sip, port)
+                    mylar_host = (
+                        '%s%s:%s%s'
+                        % (proto, ext_ip, ext_port, hroot)
+                        )
+                    mylar.EXT_IP = ext_ip
+                except Exception as e:
+                    logger.warn(
+                        'Unable to retrieve External IP - try using the'
+                        ' host_return option in the config.ini. Error: %s' % e
+                    )
+                    mylar_host = (
+                        '%s%s:%s%s'
+                        % (proto, mylar.CONFIG.HTTP_HOST,
+                            mylar.CONFIG.HTTP_PORT, hroot)
+                    )
+            else:
+                mylar_host = (
+                    '%s%s:%s%s'
+                    % (proto, mylar.EXT_IP, mylar.CONFIG.HTTP_PORT, hroot)
+                )
+
+    else:
+        # if all else fails, drop it back to the basic host:port and try that.
+        if mylar.LOCAL_IP is None:
+            tmp_host = mylar.CONFIG.HTTP_HOST
+        else:
+            tmp_host = mylar.LOCAL_IP
+        mylar_host = (
+            proto + str(tmp_host) + ':' + str(mylar.CONFIG.HTTP_PORT) + hroot
+        )
+
+    return mylar_host
 
 from threading import Thread
 

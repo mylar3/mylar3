@@ -786,8 +786,8 @@ def pullitcheck(comic1off_name=None, comic1off_id=None, forcecheck=None, futurep
                                         if date_downloaded is None:
                                             continue
                                 if chktype == 'series':
-                                    latest_int = helpers.issuedigits(latestiss)
-                                    weekiss_int = helpers.issuedigits(week['ISSUE'])
+                                    latest_int = helpers.issue_number_parser(latestiss).asInt
+                                    weekiss_int = helpers.issue_number_parser(week['ISSUE']).asInt
                                     logger.fdebug('comparing ' + str(latest_int) + ' to ' + str(weekiss_int))
                                     if (latest_int > weekiss_int) and (latest_int != 0 or weekiss_int != 0):
                                         logger.fdebug(str(week['ISSUE']) + ' should not be the next issue in THIS volume of the series.')
@@ -1137,8 +1137,8 @@ def new_pullcheck(weeknumber, pullyear, comic1off_name=None, comic1off_id=None, 
                                     if date_downloaded is None:
                                         continue
                             if chktype == 'series':
-                                latest_int = helpers.issuedigits(latestiss)
-                                weekiss_int = helpers.issuedigits(week['issue'])
+                                latest_int = helpers.issue_number_parser(latestiss).asInt
+                                weekiss_int = helpers.issue_number_parser(week['issue']).asInt
                                 logger.fdebug('comparing ' + str(latest_int) + ' to ' + str(weekiss_int))
                                 if (latest_int > weekiss_int) and (latest_int != 0 or weekiss_int != 0):
                                     logger.fdebug(str(week['issue']) + ' should not be the next issue in THIS volume of the series.')
@@ -1434,7 +1434,7 @@ def check(fname, txt):
 
 def loaditup(comicname, comicid, issue, chktype):
     myDB = db.DBConnection()
-    issue_number = helpers.issuedigits(issue)
+    issue_number = helpers.issue_number_parser(issue).asInt
     if chktype == 'annual':
         typedisplay = 'annual issue'
         logger.fdebug('[' + comicname + '] trying to locate ' + str(typedisplay) + ' ' + str(issue) + ' to do comparitive issue analysis for pull-list')
@@ -1586,8 +1586,9 @@ def send2read(comicid, issueid, issuenum):
     if mylar.CONFIG.SEND2READ:
         logger.info(module + " Send to Reading List enabled for new pulls. Adding to your readlist in the status of 'Added'")
         if issueid is None:
-            chkthis = myDB.selectone('SELECT * FROM issues WHERE ComicID=? AND Int_IssueNumber=?', [comicid, helpers.issuedigits(issuenum)]).fetchone()
-            annchk = myDB.selectone('SELECT * FROM annuals WHERE ComicID=? AND Int_IssueNumber=? AND NOT Deleted', [comicid, helpers.issuedigits(issuenum)]).fetchone()
+            int_issuenum = helpers.issue_number_parser(issuenum).asInt
+            chkthis = myDB.selectone('SELECT * FROM issues WHERE ComicID=? AND Int_IssueNumber=?', [comicid, int_issuenum]).fetchone()
+            annchk = myDB.selectone('SELECT * FROM annuals WHERE ComicID=? AND Int_IssueNumber=? AND NOT Deleted', [comicid, int_issuenum]).fetchone()
             if chkthis is None and annchk is None:
                 logger.warn(module + ' Unable to locate issue within your series watchlist.')
                 return

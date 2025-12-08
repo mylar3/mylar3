@@ -112,6 +112,7 @@ _CONFIG_DEFINITIONS = OrderedDict({
     'SCAN_ON_SERIES_CHANGES': (bool, 'General', True),
     'CLEAR_PROVIDER_TABLE': (bool, 'General', False),
     'SEARCH_TIER_CUTOFF': (int, 'General', 14), # days
+    'CUSTOM_ISSUE_EXCEPTIONS': (str, 'General', []),
 
     'RSS_CHECKINTERVAL': (int, 'Scheduler', 20),
     'SEARCH_INTERVAL': (int, 'Scheduler', 1440),
@@ -146,6 +147,7 @@ _CONFIG_DEFINITIONS = OrderedDict({
     'LOGIN_TIMEOUT': (int, 'Interface', 43800),
     'ALPHAINDEX': (bool, 'Interface', True),
     'CHERRYPY_LOGGING': (bool, 'Interface', False),
+    'INSTANCE_NAME': (str, 'Interface', None),
 
     'API_ENABLED' : (bool, 'API', False),
     'API_KEY' : (str, 'API', None),
@@ -374,6 +376,16 @@ _CONFIG_DEFINITIONS = OrderedDict({
     'HTTP_PROXY': (str, 'DDL', None),
     'HTTPS_PROXY': (str, 'DDL', None),
 
+    'ENABLE_AIRDCPP': (bool, 'DCPP', False),
+    'AIRDCPP_HOST': (str, 'DCPP', ""),
+    'AIRDCPP_USERNAME': (str, 'DCPP', ""),
+    'AIRDCPP_PASSWORD': (str, 'DCPP', ""),
+    'AIRDCPP_DOWNLOAD_DIR': (str, 'DCPP', ""),
+    'AIRDCPP_HUBS': (str, 'DCPP', ""),
+    'AIRDCPP_VERSION': (str, 'DCPP', ""),
+    'AIRDCPP_ANNOUNCE_HUB': (str, 'DCPP', ""),
+    'AIRDCPP_ANNOUNCE_BOTS': (str, 'DCPP', ""),
+
     'AUTO_SNATCH': (bool, 'AutoSnatch', False),
     'AUTO_SNATCH_SCRIPT': (str, 'AutoSnatch', None),
     'PP_SSHHOST': (str, 'AutoSnatch', None),
@@ -447,6 +459,9 @@ _CONFIG_DEFINITIONS = OrderedDict({
     'OPDS_METAINFO': (bool, 'OPDS', False),
     'OPDS_PAGESIZE': (int, 'OPDS', 30),
 
+    'CBL_IMPORT_ISSUESONLY' : (bool, 'CBLImport', True),
+    'CBL_IMPORT_IGNOREARCHIVED' : (bool, 'CBLImport', False),
+
 })
 
 _BAD_DEFINITIONS = OrderedDict({
@@ -465,6 +480,15 @@ _BAD_DEFINITIONS = OrderedDict({
     'DOGNZB': ('DOGnzb', 'dognzb', bool, None),
     'DOGNZB_APIKEY': ('DOGnzb', 'dognzb_apikey', str, None),
     'DOGNZB_VERIFY': ('DOGnzb', 'dognzb_verify', bool, None),
+    'ENABLE_AIRDCPP': ('DDL', 'enable_airdcpp', bool, None),
+    'AIRDCPP_HOST': ('DDL', 'airdcpp_host', str, None),
+    'AIRDCPP_USERNAME': ('DDL', 'airdcpp_username', str, None),
+    'AIRDCPP_PASSWORD': ('DDL', 'airdcpp_password', str, None),
+    'AIRDCPP_DOWNLOAD_DIR': ('DDL', 'airdcpp_download_dir', str, None),
+    'AIRDCPP_HUBS': ('DDL', 'airdcpp_hubs', str, None),
+    'AIRDCPP_VERSION': ('DDL', 'airdcpp_version', str, None),
+    'AIRDCPP_ANNOUNCE_HUB': ('DDL', 'airdcpp_announce_hub', str, None),
+    'AIRDCPP_ANNOUNCE_BOTS': ('DDL', 'airdcpp_announce_bots', str, None),
 })
 
 class Config(object):
@@ -484,7 +508,7 @@ class Config(object):
                 count = 0
 
             #this is the current version at this particular point in time.
-            self.newconfig = 14
+            self.newconfig = 15
 
             OLDCONFIG_VERSION = 0
             if count == 0:
@@ -508,6 +532,22 @@ class Config(object):
         setattr(self, 'MINIMAL_INI', MINIMALINI)
 
         config_values = []
+
+        #this section retains values of variables that are no longer being saved to the ini
+        #in case they are needed prior to wiping out things
+        self.OLD_VALUES = {}
+        for b, bv in _BAD_DEFINITIONS.items():
+            if len(bv) == 4:  #removal of option...
+                if bv[1] not in self.OLD_VALUES:
+                    try:
+                        if bv[2] == bool:
+                             self.OLD_VALUES[bv[1]] = config.getboolean(bv[0], bv[1])
+                        elif bv[2] == str:
+                             self.OLD_VALUES[bv[1]] = config.get(bv[0], bv[1])
+                        elif bv[2] == int:
+                             self.OLD_VALUES[bv[1]] = config.getint(bv[0], bv[1])
+                    except (configparser.NoSectionError, configparser.NoOptionError) as e:
+                        pass
 
         for k,v in _CONFIG_DEFINITIONS.items():
             xv = []
@@ -604,22 +644,6 @@ class Config(object):
                     elif k == 'MINIMAL_INI':
                         config.set(v[1], k.lower(), str(self.MINIMAL_INI))
 
-        #this section retains values of variables that are no longer being saved to the ini
-        #in case they are needed prior to wiping out things
-        self.OLD_VALUES = {}
-        for b, bv in _BAD_DEFINITIONS.items():
-            if len(bv) == 4:  #removal of option...
-                if bv[1] not in self.OLD_VALUES:
-                    try:
-                        if bv[2] == bool:
-                             self.OLD_VALUES[bv[1]] = config.getboolean(bv[0], bv[1])
-                        elif bv[2] == str:
-                             self.OLD_VALUES[bv[1]] = config.get(bv[0], bv[1])
-                        elif bv[2] == int:
-                             self.OLD_VALUES[bv[1]] = config.getint(bv[0], bv[1])
-                    except (configparser.NoSectionError, configparser.NoOptionError):
-                        pass
-
     def read(self, startup=False):
         self.config_vals()
 
@@ -662,7 +686,7 @@ class Config(object):
             cc = maintenance.Maintenance('backup')
             bcheck = cc.backup_files(cfg=True, dbs=False, backupinfo=backupinfo)
 
-            if self.CONFIG_VERSION < 14:
+            if self.CONFIG_VERSION < 15:
                 print('Attempting to update configuration..')
                 #8-torznab multiple entries merged into extra_torznabs value
                 #9-remote rtorrent ssl option
@@ -670,6 +694,7 @@ class Config(object):
                 #11-provider ids
                 #12-ddl seperation into multiple providers, new keys, update tables
                 #13-remove dognzb and nzbsu as independent options (throw them under newznabs if present)
+                #14-put airdcpp variables into it's own section (DCPP) instead of under the DDL section
                 self.config_update()
             setattr(self, 'OLDCONFIG_VERSION', str(self.CONFIG_VERSION))
             setattr(self, 'CONFIG_VERSION', self.newconfig)
@@ -881,6 +906,23 @@ class Config(object):
             except Exception as e:
                 #if the table doesn't exist yet, it'll get created after the config loads on new installs.
                 pass
+
+        if self.newconfig < 16:
+            # move aircdpp settings into it's own section since it's technically not ddl
+            dcpp_migrate_list = [('ENABLE_AIRDCPP', 'enable_airdcpp'),
+                ('AIRDCPP_HOST', 'airdcpp_host'),
+                ('AIRDCPP_USERNAME', 'airdcpp_username'),
+                ('AIRDCPP_PASSWORD', 'airdcpp_password'),
+                ('AIRDCPP_DOWNLOAD_DIR', 'airdcpp_download_dir'),
+                ('AIRDCPP_HUBS', 'airdcpp_hubs'),
+                ('AIRDCPP_VERSION', 'airdcpp_version'),
+                ('AIRDCPP_ANNOUNCE_HUB', 'airdcpp_announce_hub'),
+                ('AIRDCPP_ANNOUNCE_BOTS', 'airdcpp_announce_bots')]
+
+            for dcp_attr, dcp_key in dcpp_migrate_list:
+                if dcp_key in self.OLD_VALUES.keys():
+                    setattr(self, dcp_attr, self.OLD_VALUES[dcp_key])
+                    config.set('DCPP', dcp_key, str(getattr(self, dcp_attr)))
 
         logger.info('Configuration upgraded to version %s' % self.newconfig)
 
@@ -1335,6 +1377,11 @@ class Config(object):
         elif self.ENABLE_RSS is False and mylar.RSS_STATUS == 'Waiting':
             mylar.RSS_STATUS = 'Paused'
 
+        if self.ENABLE_CHECK_FOLDER is True and mylar.MONITOR_STATUS == 'Paused':
+            mylar.MONITOR_STATUS = 'Waiting'
+        elif self.ENABLE_CHECK_FOLDER is False and mylar.MONITOR_STATUS == 'Waiting':
+            mylar.MONITOR_STATUS = 'Paused'
+
         if self.DUPECONSTRAINT is None:
             #default dupecontraint to filesize
             setattr(self, 'DUPECONSTRAINT', 'filesize')
@@ -1390,6 +1437,29 @@ class Config(object):
                     except Exception as e:
                         logger.warn('[MASS_PUBLISHERS] Unable to convert publishers [%s]. Error returned: %s' % (self.MASS_PUBLISHERS, e))
         logger.info('[MASS_PUBLISHERS] Auto-add for weekly publishers set to: %s' % (self.MASS_PUBLISHERS,))
+
+        if len(self.CUSTOM_ISSUE_EXCEPTIONS) > 0 and self.CUSTOM_ISSUE_EXCEPTIONS != '[]':
+            if type(self.CUSTOM_ISSUE_EXCEPTIONS) != list:
+                try:
+                    self.CUSTOM_ISSUE_EXCEPTIONS = json.loads(self.CUSTOM_ISSUE_EXCEPTIONS)
+                except Exception as e:
+                    logger.warn(f'unable to load custom issue exceptions {self.CUSTOM_ISSUE_EXCEPTIONS}, resetting to empty string')
+                    self.CUSTOM_ISSUE_EXCEPTIONS = []
+
+            # Clean up the exceptions in config if any new ones now overlap from hard coded list (either exact match, or pattern matched)
+            inbuilt_patterns = [x[0] for x in mylar.INBUILT_ISSUE_EXCEPTIONS if x[1] == 'Pattern']
+            inbuilt_exact = [x[0].lower() for x in mylar.INBUILT_ISSUE_EXCEPTIONS if x[1] == 'Exact']
+
+            custom_patterns = [x[0] for x in self.CUSTOM_ISSUE_EXCEPTIONS if x[1] == 'Pattern']
+            custom_exact = [x[0] for x in self.CUSTOM_ISSUE_EXCEPTIONS if x[1] == 'Exact']
+
+            self.CUSTOM_ISSUE_EXCEPTIONS = [[x, "Exact"] for x in custom_exact if (not x.lower() in inbuilt_exact) and (not any([re.fullmatch(pattern, x, re.IGNORECASE) for pattern in inbuilt_patterns]))] + \
+                                            [[x, "Pattern"] for x in custom_patterns if x not in inbuilt_patterns]
+        else:
+            setattr(self, 'CUSTOM_ISSUE_EXCEPTIONS', [])
+            config.set('General', 'custom_issue_exceptions', json.dumps(self.CUSTOM_ISSUE_EXCEPTIONS))
+
+        logger.fdebug('[CUSTOM_ISSUE_EXCEPTIONS] Custom patterns for issue number exceptions: %s' % (self.CUSTOM_ISSUE_EXCEPTIONS,))
 
         if len(self.IGNORE_SEARCH_WORDS) > 0 and self.IGNORE_SEARCH_WORDS != '[]':
             if type(self.IGNORE_SEARCH_WORDS) != list:
@@ -1810,8 +1880,11 @@ class Config(object):
             if self.ENABLE_EXTERNAL_SERVER:
                 PR.append('DDL(External)')
                 PR_NUM +=1
+        if self.ENABLE_AIRDCPP:
+            PR.append('AirDCPP')
+            PR_NUM += 1
 
-        PPR = ['Experimental', 'DDL(GetComics)', 'DDL(External)']
+        PPR = ['Experimental', 'DDL(GetComics)', 'DDL(External)', 'AirDCPP']
         if self.NEWZNAB:
             for ens in self.EXTRA_NEWZNABS:
                 if str(ens[5]) == '1': # if newznabs are enabled
@@ -2013,6 +2086,9 @@ class Config(object):
                if 'DDL(External)' in tmp_prov:
                    t_type = 'DDL(External)'
                    t_id = 201
+               if 'AirDCPP' in tmp_prov:
+                   t_type = 'AirDCPP'
+                   t_id = 202
                elif any(['experimental' in tmp_prov, 'Experimental' in tmp_prov]):
                    tmp_prov = 'experimental'
                    t_type = 'experimental'
@@ -2033,8 +2109,8 @@ class Config(object):
                                t_id = n[6]
                                nnf = True
                                break
-               ctrls = {'id': t_id, 'provider': tmp_prov}
-               vals = {'active': False, 'lastrun': 0, 'type': t_type, 'hits': 0}
+               ctrls = {'id': t_id}
+               vals = {'provider': tmp_prov, 'active': False, 'lastrun': 0, 'type': t_type, 'hits': 0}
            else:
                try:
                    tprov = [p_list[x] for x, y in p_list.items() if x.lower() == tmp_prov.lower()][0]
@@ -2048,8 +2124,8 @@ class Config(object):
                        if tmp_prov == 'Experimental':
                            myDB.action("DELETE FROM provider_searches where id=101")
                            tmp_prov = 'experimental'
-                       ctrls = {'id': tprov['id'], 'provider': tmp_prov}
-                       vals = {'active': tprov['active'], 'lastrun': tprov['lastrun'], 'type': ptype, 'hits': tprov['hits']}
+                       ctrls = {'id': tprov['id']}
+                       vals = {'provider': tmp_prov, 'active': tprov['active'], 'lastrun': tprov['lastrun'], 'type': ptype, 'hits': tprov['hits']}
                        write = True
 
            if write is True:

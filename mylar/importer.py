@@ -48,30 +48,73 @@ def is_exists(comicid):
     else:
         return False
 
-def addvialist(queue):
+def addvialist(seriesQueue, issueWantQueue):
     while True:
-        if queue.qsize() >= 1:
+        if seriesQueue.qsize() >= 1:
             time.sleep(3)
-            item = queue.get(True)
+            item = seriesQueue.get(True)
             if item == 'exit':
                 break
             if item['comicname'] is not None:
                 if item['seriesyear'] is not None:
-                    logger.info('[MASS-ADD][1/%s] Now adding %s (%s) [%s] ' % (queue.qsize()+1, item['comicname'], item['seriesyear'], item['comicid']))
+                    logger.info('[MASS-ADD][1/%s] Now adding %s (%s) [%s] ' % (seriesQueue.qsize()+1, item['comicname'], item['seriesyear'], item['comicid']))
                     mylar.GLOBAL_MESSAGES = {'status': 'success', 'event': 'addbyid', 'comicname': item['comicname'], 'seriesyear': item['seriesyear'], 'comicid': item['comicid'], 'tables': 'None', 'message': 'Now adding %s (%s)' % (urllib.parse.unquote_plus(item['comicname']), item['seriesyear'])}
                 else:
-                    logger.info('[MASS-ADD][1/%s] Now adding %s [%s] ' % (queue.qsize()+1, item['comicname'], item['comicid']))
+                    logger.info('[MASS-ADD][1/%s] Now adding %s [%s] ' % (seriesQueue.qsize()+1, item['comicname'], item['comicid']))
                     mylar.GLOBAL_MESSAGES = {'status': 'success', 'event': 'addbyid', 'comicname': item['comicname'], 'seriesyear': item['seriesyear'], 'comicid': item['comicid'], 'tables': 'None', 'message': 'Now adding %s' % (urllib.parse.unquote_plus(item['comicname']))}
             else:
-                logger.info('[MASS-ADD][1/%s] Now adding ComicID: %s ' % (queue.qsize()+1, item['comicid']))
+                logger.info('[MASS-ADD][1/%s] Now adding ComicID: %s ' % (seriesQueue.qsize()+1, item['comicid']))
                 mylar.GLOBAL_MESSAGES = {'status': 'success', 'event': 'addbyid', 'comicname': item['comicname'], 'seriesyear': item['seriesyear'], 'comicid': item['comicid'], 'tables': 'None', 'message': 'Now adding via ComicID %s' % (item['comicid'])}
 
-            addComictoDB(item['comicid'])
+            if 'suppress_addall' in item.keys():
+                addComictoDB(item['comicid'], suppress_addall=item['suppress_addall'])
+            else:
+                addComictoDB(item['comicid'])
+        elif issueWantQueue.qsize() > 0:
+            time.sleep(1)
+            issueItem = issueWantQueue.get(True)
+            markIssueWantedById(issueItem)
         else:
             mylar.ADD_LIST.put('exit')
     return False
 
-def addComictoDB(comicid, mismatch=None, pullupd=None, imported=None, ogcname=None, calledfrom=None, annload=None, chkwant=None, issuechk=None, issuetype=None, latestissueinfo=None, csyear=None, fixed_type=None):
+def markIssueWantedById(issueId):
+    myDB = db.DBConnection()
+    issue = myDB.selectone("SELECT i.IssueId, c.ComicName, i.Issue_Number, c.ComicID, c.ComicYear, i.Status FROM issues i LEFT JOIN comics c ON i.ComicID=c.ComicID WHERE i.IssueID=?", [issueId]).fetchone()
+    annual_check = False
+    if issue is None:
+        issue = myDB.selectone("SELECT a.IssueId, c.ComicName, a.ReleaseComicName, a.Issue_Number, c.ComicID, c.ComicYear, a.Status FROM annuals a LEFT JOIN comics c ON a.ComicID=c.ComicID WHERE a.IssueID=? AND NOT a.Deleted", [issueId]).fetchone()
+        if issue is None:
+            logger.warning(f'Tried setting wanted status for issue with ID {issueId} in MASS-ADD thread but could not find issue')
+            return
+        else:
+            annual_check = True
+            comicname = issue['ReleaseComicName']
+            issuenumber = issue['Issue_Number']
+            comicid = issue['ComicID']
+    else:
+        comicname = issue['ComicName']
+        issuenumber = issue['Issue_Number']
+        comicid = issue['ComicID']
+    
+    if issue['Status'] in ['Downloaded', 'Wanted', 'Snatched', 'Failed']:
+        logger.info(f"Tried setting wanted status for {comicname} [ID:{comicid}] issue #{issuenumber} in MASS-ADD thread but it is already in the {issue['Status']} state")
+        return
+    else:
+        logger.info(f"Changing status of {comicname} [ID:{comicid}] issue #{issuenumber} from {issue['Status']} to Wanted")
+
+    controlValueDict = {'IssueID' : issueId}
+    newValueDict = {'Status' : 'Wanted'}
+
+    if annual_check:
+        myDB.upsert("annuals", newValueDict, controlValueDict)
+    else:
+        myDB.upsert("issues", newValueDict, controlValueDict)
+
+    logger.fdebug(f"Finished changing status of {comicname} [ID:{comicid}] issue #{issuenumber} to Wanted")
+    
+
+def addComictoDB(comicid, mismatch=None, pullupd=None, imported=None, ogcname=None, calledfrom=None, annload=None, chkwant=None, issuechk=None, issuetype=None, latestissueinfo=None, csyear=None, fixed_type=None, suppress_addall=None):
     myDB = db.DBConnection()
 
     controlValueDict = {"ComicID":     comicid}
@@ -505,11 +548,11 @@ def addComictoDB(comicid, mismatch=None, pullupd=None, imported=None, ogcname=No
         if issued is None:
             logger.warn('Unable to retrieve data from ComicVine. Get your own API key already!')
             return {'status': 'incomplete'}
-    logger.info('Sucessfully retrieved issue details for ' + comic['ComicName'])
+    logger.info('Successfully retrieved issue details for ' + comic['ComicName'])
 
     #move to own function so can call independently to only refresh issue data
     #issued is from cv.getComic, comic['ComicName'] & comicid would both be already known to do independent call.
-    updateddata = updateissuedata(comicid, comic['ComicName'], issued, comicIssues, calledfrom, SeriesYear=SeriesYear, latestissueinfo=latestissueinfo, serieslast_updated=serieslast_updated, series_status=series_status)
+    updateddata = updateissuedata(comicid, comic['ComicName'], issued, comicIssues, calledfrom, SeriesYear=SeriesYear, latestissueinfo=latestissueinfo, serieslast_updated=serieslast_updated, series_status=series_status, suppress_addall=suppress_addall)
     try:
         if updateddata['status'] == 'failure':
             logger.warn('Unable to properly retrieve issue details - this is usually due to either irregular issue numbering, or problems with CV')
@@ -592,7 +635,7 @@ def addComictoDB(comicid, mismatch=None, pullupd=None, imported=None, ogcname=No
             moveit.archivefiles(comicid, comlocation, imported)
 
     #check for existing files...
-    statbefore = myDB.selectone("SELECT Status FROM issues WHERE ComicID=? AND Int_IssueNumber=?", [comicid, helpers.issuedigits(latestiss)]).fetchone()
+    statbefore = myDB.selectone("SELECT Status FROM issues WHERE ComicID=? AND Int_IssueNumber=?", [comicid, helpers.issue_number_parser(latestiss).asInt]).fetchone()
     logger.fdebug('issue: ' + latestiss + ' status before chk :' + str(statbefore['Status']))
     updater.forceRescan(comicid)
 
@@ -601,7 +644,7 @@ def addComictoDB(comicid, mismatch=None, pullupd=None, imported=None, ogcname=No
         sm = series_metadata.metadata_Series(comicid, bulk=False, api=False)
         sm.update_metadata()
 
-    statafter = myDB.selectone("SELECT Status FROM issues WHERE ComicID=? AND Int_IssueNumber=?", [comicid, helpers.issuedigits(latestiss)]).fetchone()
+    statafter = myDB.selectone("SELECT Status FROM issues WHERE ComicID=? AND Int_IssueNumber=?", [comicid, helpers.issue_number_parser(latestiss).asInt]).fetchone()
     logger.fdebug('issue: ' + latestiss + ' status after chk :' + str(statafter['Status']))
 
     logger.fdebug('pullupd: ' + str(pullupd))
@@ -612,10 +655,10 @@ def addComictoDB(comicid, mismatch=None, pullupd=None, imported=None, ogcname=No
     # do this for only Present comics....
         if mylar.CONFIG.AUTOWANT_UPCOMING and lastpubdate == 'Present' and series_status == 'Active': #and 'Present' in gcdinfo['resultPublished']:
             logger.fdebug('latestissue: #' + str(latestiss))
-            chkstats = myDB.selectone("SELECT * FROM issues WHERE ComicID=? AND Int_IssueNumber=?", [comicid, helpers.issuedigits(latestiss)]).fetchone()
+            chkstats = myDB.selectone("SELECT * FROM issues WHERE ComicID=? AND Int_IssueNumber=?", [comicid, helpers.issue_number_parser(latestiss).asInt]).fetchone()
             if chkstats is None:
                 if mylar.CONFIG.ANNUALS_ON:
-                    chkstats = myDB.selectone("SELECT * FROM annuals WHERE ComicID=? AND Int_IssueNumber=? AND NOT Deleted", [comicid, helpers.issuedigits(latestiss)]).fetchone()
+                    chkstats = myDB.selectone("SELECT * FROM annuals WHERE ComicID=? AND Int_IssueNumber=? AND NOT Deleted", [comicid, helpers.issue_number_parser(latestiss).asInt]).fetchone()
 
             if chkstats:
                 logger.fdebug('latestissue status: ' + chkstats['Status'])
@@ -906,7 +949,7 @@ def GCDimport(gcomicid, pullupd=None, imported=None, ogcname=None):
     if pullupd is None:
         helpers.ComicSort(sequence='update')
 
-    logger.info("Sucessfully retrieved issue details for " + ComicName)
+    logger.info("Successfully retrieved issue details for " + ComicName)
     n = 0
     iscnt = int(comicIssues)
     issnum = []
@@ -1063,7 +1106,7 @@ def GCDimport(gcomicid, pullupd=None, imported=None, ogcname=None):
         logger.info("Finished grabbing what I could.")
 
 
-def issue_collection(issuedata, nostatus, serieslast_updated=None):
+def issue_collection(issuedata, nostatus, serieslast_updated=None, suppress_addall=None):
     #make sure serieslast_updated is in the correct format
     try:
         serieslast_updated = datetime.datetime.strptime(serieslast_updated, "%Y-%m-%d %H:%M:%S").strftime('%Y-%m-%d')
@@ -1133,7 +1176,7 @@ def issue_collection(issuedata, nostatus, serieslast_updated=None):
                             newValueDict['Status'] = "Skipped"
                             logger.fdebug('[PAUSE-CHECK-ISSUE-STATUS] Series is paused, setting status for new issue #%s to Skipped' % (issue['Issue_Number']))
                         else:
-                            if mylar.CONFIG.AUTOWANT_ALL:
+                            if mylar.CONFIG.AUTOWANT_ALL and not suppress_addall:
                                 newValueDict['Status'] = "Wanted"
                             elif serieslast_updated is None:
                                 #logger.fdebug('serieslast_update is None. Setting to Skipped')
@@ -1260,7 +1303,7 @@ def manualAnnual(manual_comicid=None, comicname=None, comicyear=None, comicid=No
     for ann in annchk:
         newCtrl = {"IssueID": ann['IssueID']}
         newVals = {"Issue_Number":     ann['Issue_Number'],
-                   "Int_IssueNumber":  helpers.issuedigits(ann['Issue_Number']),
+                   "Int_IssueNumber":  helpers.issue_number_parser(ann['Issue_Number']).asInt,
                    "IssueDate":        ann['IssueDate'],
                    "ReleaseDate":      ann['ReleaseDate'],
                    "DigitalDate":      ann['DigitalDate'],
@@ -1280,7 +1323,7 @@ def manualAnnual(manual_comicid=None, comicname=None, comicyear=None, comicid=No
     return
 
 
-def updateissuedata(comicid, comicname=None, issued=None, comicIssues=None, calledfrom=None, issuechk=None, issuetype=None, SeriesYear=None, latestissueinfo=None, serieslast_updated=None, series_status=None):
+def updateissuedata(comicid, comicname=None, issued=None, comicIssues=None, calledfrom=None, issuechk=None, issuetype=None, SeriesYear=None, latestissueinfo=None, serieslast_updated=None, series_status=None, suppress_addall=None):
     annualchk = []
     weeklyissue_check = []
     db_already_open = False
@@ -1366,186 +1409,10 @@ def updateissuedata(comicid, comicname=None, issued=None, comicIssues=None, call
             issdate = str(firstval['Issue_Date'])
             storedate = str(firstval['Store_Date'])
             digitaldate = str(firstval['Digital_Date'])
-            int_issnum = None
-            if issnum.isdigit():
-                int_issnum = int(issnum) * 1000
-            else:
-                if 'a.i.' in issnum.lower() or 'ai' in issnum.lower():
-                    issnum = re.sub('\.', '', issnum)
-                    #int_issnum = (int(issnum[:-2]) * 1000) + ord('a') + ord('i')
-                if 'au' in issnum.lower():
-                    int_issnum = (int(issnum[:-2]) * 1000) + ord('a') + ord('u')
-                elif 'inh' in issnum.lower():
-                    int_issnum = (int(issnum[:-4]) * 1000) + ord('i') + ord('n') + ord('h')
-                elif 'now' in issnum.lower():
-                    int_issnum = (int(issnum[:-4]) * 1000) + ord('n') + ord('o') + ord('w')
-                elif 'bey' in issnum.lower():
-                    int_issnum = (int(issnum[:-4]) * 1000) + ord('b') + ord('e') + ord('y')
-                elif 'mu' in issnum.lower():
-                    int_issnum = (int(issnum[:-3]) * 1000) + ord('m') + ord('u')
-                elif 'lr' in issnum.lower():
-                    int_issnum = (int(issnum[:-3]) * 1000) + ord('l') + ord('r')
-                elif 'hu' in issnum.lower():
-                    int_issnum = (int(issnum[:-3]) * 1000) + ord('h') + ord('u')
-                elif 'deaths' in issnum.lower():
-                    int_issnum = (int(issnum[:-7]) * 1000) + ord('d') + ord('e') + ord('a') + ord('t') + ord('h') + ord('s')
-                elif '\xbd' in issnum:
-                    tmpiss = re.sub('[^0-9]', '', issnum).strip()
-                    if len(tmpiss) > 0:
-                        int_issnum = (int(tmpiss) + .5) * 1000
-                    else:
-                        int_issnum = .5 * 1000
-                    logger.fdebug('1/2 issue detected :' + issnum + ' === ' + str(int_issnum))
-                elif '\xbc' in issnum:
-                    int_issnum = .25 * 1000
-                elif '\xbe' in issnum:
-                    int_issnum = .75 * 1000
-                elif '\u221e' in issnum:
-                    #issnum = utf-8 will encode the infinity symbol without any help
-                    int_issnum = 9999999999 * 1000  # set 9999999999 for integer value of issue
-                elif '.' in issnum or ',' in issnum:
-                    if ',' in issnum: issnum = re.sub(',', '.', issnum)
-                    issst = str(issnum).find('.')
-                    #logger.fdebug("issst:" + str(issst))
-                    if issst == 0:
-                        issb4dec = 0
-                    else:
-                        issb4dec = str(issnum)[:issst]
-                    #logger.fdebug("issb4dec:" + str(issb4dec))
-                    #if the length of decimal is only 1 digit, assume it's a tenth
-                    decis = str(issnum)[issst +1:]
-                    #logger.fdebug("decis:" + str(decis))
-                    if len(decis) == 1:
-                        decisval = int(decis) * 10
-                        issaftdec = str(decisval)
-                    elif len(decis) == 2:
-                        decisval = int(decis)
-                        issaftdec = str(decisval)
-                    else:
-                        decisval = decis
-                        issaftdec = str(decisval)
-                    #if there's a trailing decimal (ie. 1.50.) and it's either intentional or not, blow it away.
-                    if issaftdec[-1:] == '.':
-                        logger.fdebug('Trailing decimal located within issue number. Irrelevant to numbering. Obliterating.')
-                        issaftdec = issaftdec[:-1]
-                    try:
-                        #int_issnum = str(issnum)
-                        int_issnum = (int(issb4dec) * 1000) + (int(issaftdec) * 10)
-                    except ValueError:
-                        try:
-                            ordtot = 0
-                            if any(ext == issaftdec.upper() for ext in mylar.ISSUE_EXCEPTIONS):
-                                logger.fdebug('issue_exception detected..')
-                                inu = 0
-                                while (inu < len(issaftdec)):
-                                    ordtot += ord(issaftdec[inu].lower())  #lower-case the letters for simplicty
-                                    inu+=1
-                                int_issnum = (int(issb4dec) * 1000) + ordtot
-                        except Exception as e:
-                                logger.warn('error: %s' % e)
-                                ordtot = 0
-                        if ordtot == 0:
-                            logger.error('This has no issue # for me to get - Either a Graphic Novel or one-shot.')
-                            updater.no_searchresults(comicid)
-                            return {'status': 'failure'}
-                elif all([ '[' in issnum, ']' in issnum ]):
-                    issnum_tmp = issnum.find('[')
-                    int_issnum = int(issnum[:issnum_tmp].strip()) * 1000
-                    legacy_num = issnum[issnum_tmp+1:issnum.find(']')]
-                else:
-                    try:
-                        x = float(issnum)
-                        #validity check
-                        if x < 0:
-                            logger.fdebug('I have encountered a negative issue #: ' + str(issnum) + '. Trying to accomodate.')
-                            logger.fdebug('value of x is : ' + str(x))
-                            int_issnum = (int(x) *1000) - 1
-                        else: raise ValueError
-                    except ValueError as e:
-                        x = 0
-                        tstord = None
-                        issno = None
-                        invchk = "false"
-                        if issnum.lower() != 'preview':
-                            while (x < len(issnum)):
-                                if issnum[x].isalpha():
-                                    #take first occurance of alpha in string and carry it through
-                                    tstord = issnum[x:].rstrip()
-                                    tstord = re.sub('[\-\,\.\+]', '', tstord).rstrip()
-                                    issno = issnum[:x].rstrip()
-                                    issno = re.sub('[\-\,\.\+]', '', issno).rstrip()
-                                    try:
-                                        isschk = float(issno)
-                                    except ValueError as e:
-                                        if len(issnum) == 1 and issnum.isalpha():
-                                            logger.fdebug('detected lone alpha issue. Attempting to figure this out.')
-                                            break
-                                        logger.fdebug('[' + issno + '] invalid numeric for issue - cannot be found. Ignoring.')
-                                        issno = None
-                                        tstord = None
-                                        invchk = "true"
-                                    break
-                                x+=1
-
-                        if all([tstord is not None, issno is not None, int_issnum is None]):
-                            a = 0
-                            ordtot = 0
-                            if len(issnum) == 1 and issnum.isalpha():
-                                int_issnum = ord(tstord.lower())
-                            else:
-                                while (a < len(tstord)):
-                                    ordtot += ord(tstord[a].lower())  #lower-case the letters for simplicty
-                                    a+=1
-                                int_issnum = (int(issno) * 1000) + ordtot
-                        elif invchk == "true":
-                            if any([issnum.lower() == 'omega', issnum.lower() == 'alpha', issnum.lower() == 'fall 2005', issnum.lower() == 'spring 2005', issnum.lower() == 'summer 2006', issnum.lower() == 'winter 2009']):
-                                issnum = re.sub('[0-9]+', '', issnum).strip()
-                                inu = 0
-                                ordtot = 0
-                                while (inu < len(issnum)):
-                                    ordtot += ord(issnum[inu].lower())  #lower-case the letters for simplicty
-                                    inu+=1
-                                int_issnum = ordtot
-                            else:
-                                logger.fdebug('this does not have an issue # that I can parse properly.')
-                                return {'status': 'failure'}
-                        else:
-                            # Matches "number -&/\ number"
-                            match = re.match(r"(?P<first>\d+)\s?[-&/\\]\s?(?P<last>\d+)", issnum)
-                            if int_issnum is not None:
-                                pass
-                            elif match:
-                                first_num, last_num = map(int, match.groups())
-                                if last_num > first_num:
-                                    int_issnum = (first_num * 1000) + int(((last_num - first_num) * .5) * 1000)
-                                else:
-                                    int_issnum = (first_num * 1000) + (.5 * 1000)
-                            elif issnum == '9-5':
-                                issnum = '9\xbd'
-                                logger.fdebug('issue: 9-5 is an invalid entry. Correcting to : ' + issnum)
-                                int_issnum = (9 * 1000) + (.5 * 1000)
-                            elif issnum == '2 & 3':
-                                logger.fdebug('issue: 2 & 3 is an invalid entry. Ensuring things match up')
-                                int_issnum = (2 * 1000) + (.5 * 1000)
-                            elif issnum == '4 & 5':
-                                logger.fdebug('issue: 4 & 5 is an invalid entry. Ensuring things match up')
-                                int_issnum = (4 * 1000) + (.5 * 1000)
-                            elif issnum == '112/113':
-                                int_issnum = (112 * 1000) + (.5 * 1000)
-                            elif issnum == '14-16':
-                                int_issnum = (15 * 1000) + (.5 * 1000)
-                            elif issnum == '380/381':
-                                int_issnum = (380 * 1000) + (.5 * 1000)
-                            elif issnum.lower() == 'preview':
-                                inu = 0
-                                ordtot = 0
-                                while (inu < len(issnum)):
-                                    ordtot += ord(issnum[inu].lower())  #lower-case the letters for simplicty
-                                    inu+=1
-                                int_issnum = ordtot
-                            else:
-                                logger.error(issnum + ' this has an alpha-numeric in the issue # which I cannot account for.')
-                                return {'status': 'failure'}
+            
+            # Call this with the DataSource flag to ensure that any new non-numeric exceptions are captured properly
+            int_issnum, _, legacy_num = helpers.issue_number_parser(issnum, issue_id=issid, from_data_source=True)
+            
             #get the latest issue / date using the date.
             #logger.fdebug('issue : ' + str(issnum))
             #logger.fdebug('latest date: ' + str(latestdate))
@@ -1554,7 +1421,7 @@ def updateissuedata(comicid, comicname=None, issued=None, comicIssues=None, call
             #logger.fdebug('issue date: ' + storedate)
             if any([firstval['Issue_Date'] >= latestdate, storedate >= latestdate]):
                 #logger.fdebug('date check hit for issue date > latestdate')
-                if int_issnum > helpers.issuedigits(latestiss):
+                if int_issnum > helpers.issue_number_parser(latestiss).asInt:
                     #logger.fdebug('assigning latest issue to : ' + str(issnum))
                     latestiss = issnum
                     latestissueid = issid
@@ -1605,10 +1472,10 @@ def updateissuedata(comicid, comicname=None, issued=None, comicIssues=None, call
         #if calledfrom == 'weeklycheck':
         if len(issuedata) >= 1 and not calledfrom  == 'dbupdate':
             logger.fdebug('initiating issue updating - info & status')
-            issue_collection(issuedata, nostatus='False', serieslast_updated=serieslast_updated)
+            issue_collection(issuedata, nostatus='False', serieslast_updated=serieslast_updated, suppress_addall=suppress_addall)
         else:
             logger.fdebug('initiating issue updating - just the info')
-            issue_collection(issuedata, nostatus='True', serieslast_updated=serieslast_updated)
+            issue_collection(issuedata, nostatus='True', serieslast_updated=serieslast_updated, suppress_addall=suppress_addall)
 
         styear = str(SeriesYear)
         if firstdate is not None:
@@ -1695,7 +1562,7 @@ def updateissuedata(comicid, comicname=None, issued=None, comicIssues=None, call
                     "ComicPublished":  publishfigure,
                     "NewPublish":      newpublish,
                     "LatestIssue":     latestiss,
-                    "intLatestIssue":  helpers.issuedigits(latestiss),
+                    "intLatestIssue":  helpers.issue_number_parser(latestiss).asInt,
                     "LatestIssueID":   latestissueid,
                     "LatestDate":      latestdate,
                     "LastUpdated":     helpers.now()
@@ -1839,7 +1706,7 @@ def annual_check(ComicName, SeriesYear, comicid, issuetype, issuechk, annualslis
                             issdate = str(firstval['Issue_Date'])
                             stdate = str(firstval['Store_Date'])
                             digdate = str(firstval['Digital_Date'])
-                            int_issnum = helpers.issuedigits(issnum)
+                            int_issnum = helpers.issue_number_parser(issnum).asInt
 
                             iss_exists = myDB.selectone('SELECT * from annuals WHERE IssueID=?', [issid]).fetchone()
                             if iss_exists is None:
@@ -1981,10 +1848,17 @@ def importer_thread(serieslist):
 
     if threaded_call is True:
         logger.info('[MASS-ADD] MASS_ADD thread not started. Started & submitting.')
-        mylar.MASS_ADD = threading.Thread(target=addvialist, args=(mylar.ADD_LIST,), name="mass-add")
+        mylar.MASS_ADD = threading.Thread(target=addvialist, args=(mylar.ADD_LIST, mylar.ISSUE_WATCH_LIST), name="mass-add")
         mylar.MASS_ADD.start()
         if not mylar.MASS_ADD:
             mylar.MASS_ADD.join(5)
+
+def issue_watcher_thread(issuelist):
+    # Issues to be watched in the future but are waiting for MASS_ADD to complete the serieslist backlog
+    if type(issuelist) != list:
+        issuelist = [issuelist]
+
+    list(map(mylar.ISSUE_WATCH_LIST.put, issuelist))
 
 
 def refresh_thread(serieslist):

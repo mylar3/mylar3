@@ -186,10 +186,18 @@ class SABnzbd(object):
         try:
             for hq in histqueue['slots']:
                 logger.fdebug('nzo_id: %s --- %s [%s]' % (hq['nzo_id'], sendresponse, hq['status']))
-                if hq['nzo_id'] == sendresponse and any([hq['status'] == 'Completed', hq['status'] == 'Running', 'comicrn' in hq['script'].lower()]):
+                # Additional guard on hq['script'] as it can be returned as a null value from SAB
+                if hq['nzo_id'] == sendresponse and any([hq['status'] == 'Completed', hq['status'] == 'Running', (hq['script'] is not None and 'comicrn' in hq['script'].lower())]):
+                    # A rare occurrence from SAB has it returning two history entries for this nzo, one of which has an empty storage entry.  If hitting this
+                    # assume that it will condense back into one entry on subsequent re-check
+                    if hq['storage'] == '' and not roundtwo:
+                        logger.fdebug(f"[{hq['status']}] Storage entry was empty for Completed job.  Sleeping for {mylar.CONFIG.SAB_MOVING_DELAY}s to allow the process to fully finish before trying again.")
+                        time.sleep(mylar.CONFIG.SAB_MOVING_DELAY)
+                        return self.historycheck(nzbinfo, roundtwo=True)
+                    
                     nzo_exists = True
                     logger.info('found matching completed item in history. Job has a status of %s' % hq['status'])
-                    if 'comicrn' in hq['script'].lower():
+                    if hq['script'] is not None and 'comicrn' in hq['script'].lower():
                         logger.warn('ComicRN has been detected as being active for this category & download. Completed Download Handling will NOT be performed due to this.')
                         logger.warn('Either disable Completed Download Handling for SABnzbd within Mylar, or remove ComicRN from your category script in SABnzbd.')
                         self.remove_history(hq['nzo_id'], hq['status'])
@@ -276,7 +284,7 @@ class SABnzbd(object):
                 elif hq['nzo_id'] == sendresponse:
                     nzo_exists = True
                     logger.fdebug('nzo_id: %s found while processing queue in an unhandled status: %s' % (hq['nzo_id'], hq['status']))
-                    if any([hq['status'] == 'Queued', hq['status'] == 'Moving', hq['status'] == 'Extracting']) and roundtwo is False:
+                    if hq['status'] in ['Queued', 'Moving', 'Extracting', 'QuickCheck', 'Repairing', 'Verifying'] and not roundtwo:
                         logger.fdebug('[%s(%s)] sleeping for %ss to allow the process to finish before trying again..' % (hq['status'], extract_counter, mylar.CONFIG.SAB_MOVING_DELAY))
                         time.sleep(mylar.CONFIG.SAB_MOVING_DELAY)
                         if hq['status'] == 'Extracting':

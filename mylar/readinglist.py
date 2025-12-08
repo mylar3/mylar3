@@ -146,7 +146,7 @@ class Readinglist(object):
         sendlist = []
 
         if self.filelist is None:
-            rl = myDB.select('SELECT issues.IssueID, comics.ComicID, comics.ComicLocation, issues.Location FROM readlist LEFT JOIN issues ON issues.IssueID = readlist.IssueID LEFT JOIN comics on comics.ComicID = issues.ComicID WHERE readlist.Status="Added"')
+            rl = myDB.select("SELECT issues.IssueID, comics.ComicID, comics.ComicLocation, issues.Location FROM readlist LEFT JOIN issues ON issues.IssueID = readlist.IssueID LEFT JOIN comics on comics.ComicID = issues.ComicID WHERE readlist.Status='Added'")
             if rl is None:
                 logger.info(module + ' No issues have been marked to be synced. Aborting syncfiles')
                 return

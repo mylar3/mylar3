@@ -1,0 +1,225 @@
+<%inherit file="base.html" />
+<%!
+	import mylar
+        from mylar import db
+	from mylar.helpers import checked
+%>
+<%def name="body()">
+    <input type="hidden" id="page_name" value="cblimport" />
+    <div id="paddingheader">
+		<h1 class="clearfix">CBL Import</h1>
+	</div>
+    <ul>
+        <li>Import a CBL reading list and add volumes/issues to your wanted list.  It expects a CBL to contain ComicVine IDs such as in those on the <a href="https://github.com/DieselTech/CBL-ReadingLists" target="_blank" >CBL-ReadingLists</a> repository.</li>
+        <li>Issues that already exist in a state of Downloaded/Wanted/Snatched will not be affected.</li>
+        <li>Adding of volumes and updating issue status will happen in the background, so you can leave this page once submitted for processing.</li>        
+    </ul>
+    <br >
+	<hr />
+    <div class="configtable" style="width:960px;height:225px;">
+        <div style="float:right;margin-right:25px;width:400px;">
+            <legend>Import Status</legend>
+            <div id="status_text" style="display: inline">
+                No reading list loaded
+            </div>
+
+        </div>
+        <div id="list_select">
+            <legend>Control</legend>
+            <input type="file" id="cblfileinput" name="cblfile" accept=".cbl" style="display:none" />
+            <input id="cblfileselectbutton" type="button"  value="Upload A CBL File" />
+            <span id="cblfilenamelabel" style="display:inline; width: 300px">No file selected</span><br >
+            <span id="cblfilenameerror" style="width: 300px; color: red"></span>
+            
+            <br >
+            <br >
+
+            <div class="row checkbox">
+                <input type="checkbox" ${'' if mylar.CONFIG.AUTOWANT_ALL else 'disabled'} name="issuesonly" style="vertical-align: middle; margin: 3px; margin-top: -1px;" id="issuesonly" value="1" ${checked(mylar.CONFIG.CBL_IMPORT_ISSUESONLY)} />
+                <label for="issuesonly" style="width:200px;">Only mark issues from list as wanted</label>
+                <%
+                    tooltip = "Overrides the 'Automatically Mark All Issues as Wanted' setting when adding a new volume"
+                %>
+                <a href="#" title="${tooltip}"><img src="images/info32.png" height="16" alt="" /></a>
+            </div>
+            <div class="row checkbox">
+                <input type="checkbox" name="ignorearchived" style="vertical-align: middle; margin: 3px; margin-top: -1px;" id="ignorearchived" value="1" ${checked(mylar.CONFIG.CBL_IMPORT_IGNOREARCHIVED)} />
+                <label for="ignorearchived" style="width:200px;">Do not mark Archived issues as Wanted</label>                    
+            </div>
+            
+        </div>
+        <br >
+        <input id="processlistbutton" type="button" value="Import Reading List" style="display:none" />   
+        <label id="processlistconfirm" style="display:none">Reading List Submitted for Processing</label>
+    </div>
+    
+    <br >
+    <hr />
+    <div class="table_wrapper">
+        <table class="display" id="cblimporttable">
+            <thead>
+                    <tr>
+                            <th class="list_index">Entry</th>
+                            <th class="volume">Volume</th>
+                            <th class="issue">Issue #</th>
+                            <th class="status">Status</th>
+                            <th class="action">Action</th>
+                    </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+    </div>
+</%def>
+<%def name="headIncludes()">
+        <link rel="stylesheet" href="interfaces/${interface}/css/data_table.css">
+</%def>
+
+<%def name="javascriptIncludes()">
+        <script src="js/libs/jquery.dataTables.min.js"></script>
+        <script>
+            function cblUpload() {
+                var cblImportTableBody = $('#cblimporttable > tbody')
+                cblImportTableBody.empty();
+                $('#cblfilenameerror').text("");
+                $('#processlistbutton').toggle(false);
+                $('#status_text').text("No reading list loaded");
+                $('#processlistconfirm').toggle(false);
+                $('#cblimporttable').DataTable().clear();
+
+                var file = null;
+
+                if ($(this).prop('files').length == 0) {
+                    $('#cblfilenamelabel').text("No File Selected");
+                    $('#status_text').text("No Reading List Loaded")
+                    return
+                } else {
+                    file = $(this).prop('files')[0]
+                    $('#cblfilenamelabel').text(file.name);
+                }
+
+                formdata = new FormData();
+                formdata.append("cblFile",file);
+                formdata.append("issuesonly",document.getElementById("issuesonly").checked);
+                formdata.append("ignorearchived",document.getElementById("ignorearchived").checked);
+
+                $.when($.ajax({
+                 type: "POST",
+                 url: "checkCBLFile",
+                 data: formdata,
+                 processData: false,
+                 contentType: false,
+                 error: function(data)
+                     {
+                       alert('ERROR'+data.responseText);
+                     },
+                })).done(function(data) {
+                    var json = $.parseJSON(data);
+
+                    if (json['status'] == 'error') {
+                        $('#status_text').html(json['message']);
+                    } 
+                    else {
+                        $('#status_text').html(json['message']);
+                        $('#cblfilenameerror').text(json['warning_text'])
+
+                        var dataTable = $('#cblimporttable').DataTable();
+                        dataTable.rows.add(json['results']);
+                        dataTable.rows().every( function ( rowIdx, tableLoop, rowLoop ) {
+                            var data = this.data();
+                            $(this.node()).addClass(data[3]);
+                        } );
+                        dataTable.draw(false);
+                        
+                        $('#processlistbutton').toggle(true);
+                    }
+                });
+            }
+        </script>
+        <script>
+            function processCBL() {
+                file = $('#cblfileinput').prop('files')[0]
+
+                formdata = new FormData();
+                formdata.append("cblFile",file);
+                formdata.append("issuesonly",document.getElementById("issuesonly").checked);
+                formdata.append("ignorearchived",document.getElementById("ignorearchived").checked);
+
+                $.when($.ajax({
+                 type: "POST",
+                 url: "processCBLFile",
+                 data: formdata,
+                 processData: false,
+                 contentType: false,
+                 success : function(data) {},
+                 error: function(data)
+                     {
+                       alert('ERROR'+data.responseText);
+                     },
+                })).done(function(data) {
+                    var json = $.parseJSON(data);
+
+                    $('#status_text').html(json['message']);
+                    $('#cblfilenameerror').text(json['warning_text'])
+                });
+
+                $('#processlistbutton').toggle(false);
+                $('#processlistconfirm').toggle(true)
+            }
+        </script>
+        <script>
+        function triggerFileSelect() {
+            $(cblfileinput).click();
+        }
+            
+        function initThisPage() {
+                jQuery( "#tabs" ).tabs();
+                initActions();
+                
+                $('#cblfileinput').change(cblUpload);
+                $('#cblfileselectbutton').click(triggerFileSelect);
+                $('#cblfilenamelabel').click(triggerFileSelect);
+                $('#processlistbutton').click(processCBL);
+                
+                $('#cblimporttable').dataTable(
+                        {
+                                destroy: true,
+                                sDom: '<"clear"Af><"clear"lp><"clear">rt<"clear"ip>',
+                                //"aoColumnDefs": [
+                                //  { 'bSortable': false, 'aTargets': [ 0 , 2 ] },
+                                //  { 'bVisible': false, 'aTargets': [2] },
+                                //  { 'sType': 'numeric', 'aTargets': [2] },
+                                //  { 'iDataSort': [2], 'aTargets': [3] }
+                                //],
+                                LengthMenu: [[10, 25, 50, -1], [10, 25, 50, 'All' ]],
+                                Language: {
+                                        LengthMenu:"Show _MENU_ results per page",
+                                        EmptyTable: "No results",
+                                        Info:"Showing _START_ to _END_ of _TOTAL_ results",
+                                        InfoEmpty:"Showing 0 to 0 of 0 results",
+                                        InfoFiltered:"(filtered from _MAX_ total results)",
+                                        Search : ""},
+                                columns: [
+                                    {className: "list_index"},
+                                    {className: "volume"},
+                                    {className: "issue"},
+                                    {className: "status"},
+                                    {className: "action"}
+                                ],
+                                StateSave: true,
+                                stateDuration: 0,
+                                pageLength: 50,
+                                pagingType: "simple_numbers",
+                                aaSorting: [0, 'asc']
+                        });
+                resetFilters("result");                
+        }
+
+        $(document).ready(function(){
+            initThisPage();
+        });
+        $(window).load(function(){
+            initFancybox();
+        });
+     </script>
+
+</%def>

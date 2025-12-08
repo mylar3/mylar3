@@ -33,6 +33,7 @@ from mylar import (
     downloaders,
 )
 from mylar.downloaders import external_server as exs
+from mylar.downloaders import airdcpp
 
 import feedparser
 import requests
@@ -174,6 +175,7 @@ def search_init(
 
     searchcnt = 0
     srchloop = 1
+    current_prov = {}  # Initialize current_prov here to avoid UnboundLocalError
 
     if rsschecker:
         if mylar.CONFIG.ENABLE_RSS:
@@ -211,7 +213,7 @@ def search_init(
                 cmloopit = 4
                 if 'annual' in ComicName.lower():
                     if IssueNumber is not None:
-                        if helpers.issuedigits(IssueNumber) != 1000:
+                        if helpers.issue_number_parser(IssueNumber).asInt != helpers.issue_number_to_int(1, None):
                             cmloopit = None
             if cmloopit is None:
                 if len(c_number) == 1:
@@ -623,6 +625,14 @@ def provider_order(initial_run=False):
         ):
             ddlprovider.append('DDL(External)')
             ddls+=1
+    if all(
+       [
+            mylar.CONFIG.ENABLE_AIRDCPP is True,
+            not helpers.block_provider_check('AirDCPP'),
+       ]
+    ):
+        ddlprovider.append('AirDCPP')
+        ddls+=1
 
     if initial_run:
         logger.fdebug('nzbprovider(s): %s' % nzbprovider)
@@ -649,6 +659,7 @@ def provider_order(initial_run=False):
     prov_order, torznab_info, newznab_info = provider_sequence(
         nzbprovider, torprovider, newznab_hosts, torznab_hosts, ddlprovider
     )
+
     #if initial_run:
     #    logger.fdebug('search provider order is %s' % prov_order)
 
@@ -798,7 +809,8 @@ def NZB_SEARCH(
     cm = re.sub("'", "%27", str(cm))
 
     if IssueNumber is not None:
-        intIss = helpers.issuedigits(IssueNumber)
+        intIss = helpers.issue_number_parser(IssueNumber).asInt
+        # TODO: Revisit this later to see if the below can be absorbed by the string part of issueNumberParser (and to fix the fraction logic)
         iss = IssueNumber
         if '\xbd' in IssueNumber:
             findcomiciss = '0.5'
@@ -939,7 +951,6 @@ def NZB_SEARCH(
         #           'chktpb': chktpb,
         #           'provider_stat': provider_stat,
         #           'foundc': foundc}
-
         if 'DDL' in nzbprov and RSS == "no":
             cmname = re.sub("%20", " ", str(comsrc))
             logger.fdebug(
@@ -1048,6 +1059,14 @@ def NZB_SEARCH(
                     findurl = str(torznab_fix) + "?t=search&q=" + str(comsearch)
                     if category_torznab is not None:
                         findurl += "&cat=" + str(category_torznab)
+                elif provider_stat['type'] == 'airdcpp':
+                    findurl = None
+                    cleaned_comicname = re.sub(r'[?:$]', '', findcomic)
+                    fline = {'comicname': cleaned_comicname,
+                             'issue': isssearch,
+                             'year': comyear}
+                    b = downloaders.airdcpp.AirDCPP(query=fline, provider_stat=provider_stat)
+                    verified_matches = b.search(is_info=is_info)
                 else:
                     logger.warn(
                         'You have a blank newznab entry within your configuration.'
@@ -1546,6 +1565,7 @@ def searchforissue(issueid=None, new=False, rsschecker=None, manual=False):
                 mylar.CONFIG.ENABLE_EXTERNAL_SERVER is True,
             ]
        ))
+       or mylar.CONFIG.ENABLE_AIRDCPP is True
        or any(
             [
                 mylar.CONFIG.EXPERIMENTAL is True,
@@ -1597,12 +1617,12 @@ def searchforissue(issueid=None, new=False, rsschecker=None, manual=False):
                         and mylar.CONFIG.FAILED_AUTO
                     ):
                         issues_1 = myDB.select(
-                            'SELECT * from issues WHERE Status="Wanted" OR'
-                            ' Status="Failed"'
+                            "SELECT * from issues WHERE Status='Wanted' OR"
+                            " Status='Failed'"
                         )
                     else:
                         issues_1 = myDB.select(
-                            'SELECT * from issues WHERE Status="Wanted"'
+                            "SELECT * from issues WHERE Status='Wanted'"
                         )
                     for iss in issues_1:
                         checkit = searchforissue_checker(
@@ -1653,12 +1673,12 @@ def searchforissue(issueid=None, new=False, rsschecker=None, manual=False):
                             and mylar.CONFIG.FAILED_AUTO
                         ):
                             issues_2 = myDB.select(
-                                'SELECT * from storyarcs WHERE Status="Wanted" OR'
-                                ' Status="Failed"'
+                                "SELECT * from storyarcs WHERE Status='Wanted' OR" 
+                                " Status='Failed'"
                             )
                         else:
                             issues_2 = myDB.select(
-                                'SELECT * from storyarcs WHERE Status="Wanted"'
+                                "SELECT * from storyarcs WHERE Status='Wanted'"
                             )
                         cnt = 0
                         for iss in issues_2:
@@ -1710,12 +1730,11 @@ def searchforissue(issueid=None, new=False, rsschecker=None, manual=False):
                         and mylar.CONFIG.FAILED_AUTO
                     ):
                         issues_3 = myDB.select(
-                            'SELECT * from annuals WHERE Status="Wanted" OR'
-                            ' Status="Failed AND NOT Deleted"'
+                            "SELECT * from annuals WHERE Status IN ('Wanted', 'Failed') AND NOT Deleted"
                         )
                     else:
                         issues_3 = myDB.select(
-                            'SELECT * from annuals WHERE Status="Wanted AND NOT Deleted"'
+                            "SELECT * from annuals WHERE Status='Wanted' AND NOT Deleted"
                         )
                     for iss in issues_3:
                         checkit = searchforissue_checker(
@@ -2022,6 +2041,7 @@ def searchforissue(issueid=None, new=False, rsschecker=None, manual=False):
                             mylar.USE_BLACKHOLE is True,
                         ]
                     )
+                    or all([mylar.CONFIG.ENABLE_AIRDCPP is True, len(mylar.CONFIG.AIRDCPP_ANNOUNCE_HUB) > 0])
                     or all([mylar.CONFIG.TORZNAB is True, len(ens) > 0])
                     and any(
                         [
@@ -2031,228 +2051,239 @@ def searchforissue(issueid=None, new=False, rsschecker=None, manual=False):
                     )
                 ):
                     results = mylar.rsscheck.nzbdbsearch(None, None, rsslist=rss_queue, provider_list=provider_list)
-                for x in results['entries']:
-                    # need to do this to make sure we care across the expected data format
-                    rs = {}
-                    rs['entries'] = [{'title': x['title'],
-                                      'link': x['link'],
-                                      'pubdate': x['pubdate'],
-                                      'site': x['site'],
-                                      'length': x['length']}]
+                    # TODO is there ever a situation where we should be here without continuing at this level of indent?  Certainly not with an 'entries' key in results.  Refactor later.
 
-                    logger.info('rss_results[x]: %s' % (x,))
-                    try:
-                        foundc = {}
-                        foundc['status'] = False
-                        foundc['provider'] = x['site']
+                # Split the results by IssueID to then break on the first successful snatch
+                unique_issue_ids = set([x['info']['IssueID'] for x in results['entries']])
+                for unique_issue_id in unique_issue_ids:
+                    issue_results = [r for r in results['entries'] if r['info']['IssueID'] == unique_issue_id]
+                    logger.debug(f'Attempting RSS downloads for Issue ID {unique_issue_id}')
 
-                        xr = x['info']
-                        #set these here so that it can log exceptions properly
-                        comicname = xr['ComicName']
-                        issue_number = xr['Issue_Number']
-                        seriesyear = xr['SeriesYear']
-                        comicid = xr['ComicID']
-                        issueid = xr['IssueID']
-                        booktype = xr['booktype']
-                        searchmode = xr['searchmode']
-
-                        current_prov = last_run_check(check=True, provider=x['site'])
-                        logger.info('current_prov: %s' % (current_prov,))
-                        if len(current_prov) > 0:
-                            nzbprov = list(current_prov.keys())[0]
-                            provider_stat = current_prov.get(list(current_prov.keys())[0])
-                        else:
-                            nzbprov = x['site']
-                        foundc['lastrun'] = provider_stat['lastrun']
-                        logger.info('nzbprov: %s' % nzbprov)
-                        logger.info('provider_stat: %s' % (provider_stat,))
-
-                        newznab_info = None
-                        torznab_info = None
-                        if provider_stat['type'] == 'newznab':
-                            if provider_list['newznab_info']:
-                                pni = provider_list['newznab_info']
-                                for pl in pni:
-                                    if pl['info'][0] == nzbprov:
-                                        logger.info('newznab match: %s' % nzbprov)
-                                        newznab_info = pl['info']
-                                        break
-
-                        elif provider_stat['type'] == 'torznab':
-                            if provider_list['torznab_info']:
-                                pni = provider_list['torznab_info']
-                                for pl in pni:
-                                    if pl['info'][0] == nzbprov:
-                                        logger.info('torznab match: %s' % nzbprov)
-                                        torznab_info = pl['info']
-                                        break
-
-                        #fix for issue dates between Nov-Dec/(Jan-Feb-Mar)
-                        IssDateFix = "no"
-                        if xr['IssueDate'] is not None:
-                            IssDt = xr['IssueDate'][5:7]
-                            if any([IssDt == "12", IssDt == "11", IssDt == "01", IssDt == "02", IssDt == "03"]):
-                                IssDateFix = IssDt
-
-                        else:
-                            if xr['StoreDate'] is not None:
-                                StDt = xr['StoreDate'][5:7]
-                                if any([StDt == "10", StDt == "12", StDt == "11", StDt == "01", StDt == "02", StDt == "03"]):
-                                    IssDateFix = StDt
-
-                        chktpb = 0
-                        if any([booktype == 'TPB', booktype =='HC', booktype == 'GN']):
-                            chktpb = 1
-
-                        logger.info('provider_list: %s' % (provider_list,))
-
-                        intIss = helpers.issuedigits(xr['Issue_Number'])
-
-                        findcomiciss, c_number = get_findcomiciss(xr['Issue_Number'])
-
-                        if '0-Day' in comicname:
-                            cmloopit = 1
-                        else:
-                            cmloopit = None
-                            if any([booktype == 'One-Shot', 'annual' in comicname.lower()]):
-                                cmloopit = 4
-                                if 'annual' in comicname.lower():
-                                    if xr['Issue_Number'] is not None:
-                                        if helpers.issuedigits(xr['Issue_Number']) != 1000:
-                                            cmloopit = None
-                            if cmloopit is None:
-                                if len(c_number) == 1:
-                                   cmloopit = 3
-                                elif len(c_number) == 2:
-                                   cmloopit = 2
-                                else:
-                                   cmloopit = 1
-
-                        is_info = {'ComicName': xr['ComicName'],
-                                   'nzbprov': nzbprov,
-                                   'RSS': xr['RSS'],
-                                   'UseFuzzy': xr['UseFuzzy'],
-                                   'StoreDate': xr['StoreDate'],
-                                   'IssueDate': xr['IssueDate'],
-                                   'digitaldate': xr['DigitalDate'],
-                                   'booktype': xr['booktype'],
-                                   'ignore_booktype': xr['ignore_booktype'],
-                                   'SeriesYear': xr['SeriesYear'],
-                                   'ComicVersion': xr['ComicVersion'],
-                                   'IssDateFix': IssDateFix,
-                                   'ComicYear': xr['ComicYear'],
-                                   'IssueID': xr['IssueID'],
-                                   'ComicID': xr['ComicID'],
-                                   'IssueNumber': xr['Issue_Number'],
-                                   'manual': False, #not a manual search.
-                                   'newznab_host': newznab_info,
-                                   'torznab_host': torznab_info,
-                                   'oneoff': xr['OneOff'],
-                                   'tmpprov': nzbprov,
-                                   'SARC': xr['SARC'],
-                                   'IssueArcID': xr['IssueArcID'],
-                                   'cmloopit': cmloopit,
-                                   'findcomiciss': findcomiciss,
-                                   'intIss': intIss,
-                                   'chktpb': chktpb,
-                                   'smode': xr['searchmode'],
-                                   'provider_stat': provider_stat,
-                                   'foundc': foundc}
-
-
-                        ##if not any(x['site'] in olist for olist in provider_list['prov_order']) or helpers.block_provider_check(x['site']):
-                        ##    continue
-                        #torznab_info = None
-                        #newznab_info = None
-                        #nzbprov = x['site']
-                        #for xx in provider_list['prov_order']:
-                        #    if x['site'] in xx:
-                        #        if provider_list['torznab_info'] is not None:
-                        #            for tn in provider_list['torznab_info']:
-
-                        #                if x['site'].lower() == tn['provider'].lower():
-                        #                    nzbprov = 'torznab'
-                        #                    torznab_info = tn['info']
-                        #                    break
-                        #        if provider_list['newznab_info'] is not None and torznab_info is None:
-                        #            for nn in provider_list['newznab_info']:
-                        #                logger.fdebug('[site:%s] nn: %s' % (x['site'], nn))
-                        #                if x['site'].lower() == nn['info'][0].lower():
-                        #                    nzbprov = 'newznab'
-                        #                    newznab_info = nn['info']
-                        #                    logger.fdebug('site match hit on: %s' % x['site'])
-                        #                    break
-                        #    if any([torznab_info is not None, newznab_info is not None]):
-                        #        break
-
-                        # might need to put.queue this...
-                        logger.info('looking for : %s %s (%s) [oneoff: %s][ignore_booktype: %s]' % (xr['ComicName'], xr['Issue_Number'], xr['StoreDate'], xr['OneOff'], xr['ignore_booktype']))
-                        rs = {}
-
-                        # if it's DDL - we need to parse out things
-                        #if nzbprov == 'DDL(GetComics)':
-                        #    ddlset = []
-                        #    for xx in getcomics.search_results['entries']:
-                        #        bb = next((item for item in ddlset if item['link'] == xx['link']), None)
-                        #        try:
-                        #            if 'Weekly' not in xr['ComicName'] and 'Weekly' in xx['title']:
-                        #                continue
-                        #            elif bb is None:
-                        #                ddlset.append(xx)
-                        #        except Exception as e:
-                        #            ddlset.append(xx)
-                        #        else:
-                        #            continue
-                        #    rs['entries'] = ddlset
-                        #else:
+                    for x in issue_results:
                         # need to do this to make sure we care across the expected data format
-                        entries = [{'title': x['title'],
-                                    'link': x['link'],
-                                    'pubdate': x['pubdate'],
-                                    'site': x['site'],
-                                    'length': x['length'],
-                                    'pack': x['pack'],
-                                    'issues': x['issues']}]
+                        rs = {}
+                        rs['entries'] = [{'title': x['title'],
+                                        'link': x['link'],
+                                        'pubdate': x['pubdate'],
+                                        'site': x['site'],
+                                        'length': x['length']}]
 
-                        sfs = search_filer.search_check()
-                        verified_matches =  sfs.checker(entries, is_info)
-                        logger.info('verified_matches_returned: %s' % (verified_matches,))
-                        if len(verified_matches) > 0:
-                            response = verification(verified_matches, is_info)
-                            logger.info('response: %s' % (response,))
-                            #foundNZB = imsearch(bb={'entries': [{'title': x['title'], 'link': x['link'], 'pubdate': x['pubdate'], 'site': x['site'], 'length': x['length']}]}, nzbprov=nzbprov, newznab_host=newznab_info, torznab_host=torznab_info, ComicName=xr['ComicName'], Issue_Number=xr['Issue_Number'], ComicYear=xr['ComicYear'], SeriesYear=xr['SeriesYear'], Publisher=xr['Publisher'], IssueDate=xr['IssueDate'], StoreDate=xr['StoreDate'], IssueID=xr['IssueID'], AlternateSearch=xr['AlternateSearch'], ComicVersion=xr['ComicVersion'], UseFuzzy=xr['UseFuzzy'], SARC=xr['SARC'], IssDateFix=IssDateFix, IssueArcID=xr['IssueArcID'], searchmode=xr['searchmode'], RSS=xr['RSS'], ComicID=xr['ComicID'], filesafe=xr['ComicName_Filesafe'], allow_packs=xr['AllowPacks'], oneoff=xr['OneOff'], torrentid_32p=xr['TorrentID_32P'], digitaldate=xr['DigitalDate'], booktype=xr['booktype'], manual=False, ignore_booktype=xr['ignore_booktype'])
-                            #logger.info('foundnzb result: %s' % (foundNZB,))
+                        logger.info('rss_results[x]: %s' % (x,))
+                        try:
+                            foundc = {}
+                            foundc['status'] = False
+                            foundc['provider'] = x['site']
 
-                    except Exception as err:
-                        exc_type, exc_value, exc_tb = sys.exc_info()
-                        filename, line_num, func_name, err_text = traceback.extract_tb(
-                           exc_tb
-                        )[-1]
-                        tracebackline = traceback.format_exc()
+                            xr = x['info']
+                            # set these here so that it can log exceptions properly
+                            comicname = xr['ComicName']
+                            issue_number = xr['Issue_Number']
+                            seriesyear = xr['SeriesYear']
+                            comicid = xr['ComicID']
+                            issueid = xr['IssueID']
+                            booktype = xr['booktype']
+                            searchmode = xr['searchmode']
 
-                        except_line = {
-                            'exc_value': exc_value,
-                            'exc_tb': exc_tb,
-                            'filename': filename,
-                            'line_num': line_num,
-                            'func_name': func_name,
-                            'err': str(err),
-                            'err_text': err_text,
-                            'traceback': tracebackline,
-                            'comicname': comicname,
-                            'issuenumber': issue_number,
-                            'seriesyear': seriesyear,
-                            'issueid': issueid,
-                            'comicid': comicid,
-                            'mode': searchmode,
-                            'booktype': booktype,
-                        }
+                            current_prov = last_run_check(check=True, provider=x['site'])
+                            logger.info('current_prov: %s' % (current_prov,))
+                            if len(current_prov) > 0:
+                                nzbprov = list(current_prov.keys())[0]
+                                provider_stat = current_prov.get(list(current_prov.keys())[0])
+                            else:
+                                nzbprov = x['site']
+                            foundc['lastrun'] = provider_stat['lastrun']
+                            logger.info('nzbprov: %s' % nzbprov)
+                            logger.info('provider_stat: %s' % (provider_stat,))
 
-                        helpers.log_that_exception(except_line)
+                            newznab_info = None
+                            torznab_info = None
+                            if provider_stat['type'] == 'newznab':
+                                if provider_list['newznab_info']:
+                                    pni = provider_list['newznab_info']
+                                    for pl in pni:
+                                        if pl['info'][0] == nzbprov:
+                                            logger.info('newznab match: %s' % nzbprov)
+                                            newznab_info = pl['info']
+                                            break
 
-                        # log it regardless..
-                        logger.exception(tracebackline)
-                        continue
+                            elif provider_stat['type'] == 'torznab':
+                                if provider_list['torznab_info']:
+                                    pni = provider_list['torznab_info']
+                                    for pl in pni:
+                                        if pl['info'][0] == nzbprov:
+                                            logger.info('torznab match: %s' % nzbprov)
+                                            torznab_info = pl['info']
+                                            break
+
+                            #fix for issue dates between Nov-Dec/(Jan-Feb-Mar)
+                            IssDateFix = "no"
+                            if xr['IssueDate'] is not None:
+                                IssDt = xr['IssueDate'][5:7]
+                                if any([IssDt == "12", IssDt == "11", IssDt == "01", IssDt == "02", IssDt == "03"]):
+                                    IssDateFix = IssDt
+
+                            else:
+                                if xr['StoreDate'] is not None:
+                                    StDt = xr['StoreDate'][5:7]
+                                    if any([StDt == "10", StDt == "12", StDt == "11", StDt == "01", StDt == "02", StDt == "03"]):
+                                        IssDateFix = StDt
+
+                            chktpb = 0
+                            if any([booktype == 'TPB', booktype =='HC', booktype == 'GN']):
+                                chktpb = 1
+
+                            logger.info('provider_list: %s' % (provider_list,))
+
+                            intIss = helpers.issue_number_parser(xr['Issue_Number']).asInt
+
+                            findcomiciss, c_number = get_findcomiciss(xr['Issue_Number'])
+
+                            if '0-Day' in comicname:
+                                cmloopit = 1
+                            else:
+                                cmloopit = None
+                                if any([booktype == 'One-Shot', 'annual' in comicname.lower()]):
+                                    cmloopit = 4
+                                    if 'annual' in comicname.lower():
+                                        if xr['Issue_Number'] is not None:
+                                            if helpers.issue_number_parser(xr['Issue_Number']).asInt != helpers.issue_number_to_int(1,None):
+                                                cmloopit = None
+                                if cmloopit is None:
+                                    if len(c_number) == 1:
+                                        cmloopit = 3
+                                    elif len(c_number) == 2:
+                                        cmloopit = 2
+                                    else:
+                                        cmloopit = 1
+
+                            is_info = {'ComicName': xr['ComicName'],
+                                       'nzbprov': nzbprov,
+                                       'RSS': xr['RSS'],
+                                       'UseFuzzy': xr['UseFuzzy'],
+                                       'StoreDate': xr['StoreDate'],
+                                       'IssueDate': xr['IssueDate'],
+                                       'digitaldate': xr['DigitalDate'],
+                                       'booktype': xr['booktype'],
+                                       'ignore_booktype': xr['ignore_booktype'],
+                                       'SeriesYear': xr['SeriesYear'],
+                                       'ComicVersion': xr['ComicVersion'],
+                                       'IssDateFix': IssDateFix,
+                                       'ComicYear': xr['ComicYear'],
+                                       'IssueID': xr['IssueID'],
+                                       'ComicID': xr['ComicID'],
+                                       'IssueNumber': xr['Issue_Number'],
+                                       'manual': False,  # not a manual search.
+                                       'newznab_host': newznab_info,
+                                       'torznab_host': torznab_info,
+                                       'oneoff': xr['OneOff'],
+                                       'tmpprov': nzbprov,
+                                       'SARC': xr['SARC'],
+                                       'IssueArcID': xr['IssueArcID'],
+                                       'cmloopit': cmloopit,
+                                       'findcomiciss': findcomiciss,
+                                       'intIss': intIss,
+                                       'chktpb': chktpb,
+                                       'smode': xr['searchmode'],
+                                       'provider_stat': provider_stat,
+                                       'foundc': foundc}
+
+
+                            ##if not any(x['site'] in olist for olist in provider_list['prov_order']) or helpers.block_provider_check(x['site']):
+                            ##    continue
+                            #torznab_info = None
+                            #newznab_info = None
+                            #nzbprov = x['site']
+                            #for xx in provider_list['prov_order']:
+                            #    if x['site'] in xx:
+                            #        if provider_list['torznab_info'] is not None:
+                            #            for tn in provider_list['torznab_info']:
+
+                            #                if x['site'].lower() == tn['provider'].lower():
+                            #                    nzbprov = 'torznab'
+                            #                    torznab_info = tn['info']
+                            #                    break
+                            #        if provider_list['newznab_info'] is not None and torznab_info is None:
+                            #            for nn in provider_list['newznab_info']:
+                            #                logger.fdebug('[site:%s] nn: %s' % (x['site'], nn))
+                            #                if x['site'].lower() == nn['info'][0].lower():
+                            #                    nzbprov = 'newznab'
+                            #                    newznab_info = nn['info']
+                            #                    logger.fdebug('site match hit on: %s' % x['site'])
+                            #                    break
+                            #    if any([torznab_info is not None, newznab_info is not None]):
+                            #        break
+
+                            # might need to put.queue this...
+                            logger.info('looking for : %s %s (%s) [oneoff: %s][ignore_booktype: %s]' % (xr['ComicName'], xr['Issue_Number'], xr['StoreDate'], xr['OneOff'], xr['ignore_booktype']))
+                            rs = {}
+
+                            # if it's DDL - we need to parse out things
+                            #if nzbprov == 'DDL(GetComics)':
+                            #    ddlset = []
+                            #    for xx in getcomics.search_results['entries']:
+                            #        bb = next((item for item in ddlset if item['link'] == xx['link']), None)
+                            #        try:
+                            #            if 'Weekly' not in xr['ComicName'] and 'Weekly' in xx['title']:
+                            #                continue
+                            #            elif bb is None:
+                            #                ddlset.append(xx)
+                            #        except Exception as e:
+                            #            ddlset.append(xx)
+                            #        else:
+                            #            continue
+                            #    rs['entries'] = ddlset
+                            #else:
+                            # need to do this to make sure we care across the expected data format
+                            entries = [{'title': x['title'],
+                                        'link': x['link'],
+                                        'pubdate': x['pubdate'],
+                                        'site': x['site'],
+                                        'length': x['length'],
+                                        'pack': x['pack'],
+                                        'issues': x['issues']}]
+
+                            sfs = search_filer.search_check()
+                            verified_matches = sfs.checker(entries, is_info)
+                            logger.info('verified_matches_returned: %s' % (verified_matches,))
+                            if len(verified_matches) > 0:
+                                response = verification(verified_matches, is_info)
+                                logger.info('response: %s' % (response,))
+                                if all([response, 'foundc' in response.keys(), 'status' in response['foundc'].keys()]):
+                                    if response['foundc']['status'] is True:
+                                        break
+                                #foundNZB = imsearch(bb={'entries': [{'title': x['title'], 'link': x['link'], 'pubdate': x['pubdate'], 'site': x['site'], 'length': x['length']}]}, nzbprov=nzbprov, newznab_host=newznab_info, torznab_host=torznab_info, ComicName=xr['ComicName'], Issue_Number=xr['Issue_Number'], ComicYear=xr['ComicYear'], SeriesYear=xr['SeriesYear'], Publisher=xr['Publisher'], IssueDate=xr['IssueDate'], StoreDate=xr['StoreDate'], IssueID=xr['IssueID'], AlternateSearch=xr['AlternateSearch'], ComicVersion=xr['ComicVersion'], UseFuzzy=xr['UseFuzzy'], SARC=xr['SARC'], IssDateFix=IssDateFix, IssueArcID=xr['IssueArcID'], searchmode=xr['searchmode'], RSS=xr['RSS'], ComicID=xr['ComicID'], filesafe=xr['ComicName_Filesafe'], allow_packs=xr['AllowPacks'], oneoff=xr['OneOff'], torrentid_32p=xr['TorrentID_32P'], digitaldate=xr['DigitalDate'], booktype=xr['booktype'], manual=False, ignore_booktype=xr['ignore_booktype'])
+                                #logger.info('foundnzb result: %s' % (foundNZB,))
+
+                        except Exception as err:
+                            exc_type, exc_value, exc_tb = sys.exc_info()
+                            filename, line_num, func_name, err_text = traceback.extract_tb(
+                                exc_tb
+                            )[-1]
+                            tracebackline = traceback.format_exc()
+
+                            except_line = {
+                                'exc_value': exc_value,
+                                'exc_tb': exc_tb,
+                                'filename': filename,
+                                'line_num': line_num,
+                                'func_name': func_name,
+                                'err': str(err),
+                                'err_text': err_text,
+                                'traceback': tracebackline,
+                                'comicname': comicname,
+                                'issuenumber': issue_number,
+                                'seriesyear': seriesyear,
+                                'issueid': issueid,
+                                'comicid': comicid,
+                                'mode': searchmode,
+                                'booktype': booktype,
+                            }
+
+                            helpers.log_that_exception(except_line)
+
+                            # log it regardless..
+                            logger.exception(tracebackline)
+                            continue
 
                 logger.info('Completed RSS Search scan')
                 if mylar.SEARCHLOCK is True:
@@ -2504,10 +2535,11 @@ def searchIssueIDList(issuelist):
        and any(
             [
                 mylar.CONFIG.ENABLE_GETCOMICS is True,
-                mylar.CONFIG.ENABLE_EXTERNAL_SERVER is True
+                mylar.CONFIG.ENABLE_EXTERNAL_SERVER is True,
             ]
         )
-        ) or any(
+        ) or mylar.CONFIG.ENABLE_AIRDCPP is True
+        or any(
             [
                 mylar.CONFIG.EXPERIMENTAL is True,
             ]
@@ -2734,7 +2766,12 @@ def nzbname_create(provider, title=None, info=None):
         nzbname = re.sub(r'[\,\:\?\']', '', nzbname)
         if nzbname.lower().endswith('.torrent'):
             nzbname = re.sub('.torrent', '', nzbname)
-
+    elif provider == 'airdcpp':
+        nzbname = re.sub(r'\s{2,}', ' ', helpers.filesafe(title)).strip()
+        nzbname = re.sub(" ", ".", nzbname)
+        nzbname = re.sub(r'\&amp;|(amp;)|amp;|\&', 'and', title)
+        nzbname = re.sub(r'[\,\:\?\']', '', nzbname)
+        # DO NOT strip the extension for AirDC++
     else:
         # let's change all space to decimals for simplicity
         logger.fdebug('[SEARCHER] entry[title]: %s' % title)
@@ -2900,10 +2937,12 @@ def searcher(
             )
 
     if link and all(
-        [
-            provider_stat['type'] != 'torznab',
-            'DDL' not in nzbprov,
-        ]
+            [
+                provider_stat['type'] != 'torznab',
+                'DDL' not in nzbprov,
+                nzbprov != 'AirDCPP',
+                nzbprov != 'airdcpp',
+            ]
     ):
 
         # generate nzbid here.
@@ -3165,12 +3204,86 @@ def searcher(
 
             if ddl_it['success'] is True:
                 logger.info(
-                    '[%s] Successfully snatched %s from DDL site. It is currently being queued'
+                    '[%s] Successfully snatched %s from External-DDL site. It is currently being queued'
                     ' to download in position %s' % (tnzbprov, nzbname, mylar.DDL_QUEUE.qsize())
                 )
             else:
-                logger.info('[%s] Failed to retrieve %s from the DDL site.' % (tnzbprov, nzbname))
+                logger.info('[%s] Failed to retrieve %s from the External-DDL site.' % (tnzbprov, nzbname))
                 return "ddl-fail"
+
+        sent_to = "is downloading it directly via %s" % tnzbprov
+
+    elif mylar.CONFIG.ENABLE_AIRDCPP and nzbprov.lower() == 'airdcpp':
+        if all([IssueID is None, IssueArcID is not None]):
+            tmp_issueid = IssueArcID
+        else:
+            tmp_issueid = IssueID
+
+        filename = nzbname
+
+        airdcpp_downloader = airdcpp.AirDCPP(
+            issueid=tmp_issueid,
+            comicid=ComicID,
+            provider_stat=provider_stat
+        )
+
+        search_instance_id = None
+        if isinstance(comicinfo, list) and len(comicinfo) > 0:
+            if isinstance(comicinfo[0], dict) and 'search_instance_id' in comicinfo[0]:
+                search_instance_id = comicinfo[0]['search_instance_id']
+
+        # Check if this is a TTH hash from RSS (no search instance)
+        is_valid_tth = bool(re.match(r'^[A-Z2-7]{39}$', link))
+        if search_instance_id is None and is_valid_tth:
+            # RSS download - we have a TTH hash but no search instance
+            logger.info('[AirDCPP] RSS download detected - using TTH: %s' % link)
+            download_result = airdcpp_downloader.rss_download(
+                tth_hash=link,
+                filename=filename,
+                issueid=tmp_issueid
+            )
+        else:
+            # Normal download - we have a search instance from regular search
+            logger.info('[AirDCPP] Normal download with search instance: %s' % search_instance_id)
+            download_result = airdcpp_downloader.download(
+                link=link,
+                filename=filename,
+                id=nzbid,
+                issueid=tmp_issueid,
+                site='AirDCPP',
+                search_instance_id=search_instance_id
+            )
+
+        tnzbprov = 'AirDCPP'
+
+        if download_result['success'] is True:
+            logger.info(
+                '[%s] Successfully downloaded %s from AirDC++. Downloaded to: %s'
+                % (tnzbprov, filename, download_result['path'])
+            )
+
+            if mylar.CONFIG.POST_PROCESSING is True:
+                mylar.PP_QUEUE.put({'nzb_name': download_result['filename'],
+                                    'nzb_folder': os.path.dirname(download_result['path']),
+                                    'issueid': tmp_issueid,
+                                    'comicid': ComicID,
+                                    'failed': False,
+                                    'apicall': True,
+                                    'ddl': False})
+                logger.info('[%s] Added %s to post-processing queue.' % (tnzbprov, filename))
+                updater.nzblog(
+                    tmp_issueid,
+                    filename,
+                    ComicName,
+                    SARC=SARC,
+                    IssueArcID=IssueArcID,
+                    id=nzbid,
+                    prov=tnzbprov,
+                    oneoff=oneoff
+                )
+        else:
+            logger.info('[%s] Failed to download %s from AirDC++.' % (tnzbprov, filename))
+            return "ddl-fail"
 
         sent_to = "is downloading it directly via %s" % tnzbprov
 
@@ -3427,100 +3540,7 @@ def searcher(
                     str(random.getrandbits(256)).encode('utf-8')
                 ).hexdigest()[0:32]
 
-            # generate the mylar host address if applicable.
-            if mylar.CONFIG.ENABLE_HTTPS:
-                proto = 'https://'
-            else:
-                proto = 'http://'
-
-            if mylar.CONFIG.HTTP_ROOT is None:
-                hroot = '/'
-            elif mylar.CONFIG.HTTP_ROOT.endswith('/'):
-                hroot = mylar.CONFIG.HTTP_ROOT
-            else:
-                if mylar.CONFIG.HTTP_ROOT != '/':
-                    hroot = mylar.CONFIG.HTTP_ROOT + '/'
-                else:
-                    hroot = mylar.CONFIG.HTTP_ROOT
-
-            if mylar.LOCAL_IP is None:
-                # if mylar's local, get the local IP using socket.
-                try:
-                    import socket
-
-                    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-                    s.connect(('8.8.8.8', 80))
-                    mylar.LOCAL_IP = s.getsockname()[0]
-                    s.close()
-                except Exception as e:
-                    logger.warn(
-                        'Unable to determine local IP. Defaulting to host address for'
-                        ' Mylar provided as : %s. Error returned: %s'
-                        % (mylar.CONFIG.HTTP_HOST, e)
-                    )
-
-            if mylar.CONFIG.HOST_RETURN:
-                # mylar has the return value already provided
-                # (easier and will work if it's right)
-                if mylar.CONFIG.HOST_RETURN.endswith('/'):
-                    mylar_host = mylar.CONFIG.HOST_RETURN
-                else:
-                    mylar_host = mylar.CONFIG.HOST_RETURN + '/'
-
-            elif mylar.CONFIG.SAB_TO_MYLAR:
-                # if sab & mylar are on different machines, check to see if they are
-                # local or external IP's provided for host.
-                if (
-                    mylar.CONFIG.HTTP_HOST == 'localhost'
-                    or mylar.CONFIG.HTTP_HOST == '0.0.0.0'
-                    or mylar.CONFIG.HTTP_HOST.startswith('10.')
-                    or mylar.CONFIG.HTTP_HOST.startswith('192.')
-                    or mylar.CONFIG.HTTP_HOST.startswith('172.')
-                ):
-                    # if mylar's local, use the local IP already assigned to LOCAL_IP.
-                    mylar_host = (
-                        '%s%s:%s%s'
-                        % (proto, mylar.LOCAL_IP, mylar.CONFIG.HTTP_PORT, hroot)
-                     )
-                else:
-                    if mylar.EXT_IP is None:
-                        # if mylar isn't local, get the external IP using pystun.
-                        import stun
-
-                        sip = mylar.CONFIG.HTTP_HOST
-                        port = int(mylar.CONFIG.HTTP_PORT)
-                        try:
-                            nat_type, ext_ip, ext_port = stun.get_ip_info(sip, port)
-                            mylar_host = (
-                                '%s%s:%s%s'
-                                % (proto, ext_ip, ext_port, hroot)
-                             )
-                            mylar.EXT_IP = ext_ip
-                        except Exception as e:
-                            logger.warn(
-                                'Unable to retrieve External IP - try using the'
-                                ' host_return option in the config.ini. Error: %s' % e
-                            )
-                            mylar_host = (
-                                '%s%s:%s%s'
-                                % (proto, mylar.CONFIG.HTTP_HOST,
-                                   mylar.CONFIG.HTTP_PORT, hroot)
-                            )
-                    else:
-                        mylar_host = (
-                            '%s%s:%s%s'
-                            % (proto, mylar.EXT_IP, mylar.CONFIG.HTTP_PORT, hroot)
-                        )
-
-            else:
-                # if all else fails, drop it back to the basic host:port and try that.
-                if mylar.LOCAL_IP is None:
-                    tmp_host = mylar.CONFIG.HTTP_HOST
-                else:
-                    tmp_host = mylar.LOCAL_IP
-                mylar_host = (
-                    proto + str(tmp_host) + ':' + str(mylar.CONFIG.HTTP_PORT) + hroot
-                )
+            mylar_host = helpers.where_am_i()
 
             fileURL = (
                 mylar_host
@@ -4069,6 +4089,9 @@ def generate_id(nzbprov, link, comicname):
         else:
             idpos = idtmp.find('&')
             nzbid = re.sub('id=', '', idtmp[:idpos]).strip()
+    elif nzbprov == 'AirDCPP' or nzbprov == 'airdcpp':
+        # For AirDCPP, the link is the ID (TTH hash)
+        nzbid = link
     return nzbid
 
 def check_time(last_run):
@@ -4130,6 +4153,7 @@ def check_the_search_delay(manual=False):
     if (
         mylar.CONFIG.SEARCH_DELAY == 'None'
         or mylar.CONFIG.SEARCH_DELAY is None
+        or manual
     ):
         pause_the_search = 30  # in seconds
     elif str(mylar.CONFIG.SEARCH_DELAY).isdigit() and manual is False:

@@ -25,6 +25,10 @@ div.alphabet span.empty {
         color: red;
 }
 
+div.alphabet span.empty.active {
+        color: orangered;
+}
+
 div.alphabetInfo {
         display: block;
         position: absolute;

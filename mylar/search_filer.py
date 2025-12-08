@@ -145,6 +145,12 @@ class search_check(object):
                                     comsize_b = helpers.human2bytes(entry['size'])
                         elif entry['site'] == 'DDL(External)':
                             comsize_b = '0' #External links ! filesize
+                        elif entry['site'] == 'AirDCPP':
+                            # Use size_bytes if available, otherwise use the formatted size string
+                            if 'size_bytes' in entry and entry['size_bytes']:
+                                comsize_b = entry['size_bytes']
+                            else:
+                                comsize_b = helpers.human2bytes(entry['size'])
                     except Exception:
                         tmpsz = entry.enclosures[0]
                         comsize_b = tmpsz['length']
@@ -219,9 +225,9 @@ class search_check(object):
                     )
                     return None
 
-        if UseFuzzy == "1":
+        if UseFuzzy == "1" or nzbprov.lower() == 'airdcpp':
             logger.fdebug(
-                'Year has been fuzzied for this series,'
+                'Year has been fuzzied for this series, or provider is AirDC++'
                 ' ignoring store date comparison entirely.'
             )
             postdate_int = None
@@ -929,21 +935,22 @@ class search_check(object):
                     if intIss is None and all(
                         [
                             booktype == 'One-Shot',
-                            helpers.issuedigits(parsed_comic['issue_number'])
-                            == 1000,
+                            helpers.issue_number_parser(parsed_comic['issue_number']).asInt
+                            == helpers.issue_number_to_int(1, None),
                         ]
                     ):
-                        intIss = 1000
+                        intIss = helpers.issue_number_to_int(1,None)
                     else:
                         if annualize is True:
                             if parsed_comic['issue_number'] is None:
                                 # if issue_number is None, assume it's #1 of the annual
-                                intIss = 1000
+                                intIss = helpers.issue_number_to_int(1, None)
                             elif len(re.sub('[^0-9]', '', parsed_comic['issue_number']).strip()) == 4:
-                                intIss = 1000
+                                intIss = helpers.issue_number_to_int(1, None)
                             elif parsed_comic['issue_number'] is not None:
-                                intIss = helpers.issuedigits(parsed_comic['issue_number'])
+                                intIss = helpers.issue_number_parser(parsed_comic['issue_number']).asInt
                         else:
+                            # TODO: Does this special case still exist / get referenced anywhere after further clean up?
                             intIss = 9999999999
                 if filecomic['justthedigits'] is not None:
                     logger.fdebug(
@@ -951,21 +958,21 @@ class search_check(object):
                         % filecomic['justthedigits']
                     )
                     if annualize is True and len(re.sub('[^0-9]', '', filecomic['justthedigits']).strip()) == 4:
-                        comintIss = 1000
+                        comintIss = helpers.issue_number_to_int(1, None)
                     else:
-                        comintIss = helpers.issuedigits(filecomic['justthedigits'])
+                        comintIss = helpers.issue_number_parser(filecomic['justthedigits']).asInt
                     logger.fdebug(
                         "integer value of issue we have found : %s" % comintIss
                     )
                 else:
-                    comintIss = 11111111111
+                    comintIss = helpers.issue_number_to_int(11111111, None)
 
                 # do this so that we don't touch the actual value but just
                 # use it for comparisons
                 if filecomic['justthedigits'] is None:
                     pc_in = None
                 else:
-                    pc_in = helpers.issuedigits(filecomic['justthedigits'])
+                    pc_in = helpers.issue_number_parser(filecomic['justthedigits']).asInt
                 # issue comparison now as well
                 if (
                     all([intIss is not None, comintIss is not None])
@@ -981,7 +988,7 @@ class search_check(object):
                             [
                                 chktpb != 0,
                                 pc_in is None,
-                                helpers.issuedigits(F_ComicVersion) == intIss,
+                                helpers.issue_number_parser(F_ComicVersion).asInt == intIss,
                             ]
                     ))
                     or (any(
@@ -1116,6 +1123,8 @@ class search_check(object):
                             "ComicTitle": ComicTitle,
                             "entry": entry,
                             "provider_stat": provider_stat,
+                            # Add this line to preserve the search_instance_id
+                            "search_instance_id": entry.get('search_instance_id')
                         }
                 else:
                     #log2file = log2file + "issues don't match.." + "\n"
@@ -1151,5 +1160,5 @@ class search_check(object):
                     # (This reduces to prefer_pack == is_pack, but that's harder to grok)
                     return maybe_value
                 candidate = maybe_value
-        #logger.fdebug('candidate: %s' % candidate)
+        logger.info('candidate: %s' % candidate)
         return candidate

@@ -67,6 +67,8 @@ class carePackage(object):
                             ('DISCORD', 'discord_webhook_url'),
                             ('DDL', 'external_username'),
                             ('DDL', 'external_apikey'),
+                            ('DCPP', 'airdcpp_username'),
+                            ('DCPP', 'airdcpp_password')
                             }
         self.hostname_list = {
                             ('SABnzbd', 'sab_host'),
@@ -87,6 +89,11 @@ class carePackage(object):
                             ('DDL', 'flaresolverr_url'),
                             ('DDL', 'http_proxy'),
                             ('DDL', 'https_proxy'),
+                            ('DCPP', 'airdcpp_host'),
+                            ('DCPP', 'airdcpp_download_dir'),
+                            ('DCPP', 'airdcpp_hubs'),
+                            ('DCPP', 'airdcpp_announce_hub'),
+                            ('DCPP', 'airdcpp_announce_bots')
                              }
 
     def loaders(self):
@@ -104,7 +111,9 @@ class carePackage(object):
         if vers_vals['current_branch'] == 'master' and vers_vals['current_version_name'] is not None:
             panic_name = 'carepackage_%s.zip' % (vers_vals['current_version_name'])
         else:
-            panic_name = 'carepackage_%s_(%s).zip' % (vers_vals['current_version'], vers_vals['current_branch'])
+            # If there are multiple refs listed in current_branch, concatenate and sanitse them for file naming
+            branch = re.sub(r'[\\\/\#& ]', '.', '_'.join(map(str.strip, vers_vals['current_branch'].split(','))))
+            panic_name = 'carepackage_%s_(%s).zip' % (vers_vals['current_version'], branch)
 
         self.panicfile = os.path.join(self.log_dir, panic_name)
 
