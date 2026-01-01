@@ -2716,7 +2716,7 @@ def weekly_info(week=None, year=None, current=None):
         year = int(year)
     else:
         #find the given week number for the current day
-        weeknumber = current_weeknumber
+        weeknumber = int(current_weeknumber)
         year = int(todaydate.strftime("%Y"))
 
     #monkey patch for 2018/2019 - week 52/week 0
