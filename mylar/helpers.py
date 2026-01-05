@@ -3155,6 +3155,9 @@ def weekly_info(week=None, year=None, current=None):
         weeknumber = 51
         year = 2024
 
+    # normalize to ints before date math to avoid weeknumber being a string
+    weeknumber = int(weeknumber)
+    year = int(year)
     startofyear = date(year,1,1)
     week0 = startofyear - timedelta(days=startofyear.isoweekday())
     stweek = datetime.datetime.strptime(week0.strftime('%Y-%m-%d'), '%Y-%m-%d')
@@ -3170,6 +3173,10 @@ def weekly_info(week=None, year=None, current=None):
         # make sure the arrow going back will hit the correct week in the previous year.
         prev_week = 52
         prev_year = 2020
+    elif all([weeknumber == 1, year == 2026]):
+        # handle 2025/2026 rollover (avoid week 0)
+        prev_week = 52
+        prev_year = 2025
     elif all([weeknumber == 0, year == 2022]):
         # make sure the arrow going back will hit the correct week in the previous year.
         prev_week = 52
