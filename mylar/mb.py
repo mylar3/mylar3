@@ -98,7 +98,7 @@ def pullsearch(comicapi, comicquery, offset, search_type):
     else:
         return dom
 
-def findComic(name, mode, issue, limityear=None, search_type=None, annual_check=False):
+def findComic(name, mode, issue, limityear=None, search_type=None, annual_check=False, page=None, pagesize=100):
 
     #with mb_lock:
     comicResults = None
@@ -155,10 +155,17 @@ def findComic(name, mode, issue, limityear=None, search_type=None, annual_check=
     logger.fdebug("there are " + str(totalResults) + " search results...")
     if not totalResults:
         return False
-    if int(totalResults) > 1000:
+    if int(totalResults) > 1000 and page is None:
         logger.warn('Search returned more than 1000 hits [' + str(totalResults) + ']. Only displaying first 1000 results - use more specifics or the exact ComicID if required.')
         totalResults = 1000
     countResults = 0
+    if page is not None and page > 0:
+        # Limit results to a specific page
+        # Search results are limited to 100 per page by default
+        # pagesize is only used when requesting a specific page
+        pagesize = max(1, min(100, pagesize))
+        countResults = (page - 1) * pagesize
+        totalResults = min(countResults + pagesize, int(totalResults))
     while (countResults < int(totalResults)):
         #logger.fdebug("querying " + str(countResults))
         if countResults > 0:
@@ -508,6 +515,9 @@ def findComic(name, mode, issue, limityear=None, search_type=None, annual_check=
                 n+=1
         #search results are limited to 100 and by pagination now...let's account for this.
         countResults = countResults + 100
+
+    if page is not None:
+        return comiclist[:pagesize]
 
     return comiclist
 
