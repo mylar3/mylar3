@@ -496,6 +496,8 @@ class WebInterface(object):
                      'cv_removed': 0,
                      'DetailURL': 'https://comicvine.com/volume/4050-%s' % ComicID}
         else:
+            # sqlite3.Row returns an immutable mapping; convert so we can adjust values safely
+            comic = dict(comic)
             secondary_folders = None
             if mylar.CONFIG.MULTIPLE_DEST_DIRS:
                 try:
@@ -567,6 +569,8 @@ class WebInterface(object):
                 if run_them_down is True:
                     updater.forceRescan(ComicID)
                     comic = myDB.selectone('SELECT * FROM comics WHERE ComicID=?', [ComicID]).fetchone()
+                    if comic is not None:
+                        comic = dict(comic)
 
             totalissues = comic['Total']
             haveissues = comic['Have']
