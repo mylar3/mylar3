@@ -1067,12 +1067,22 @@ class Api(object):
             else:
                 self.data = self._failureResponse('Failed to return a image')
 
-    def _findComic(self, name, issue=None, type_=None, mode=None, serinfo=None):
+    def _findComic(self, name, issue=None, type_=None, mode=None, serinfo=None, page=None, pageSize=None):
         # set defaults
         if type_ is None:
             type_ = 'comic'
         if mode is None:
             mode = 'series'
+        if page is not None:
+            try:
+                page = int(page)
+            except (ValueError, TypeError):
+                page = None
+        if pageSize is not None:
+            try:
+                pageSize = int(pageSize)
+            except (ValueError, TypeError):
+                pageSize = None
 
         # Dont do shit if name is missing
         if len(name) == 0:
@@ -1080,13 +1090,13 @@ class Api(object):
             return
 
         if type_ == 'comic' and mode == 'series':
-            searchresults = mb.findComic(name, mode, issue=issue)
+            searchresults = mb.findComic(name, mode, issue=issue, page=page, pageSize=pageSize)
         elif type_ == 'comic' and mode == 'pullseries':
-            searchresults = mb.findComic(name, mode, issue=issue)
+            searchresults = mb.findComic(name, mode, issue=issue, page=page, pageSize=pageSize)
         elif type_ == 'comic' and mode == 'want':
-            searchresults = mb.findComic(name, mode, issue=issue)
+            searchresults = mb.findComic(name, mode, issue=issue, page=page, pageSize=pageSize)
         elif type_ == 'story_arc':
-            searchresults = mb.findComic(name, mode, issue=None, search_type='story_arc')
+            searchresults = mb.findComic(name, mode, issue=None, search_type='story_arc', page=page, pageSize=pageSize)
 
         searchresults = sorted(searchresults, key=itemgetter('comicyear', 'issues'), reverse=True)
         self.data = searchresults
