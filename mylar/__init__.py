@@ -862,8 +862,7 @@ def dbcheck():
     c.execute('CREATE TABLE IF NOT EXISTS notifs(session_id INT, date TEXT, event TEXT, comicid TEXT, comicname TEXT, issuenumber TEXT, seriesyear TEXT, status TEXT, message TEXT, PRIMARY KEY (session_id, date))')
     c.execute('CREATE TABLE IF NOT EXISTS provider_searches(id INTEGER UNIQUE, provider TEXT UNIQUE, type TEXT, lastrun INTEGER, active TEXT, hits INTEGER DEFAULT 0)')
     c.execute('CREATE TABLE IF NOT EXISTS mylar_info(DatabaseVersion INTEGER PRIMARY KEY)')
-    conn.commit
-    c.close
+    conn.commit()
 
     #create some indexes
     c.execute('CREATE INDEX IF NOT EXISTS issues_id on issues(IssueID)')
@@ -1660,6 +1659,7 @@ def dbcheck():
 
     conn.commit()
     c.close()
+    conn.close()
 
     if dynamic_upgrade is True:
         logger.info('Updating db to include some important changes.')
