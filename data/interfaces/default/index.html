@@ -207,7 +207,7 @@
                        "visible": true,
                        "data": "Series",
                        "render":function (data,type,full) {
-                            var comicTitle = full[1] ? String(full[1]) : '';
+                            var comicTitle = full[1] ? String(full[1]) : 'Unknown comic';
                             var comicId = encodeURIComponent(full[10]);
 
                             if (full[12] && full[12] != 'v1'){
