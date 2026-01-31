@@ -6826,6 +6826,7 @@ class WebInterface(object):
                     "launch_browser": helpers.checked(mylar.CONFIG.LAUNCH_BROWSER),
                     "auto_update": helpers.checked(mylar.CONFIG.AUTO_UPDATE),
                     "max_logsize": mylar.CONFIG.MAX_LOGSIZE,
+                    "keep_html_cache": helpers.checked(mylar.CONFIG.KEEP_HTML_CACHE),
                     "annuals_on": helpers.checked(mylar.CONFIG.ANNUALS_ON),
                     "enable_check_folder": helpers.checked(mylar.CONFIG.ENABLE_CHECK_FOLDER),
                     "check_folder": mylar.CONFIG.CHECK_FOLDER,
@@ -7395,7 +7396,7 @@ class WebInterface(object):
 
 
     def configUpdate(self, **kwargs):
-        checked_configs = ['enable_https', 'launch_browser', 'backup_on_start', 'syno_fix', 'auto_update', 'annuals_on', 'api_enabled', 'nzb_startup_search',
+        checked_configs = ['enable_https', 'launch_browser', 'backup_on_start', 'keep_html_cache', 'syno_fix', 'auto_update', 'annuals_on', 'api_enabled', 'nzb_startup_search',
                            'enforce_perms', 'sab_to_mylar', 'torrent_local', 'torrent_seedbox', 'rtorrent_ssl', 'rtorrent_verify', 'rtorrent_startonload',
                            'enable_torrents', 'enable_rss', 'experimental', 'enable_torrent_search', 'enable_32p', 'enable_torznab',
                            'newznab', 'use_minsize', 'use_maxsize', 'ddump', 'failed_download_handling', 'sab_client_post_processing', 'nzbget_client_post_processing',

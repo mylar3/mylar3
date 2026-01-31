@@ -3045,14 +3045,21 @@ def ddl_downloader(queue):
             time.sleep(5)
 
 def ddl_cleanup(record_id):
-   # remove html file from cache if it's successful
-   tlnk = 'getcomics-%s.html' % id
-   try:
-       os.remove(os.path.join(mylar.CONFIG.CACHE_DIR, 'html_cache', tlnk))
-   except Exception as e:
-       logger.fdebug('[HTML-cleanup] Unable to remove html used for item from html_cache folder.'
-                     ' Manual removal required or set `cleanup_cache=True` in the config.ini to'
-                     ' clean cache items on every startup. If this was a Retry - ignore this.')
+    if getattr(mylar.CONFIG, 'KEEP_HTML_CACHE', False):
+        logger.fdebug('[HTML-cleanup] KEEP_HTML_CACHE enabled; skipping removal for %s.', record_id)
+        return
+
+    tlnk = 'getcomics-%s.html' % record_id
+    cache_path = os.path.join(mylar.CONFIG.CACHE_DIR, 'html_cache', tlnk)
+    try:
+        os.remove(cache_path)
+    except FileNotFoundError:
+        logger.fdebug('[HTML-cleanup] %s not found in html_cache. Nothing to remove.', tlnk)
+    except Exception as e:
+        logger.fdebug('[HTML-cleanup] Unable to remove %s from html_cache: %s. '
+                    'Manual removal required or set `cleanup_cache=True` in the config.ini to '
+                    'clean cache items on every startup. If this was a Retry - ignore this.',
+                    tlnk, e)
 
 
 def jd2_queue_monitor(queue):

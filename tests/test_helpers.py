@@ -321,6 +321,15 @@ def test_ddl_cleanup(when, monkeypatch):
     helpers.ddl_cleanup('1234')
     verify(os, times=1).remove(os.path.join(os.getcwd(), "html_cache", "getcomics-1234.html"))
 
+# shouldn't delete if keep html cache is enabled
+@pytest.mark.unit
+def test_ddl_cleanup_keep_cache(monkeypatch):
+    monkeypatch.setattr(mylar, "CONFIG", mylar.config.Config("./nothing"))
+    monkeypatch.setattr(mylar.CONFIG, "CACHE_DIR", os.getcwd(), raising=False)
+    monkeypatch.setattr(mylar.CONFIG, "KEEP_HTML_CACHE", True, raising=False)
+    helpers.ddl_cleanup('1234')
+    verify(os, times=0).remove(os.path.join(os.getcwd(), "html_cache", "getcomics-1234.html"))
+
 
 class MockEnvOnSnatchScript():
     def __enter__(self):

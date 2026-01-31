@@ -97,6 +97,7 @@ _CONFIG_DEFINITIONS = OrderedDict({
     'SHOW_ICONS': (bool, 'General', False),
     'FORMAT_BOOKTYPE': (bool, 'General', True),
     'CLEANUP_CACHE': (bool, 'General', True),
+    'KEEP_HTML_CACHE': (bool, 'General', False),
     'CLEANUP_STRAYS': (bool, 'General', False),
     'SECURE_DIR': (str, 'General', None),
     'ENCRYPT_PASSWORDS': (bool, 'General', False),
