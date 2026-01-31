@@ -146,6 +146,19 @@
         }
         % endif
 
+        function escapeHtml(str) {
+            if (str === null || str === undefined) {
+                return '';
+            }
+
+            return String(str)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#39;');
+        }
+
         $.fn.DataTable.ext.pager.numbers_length = 3;
         function initThisPage() {
             % if alphaindex:
@@ -194,26 +207,24 @@
                        "visible": true,
                        "data": "Series",
                        "render":function (data,type,full) {
+                            var comicTitle = full[1] ? String(full[1]) : '';
+                            var comicId = encodeURIComponent(full[10]);
+
                             if (full[12] && full[12] != 'v1'){
-                                vol = ' ' + full[12];
+                                vol = ' ' + escapeHtml(String(full[12]));
                             } else {
                                 vol = '';
                             }
                             if (full[11]){
-                                bt = ' [' + full[11] + ']';
+                                bt = ' [' + escapeHtml(String(full[11])) + ']';
                             } else {
                                 bt = '';
                             }
-                            if (full[1]){
-                               if (full[1].length > 55){
-                                 cn = full[1].slice(0,55)+"...";
-                               } else {
-                                 cn = full[1];
-                               }
-                               return '<span title="' + full[1] + '"></span><a title="'+ full[1] +'"href="comicDetails?ComicID=' + full[10] + '">' + cn + vol + bt + '</a>';
-                            } else {
-                               return '<span title="' + full[1] + '"></span><a title="'+ full[1] +'"href="comicDetails?ComicID=' + full[10] + '">' + full[1] + '</a>';
-                            }
+
+                            var titleAttr = escapeHtml(comicTitle);
+                            var linkText = escapeHtml(comicTitle.length > 55 ? comicTitle.slice(0,55)+"..." : comicTitle) + vol + bt;
+
+                            return '<span title="' + titleAttr + '"></span><a title="'+ titleAttr +'" href="comicDetails?ComicID=' + comicId + '">' + linkText + '</a>';
                        }
                     },
                     {
