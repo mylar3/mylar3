@@ -76,6 +76,7 @@ from mylar import (
     updater,
     weeklypull,
 )
+from mylar.queues import queue_info
 from mylar.auth import (
     AuthController,
     require,
@@ -4276,7 +4277,7 @@ class WebInterface(object):
                             'jobname': jb['JobName'],
                             'status': status})
             jobresults = tmp
-        queues = helpers.queue_info()
+        queues = queue_info()
         return serve_template(templatename="manage.html", title="Manage", mylarRoot=mylarRoot, jobs=jobresults, queues=queues, scan_info=scan_info)
     manage.exposed = True
 
@@ -7833,7 +7834,7 @@ class WebInterface(object):
         logger.debug("Responding to Prometheus metrics request")
         cherrypy.response.headers['Content-Type'] = "text/plain"
         q_metrics = {name: {} for name in ["alive", "size", "started"]}
-        for q in helpers.queue_info():
+        for q in queue_info():
             normalised_name = q.name.replace("-", "_")
 
             q_metrics["size"][normalised_name] = q.size

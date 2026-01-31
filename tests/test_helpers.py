@@ -313,24 +313,6 @@ def test_weekly_info_format1(patch_datetime, monkeypatch, input, result):
                                            'year': result['year']}
 
 
-@pytest.mark.unit
-def test_ddl_cleanup(when, monkeypatch):
-    monkeypatch.setattr(mylar, "CONFIG", mylar.config.Config("./nothing"))
-    monkeypatch.setattr(mylar.CONFIG, "CACHE_DIR", os.getcwd(), raising=False)
-    when(os).remove(...)
-    helpers.ddl_cleanup('1234')
-    verify(os, times=1).remove(os.path.join(os.getcwd(), "html_cache", "getcomics-1234.html"))
-
-# shouldn't delete if keep html cache is enabled
-@pytest.mark.unit
-def test_ddl_cleanup_keep_cache(monkeypatch):
-    monkeypatch.setattr(mylar, "CONFIG", mylar.config.Config("./nothing"))
-    monkeypatch.setattr(mylar.CONFIG, "CACHE_DIR", os.getcwd(), raising=False)
-    monkeypatch.setattr(mylar.CONFIG, "KEEP_HTML_CACHE", True, raising=False)
-    helpers.ddl_cleanup('1234')
-    verify(os, times=0).remove(os.path.join(os.getcwd(), "html_cache", "getcomics-1234.html"))
-
-
 class MockEnvOnSnatchScript():
     def __enter__(self):
         return self
@@ -620,15 +602,6 @@ def test_where_am_i(monkeypatch, expected_output, ignore_host_return, ENABLE_HTT
 # file_ops
 # tail_that_log
 # check_file_condition
-## Queue Functions to mock
-# postprocess_main
-# search_queue
-# worker_main
-# nzb_monitor
-# cdh_monitor
-# queue_info
-
-
 # TODO: helpers.py: Unused / refactorable functions
 # remove_apikey
 # extract_logline
@@ -650,5 +623,4 @@ def test_where_am_i(monkeypatch, expected_output, ignore_host_return, ENABLE_HTT
 # latestissue_update
 # stupidchk
 # ThreadWithReturnValue class appears unused
-# script_env - never gets callsed wiht pre-process/post-process modes?
 # date_conversion

@@ -41,6 +41,14 @@ from apscheduler.triggers.interval import IntervalTrigger
 import cherrypy
 
 from mylar import logger, versioncheckit, rsscheckit, searchit, weeklypullit, PostProcessor, updater, helpers, sabnzbd
+from mylar.queues import (
+    ddl_downloader,
+    jd2_queue_monitor,
+    nzb_monitor,
+    postprocess_main,
+    search_queue,
+    worker_main,
+)
 
 import mylar.config
 
@@ -731,7 +739,7 @@ def queue_schedule(queuetype, mode):
         if queuetype == 'snatched_queue':
             start(
                 "SNPOOL",
-                helpers.worker_main,
+                worker_main,
                 SNATCHED_QUEUE,
                 "AUTO-SNATCHER",
                 'Auto-Snatch of completed torrents enabled & attempting to background load....',
@@ -748,7 +756,7 @@ def queue_schedule(queuetype, mode):
                 logger.info('[SAB-MONITOR] Completed post-processing handling enabled for SABnzbd. Attempting to background load....')
             elif CONFIG.NZB_DOWNLOADER == 1:
                 logger.info('[NZBGET-MONITOR] Completed post-processing handling enabled for NZBGet. Attempting to background load....')
-            mylar.NZBPOOL = threading.Thread(target=helpers.nzb_monitor, args=(NZB_QUEUE,), name="AUTO-COMPLETE-NZB")
+            mylar.NZBPOOL = threading.Thread(target=nzb_monitor, args=(NZB_QUEUE,), name="AUTO-COMPLETE-NZB")
             mylar.NZBPOOL.start()
             if CONFIG.NZB_DOWNLOADER == 0:
                 logger.info('[AUTO-COMPLETE-NZB] Succesfully started Completed post-processing handling for SABnzbd - will now monitor for completed nzbs within sabnzbd and post-process automatically...')
@@ -758,7 +766,7 @@ def queue_schedule(queuetype, mode):
         elif queuetype == 'search_queue':
             start(
                 "SEARCHPOOL",
-                helpers.search_queue,
+                search_queue,
                 SEARCH_QUEUE,
                 "SEARCH-QUEUE",
                 'Attempting to background load the search queue....',
@@ -767,7 +775,7 @@ def queue_schedule(queuetype, mode):
         elif queuetype == 'pp_queue':
             start(
                 "PPPOOL",
-                helpers.postprocess_main,
+                postprocess_main,
                 PP_QUEUE,
                 "POST-PROCESS-QUEUE",
                 'Post Process queue enabled & monitoring for api requests....',
@@ -776,7 +784,7 @@ def queue_schedule(queuetype, mode):
         elif queuetype == 'ddl_queue':
             start(
                 "DDLPOOL",
-                helpers.ddl_downloader,
+                ddl_downloader,
                 DDL_QUEUE,
                 "DDL-QUEUE",
                 'DDL Download queue enabled & monitoring for requests....',
@@ -785,7 +793,7 @@ def queue_schedule(queuetype, mode):
         elif queuetype == 'jd2_queue':
             start(
                 "JD2POOL",
-                helpers.jd2_queue_monitor,
+                jd2_queue_monitor,
                 JD2_QUEUE,
                 "JD2-QUEUE",
                 'JD2 queue enabled & monitoring for requests....',
