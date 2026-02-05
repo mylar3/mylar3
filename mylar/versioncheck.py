@@ -461,6 +461,8 @@ def versionload(cli_values=None, carepackage_call=False):
         vers = 'M'
     elif mylar.CONFIG.GIT_BRANCH == 'python3-dev':
         vers = 'D'
+    elif mylar.CONFIG.GIT_BRANCH == '1000papercuts':
+        vers = 'E'
     else:
         vers = 'NONE'
 

@@ -21,6 +21,11 @@ Please try to limit Github issues to bugs & enhancement requests ONLY
 - [Github](https://github.com/mylar3/mylar3/issues) (Bug & Feature requests only)
 - [Forums](https://forum.mylarcomics.com)
 
+## Development
+We welcome contributions! At present we ask that you submit changes to the 1000papercuts branch. 
+The python3-dev branch is considered stable and we will merge 1000papercuts to it on a regular 
+basis once given changes have been proven.
+
 ## Live Support / Conversation
 - [Discord](https://discord.gg/6UG94R7E8T)
 - [IRC](https://web.libera.chat/?channels=#mylar)

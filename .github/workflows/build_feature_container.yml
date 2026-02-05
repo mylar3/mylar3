@@ -7,6 +7,7 @@ on:
         branches-ignore:
             - 'master'
             - 'python3-dev'
+            - '1000papercuts'
 
 # Cancel previous run on this branch if a new push is made
 concurrency:

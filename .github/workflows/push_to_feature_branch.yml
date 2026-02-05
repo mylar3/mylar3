@@ -6,12 +6,13 @@ permissions:
   deployments: write
   statuses: read
 
-# Run on any branch that isn't master or p3-dev
+# Run on any branch that isn't master or a dev branch
 on:
     push:
         branches-ignore:
             - 'master'
             - 'python3-dev'
+            - '1000papercuts'
 
 # Cancel previous run on this branch if a new push is made
 concurrency:
@@ -20,6 +21,7 @@ concurrency:
 
 jobs:
     build_and_test:
+        if: ${{ github.repository != 'mylar3/mylar3' }}
         strategy:
             fail-fast: true
             matrix:
