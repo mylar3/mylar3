@@ -1591,14 +1591,14 @@ class Config(object):
                         ct_lines = ct_read.readlines()
 
                     process_next = False
-                    cv_line = 'cv_user_agent = %s' % self.CV_USER_AGENT
+                    cv_line = f'cv_user_agent = {self.CV_USER_AGENT}\n'
                     with codecs.open(ct_settingsfile, encoding='utf8', mode='w+') as ct_file:
                         for line in ct_lines:
                             if 'cv_user_agent' in line:
                                 line = cv_line
 
                             elif '[comicvine]' not in line and process_next:
-                                ct_file.write(cv_line+'\n')
+                                ct_file.write(cv_line)
                                 process_next = False
 
                             if tmp_agent is None and '[comicvine]' in line:
