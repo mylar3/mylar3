@@ -100,7 +100,8 @@
                          prev_active = $('span.active').attr('value')
                     }
 
-                    if (container.children('span').length > 0) {
+                    if (container.children('span').length > 0
+                        && typeof data !== 'undefined') {
                         for (const [letter, value] of Object.entries(data)) {
                             let span = $('#alphabetSearch > span[value="' + letter + '"')
                             
@@ -110,22 +111,24 @@
                                 .addClass(value > 0 ? '' : 'empty');
                         }
                     } else {
-                        container.empty()
-                        container.append('Search: ');
+                        if (typeof data !== 'undefined') {
+                            container.empty()
+                            container.append('Search: ');
 
-                        for (const [letter, value] of Object.entries(data)) {
-                        $('<span>')
-                            .attr( 'count', value)
-                            .attr( 'value', letter)
-                            .html(letter.length > 1 ? letter : letter.toUpperCase())
-                            .addClass(value > 0 ? '' : 'empty')
-                            .appendTo(container);
+                            for (const [letter, value] of Object.entries(data)) {
+                            $('<span>')
+                                .attr( 'count', value)
+                                .attr( 'value', letter)
+                                .html(letter.length > 1 ? letter : letter.toUpperCase())
+                                .addClass(value > 0 ? '' : 'empty')
+                                .appendTo(container);
+                            }
+
+                            $('<div class="alphabetInfo" id="alphabetInfo"></div>')
+                                .appendTo( container );
+
+                            attachAlphaEvents();
                         }
-
-                        $('<div class="alphabetInfo" id="alphabetInfo"></div>')
-                            .appendTo( container );
-
-                        attachAlphaEvents();
                     }
 
                     setActive(prev_active);
