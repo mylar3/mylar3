@@ -868,6 +868,23 @@
                                           </div>
                                        </div>
                                        %endif
+                                       <div class="row checkbox left clearfix">
+                                            <input type="checkbox" id="enable_easynews" onclick="initConfigCheckbox($(this));" name="enable_easynews" value="1" ${config['enable_easynews']} /><label>Enable Easynews</label>
+                                       </div>
+                                       <div id="easynews_options" style="display:none">
+                                           <div class="row">
+                                              <label>Username</label>
+                                              <input type="text" name="easynews_username" id="easynews_username" value="${config['easynews_username']}" size="30">
+                                           </div>
+                                           <div class="row">
+                                              <label>Password</label>
+                                              <input type="password" name="easynews_password" id="easynews_password" value="${config['easynews_password']}" size="30">
+                                           </div>
+                                           <div align="center" class="row">
+                                              <input type="button" value="Test Easynews" id="test_easynews" />
+                                              <input type="text" name="easynewsstatus" id="easynewsstatus" style="text-align:center;font-size:11px;color:white;" size="50" DISABLED />
+                                           </div>
+                                       </div>
                                    </div>
                                 </div>
                         </fieldset>
@@ -2109,6 +2126,34 @@
                                 //document.getElementById("enable_getcomics").checked = false;
                                 $("#external_options").slideUp();
                         }
+                });
+
+                if ($("#enable_easynews").is(":checked"))
+                        {
+                                $("#easynews_options").show();
+                        }
+                else    {
+                                $("#easynews_options").hide();
+                        }
+
+                $("#enable_easynews").click(function(){
+                        if ($("#enable_easynews").is(":checked"))
+                        {
+                                $("#easynews_options").slideDown();
+                        }
+                        else
+                        {
+                                $("#easynews_options").slideUp();
+                        }
+                });
+
+                $('#test_easynews').click(function(){
+                    var username = $("#easynews_username").val();
+                    var password = $("#easynews_password").val();
+                    $.get("testeasynews", {username: username, password: password}, function(data){
+                        var obj = JSON.parse(data);
+                        $('#easynewsstatus').val(obj['message']);
+                    });
                 });
 
                 if ($("#cbr2cbz_only").is(":checked"))

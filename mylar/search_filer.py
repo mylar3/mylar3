@@ -143,6 +143,14 @@ class search_check(object):
                                     comsize_b = None
                                 else:
                                     comsize_b = helpers.human2bytes(entry['size'])
+                        elif entry['site'] == 'DDL(Easynews)':
+                            comsize_b = entry['size']
+                            if comsize_b is not None:
+                                cb2 = re.sub(r'[^0-9]', '', str(comsize_b)).strip()
+                                if cb2 == '':
+                                    comsize_b = None
+                                else:
+                                    comsize_b = helpers.human2bytes(entry['size'])
                         elif entry['site'] == 'DDL(External)':
                             comsize_b = '0' #External links ! filesize
                     except Exception:

@@ -31,6 +31,7 @@ from mylar import (
     search_filer,
     getcomics,
     downloaders,
+    easynews,
 )
 from mylar.downloaders import external_server as exs
 
@@ -278,6 +279,11 @@ def search_init(
                         searchprov['DDL(External)'] = ({'id': 201, 'type': 'DDL(External)', 'lastrun': 0, 'active': True, 'hits': 0})
                     else:
                         searchprov['DDL(External)']['active'] = True
+                elif prov_order[prov_count] == 'DDL(Easynews)' and not provider_blocked and 'DDL(Easynews)' not in checked_once:
+                    if 'DDL(Easynews)' not in searchprov.keys():
+                        searchprov['DDL(Easynews)'] = ({'id': 202, 'type': 'DDL', 'lastrun': 0, 'active': True, 'hits': 0})
+                    else:
+                        searchprov['DDL(Easynews)']['active'] = True
                 elif prov_order[prov_count] == '32p' and not provider_blocked:
                     searchprov['32P'] = ({'type': 'torrent', 'lastrun': 0, 'active': True, 'hits': 0})
                 elif prov_order[prov_count].lower() == 'experimental' and not provider_blocked and 'experimental' not in checked_once:
@@ -624,6 +630,15 @@ def provider_order(initial_run=False):
             ddlprovider.append('DDL(External)')
             ddls+=1
 
+        if all(
+            [
+                mylar.CONFIG.ENABLE_EASYNEWS is True,
+                not helpers.block_provider_check('DDL(Easynews)'),
+            ]
+        ):
+            ddlprovider.append('DDL(Easynews)')
+            ddls+=1
+
     if initial_run:
         logger.fdebug('nzbprovider(s): %s' % nzbprovider)
     # --------
@@ -959,6 +974,12 @@ def NZB_SEARCH(
             elif nzbprov == 'DDL(External)':
                 b = exs.MegaNZ(query='%s' % ComicName, provider_stat=provider_stat)
                 verified_matches = b.ddl_search(is_info=is_info)
+            elif nzbprov == 'DDL(Easynews)':
+                fline = {'comicname': findcomic,
+                         'issue':     isssearch,
+                         'year':      comyear}
+                b = easynews.Easynews(query=fline, provider_stat=provider_stat)
+                verified_matches = b.search(is_info=is_info)
             #logger.fdebug('bb returned from %s: %s' % (nzbprov, verified_matches))
 
         elif RSS == "yes" and 'DDL(External)' not in nzbprov:
@@ -3146,6 +3167,49 @@ def searcher(
             else:
                 logger.info('[%s] Failed to retrieve %s from the DDL site.' % (tnzbprov, nzbname))
                 return "ddl-fail"
+        elif nzbprov == 'DDL(Easynews)':
+            mod_id = nzbid
+            ctrlval = {'id': mod_id}
+            vals = {
+                'series': comicinfo[0]['ComicName'],
+                'year': comicinfo[0]['comyear'],
+                'size': comicinfo[0].get('size', '0'),
+                'issues': comicinfo[0]['IssueNumber'],
+                'issueid': tmp_issueid,
+                'comicid': ComicID,
+                'link': link,
+                'mainlink': link,
+                'site': 'DDL(Easynews)',
+                'pack': 0,
+                'link_type': 'EN-Direct',
+                'updated_date': datetime.datetime.now().strftime('%Y-%m-%d %H:%M'),
+                'status': 'Queued',
+            }
+            myDB = db.DBConnection()
+            myDB.upsert('ddl_info', vals, ctrlval)
+
+            mylar.DDL_QUEUE.put({
+                'link': link,
+                'mainlink': link,
+                'series': comicinfo[0]['ComicName'],
+                'year': comicinfo[0]['comyear'],
+                'size': comicinfo[0].get('size', '0'),
+                'comicid': ComicID,
+                'issueid': tmp_issueid,
+                'oneoff': oneoff,
+                'id': mod_id,
+                'link_type': 'EN-Direct',
+                'filename': nzbname,
+                'comicinfo': comicinfo,
+                'packinfo': pack_info,
+                'site': 'DDL(Easynews)',
+                'remote_filesize': 0,
+                'resume': None,
+            })
+            tnzbprov = 'DDL(Easynews)'
+            ddl_it = {'success': True, 'site': 'EN-Direct'}
+            logger.info('[%s] Successfully queued %s for download in position %s'
+                        % (tnzbprov, nzbname, mylar.DDL_QUEUE.qsize()))
         else:
             cinfo = {'id': nzbid,
                      'series': comicinfo[0]['ComicName'],
