@@ -105,6 +105,35 @@ class Easynews(object):
                 logger.fdebug('[DDL(Easynews)] sleep...%s%s' % (mylar.CONFIG.DDL_QUERY_DELAY, 's'))
                 time.sleep(mylar.CONFIG.DDL_QUERY_DELAY)
 
+            # Fallback: try normalized title (e.g. "Aliens Predator ..." for "Aliens vs. Predator ...")
+            # so we find files named without "vs." or with different punctuation
+            if not verified_matches and is_info is not None:
+                normalized_name = re.sub(r'\s*vs\.?\s*', ' ', self.query['comicname'], flags=re.I)
+                normalized_name = re.sub(r'\s*-\s*', ' ', normalized_name)
+                normalized_name = re.sub(r'\s+', ' ', normalized_name).strip()
+                if normalized_name != self.query['comicname']:
+                    for fmt in ['%s #%s', '%s %s']:
+                        sf_issue = self.query['issue']
+                        if any([self.query['issue'] == 'None', self.query['issue'] is None]):
+                            sf_issue = None
+                        if fmt == '%s %s' and sf_issue is not None:
+                            queryline = fmt % (normalized_name, sf_issue)
+                        elif fmt == '%s #%s' and sf_issue is not None:
+                            queryline = fmt % (normalized_name, sf_issue)
+                        else:
+                            continue
+                        logger.fdebug('[DDL(Easynews)-QUERY] Fallback query (normalized): %s' % queryline)
+                        result_generator = self.perform_search_queries(queryline)
+                        sfs = search_filer.search_check()
+                        match = sfs.check_for_first_result(
+                            result_generator, is_info, prefer_pack=False
+                        )
+                        if match is not None:
+                            verified_matches = [match]
+                            logger.fdebug('[DDL(Easynews)] verified_matches (normalized query): %s' % (verified_matches,))
+                            break
+                        time.sleep(mylar.CONFIG.DDL_QUERY_DELAY)
+
         except requests.exceptions.Timeout as e:
             logger.warn('[DDL(Easynews)] Timeout occured fetching data: %s' % e)
             return 'no results'

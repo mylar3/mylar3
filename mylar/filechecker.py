@@ -108,7 +108,7 @@ class FileChecker(object):
 
         self.failed_files = []
         self.dynamic_handlers = ['/','-',':',';','\'','"',',','&','?','!','+','*','(',')','\\u2014','\\u2013','\\u2019']
-        self.dynamic_replacements = ['and','the']
+        self.dynamic_replacements = ['and', 'the', 'vs.']
         self.rippers = ['-empire','-empire-hd','minutemen-','-dcp','Glorith-HD']
 
         #pre-generate the AS_Alternates now
