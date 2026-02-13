@@ -3033,14 +3033,34 @@ def ddl_downloader(queue):
                         nval = {'status':  'Failed',
                                 'updated_date': datetime.datetime.now().strftime('%Y-%m-%d %H:%M')}
                         myDB.upsert('ddl_info', nval, ctrlval)
-                        #undo all snatched items, to previous status via item['id'] - this will be set to Skipped currently regardless of previous status
+                        # undo all snatched items, to previous status via item['id']
+                        # pack siblings are set to Skipped (opportunistic); individual issue
+                        # is set to Wanted below so it can be retried via usenet/torrent
                         reverse_the_pack_snatch(item['id'], item['comicid'])
+                        # also reset individual issue status so it can be retried via other providers
+                        if item['issueid'] is not None:
+                            myDB.upsert("issues", {"Status": "Wanted"}, {"IssueID": item['issueid']})
+                            logger.info('[DDL-FAILURE] Reset issue %s status to Wanted so it can be retried via usenet/torrent providers' % item['issueid'])
                         link_type_failure.pop(item['id'])
                         ddl_cleanup(item['id'])
+                        try:
+                            mylar.DDL_QUEUED.remove(item['id'])
+                        except ValueError:
+                            pass
                 else:
                     logger.info('[Status: %s] Failed to download item from %s : %s ' % (ddzstat['success'], item['site'], ddzstat))
                     myDB.action('DELETE FROM ddl_info where id=?', [item['id']])
                     mylar.search.FailedMark(item['issueid'], item['comicid'], item['id'], ddzstat['filename'], item['site'])
+                    # reset issue status so it can be retried via other providers
+                    # (FailedMark sets status to Failed; override back to Wanted for retry)
+                    if item['issueid'] is not None:
+                        myDB.upsert("issues", {"Status": "Wanted"}, {"IssueID": item['issueid']})
+                        logger.info('[DDL-FAILURE] Reset issue %s status to Wanted so it can be retried via usenet/torrent providers' % item['issueid'])
+                    ddl_cleanup(item['id'])
+                    try:
+                        mylar.DDL_QUEUED.remove(item['id'])
+                    except ValueError:
+                        pass
         else:
             time.sleep(5)
 
