@@ -2704,7 +2704,7 @@ def weekly_info(week=None, year=None, current=None):
     if todaydate.year == 2025:
         current_weeknumber = todaydate.isocalendar()[1]
     else:
-        current_weeknumber = todaydate.strftime("%U")
+        current_weeknumber = int(todaydate.strftime("%U"))
     if current is not None:
         c_weeknumber = int(current[:current.find('-')])
         c_weekyear = int(current[current.find('-')+1:])

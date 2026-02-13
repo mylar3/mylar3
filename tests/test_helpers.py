@@ -277,7 +277,7 @@ def test_weekly_info_format0(patch_datetime, monkeypatch, input, result):
     monkeypatch.setattr(mylar.CONFIG, "DESTINATION_DIR", os.getcwd(), raising=False)
     monkeypatch.setattr(mylar.CONFIG, "WEEKFOLDER_FORMAT", 0, raising=False)
 
-    assert helpers.weekly_info(*input) == {'current_weeknumber': '51',
+    assert helpers.weekly_info(*input) == {'current_weeknumber': 51,
                                            'endweek': result['endweek'],
                                            'last_update': result['last_update'],
                                            'midweek': result['midweek'],
@@ -299,7 +299,7 @@ def test_weekly_info_format1(patch_datetime, monkeypatch, input, result):
     monkeypatch.setattr(mylar.CONFIG, "DESTINATION_DIR", os.getcwd(), raising=False)
     monkeypatch.setattr(mylar.CONFIG, "WEEKFOLDER_FORMAT", 1, raising=False)
 
-    assert helpers.weekly_info(*input) == {'current_weeknumber': '51',
+    assert helpers.weekly_info(*input) == {'current_weeknumber': 51,
                                            'endweek': result['endweek'],
                                            'last_update': result['last_update'],
                                            'midweek': result['midweek'],
