@@ -86,6 +86,7 @@
 		<ul>
 			<li><a href="#tabs-1">Comic Details</a></li>
                         <li><a href="#tabs-2">Edit Settings</a></li>
+			<li><a href="#tabs-3">Bookshelf</a></li>
                 </ul>
 
        <div id="tabs-1">
@@ -450,6 +451,24 @@
              </tr>
             </table>
            </div>
+        <div id="tabs-3" class="bookshelf-tab">
+             <div class="bookshelf-toolbar">
+                 <label class="bookshelf-size-label">Cover size:</label>
+                 <input type="range" id="bookshelf_size_slider" class="bookshelf-size-slider" min="0" max="100" value="50" title="Adjust cover size" />
+             </div>
+             <div id="bookshelf_grid" class="bookshelf-grid"></div>
+             <p id="bookshelf_loading" class="bookshelf-loading">Loading…</p>
+             <p id="bookshelf_empty" class="bookshelf-empty" style="display:none;">No issues for this series.</p>
+             <div id="bookshelf_lightbox" class="bookshelf-lightbox" role="dialog" aria-modal="true" aria-label="Cover preview" tabindex="-1" style="display:none;">
+                 <button type="button" class="bookshelf-lightbox-close" aria-label="Close">&times;</button>
+                 <button type="button" class="bookshelf-lightbox-prev" aria-label="Previous">&larr;</button>
+                 <button type="button" class="bookshelf-lightbox-next" aria-label="Next">&rarr;</button>
+                 <div class="bookshelf-lightbox-content">
+                     <img id="bookshelf_lightbox_img" src="" alt="" />
+                     <p id="bookshelf_lightbox_caption" class="bookshelf-lightbox-caption"></p>
+                 </div>
+             </div>
+        </div>
  </div>
 
   <div>
@@ -601,6 +620,104 @@
         .ui-autocomplete-loading {
           background: white url('images/loader_black.gif') right center no-repeat;
         }
+        .bookshelf-toolbar {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          padding: 8px 0 12px 0;
+        }
+        .bookshelf-size-label { color: #ccc; font-size: 13px; }
+        .bookshelf-size-slider { width: 120px; }
+        .bookshelf-grid {
+          display: grid;
+          grid-template-columns: repeat(auto-fill, minmax(var(--bookshelf-cover-min, 140px), 1fr));
+          gap: 12px;
+          padding: 12px 0;
+        }
+        .bookshelf-card {
+          text-align: center;
+          background: rgba(0,0,0,0.2);
+          border-radius: 6px;
+          overflow: hidden;
+          cursor: pointer;
+          min-width: 0;
+        }
+        .bookshelf-card img {
+          width: 100%;
+          height: auto;
+          display: block;
+          min-height: 160px;
+          object-fit: cover;
+        }
+        .bookshelf-card .bookshelf-label {
+          padding: 6px 4px;
+          font-size: 12px;
+          color: #ccc;
+        }
+        .bookshelf-loading { color: #aaa; padding: 1em; }
+        .bookshelf-empty { color: #888; padding: 2em; }
+        .bookshelf-lightbox {
+          position: fixed;
+          inset: 0;
+          z-index: 10000;
+          background: rgba(0,0,0,0.92);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+        }
+        .bookshelf-lightbox-content {
+          position: relative;
+          max-width: 95vw;
+          max-height: 95vh;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+        }
+        .bookshelf-lightbox-content img {
+          max-width: 95vw;
+          max-height: 85vh;
+          object-fit: contain;
+        }
+        .bookshelf-lightbox-caption {
+          color: #eee;
+          margin-top: 8px;
+          font-size: 14px;
+        }
+        .bookshelf-lightbox-close {
+          position: absolute;
+          top: 16px;
+          right: 20px;
+          z-index: 10001;
+          background: rgba(255,255,255,0.15);
+          border: none;
+          color: #fff;
+          font-size: 32px;
+          line-height: 1;
+          width: 44px;
+          height: 44px;
+          border-radius: 50%;
+          cursor: pointer;
+        }
+        .bookshelf-lightbox-close:hover { background: rgba(255,255,255,0.3); }
+        .bookshelf-lightbox-prev,
+        .bookshelf-lightbox-next {
+          position: absolute;
+          top: 50%;
+          transform: translateY(-50%);
+          z-index: 10001;
+          background: rgba(255,255,255,0.15);
+          border: none;
+          color: #fff;
+          font-size: 28px;
+          width: 48px;
+          height: 48px;
+          border-radius: 8px;
+          cursor: pointer;
+        }
+        .bookshelf-lightbox-prev { left: 20px; }
+        .bookshelf-lightbox-next { right: 20px; }
+        .bookshelf-lightbox-prev:hover,
+        .bookshelf-lightbox-next:hover { background: rgba(255,255,255,0.3); }
         </style>
         <script>
         var collapsedGroups = {};
@@ -1413,6 +1530,158 @@
             return document.getElementById("ComicID").value;
         }
 
+        var bookshelfCache = {};
+        function loadBookshelf() {
+            var comicid = retrieve_comicid();
+            var grid = $('#bookshelf_grid');
+            var loading = $('#bookshelf_loading');
+            var empty = $('#bookshelf_empty');
+            if (!comicid) {
+                console.warn('Bookshelf: no ComicID (element #ComicID not found or empty)');
+                loading.hide();
+                empty.show();
+                empty.text('No series selected.');
+                return;
+            }
+            grid.empty();
+            loading.show();
+            empty.hide();
+            empty.text('No issues for this series.');
+            if (bookshelfCache[comicid]) {
+                loading.hide();
+                if (!bookshelfCache[comicid].length) {
+                    empty.show();
+                } else {
+                    renderBookshelf(grid, bookshelfCache[comicid]);
+                }
+                return;
+            }
+            $.ajax({
+                url: 'loadBookshelfIssues',
+                data: { ComicID: comicid },
+                dataType: 'json',
+                success: function(issues) {
+                    loading.hide();
+                    if (!Array.isArray(issues)) {
+                        empty.show();
+                        return;
+                    }
+                    bookshelfCache[comicid] = issues;
+                    if (issues.length === 0) {
+                        empty.show();
+                        return;
+                    }
+                    renderBookshelf(grid, issues);
+                },
+                error: function(xhr, status, err) {
+                    loading.hide();
+                    empty.show();
+                    empty.text('Could not load issues (' + (xhr.status || status) + '). Check console.');
+                    console.warn('Bookshelf loadBookshelfIssues failed:', xhr.status, xhr.responseText, err);
+                }
+            });
+        }
+        var currentBookshelfIssues = [];
+        function renderBookshelf(grid, issues) {
+            currentBookshelfIssues = issues;
+            applyBookshelfSize();
+            issues.forEach(function(issue, index) {
+                var card = $('<div class="bookshelf-card" data-index="' + index + '"></div>');
+                var label = $('<div class="bookshelf-label"></div>').text('#' + (issue.Issue_Number || ''));
+                var img = $('<img loading="lazy" alt="' + (issue.IssueName || '').replace(/"/g, '&quot;') + '" />');
+                if (issue.cover_url) {
+                    img.attr('src', issue.cover_url);
+                } else if (issue.IssueID) {
+                    img.attr('src', 'images/blank.gif');
+                    img.attr('data-issue-id', issue.IssueID);
+                } else {
+                    img.attr('src', 'images/blank.gif');
+                }
+                card.append(img).append(label);
+                grid.append(card);
+            });
+            grid.off('click', '.bookshelf-card').on('click', '.bookshelf-card', function() {
+                var idx = parseInt($(this).data('index'), 10);
+                openBookshelfLightbox(idx);
+            });
+            var observer = new IntersectionObserver(function(entries) {
+                entries.forEach(function(entry) {
+                    if (!entry.isIntersecting) return;
+                    var img = $(entry.target);
+                    var issueId = img.attr('data-issue-id');
+                    if (!issueId) return;
+                    img.removeAttr('data-issue-id');
+                    $.getJSON('getIssueCover', { IssueID: issueId }, function(data) {
+                        if (data && data.image_url) {
+                            img.attr('src', data.image_url);
+                        }
+                    });
+                });
+            }, { rootMargin: '100px', threshold: 0.01 });
+            grid.find('img[data-issue-id]').each(function() {
+                observer.observe(this);
+            });
+        }
+        var bookshelfLightboxIndex = 0;
+        function openBookshelfLightbox(index) {
+            if (!currentBookshelfIssues.length) return;
+            bookshelfLightboxIndex = (index + currentBookshelfIssues.length) % currentBookshelfIssues.length;
+            var issue = currentBookshelfIssues[bookshelfLightboxIndex];
+            var src = issue.cover_url || $('#bookshelf_grid .bookshelf-card[data-index="' + bookshelfLightboxIndex + '"] img').attr('src');
+            if (!src || src.indexOf('blank.gif') !== -1) {
+                showBookshelfLightboxImage('', issue);
+                $('#bookshelf_lightbox').show();
+                setTimeout(function() { $('#bookshelf_lightbox').focus(); }, 50);
+                if (issue.IssueID) {
+                    $.getJSON('getIssueCover', { IssueID: issue.IssueID }, function(data) {
+                        if (data && data.image_url) {
+                            issue.cover_url = data.image_url;
+                            $('#bookshelf_lightbox_img').attr('src', data.image_url);
+                        }
+                    });
+                }
+            } else {
+                showBookshelfLightboxImage(src, issue);
+                $('#bookshelf_lightbox').show();
+                setTimeout(function() { $('#bookshelf_lightbox').focus(); }, 50);
+            }
+        }
+        function showBookshelfLightboxImage(src, issue) {
+            var $img = $('#bookshelf_lightbox_img');
+            var $cap = $('#bookshelf_lightbox_caption');
+            $img.attr('src', src || 'images/blank.gif');
+            $cap.text('#' + (issue.Issue_Number || '') + (issue.IssueName ? ' – ' + issue.IssueName : ''));
+        }
+        function bookshelfLightboxPrev() {
+            if (currentBookshelfIssues.length) openBookshelfLightbox(bookshelfLightboxIndex - 1);
+        }
+        function bookshelfLightboxNext() {
+            if (currentBookshelfIssues.length) openBookshelfLightbox(bookshelfLightboxIndex + 1);
+        }
+        function applyBookshelfSize() {
+            var s = document.getElementById('bookshelf_size_slider');
+            var g = document.getElementById('bookshelf_grid');
+            if (!s || !g) return;
+            var v = parseInt(s.value || 50, 10);
+            var minPx = Math.round(80 + (v / 100) * 270);
+            g.style.setProperty('--bookshelf-cover-min', minPx + 'px');
+        }
+        $(document).ready(function() {
+            $(document).on('input change', '#bookshelf_size_slider', applyBookshelfSize);
+            applyBookshelfSize();
+            $('#bookshelf_lightbox').on('click', function(e) {
+                if (e.target === this) $(this).hide();
+            }).on('keydown', function(e) {
+                if (!$(this).is(':visible')) return;
+                if (e.key === 'Escape') { $(this).hide(); return; }
+                if (e.key === 'ArrowLeft') { e.preventDefault(); bookshelfLightboxPrev(); }
+                if (e.key === 'ArrowRight') { e.preventDefault(); bookshelfLightboxNext(); }
+            });
+            $('.bookshelf-lightbox-close').on('click', function() { $('#bookshelf_lightbox').hide(); });
+            $('.bookshelf-lightbox-prev').on('click', function(e) { e.stopPropagation(); bookshelfLightboxPrev(); });
+            $('.bookshelf-lightbox-next').on('click', function(e) { e.stopPropagation(); bookshelfLightboxNext(); });
+        });
+
         function skipped2wanted() {
             var comicid = retrieve_comicid();
             $.when($.ajax({
@@ -1640,6 +1909,11 @@
                 }
                 $( "#tabs" ).tabs({
                     cache: false,
+                    activate: function(event, ui) {
+                        if (ui.newTab.index() === 2) {
+                            loadBookshelf();
+                        }
+                    }
                 });
                 $("#menu_link_delete").click(openDelete);
                 initActions();
@@ -2121,6 +2395,9 @@
             $("#tabs > ul > li > a").each(function (index, element) {
                 $(element).click(function() {
                     $('#tabs').tabs('load', index);
+                    if (index === 2) {
+                        loadBookshelf();
+                    }
                 });
             });
 

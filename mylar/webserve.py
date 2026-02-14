@@ -928,6 +928,72 @@ class WebInterface(object):
         })
     loadIssueDetails.exposed = True
 
+    def loadBookshelfIssues(self, ComicID=None, **kwargs):
+        """Return issue list for bookshelf view: IssueID, Issue_Number, IssueName, Status, cover_url (from DB ImageURL)."""
+        if ComicID is None:
+            ComicID = kwargs.get('ComicID')
+        if not ComicID:
+            logger.warn('[BOOKSHELF] loadBookshelfIssues called without ComicID')
+            return json.dumps([])
+        logger.info('[BOOKSHELF] loadBookshelfIssues ComicID=%s' % ComicID)
+        try:
+            myDB = db.DBConnection()
+            query = 'SELECT IssueID, Issue_Number, IssueName, Status, ImageURL, Int_IssueNumber FROM issues WHERE ComicID=? ORDER BY Int_IssueNumber ASC'
+            issueslist = myDB.select(query, [ComicID])
+            issues = []
+            for row in issueslist:
+                x = dict(row)  # sqlite3.Row has no .get(); convert to dict
+                if x.get('IssueID') is None and x.get('Issue_Number') is None:
+                    continue
+                issues.append({
+                    'IssueID': x.get('IssueID'),
+                    'Issue_Number': x.get('Issue_Number') or '',
+                    'IssueName': x.get('IssueName') or '',
+                    'Status': x.get('Status') or '',
+                    'cover_url': x.get('ImageURL') or None,
+                    'sort_key': x.get('Int_IssueNumber') if x.get('Int_IssueNumber') is not None else 0,
+                })
+            if getattr(mylar.CONFIG, 'ANNUALS_ON', False):
+                annualslist = myDB.select(
+                    "SELECT IssueID, Issue_Number, IssueName, Status, Int_IssueNumber FROM annuals WHERE ComicID=? AND NOT Deleted ORDER BY Int_IssueNumber ASC",
+                    [ComicID])
+                for row in annualslist:
+                    a = dict(row)
+                    issues.append({
+                        'IssueID': a.get('IssueID'),
+                        'Issue_Number': a.get('Issue_Number') or '',
+                        'IssueName': a.get('IssueName') or '',
+                        'Status': a.get('Status') or '',
+                        'cover_url': None,
+                        'sort_key': a.get('Int_IssueNumber') if a.get('Int_IssueNumber') is not None else 0,
+                    })
+            issues.sort(key=lambda i: i.get('sort_key', 0))
+            for i in issues:
+                i.pop('sort_key', None)
+            return json.dumps(issues)
+        except Exception as e:
+            logger.exception('[BOOKSHELF] loadBookshelfIssues failed: %s' % e)
+            return json.dumps([])
+    loadBookshelfIssues.exposed = True
+
+    def getIssueCover(self, IssueID):
+        """Return Comic Vine cover URL for an issue (from DB if present, else fetch from CV API). Used for bookshelf on-demand loading."""
+        if not IssueID:
+            return json.dumps({'image_url': None})
+        myDB = db.DBConnection()
+        row = myDB.selectone('SELECT ImageURL FROM issues WHERE IssueID=?', [IssueID]).fetchone()
+        if row and row.get('ImageURL'):
+            return json.dumps({'image_url': row['ImageURL']})
+        try:
+            issueid = str(IssueID).replace('4000-', '').strip()
+            issue_data = mylar.cv.getComic(None, 'single_issue', issueid=issueid)
+            if issue_data and issue_data.get('image'):
+                return json.dumps({'image_url': issue_data['image']})
+        except Exception as e:
+            logger.fdebug('getIssueCover %s: %s' % (IssueID, e))
+        return json.dumps({'image_url': None})
+    getIssueCover.exposed = True
+
     def loadAnnualDetails(self, ComicID=None, iDisplayStart=0, iDisplayLength=25, iSortCol_0=0, sSortDir_0="desc", sSearch="", **kwargs):
         #logger.info('comicid: %s' % ComicID)
         if ComicID is None:
