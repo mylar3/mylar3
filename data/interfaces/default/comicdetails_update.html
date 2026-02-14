@@ -639,7 +639,6 @@
           background: rgba(0,0,0,0.2);
           border-radius: 6px;
           overflow: hidden;
-          cursor: pointer;
           min-width: 0;
         }
         .bookshelf-card img {
@@ -648,11 +647,26 @@
           display: block;
           min-height: 160px;
           object-fit: cover;
+          cursor: pointer;
         }
         .bookshelf-card .bookshelf-label {
           padding: 6px 4px;
           font-size: 12px;
           color: #ccc;
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+        }
+        .bookshelf-card .bookshelf-download {
+          padding: 2px 4px;
+          cursor: pointer;
+        }
+        .bookshelf-card .bookshelf-download img {
+          width: 16px;
+          height: 16px;
+          min-height: auto;
+          display: inline;
+          vertical-align: middle;
         }
         .bookshelf-loading { color: #aaa; padding: 1em; }
         .bookshelf-empty { color: #888; padding: 2em; }
@@ -1587,7 +1601,14 @@
             applyBookshelfSize();
             issues.forEach(function(issue, index) {
                 var card = $('<div class="bookshelf-card" data-index="' + index + '"></div>');
-                var label = $('<div class="bookshelf-label"></div>').text('#' + (issue.Issue_Number || ''));
+                var label = $('<div class="bookshelf-label"></div>');
+                var numSpan = $('<span></span>').text('#' + (issue.Issue_Number || ''));
+                label.append(numSpan);
+                if (issue.Status === 'Downloaded' && issue.IssueID) {
+                    var dlLink = $('<a class="bookshelf-download" href="downloadthis?issueid=' + issue.IssueID + '" title="Download this issue"></a>');
+                    dlLink.append($('<img src="images/download_icon.png" alt="Download" />'));
+                    label.append(dlLink);
+                }
                 var img = $('<img loading="lazy" alt="' + (issue.IssueName || '').replace(/"/g, '&quot;') + '" />');
                 if (issue.cover_url) {
                     img.attr('src', issue.cover_url);
@@ -1598,9 +1619,10 @@
                     img.attr('src', 'images/blank.gif');
                 }
                 card.append(img).append(label);
+                img.data('index', index);
                 grid.append(card);
             });
-            grid.off('click', '.bookshelf-card').on('click', '.bookshelf-card', function() {
+            grid.off('click', '.bookshelf-card img').on('click', '.bookshelf-card img', function() {
                 var idx = parseInt($(this).data('index'), 10);
                 openBookshelfLightbox(idx);
             });
