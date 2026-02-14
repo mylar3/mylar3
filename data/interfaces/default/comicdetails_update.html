@@ -453,8 +453,11 @@
            </div>
         <div id="tabs-3" class="bookshelf-tab">
              <div class="bookshelf-toolbar">
-                 <label class="bookshelf-size-label">Cover size:</label>
-                 <input type="range" id="bookshelf_size_slider" class="bookshelf-size-slider" min="0" max="100" value="50" title="Adjust cover size" />
+                 <span id="bookshelf_pagination" class="bookshelf-pagination"></span>
+                 <div class="bookshelf-size-control">
+                     <label class="bookshelf-size-label" for="bookshelf_size_slider">Cover size:</label>
+                     <input type="range" id="bookshelf_size_slider" class="bookshelf-size-slider" min="0" max="100" value="50" title="Adjust cover size" />
+                 </div>
              </div>
              <div id="bookshelf_grid" class="bookshelf-grid"></div>
              <p id="bookshelf_loading" class="bookshelf-loading">Loading…</p>
@@ -623,11 +626,31 @@
         .bookshelf-toolbar {
           display: flex;
           align-items: center;
+          justify-content: space-between;
           gap: 10px;
           padding: 8px 0 12px 0;
         }
+        .bookshelf-size-control {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          margin-left: auto;
+        }
         .bookshelf-size-label { color: #ccc; font-size: 13px; }
         .bookshelf-size-slider { width: 120px; }
+        .bookshelf-pagination { color: #ccc; font-size: 12px; }
+        .bookshelf-pagination button {
+          background: rgba(255,255,255,0.1);
+          border: none;
+          color: #ccc;
+          padding: 4px 10px;
+          margin: 0 2px;
+          border-radius: 3px;
+          cursor: pointer;
+        }
+        .bookshelf-pagination button:hover { background: rgba(255,255,255,0.2); }
+        .bookshelf-pagination button:disabled { opacity: 0.5; cursor: default; }
+        .bookshelf-pagination span { margin: 0 8px; }
         .bookshelf-grid {
           display: grid;
           grid-template-columns: repeat(auto-fill, minmax(var(--bookshelf-cover-min, 140px), 1fr));
@@ -1545,6 +1568,9 @@
         }
 
         var bookshelfCache = {};
+        var bookshelfAllIssues = [];
+        var bookshelfPageSize = 100;
+        var bookshelfCurrentPage = 1;
         function loadBookshelf() {
             var comicid = retrieve_comicid();
             var grid = $('#bookshelf_grid');
@@ -1561,12 +1587,16 @@
             loading.show();
             empty.hide();
             empty.text('No issues for this series.');
+            $('#bookshelf_pagination').empty();
             if (bookshelfCache[comicid]) {
                 loading.hide();
                 if (!bookshelfCache[comicid].length) {
                     empty.show();
                 } else {
-                    renderBookshelf(grid, bookshelfCache[comicid]);
+                    bookshelfAllIssues = bookshelfCache[comicid];
+                    bookshelfCurrentPage = 1;
+                    renderBookshelfPage();
+                    renderPagination();
                 }
                 return;
             }
@@ -1585,7 +1615,10 @@
                         empty.show();
                         return;
                     }
-                    renderBookshelf(grid, issues);
+                    bookshelfAllIssues = issues;
+                    bookshelfCurrentPage = 1;
+                    renderBookshelfPage();
+                    renderPagination();
                 },
                 error: function(xhr, status, err) {
                     loading.hide();
@@ -1595,12 +1628,49 @@
                 }
             });
         }
-        var currentBookshelfIssues = [];
-        function renderBookshelf(grid, issues) {
-            currentBookshelfIssues = issues;
+        function renderPagination() {
+            var totalIssues = bookshelfAllIssues.length;
+            var totalPages = Math.ceil(totalIssues / bookshelfPageSize);
+            var pag = $('#bookshelf_pagination');
+            pag.empty();
+            if (totalPages <= 1) return;
+            
+            var prevBtn = $('<button>&laquo; Prev</button>');
+            prevBtn.prop('disabled', bookshelfCurrentPage === 1);
+            prevBtn.on('click', function() {
+                if (bookshelfCurrentPage > 1) {
+                    bookshelfCurrentPage--;
+                    renderBookshelfPage();
+                    renderPagination();
+                }
+            });
+            pag.append(prevBtn);
+            
+            pag.append($('<span>' + bookshelfCurrentPage + ' / ' + totalPages + ' (' + totalIssues + ' issues)</span>'));
+            
+            var nextBtn = $('<button>Next &raquo;</button>');
+            nextBtn.prop('disabled', bookshelfCurrentPage === totalPages);
+            nextBtn.on('click', function() {
+                if (bookshelfCurrentPage < totalPages) {
+                    bookshelfCurrentPage++;
+                    renderBookshelfPage();
+                    renderPagination();
+                }
+            });
+            pag.append(nextBtn);
+        }
+        function renderBookshelfPage() {
+            var grid = $('#bookshelf_grid');
+            grid.empty();
+            var start = (bookshelfCurrentPage - 1) * bookshelfPageSize;
+            var end = Math.min(start + bookshelfPageSize, bookshelfAllIssues.length);
+            var pageIssues = bookshelfAllIssues.slice(start, end);
+            
+            currentBookshelfIssues = bookshelfAllIssues;
             applyBookshelfSize();
-            issues.forEach(function(issue, index) {
-                var card = $('<div class="bookshelf-card" data-index="' + index + '"></div>');
+            pageIssues.forEach(function(issue, i) {
+                var globalIndex = start + i;
+                var card = $('<div class="bookshelf-card" data-index="' + globalIndex + '"></div>');
                 var label = $('<div class="bookshelf-label"></div>');
                 var numSpan = $('<span></span>').text('#' + (issue.Issue_Number || ''));
                 label.append(numSpan);
@@ -1619,7 +1689,7 @@
                     img.attr('src', 'images/blank.gif');
                 }
                 card.append(img).append(label);
-                img.data('index', index);
+                img.data('index', globalIndex);
                 grid.append(card);
             });
             grid.off('click', '.bookshelf-card img').on('click', '.bookshelf-card img', function() {
@@ -1644,6 +1714,7 @@
                 observer.observe(this);
             });
         }
+        var currentBookshelfIssues = [];
         var bookshelfLightboxIndex = 0;
         function openBookshelfLightbox(index) {
             if (!currentBookshelfIssues.length) return;

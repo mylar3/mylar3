@@ -929,7 +929,7 @@ class WebInterface(object):
     loadIssueDetails.exposed = True
 
     def loadBookshelfIssues(self, ComicID=None, **kwargs):
-        """Return issue list for bookshelf view: IssueID, Issue_Number, IssueName, Status, cover_url (from DB ImageURL)."""
+        """Return issue list for bookshelf view: only issues we have (Downloaded/Archived). IssueID, Issue_Number, IssueName, Status, cover_url (from DB ImageURL)."""
         if ComicID is None:
             ComicID = kwargs.get('ComicID')
         if not ComicID:
@@ -938,7 +938,7 @@ class WebInterface(object):
         logger.info('[BOOKSHELF] loadBookshelfIssues ComicID=%s' % ComicID)
         try:
             myDB = db.DBConnection()
-            query = 'SELECT IssueID, Issue_Number, IssueName, Status, ImageURL, Int_IssueNumber FROM issues WHERE ComicID=? ORDER BY Int_IssueNumber ASC'
+            query = "SELECT IssueID, Issue_Number, IssueName, Status, ImageURL, Int_IssueNumber FROM issues WHERE ComicID=? AND Status IN ('Downloaded', 'Archived') ORDER BY Int_IssueNumber ASC"
             issueslist = myDB.select(query, [ComicID])
             issues = []
             for row in issueslist:
@@ -955,7 +955,7 @@ class WebInterface(object):
                 })
             if getattr(mylar.CONFIG, 'ANNUALS_ON', False):
                 annualslist = myDB.select(
-                    "SELECT IssueID, Issue_Number, IssueName, Status, Int_IssueNumber FROM annuals WHERE ComicID=? AND NOT Deleted ORDER BY Int_IssueNumber ASC",
+                    "SELECT IssueID, Issue_Number, IssueName, Status, Int_IssueNumber FROM annuals WHERE ComicID=? AND NOT Deleted AND Status IN ('Downloaded', 'Archived') ORDER BY Int_IssueNumber ASC",
                     [ComicID])
                 for row in annualslist:
                     a = dict(row)
