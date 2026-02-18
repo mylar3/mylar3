@@ -3102,10 +3102,7 @@ def torrentinfo(issueid=None, torrent_hash=None, download=False, monitor=False):
 def weekly_info(week=None, year=None, current=None):
     #find the current week and save it as a reference point.
     todaydate = datetime.datetime.today()
-    if todaydate.year == 2025:
-        current_weeknumber = todaydate.isocalendar()[1]
-    else:
-        current_weeknumber = todaydate.strftime("%U")
+    current_weeknumber = int(todaydate.isocalendar()[1])
     if current is not None:
         c_weeknumber = int(current[:current.find('-')])
         c_weekyear = int(current[current.find('-')+1:])
@@ -3158,10 +3155,7 @@ def weekly_info(week=None, year=None, current=None):
     startofyear = date(year,1,1)
     week0 = startofyear - timedelta(days=startofyear.isoweekday())
     stweek = datetime.datetime.strptime(week0.strftime('%Y-%m-%d'), '%Y-%m-%d')
-    if year == 2025:
-        startweek = stweek + timedelta(weeks = weeknumber -1)
-    else:
-        startweek = stweek + timedelta(weeks = weeknumber)
+    startweek = stweek + timedelta(weeks = weeknumber - 1)
 
     midweek = startweek + timedelta(days = 3)
     endweek = startweek + timedelta(days = 6)
