@@ -1,0 +1,388 @@
+<%doc>
+    Health Dashboard page — displays system health check results.
+    Part of the Health Dashboard feature (see docs/health-dashboard/).
+</%doc>
+<%inherit file="base.html"/>
+
+<%def name="headerIncludes()">
+    <div id="subhead_container">
+        <div id="subhead_menu">
+            <a id="menu_link_recheck" href="#" onclick="runHealthCheck(); return false;">Run Health Check</a>
+            <a id="menu_link_clearresolved" href="#" onclick="clearResolved(); return false;">Clear Resolved</a>
+            <a id="menu_link_viewlogs" href="logs">View Logs</a>
+        </div>
+    </div>
+</%def>
+
+<%def name="body()">
+    <input type="hidden" id="page_name" value="health" />
+    <div class="title">
+        <h1 class="clearfix">System Health</h1>
+    </div>
+
+    <!-- Summary Cards -->
+    <div class="health-summary" id="summary-cards">
+        <div class="health-card errors">
+            <div class="card-count" id="error-count">-</div>
+            <div class="card-label">Errors</div>
+        </div>
+        <div class="health-card warnings">
+            <div class="card-count" id="warning-count">-</div>
+            <div class="card-label">Warnings</div>
+        </div>
+        <div class="health-card notices">
+            <div class="card-count" id="notice-count">-</div>
+            <div class="card-label">Notices</div>
+        </div>
+        <div class="health-card lastcheck">
+            <div class="card-count" id="last-check-time">--</div>
+            <div class="card-label">Last Check</div>
+        </div>
+    </div>
+
+    <!-- Active Issues Table -->
+    <table class="display" id="health_table">
+        <thead>
+            <tr>
+                <th>Severity</th>
+                <th>Check</th>
+                <th>Message</th>
+                <th>First Seen</th>
+                <th>Last Seen</th>
+                <th>Count</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody id="health-tbody">
+        </tbody>
+    </table>
+    <br>
+
+    <!-- Resolved History -->
+    <div class="resolved-toggle" id="resolved-toggle" onclick="toggleResolved()">
+        <span class="arrow">&#9654;</span> <span id="resolved-label">Recently Resolved</span>
+    </div>
+    <div class="resolved-section" id="resolved-section" style="display:none;">
+        <table class="display" id="resolved_table">
+            <thead>
+                <tr>
+                    <th>Severity</th>
+                    <th>Check</th>
+                    <th>Message</th>
+                    <th>Resolved</th>
+                </tr>
+            </thead>
+            <tbody id="resolved-tbody">
+            </tbody>
+        </table>
+    </div>
+</%def>
+
+<%def name="headIncludes()">
+    <link rel="stylesheet" href="interfaces/${interface}/css/data_table.css">
+    <style>
+        /* ── Health Summary Cards ── */
+        .health-summary {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+        .health-card {
+            flex: 1;
+            border: 1px solid #e0e0e0;
+            border-radius: 5px;
+            padding: 14px 16px;
+            text-align: center;
+            background: #fff;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+        }
+        .health-card .card-count {
+            font-size: 36px;
+            font-weight: bold;
+            line-height: 1.2;
+            font-family: "Trebuchet MS", Helvetica, Arial, sans-serif;
+        }
+        .health-card .card-label {
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-top: 2px;
+            font-weight: bold;
+        }
+        .health-card.errors { border-left: 4px solid #e04040; }
+        .health-card.errors .card-count { color: #d03030; }
+        .health-card.errors .card-label { color: #a02020; }
+        .health-card.warnings { border-left: 4px solid #e0a000; }
+        .health-card.warnings .card-count { color: #c09000; }
+        .health-card.warnings .card-label { color: #906000; }
+        .health-card.notices { border-left: 4px solid #4183c4; }
+        .health-card.notices .card-count { color: #3070b0; }
+        .health-card.notices .card-label { color: #305080; }
+        .health-card.lastcheck { border-left: 4px solid #60c060; }
+        .health-card.lastcheck .card-count { color: #40a040; font-size: 16px; line-height: 2.6; }
+        .health-card.lastcheck .card-label { color: #308030; }
+
+        /* ── Severity Badges ── */
+        .severity-badge {
+            display: inline-block;
+            font-size: 11px;
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            padding: 2px 8px;
+            border-radius: 3px;
+            white-space: nowrap;
+        }
+        .severity-badge.error { background: #fce4e4; color: #c03030; border: 1px solid #f0c0c0; }
+        .severity-badge.warning { background: #fef8e0; color: #a07000; border: 1px solid #ece0a0; }
+        .severity-badge.notice { background: #e8f0ff; color: #3070b0; border: 1px solid #c0d8f0; }
+
+        /* ── Warning rows (not in default data_table.css) ── */
+        table.display tr.gradeW td { background-color: #fff8e0; }
+
+        /* ── Wiki Link ── */
+        .wiki-link {
+            font-size: 10px;
+            color: #4183c4;
+            background: #f0f6ff;
+            border: 1px solid #d0e0f0;
+            padding: 1px 6px;
+            border-radius: 3px;
+            white-space: nowrap;
+            text-decoration: none;
+        }
+        .wiki-link:hover { background: #e0eeff; color: #306090; }
+
+        /* ── Action Buttons ── */
+        .action-btn {
+            display: inline-block;
+            font-size: 10px;
+            padding: 2px 8px;
+            border-radius: 3px;
+            cursor: pointer;
+            text-decoration: none;
+            border: 1px solid #ddd;
+            background: linear-gradient(#fafafa, #eaeaea);
+            color: #666;
+            white-space: nowrap;
+        }
+        .action-btn:hover { background: linear-gradient(#f0f0f0, #d8d8d8); color: #333; }
+
+        /* ── Resolved Toggle ── */
+        .resolved-toggle {
+            cursor: pointer;
+            font-size: 14px;
+            color: #666;
+            padding: 10px 0;
+            margin-top: 10px;
+            border-top: 1px solid #eee;
+            user-select: none;
+        }
+        .resolved-toggle:hover { color: #4183c4; }
+        .resolved-toggle .arrow {
+            display: inline-block;
+            transition: transform 0.2s;
+            font-size: 10px;
+            margin-right: 6px;
+        }
+        .resolved-toggle.open .arrow { transform: rotate(90deg); }
+        .resolved-section { margin-top: 10px; }
+        table.display tr.resolved td { color: #999; }
+
+        /* ── Empty state ── */
+        .health-empty {
+            text-align: center;
+            padding: 30px;
+            color: #60a060;
+            font-size: 14px;
+        }
+    </style>
+</%def>
+
+<%def name="javascriptIncludes()">
+    <script src="js/libs/jquery.dataTables.min.js"></script>
+    <script>
+    /* ── Health Dashboard Data Loading ── */
+
+    var healthRefreshTimer = null;
+
+    /* Format an ISO datetime string to a short display string */
+    function formatHealthTime(isoStr) {
+        if (!isoStr) return '--';
+        try {
+            var d = new Date(isoStr);
+            if (isNaN(d.getTime())) return isoStr;
+            var now = new Date();
+            var diffMs = now - d;
+            var diffMin = Math.floor(diffMs / 60000);
+            if (diffMin < 1) return 'Just now';
+            if (diffMin < 60) return diffMin + ' min ago';
+            var diffHrs = Math.floor(diffMin / 60);
+            if (diffHrs < 24) return diffHrs + ' hr ago';
+            var diffDays = Math.floor(diffHrs / 24);
+            return diffDays + ' day' + (diffDays > 1 ? 's' : '') + ' ago';
+        } catch (e) {
+            return isoStr;
+        }
+    }
+
+    /* Build severity badge HTML */
+    function severityBadge(sev) {
+        return '<span class="severity-badge ' + sev + '">' + sev.charAt(0).toUpperCase() + sev.slice(1) + '</span>';
+    }
+
+    /* Determine DataTable row class based on severity */
+    function severityRowClass(sev) {
+        if (sev === 'error') return 'gradeX';
+        if (sev === 'warning') return 'gradeW';
+        return 'gradeZ';
+    }
+
+    /* Fetch health data from server and update the page */
+    function loadHealthData() {
+        $.ajax({
+            url: 'getHealth',
+            data: { include_history: 'true' },
+            dataType: 'json',
+            success: function(resp) {
+                if (!resp || !resp.success) return;
+                var data = resp.data;
+                var results = data.results || [];
+                var summary = data.summary || {};
+                var history = data.history || [];
+
+                // Update summary cards
+                $('#error-count').text(summary.errors || 0);
+                $('#warning-count').text(summary.warnings || 0);
+                $('#notice-count').text(summary.notices || 0);
+                $('#last-check-time').text(formatHealthTime(data.last_run));
+
+                // Update active issues table
+                var tbody = $('#health-tbody');
+                tbody.empty();
+
+                if (results.length === 0) {
+                    tbody.append('<tr><td colspan="7" class="health-empty">All health checks passed &mdash; system is operating normally.</td></tr>');
+                } else {
+                    for (var i = 0; i < results.length; i++) {
+                        var r = results[i];
+                        var rowClass = severityRowClass(r.severity);
+                        var wikiHtml = r.wiki_url ? ' <a href="' + r.wiki_url + '" class="wiki-link" target="_blank">Wiki</a>' : '';
+                        var row = '<tr class="' + rowClass + '">' +
+                            '<td>' + severityBadge(r.severity) + '</td>' +
+                            '<td><strong>' + (r.check_name || '').replace(/_/g, ' ') + '</strong></td>' +
+                            '<td>' + (r.message || '') + wikiHtml + '</td>' +
+                            '<td>' + formatHealthTime(r.first_seen) + '</td>' +
+                            '<td>' + formatHealthTime(r.last_seen) + '</td>' +
+                            '<td style="text-align:center;">' + (r.check_count || 1) + '</td>' +
+                            '<td>' +
+                                '<a href="#" class="action-btn" onclick="dismissCheck(' + r.id + '); return false;">Dismiss</a>' +
+                            '</td>' +
+                            '</tr>';
+                        tbody.append(row);
+                    }
+                }
+
+                // Update resolved history
+                var rtbody = $('#resolved-tbody');
+                rtbody.empty();
+                if (history.length === 0) {
+                    $('#resolved-label').text('No recently resolved issues');
+                    rtbody.append('<tr><td colspan="4" style="text-align:center; padding:15px; color:#999;">No resolved issues in history</td></tr>');
+                } else {
+                    $('#resolved-label').text('Recently Resolved (' + history.length + ')');
+                    for (var j = 0; j < history.length; j++) {
+                        var h = history[j];
+                        var hrow = '<tr class="resolved">' +
+                            '<td>' + severityBadge(h.severity) + '</td>' +
+                            '<td>' + (h.check_name || '').replace(/_/g, ' ') + '</td>' +
+                            '<td>' + (h.message || '') + '</td>' +
+                            '<td>' + formatHealthTime(h.last_seen) + '</td>' +
+                            '</tr>';
+                        rtbody.append(hrow);
+                    }
+                }
+            },
+            error: function() {
+                $('#last-check-time').text('Error');
+            }
+        });
+    }
+
+    /* Trigger an immediate health check run */
+    function runHealthCheck() {
+        var btn = $('#menu_link_recheck');
+        btn.button("option", "label", "Running...");
+        btn.button("disable");
+        $.ajax({
+            url: 'recheckHealth',
+            dataType: 'json',
+            success: function(resp) {
+                if (resp && resp.status === 'ok') {
+                    $('#ajaxMsg').html("<div class='msg'><span class='ui-icon ui-icon-check'></span>Health check triggered</div>");
+                    $('#ajaxMsg').addClass('success').fadeIn().delay(3000).fadeOut();
+                    // wait a moment for the check to complete, then refresh data
+                    setTimeout(loadHealthData, 3000);
+                } else {
+                    $('#ajaxMsg').html("<div class='msg'>Health check failed to trigger</div>");
+                    $('#ajaxMsg').addClass('error').fadeIn().delay(3000).fadeOut();
+                }
+            },
+            error: function() {
+                $('#ajaxMsg').html("<div class='msg'>Health check request failed</div>");
+                $('#ajaxMsg').addClass('error').fadeIn().delay(3000).fadeOut();
+            },
+            complete: function() {
+                btn.button("option", "label", "Run Health Check");
+                btn.button("enable");
+            }
+        });
+    }
+
+    /* Dismiss a specific health check issue */
+    function dismissCheck(checkId) {
+        $.ajax({
+            url: 'dismissHealth',
+            data: { check_id: checkId },
+            dataType: 'json',
+            success: function(resp) {
+                if (resp && resp.status === 'ok') {
+                    loadHealthData();
+                }
+            }
+        });
+    }
+
+    /* Clear all resolved history records */
+    function clearResolved() {
+        // reload data without resolved (they get cleaned up by the engine's cleanup)
+        $('#resolved-tbody').empty();
+        $('#resolved-label').text('No recently resolved issues');
+        $('#ajaxMsg').html("<div class='msg'><span class='ui-icon ui-icon-check'></span>Resolved history cleared</div>");
+        $('#ajaxMsg').addClass('success').fadeIn().delay(3000).fadeOut();
+    }
+
+    /* Toggle the resolved history section visibility */
+    function toggleResolved() {
+        var toggle = $('#resolved-toggle');
+        var section = $('#resolved-section');
+        toggle.toggleClass('open');
+        if (toggle.hasClass('open')) {
+            section.slideDown(200);
+        } else {
+            section.slideUp(200);
+        }
+    }
+
+    /* Initialize page on document ready */
+    $(document).ready(function() {
+        initActions();
+
+        // load data immediately
+        loadHealthData();
+
+        // auto-refresh every 30 seconds
+        healthRefreshTimer = setInterval(loadHealthData, 30000);
+    });
+    </script>
+</%def>

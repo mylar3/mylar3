@@ -68,6 +68,8 @@ function initActions() {
     $("#subhead_menu #menu_link_carepackage").button({ icons: { primary: "ui-icon-heart"} });
     $("#subhead_menu #menu_link_scan").button({ icons: { primary: "ui-icon-search"} });
     $("#subhead_menu #menu_link_addalltoRL").button({ icons: { primary: "ui-icon-plus"} });
+    $("#subhead_menu #menu_link_clearresolved").button({ icons: { primary: "ui-icon-trash"} });
+    $("#subhead_menu #menu_link_viewlogs").button({ icons: { primary: "ui-icon-note"} });
 }
 
 function refreshSubmenu() {

@@ -9926,23 +9926,7 @@ class WebInterface(object):
 
     def health(self):
         """Health dashboard page."""
-        cherrypy.response.headers['Content-Type'] = 'application/json'
-        try:
-            if mylar.HEALTH_CHECK:
-                results = [r.to_dict() for r in mylar.HEALTH_CHECK.get_results()]
-                summary = mylar.HEALTH_CHECK.get_summary()
-                last_run = mylar.HEALTH_CHECK.last_run_iso()
-            else:
-                results = []
-                summary = {'errors': 0, 'warnings': 0, 'notices': 0, 'total': 0}
-                last_run = None
-            return json.dumps({
-                'results': results,
-                'summary': summary,
-                'last_run': last_run,
-            })
-        except Exception as e:
-            return json.dumps({'error': 'Failed to load health data: %s' % str(e)[:200]})
+        return serve_template(templatename="health.html", title="System Health")
     health.exposed = True
 
     def getHealth(self, **kwargs):
