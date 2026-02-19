@@ -40,7 +40,8 @@ cmd_list = ['getIndex', 'getComic', 'getUpcoming', 'getWanted', 'getHistory',
             'getComicInfo', 'getIssueInfo', 'getArt', 'downloadIssue', 'regenerateCovers',
             'refreshSeriesjson', 'seriesjsonListing', 'checkGlobalMessages',
             'listProviders', 'changeProvider', 'addProvider', 'delProvider',
-            'downloadNZB', 'getReadList', 'getStoryArc', 'addStoryArc', 'listAnnualSeries']
+            'downloadNZB', 'getReadList', 'getStoryArc', 'addStoryArc', 'listAnnualSeries',
+            'getHealth', 'getHealthSummary']
 
 class Api(object):
 
@@ -1815,6 +1816,43 @@ class Api(object):
             else:
                 self.data = self._successResponse('Successfully changed %s for %s provider %s [prov_id:%s]' % (change_match, providertype, providername, prov_id))
                 logger.fdebug('[API][changeProvider] %s' % self.data)
+        return
+
+    def _getHealth(self, **kwargs):
+        """Return active health check results."""
+        try:
+            if mylar.HEALTH_CHECK:
+                results = [r.to_dict() for r in mylar.HEALTH_CHECK.get_results()]
+                summary = mylar.HEALTH_CHECK.get_summary()
+                last_run = mylar.HEALTH_CHECK.last_run_iso()
+            else:
+                results = []
+                summary = {'errors': 0, 'warnings': 0, 'notices': 0, 'total': 0}
+                last_run = None
+            self.data = self._successResponse({
+                'results': results,
+                'summary': summary,
+                'last_run': last_run,
+            })
+        except Exception as e:
+            self.data = self._failureResponse('Health check query failed: %s' % str(e)[:200])
+        return
+
+    def _getHealthSummary(self, **kwargs):
+        """Return health check summary counts only."""
+        try:
+            if mylar.HEALTH_CHECK:
+                summary = mylar.HEALTH_CHECK.get_summary()
+                last_run = mylar.HEALTH_CHECK.last_run_iso()
+            else:
+                summary = {'errors': 0, 'warnings': 0, 'notices': 0, 'total': 0}
+                last_run = None
+            self.data = self._successResponse({
+                'summary': summary,
+                'last_run': last_run,
+            })
+        except Exception as e:
+            self.data = self._failureResponse('Health summary query failed: %s' % str(e)[:200])
         return
 
 class REST(object):

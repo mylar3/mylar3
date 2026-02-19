@@ -9921,3 +9921,96 @@ class WebInterface(object):
                            'warning_text' : warning_text})
 
     processCBLFile.exposed = True
+
+    # ── Health Dashboard Routes ──
+
+    def health(self):
+        """Health dashboard page."""
+        cherrypy.response.headers['Content-Type'] = 'application/json'
+        try:
+            if mylar.HEALTH_CHECK:
+                results = [r.to_dict() for r in mylar.HEALTH_CHECK.get_results()]
+                summary = mylar.HEALTH_CHECK.get_summary()
+                last_run = mylar.HEALTH_CHECK.last_run_iso()
+            else:
+                results = []
+                summary = {'errors': 0, 'warnings': 0, 'notices': 0, 'total': 0}
+                last_run = None
+            return json.dumps({
+                'results': results,
+                'summary': summary,
+                'last_run': last_run,
+            })
+        except Exception as e:
+            return json.dumps({'error': 'Failed to load health data: %s' % str(e)[:200]})
+    health.exposed = True
+
+    def getHealth(self, **kwargs):
+        """AJAX endpoint returning health check data as JSON."""
+        cherrypy.response.headers['Content-Type'] = 'application/json'
+        try:
+            include_history = kwargs.get('include_history', 'false').lower() == 'true'
+            if mylar.HEALTH_CHECK:
+                results = [r.to_dict() for r in mylar.HEALTH_CHECK.get_results()]
+                summary = mylar.HEALTH_CHECK.get_summary()
+                last_run = mylar.HEALTH_CHECK.last_run_iso()
+                history = mylar.HEALTH_CHECK.get_resolved_history() if include_history else []
+            else:
+                results = []
+                summary = {'errors': 0, 'warnings': 0, 'notices': 0, 'total': 0}
+                last_run = None
+                history = []
+            return json.dumps({
+                'success': True,
+                'data': {
+                    'results': results,
+                    'summary': summary,
+                    'last_run': last_run,
+                    'history': history,
+                }
+            })
+        except Exception as e:
+            return json.dumps({'success': False, 'error': str(e)[:200]})
+    getHealth.exposed = True
+
+    def recheckHealth(self):
+        """Trigger an immediate health check run."""
+        cherrypy.response.headers['Content-Type'] = 'application/json'
+        try:
+            if mylar.HEALTH_CHECK:
+                import threading
+                t = threading.Thread(target=mylar.HEALTH_CHECK.run_all_checks, name='HealthCheck-Manual')
+                t.start()
+                return json.dumps({'status': 'ok', 'message': 'Health check triggered'})
+            else:
+                return json.dumps({'status': 'error', 'message': 'Health check engine not initialized'})
+        except Exception as e:
+            return json.dumps({'status': 'error', 'message': str(e)[:200]})
+    recheckHealth.exposed = True
+
+    def dismissHealth(self, check_id=None):
+        """Dismiss/acknowledge a health check issue."""
+        cherrypy.response.headers['Content-Type'] = 'application/json'
+        if not check_id:
+            return json.dumps({'status': 'error', 'message': 'Missing check_id parameter'})
+        try:
+            if mylar.HEALTH_CHECK:
+                mylar.HEALTH_CHECK.dismiss(int(check_id))
+                return json.dumps({'status': 'ok', 'message': 'Check dismissed'})
+            else:
+                return json.dumps({'status': 'error', 'message': 'Health check engine not initialized'})
+        except Exception as e:
+            return json.dumps({'status': 'error', 'message': str(e)[:200]})
+    dismissHealth.exposed = True
+
+    def ping(self):
+        """Unauthenticated health probe for Docker HEALTHCHECK and load balancers."""
+        cherrypy.response.headers['Content-Type'] = 'application/json'
+        try:
+            summary = {'errors': 0, 'warnings': 0, 'notices': 0, 'total': 0}
+            if mylar.HEALTH_CHECK:
+                summary = mylar.HEALTH_CHECK.get_summary()
+            return json.dumps({'status': 'ok', 'health': summary})
+        except Exception as e:
+            return json.dumps({'status': 'error', 'message': str(e)[:200]})
+    ping.exposed = True

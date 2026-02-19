@@ -130,7 +130,7 @@ def initialize(options):
                 'auth.require': []
             })
             # exempt api, login page and static elements from authentication requirements
-            for i in ('/api', '/auth/login', '/css', '/images', '/js', 'favicon.ico'):
+            for i in ('/api', '/auth/login', '/css', '/images', '/js', 'favicon.ico', '/ping'):  # exempt /ping from auth for Docker HEALTHCHECK
                 if i in conf:
                     conf[i].update({'tools.auth.on': False})
                 else:
@@ -143,6 +143,7 @@ def initialize(options):
                                 {options['http_username']: options['http_password']})
                     })
             conf['/api'] = {'tools.auth_basic.on': False}
+            conf['/ping'] = {'tools.auth_basic.on': False}  # exempt /ping from auth for Docker HEALTHCHECK
 
     rest_api = {
         '/': {
