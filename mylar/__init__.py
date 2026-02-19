@@ -244,6 +244,11 @@ BACKENDSTATUS_WS = 'up'
 BACKENDSTATUS_CV = 'up'
 PROVIDER_STATUS = {}
 
+## -- Health Check globals (set during initialize) --
+HEALTH_CHECK = None
+HEALTH_RESULTS = []
+HEALTH_SCHEDULER = None
+
 
 def initialize(config_file):
     with INIT_LOCK:
@@ -258,7 +263,8 @@ def initialize(config_file):
                MONITOR_SCHEDULER, SEARCH_SCHEDULER, RSS_SCHEDULER, WEEKLY_SCHEDULER, VERSION_SCHEDULER, UPDATER_SCHEDULER, START_UP, \
                SCHED_RSS_LAST, SCHED_WEEKLY_LAST, SCHED_MONITOR_LAST, SCHED_SEARCH_LAST, SCHED_VERSION_LAST, SCHED_DBUPDATE_LAST, COMICINFO, SEARCH_TIER_DATE, \
                BACKENDSTATUS_CV, BACKENDSTATUS_WS, PROVIDER_STATUS, EXT_IP, INBUILT_ISSUE_EXCEPTIONS, PROVIDER_START_ID, GLOBAL_MESSAGES, CHECK_FOLDER_CACHE, FOLDER_CACHE, SESSION_ID, \
-               MAINTENANCE_UPDATE, MAINTENANCE_DB_COUNT, MAINTENANCE_DB_TOTAL, UPDATE_VALUE, REQS, IMPRINT_MAPPING, GC_URL, PACK_ISSUEIDS_DONT_QUEUE, DDL_QUEUED, EXT_SERVER
+               MAINTENANCE_UPDATE, MAINTENANCE_DB_COUNT, MAINTENANCE_DB_TOTAL, UPDATE_VALUE, REQS, IMPRINT_MAPPING, GC_URL, PACK_ISSUEIDS_DONT_QUEUE, DDL_QUEUED, EXT_SERVER, \
+               HEALTH_CHECK, HEALTH_RESULTS, HEALTH_SCHEDULER
 
         cc = mylar.config.Config(config_file)
         CONFIG = cc.read(startup=True)
@@ -862,6 +868,30 @@ def dbcheck():
     c.execute('CREATE TABLE IF NOT EXISTS notifs(session_id INT, date TEXT, event TEXT, comicid TEXT, comicname TEXT, issuenumber TEXT, seriesyear TEXT, status TEXT, message TEXT, PRIMARY KEY (session_id, date))')
     c.execute('CREATE TABLE IF NOT EXISTS provider_searches(id INTEGER UNIQUE, provider TEXT UNIQUE, type TEXT, lastrun INTEGER, active TEXT, hits INTEGER DEFAULT 0)')
     c.execute('CREATE TABLE IF NOT EXISTS mylar_info(DatabaseVersion INTEGER PRIMARY KEY)')
+
+    ## -- Health Checks Table --
+    c.execute('CREATE TABLE IF NOT EXISTS health_checks ('
+              'id INTEGER PRIMARY KEY AUTOINCREMENT, '
+              'check_type TEXT NOT NULL, '
+              'check_name TEXT NOT NULL, '
+              'severity TEXT NOT NULL, '
+              'message TEXT NOT NULL, '
+              'wiki_url TEXT, '
+              'source TEXT DEFAULT "health_check", '
+              'first_seen TEXT NOT NULL, '
+              'last_seen TEXT NOT NULL, '
+              'is_resolved INTEGER DEFAULT 0, '
+              'resolved_at TEXT, '
+              'check_count INTEGER DEFAULT 1, '
+              'metadata TEXT'
+              ')')
+
+    try:
+        c.execute('CREATE INDEX IF NOT EXISTS idx_health_active ON health_checks (is_resolved, severity)')
+        c.execute('CREATE INDEX IF NOT EXISTS idx_health_type ON health_checks (check_type, is_resolved)')
+    except Exception:
+        pass
+
     conn.commit()
 
     #create some indexes
