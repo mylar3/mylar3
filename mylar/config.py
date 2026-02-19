@@ -467,6 +467,15 @@ _CONFIG_DEFINITIONS = OrderedDict({
     'CBL_IMPORT_ISSUESONLY' : (bool, 'CBLImport', True),
     'CBL_IMPORT_IGNOREARCHIVED' : (bool, 'CBLImport', False),
 
+    # Health Check settings
+    'HEALTH_CHECK_ENABLED':    (bool, 'Health', True),
+    'HEALTH_CHECK_INTERVAL':   (int,  'Health', 5),
+    'HEALTH_DISK_WARN_GB':     (str,  'Health', '5.0'),
+    'HEALTH_DISK_ERROR_GB':    (str,  'Health', '1.0'),
+    'HEALTH_STALE_TASK_MIN':   (int,  'Health', 60),
+    'HEALTH_SHOW_BANNER':      (bool, 'Health', True),
+    'HEALTH_HISTORY_DAYS':     (int,  'Health', 30),
+
 })
 
 _BAD_DEFINITIONS = OrderedDict({
