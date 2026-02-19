@@ -3779,6 +3779,8 @@ def job_management(write=False, job=None, last_run_completed=None, current_run=N
         jobname = jobinfo[:jobinfo.find('(')-1].strip()
         jobstatus = jobinfo[jobinfo.find('],')+2:len(jobinfo)-1].strip()
         next_the_run = False
+        prev_run_timestamp = None
+        sched_status = None
 
         #logger.info('[%s] ==> %s' % (jobname, jobstatus))
 

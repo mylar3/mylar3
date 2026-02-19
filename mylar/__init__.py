@@ -443,6 +443,34 @@ def initialize(config_file):
         UMASK = os.umask(0)
         os.umask(UMASK)
 
+        # Health Check scheduler
+        if CONFIG.HEALTH_CHECK_ENABLED:
+            try:
+                from mylar.healthcheck import HealthCheckRunner
+                HEALTH_CHECK = HealthCheckRunner()
+                HEALTH_CHECK.load_from_db()
+                HEALTH_SCHEDULER = SCHED.add_job(
+                    HEALTH_CHECK.run_all_checks,
+                    IntervalTrigger(minutes=int(CONFIG.HEALTH_CHECK_INTERVAL)),
+                    id='health_check',
+                    name='Health Check',
+                    replace_existing=True,
+                    max_instances=1,
+                    coalesce=True,
+                    next_run_time=datetime.datetime.utcnow() + datetime.timedelta(seconds=30)
+                )
+                logger.info('[HealthCheck] Scheduler registered — running every %s minutes' % CONFIG.HEALTH_CHECK_INTERVAL)
+            except Exception as e:
+                logger.error('[HealthCheck] Failed to initialize: %s' % e)
+                HEALTH_CHECK = None
+        else:
+            try:
+                from mylar.healthcheck import HealthCheckRunner
+                HEALTH_CHECK = HealthCheckRunner()
+            except Exception as e:
+                logger.error('[HealthCheck] Failed to import: %s' % e)
+                HEALTH_CHECK = None
+
         _INITIALIZED = True
         return True
 

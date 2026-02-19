@@ -29,3 +29,6 @@ __pycache__
 .devcontainer/config
 .devcontainer/comics
 .devcontainer/downloads
+#other
+*.bak-*
+docs/
