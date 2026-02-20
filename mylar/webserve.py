@@ -9971,7 +9971,7 @@ class WebInterface(object):
         try:
             if mylar.HEALTH_CHECK:
                 import threading
-                t = threading.Thread(target=mylar.HEALTH_CHECK.run_all_checks, name='HealthCheck-Manual')
+                t = threading.Thread(target=mylar.HEALTH_CHECK.run_all_checks, kwargs={'force': True}, name='HealthCheck-Manual')
                 t.start()
                 return json.dumps({'status': 'ok', 'message': 'Health check triggered'})
             else:

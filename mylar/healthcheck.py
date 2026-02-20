@@ -137,8 +137,12 @@ class HealthCheckRunner:
         self._last_run = None
         self._check_timestamps = {}  # {check_name: datetime} — when each check last ran
 
-    def run_all_checks(self):
-        """Run all health checks and update DB, memory, and browser."""
+    def run_all_checks(self, force=False):
+        """Run all health checks and update DB, memory, and browser.
+
+        Args:
+            force: If True, bypass per-check interval gating (used for manual rechecks).
+        """
         if not mylar.CONFIG.HEALTH_CHECK_ENABLED:
             return
 
@@ -168,7 +172,7 @@ class HealthCheckRunner:
         ]
 
         for check_name, check_method in check_methods:
-            if not self._should_run(check_name):
+            if not force and not self._should_run(check_name):
                 continue
             checks_that_ran.add(check_name)
             try:
@@ -457,12 +461,79 @@ class HealthCheckRunner:
         return []
 
     def check_indexers(self):
-        """[Phase 3] Test connectivity to each configured indexer."""
-        return []
+        """Check configured indexers for connectivity issues."""
+        results = []
+
+        # PROVIDER_STATUS is a dict of {provider_name: 'success'|'fail'}
+        # populated by base.html from PROVIDER_ORDER and PROVIDER_BLOCKLIST
+        provider_status = getattr(mylar, 'PROVIDER_STATUS', None)
+        if not provider_status:
+            return []  # not populated yet — skip until first page load
+
+        for provider, status in provider_status.items():
+            if status == 'fail':
+                # check PROVIDER_BLOCKLIST for the reason this provider was blocked
+                reason = 'unavailable'
+                blocklist = getattr(mylar, 'PROVIDER_BLOCKLIST', [])
+                for entry in blocklist:
+                    if entry.get('site') == provider:
+                        reason = entry.get('reason', 'unavailable')
+                        break
+                results.append(HealthCheckResult(
+                    check_type='provider',
+                    check_name='indexers',
+                    severity='warning',
+                    message='Indexer "%s" is currently unavailable — %s. Searches using this provider will fail.' % (provider, reason),
+                    metadata={'provider': provider, 'reason': reason}
+                ))
+
+        return results
 
     def check_no_indexers(self):
-        """[Phase 3] Warn if no search indexers/providers are enabled."""
-        return []
+        """Warn if no search indexers or providers are enabled."""
+        results = []
+
+        has_any = False
+
+        # check newznab providers — EXTRA_NEWZNABS is a list of tuples
+        # tuple format: (name, host, verify, apikey, uid/categories, enabled, id)
+        # index 5 is the enabled flag ('0' or '1')
+        try:
+            newznabs = getattr(mylar.CONFIG, 'EXTRA_NEWZNABS', []) or []
+            for nz in newznabs:
+                if len(nz) > 5 and str(nz[5]) == '1':
+                    has_any = True
+                    break
+        except Exception:
+            pass
+
+        # check torznab providers — same tuple format as newznabs
+        if not has_any:
+            try:
+                torznabs = getattr(mylar.CONFIG, 'EXTRA_TORZNABS', []) or []
+                for tz in torznabs:
+                    if len(tz) > 5 and str(tz[5]) == '1':
+                        has_any = True
+                        break
+            except Exception:
+                pass
+
+        # check other search toggles
+        if not has_any:
+            if getattr(mylar.CONFIG, 'ENABLE_TORRENT_SEARCH', False):
+                has_any = True
+            elif getattr(mylar.CONFIG, 'EXPERIMENTAL', False):
+                has_any = True
+
+        if not has_any:
+            results.append(HealthCheckResult(
+                check_type='config',
+                check_name='no_indexers',
+                severity='error',
+                message='No search providers are enabled — Mylar cannot search for or download any comics. Configure at least one provider in Settings.',
+            ))
+
+        return results
 
     def check_download_client(self):
         """[Phase 3] Test download client connectivity."""
@@ -493,8 +564,17 @@ class HealthCheckRunner:
         return []
 
     def check_api_key_missing(self):
-        """[Phase 3] Warn if ComicVine API key is not set."""
-        return []
+        """Warn if ComicVine API key is not configured."""
+        results = []
+        api_key = getattr(mylar.CONFIG, 'COMICVINE_API', None)
+        if not api_key or api_key in ('None', '') or not str(api_key).strip():
+            results.append(HealthCheckResult(
+                check_type='config',
+                check_name='api_key_missing',
+                severity='error',
+                message='ComicVine API key is not set — Mylar cannot look up comic metadata. Add your API key in Settings > Web Interface.',
+            ))
+        return results
 
     def check_database_integrity(self):
         """[Phase 3] Run SQLite integrity check."""
