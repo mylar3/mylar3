@@ -105,6 +105,11 @@ class Api(object):
                     data = '\nevent: shutdown\ndata: {\ndata: "status": "' + results['status'] + '",\ndata: "message": "' + results['message'] + '"\ndata: }\n\n'
                 except Exception:
                     data = '\nevent: shutdown\ndata: {\ndata: "status": "' + results['status'] + '",\ndata: "message": "' + results['message'] + '"\ndata: }\n\n'
+            elif results['event'] == 'health_update':
+                try:
+                    data = '\nevent: health_update\ndata: ' + results['data'] + '\n\n'
+                except Exception:
+                    data = '\ndata: \n\n'
             elif results['event'] == 'check_update':
                 try:
                     data = '\nevent: check_update\ndata: {\ndata: "status": "' + results['status'] + '",\ndata: "current_version": "' + results['current_version'] + '",\ndata: "latest_version": "' + results['latest_version'] + '",\ndata: "commits_behind": "' + results['commits_behind'] + '",\ndata: "docker": "' + results['docker'] + '",\ndata: "message": "' + results['message'] + '"\ndata: }\n\n'
@@ -1290,6 +1295,8 @@ class Api(object):
 
             if event is not None and any([event == 'shutdown', event == 'config_check']):
                 the_message = {'status': mylar.GLOBAL_MESSAGES['status'], 'event': event, 'message': mylar.GLOBAL_MESSAGES['message']}
+            elif event is not None and event == 'health_update':
+                the_message = {'status': mylar.GLOBAL_MESSAGES['status'], 'event': event, 'data': mylar.GLOBAL_MESSAGES['data']}
             elif event is not None and event == 'check_update':
                 the_message = {'status': mylar.GLOBAL_MESSAGES['status'], 'event': event, 'current_version': mylar.GLOBAL_MESSAGES['current_version'], 'latest_version': mylar.GLOBAL_MESSAGES['latest_version'], 'commits_behind': str(mylar.GLOBAL_MESSAGES['commits_behind']), 'docker': mylar.GLOBAL_MESSAGES['docker'], 'message': mylar.GLOBAL_MESSAGES['message']}
             else:
@@ -1300,7 +1307,7 @@ class Api(object):
                 except Exception as e:
                     logger.warn('error: %s' % e)
             #logger.fdebug('the_message added: %s' % (the_message,))
-            if mylar.GLOBAL_MESSAGES['status'] != 'mid-message-event':
+            if mylar.GLOBAL_MESSAGES['status'] != 'mid-message-event' and event != 'health_update':
                 myDB = db.DBConnection()
                 tmp_message = dict(the_message, **{'session_id': mylar.SESSION_ID})
                 if event != 'check_update':

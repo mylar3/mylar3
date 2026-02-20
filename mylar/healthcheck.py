@@ -598,6 +598,7 @@ class HealthCheckRunner:
             warnings = [r.to_dict() for r in results if r.severity == 'warning']
 
             mylar.GLOBAL_MESSAGES = {
+                'status': 'success',
                 'event': 'health_update',
                 'data': json.dumps({
                     'errors': errors,

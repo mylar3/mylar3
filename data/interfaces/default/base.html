@@ -354,6 +354,20 @@
             }
         }, false);
 
+        // Listen for real-time health status updates via SSE
+        evtSource.addEventListener("health_update", function(e){
+            if (e.data){
+                try {
+                    var data = JSON.parse(e.data);
+                    console.log('health_update SSE:', data);
+                    updateHealthBanner(data);
+                    updateNavBadge(data.error_count || 0, data.warning_count || 0, data.notice_count || 0);
+                } catch(err) {
+                    console.log('Health SSE parse error:', err);
+                }
+            }
+        }, false);
+
         evtSource.addEventListener('message', function(e){
             if ('END-OF-STREAM' == e.data) {
                 evtSource.close();
