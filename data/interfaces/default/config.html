@@ -10,6 +10,7 @@
 			<a id="menu_link_carepackage" href="carepackage">Care Package</a>
 			<a id="menu_link_shutdown" href="shutdown">Shut Down</a>
 			<a id="menu_link_shutdown" href="restart">Restart</a>
+			<a id="menu_link_health" href="health">System Health</a>
                         <a id="menu_link_edit" title="Manage blocked Providers" href="javascript:void(0)" onclick="manageBlockedProviders()">Provider Blocklist</a>
                         <div id="manage_blocked_providers_dialog" title="Choose a specific provider to Unblock" style="display:none">
                             <table id="blocked_table" width="100%">
@@ -1490,6 +1491,41 @@
                                 </div>
 
     				</fieldset>
+
+                    <!-- Health Checks Settings Section -->
+                    <fieldset>
+                        <legend>Health Checks</legend>
+                        <div class="row checkbox">
+                            <input type="checkbox" name="health_check_enabled" id="health_check_enabled" value="1" ${config['health_check_enabled']} /><label>Enable Health Checks</label>
+                            <br/><small>Periodically check system components and report issues</small>
+                        </div>
+                        <div class="row">
+                            <label>Check Interval (minutes)</label>
+                            <input type="text" name="health_check_interval" id="health_check_interval" value="${config['health_check_interval']}" size="5">
+                        </div>
+                        <div class="row checkbox">
+                            <input type="checkbox" name="health_show_banner" id="health_show_banner" value="1" ${config['health_show_banner']} /><label>Show Persistent Banner</label>
+                            <br/><small>Display a warning banner on all pages when issues are detected</small>
+                        </div>
+                        <div class="row">
+                            <label>Disk Space Warning (GB)</label>
+                            <input type="text" name="health_disk_warn_gb" id="health_disk_warn_gb" value="${config['health_disk_warn_gb']}" size="5">
+                        </div>
+                        <div class="row">
+                            <label>Disk Space Error (GB)</label>
+                            <input type="text" name="health_disk_error_gb" id="health_disk_error_gb" value="${config['health_disk_error_gb']}" size="5">
+                        </div>
+                        <div class="row">
+                            <label>Stale Task Threshold (minutes)</label>
+                            <input type="text" name="health_stale_task_min" id="health_stale_task_min" value="${config['health_stale_task_min']}" size="5">
+                            <br/><small>Alert when a scheduler task has been running longer than this</small>
+                        </div>
+                        <div class="row">
+                            <label>History Retention (days)</label>
+                            <input type="text" name="health_history_days" id="health_history_days" value="${config['health_history_days']}" size="5">
+                            <br/><small>How long to keep resolved health check records</small>
+                        </div>
+                    </fieldset>
     				
 				</td>
 				<td>
@@ -1791,10 +1827,11 @@
                         </div>
                     </fieldset>
 
+
 	       </td>
              </tr>
         </table>
-    </div>	
+    </div>
         <input type="button" value="Save Changes" onclick="doAjaxCall('configUpdate',$(this),'tabs',true,'post');return false;" data-success="Changes saved successfully">
         <div class="message">
         	<p><span class="ui-icon ui-icon-info" style="float: left; margin-right: .3em;"></span>Web Interface changes require a restart to take effect</p>

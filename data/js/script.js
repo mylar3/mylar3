@@ -66,6 +66,7 @@ function initActions() {
     $("#subhead_menu #menu_link_new").button({ icons: { primary: "ui-icon-arrowreturnthick-1-s" } });
     $("#subhead_menu #menu_link_shutdown").button({ icons: { primary: "ui-icon-power"} });
     $("#subhead_menu #menu_link_carepackage").button({ icons: { primary: "ui-icon-heart"} });
+    $("#subhead_menu #menu_link_health").button({ icons: { primary: "ui-icon-signal"} });
     $("#subhead_menu #menu_link_scan").button({ icons: { primary: "ui-icon-search"} });
     $("#subhead_menu #menu_link_addalltoRL").button({ icons: { primary: "ui-icon-plus"} });
     $("#subhead_menu #menu_link_clearresolved").button({ icons: { primary: "ui-icon-trash"} });

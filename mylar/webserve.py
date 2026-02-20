@@ -7080,6 +7080,13 @@ class WebInterface(object):
                     "dltotals": freq_tot,
                     "alphaindex": mylar.CONFIG.ALPHAINDEX,
                     "backup_on_start": helpers.checked(mylar.CONFIG.BACKUP_ON_START),
+                    "health_check_enabled": helpers.checked(mylar.CONFIG.HEALTH_CHECK_ENABLED),
+                    "health_check_interval": mylar.CONFIG.HEALTH_CHECK_INTERVAL,
+                    "health_show_banner": helpers.checked(mylar.CONFIG.HEALTH_SHOW_BANNER),
+                    "health_disk_warn_gb": mylar.CONFIG.HEALTH_DISK_WARN_GB,
+                    "health_disk_error_gb": mylar.CONFIG.HEALTH_DISK_ERROR_GB,
+                    "health_stale_task_min": mylar.CONFIG.HEALTH_STALE_TASK_MIN,
+                    "health_history_days": mylar.CONFIG.HEALTH_HISTORY_DAYS,
                }
         return serve_template(templatename="config.html", title="Settings", config=config, comicinfo=comicinfo)
     config.exposed = True
@@ -7411,7 +7418,8 @@ class WebInterface(object):
                            'prowl_enabled', 'prowl_onsnatch', 'pushover_enabled', 'pushover_onsnatch', 'pushover_image', 'mattermost_enabled', 'mattermost_onsnatch', 'boxcar_enabled',
                            'boxcar_onsnatch', 'pushbullet_enabled', 'pushbullet_onsnatch', 'telegram_enabled', 'telegram_onsnatch', 'telegram_image', 'discord_enabled', 'discord_onsnatch', 'slack_enabled', 'slack_onsnatch',
                            'email_enabled', 'email_enc', 'email_ongrab', 'email_onpost', 'gotify_enabled', 'gotify_server_url', 'gotify_token', 'gotify_onsnatch', 'opds_enable', 'opds_authentication', 'opds_metainfo', 'opds_pagesize', 'enable_ddl',
-                           'enable_getcomics', 'enable_airdcpp', 'jd2_enable', 'enable_external_server', 'ddl_prefer_upscaled', 'deluge_pause'] #enable_public
+                           'enable_getcomics', 'enable_airdcpp', 'jd2_enable', 'enable_external_server', 'ddl_prefer_upscaled', 'deluge_pause',
+                           'health_check_enabled', 'health_show_banner'] #enable_public
 
         for checked_config in checked_configs:
             if checked_config not in kwargs:
