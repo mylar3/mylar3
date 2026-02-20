@@ -57,7 +57,7 @@
 				<li><a href="manage">Manage</a></li>
 				<li><a href="storyarc_main">StoryArcs</a></li>
 				<li><a href="history">History</a></li>
-				<li><a href="config" class="config"><img src="${icons['icon_gear']}" alt="settings"/></a></li>
+				<li><a href="config" class="config" style="position:relative;"><img src="${icons['icon_gear']}" alt="settings"/><span id="health_badge" style="display:none; position:absolute; top:2px; right:2px; background:#e04040; color:#fff; font-size:10px; font-weight:bold; border-radius:8px; min-width:16px; height:16px; line-height:16px; text-align:center; padding:0 4px;">0</span></a></li>
 			</ul>
 			<div id="searchbar">
                 <form action="searchit" method="get">
@@ -69,6 +69,17 @@
            
 			</div>
 		</header>
+
+		<!-- Health Status Banner (health-dashboard feature) -->
+		% if mylar.CONFIG.HEALTH_SHOW_BANNER:
+		<div id="health_banner" style="display:none; position:fixed; top:71px; left:50%; transform:translateX(-50%); width:960px; max-width:calc(100% - 32px); z-index:998;">
+		    <div id="health_error_bar" style="display:none; background:#ffd8d8; border:1px solid #e8b0b0; border-radius:6px; padding:6px 16px 5px; font-size:13px; font-family:'Trebuchet MS',Helvetica,Arial,sans-serif; color:#8b2020; align-items:center; box-shadow:0 2px 8px rgba(0,0,0,0.15);">
+		        <span style="margin-right:8px; line-height:1; font-size:12px;">&#x1F534;</span>
+		        <span id="health_error_text" style="flex:1;"></span>
+		        <a href="health" style="background:#d04040; color:#fff; padding:3px 12px; border-radius:3px; font-size:12px; font-weight:bold; text-decoration:none; margin-left:10px; white-space:nowrap;">View Health</a>
+		    </div>
+		</div>
+		% endif
 
 		<div id="main" class="main">
 			<div id="subhead">
@@ -801,6 +812,75 @@
         $(document).ready(function() {
             //$("#notifs_table").dataTable();
             check_the_update();
+        });
+
+        /* -- Health Banner Functions --
+         * Manages the persistent health status banner shown on all pages.
+         * Data loaded via AJAX from /getHealth endpoint.
+         */
+        function updateHealthBanner(data) {
+            var errorBar = document.getElementById('health_error_bar');
+            var banner = document.getElementById('health_banner');
+
+            if (!banner) return;
+
+            // Only errors get a banner — warnings/notices use the gear badge only
+            if (data.error_count > 0) {
+                var errorMsgs = data.errors ? data.errors.map(function(e) { return e.check_name.replace(/_/g, ' '); }).join(', ') : '';
+                document.getElementById('health_error_text').innerHTML =
+                    '<strong>' + data.error_count + ' error' + (data.error_count > 1 ? 's' : '') +
+                    '</strong> require' + (data.error_count === 1 ? 's' : '') + ' attention' + (errorMsgs ? ' \u2014 ' + errorMsgs : '');
+                errorBar.style.display = 'flex';
+                banner.style.display = 'block';
+            } else {
+                errorBar.style.display = 'none';
+                banner.style.display = 'none';
+            }
+            adjustMainPadding();
+        }
+
+        function updateNavBadge(errorCount, warningCount, noticeCount) {
+            var badge = document.getElementById('health_badge');
+            if (!badge) return;
+            var total = errorCount + warningCount + noticeCount;
+            if (total > 0) {
+                badge.textContent = total;
+                // Red for errors, amber for warnings/notices only
+                badge.style.background = errorCount > 0 ? '#e04040' : '#d09000';
+                badge.style.display = 'inline-block';
+            } else {
+                badge.style.display = 'none';
+            }
+        }
+
+        function adjustMainPadding() {
+            var banner = document.getElementById('health_banner');
+            var main = document.getElementById('main');
+            if (!banner || !main) return;
+            // banner height is 0 when hidden (display:none), so padding resets naturally
+            var bannerHeight = banner.offsetHeight || 0;
+            main.style.paddingTop = (88 + bannerHeight) + 'px';
+        }
+
+        // Load health status for the banner on every page
+        $(document).ready(function() {
+            $.ajax({
+                url: 'getHealth',
+                dataType: 'json',
+                success: function(resp) {
+                    if (resp && resp.success && resp.data) {
+                        var summary = resp.data.summary || {};
+                        var results = resp.data.results || [];
+                        updateHealthBanner({
+                            error_count: summary.errors || 0,
+                            warning_count: summary.warnings || 0,
+                            errors: results.filter(function(r) { return r.severity === 'error'; }),
+                            warnings: results.filter(function(r) { return r.severity === 'warning'; })
+                        });
+                        updateNavBadge(summary.errors || 0, summary.warnings || 0, summary.notices || 0);
+                    }
+                }
+            });
         });
         </script>
 	<!-- This template is made by Elmar Kouwenhoven -->

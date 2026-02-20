@@ -9987,6 +9987,19 @@ class WebInterface(object):
             return json.dumps({'status': 'error', 'message': str(e)[:200]})
     dismissHealth.exposed = True
 
+    def clearResolvedHealth(self):
+        """Clear all resolved health check history."""
+        cherrypy.response.headers['Content-Type'] = 'application/json'
+        try:
+            if mylar.HEALTH_CHECK:
+                mylar.HEALTH_CHECK.clear_resolved_history()
+                return json.dumps({'status': 'ok', 'message': 'Resolved history cleared'})
+            else:
+                return json.dumps({'status': 'error', 'message': 'Health check engine not initialized'})
+        except Exception as e:
+            return json.dumps({'status': 'error', 'message': str(e)[:200]})
+    clearResolvedHealth.exposed = True
+
     def ping(self):
         """Unauthenticated health probe for Docker HEALTHCHECK and load balancers."""
         cherrypy.response.headers['Content-Type'] = 'application/json'

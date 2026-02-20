@@ -40,7 +40,7 @@
         </div>
     </div>
 
-    <!-- Active Issues Table -->
+    <!-- Active Issues Table — uses class="display" to inherit Mylar's dark theme styling -->
     <table class="display" id="health_table">
         <thead>
             <tr>
@@ -50,7 +50,6 @@
                 <th>First Seen</th>
                 <th>Last Seen</th>
                 <th>Count</th>
-                <th>Actions</th>
             </tr>
         </thead>
         <tbody id="health-tbody">
@@ -89,12 +88,11 @@
         }
         .health-card {
             flex: 1;
-            border: 1px solid #e0e0e0;
+            border: 1px solid #444;
             border-radius: 5px;
             padding: 14px 16px;
             text-align: center;
-            background: #fff;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+            background: transparent;
         }
         .health-card .card-count {
             font-size: 36px;
@@ -110,17 +108,17 @@
             font-weight: bold;
         }
         .health-card.errors { border-left: 4px solid #e04040; }
-        .health-card.errors .card-count { color: #d03030; }
-        .health-card.errors .card-label { color: #a02020; }
+        .health-card.errors .card-count { color: #e05050; }
+        .health-card.errors .card-label { color: #d04040; }
         .health-card.warnings { border-left: 4px solid #e0a000; }
-        .health-card.warnings .card-count { color: #c09000; }
-        .health-card.warnings .card-label { color: #906000; }
-        .health-card.notices { border-left: 4px solid #4183c4; }
-        .health-card.notices .card-count { color: #3070b0; }
-        .health-card.notices .card-label { color: #305080; }
+        .health-card.warnings .card-count { color: #e0a000; }
+        .health-card.warnings .card-label { color: #c09000; }
+        .health-card.notices { border-left: 4px solid #5090d0; }
+        .health-card.notices .card-count { color: #5090d0; }
+        .health-card.notices .card-label { color: #5090d0; }
         .health-card.lastcheck { border-left: 4px solid #60c060; }
-        .health-card.lastcheck .card-count { color: #40a040; font-size: 16px; line-height: 2.6; }
-        .health-card.lastcheck .card-label { color: #308030; }
+        .health-card.lastcheck .card-count { color: #60c060; font-size: 16px; line-height: 2.6; }
+        .health-card.lastcheck .card-label { color: #50b050; }
 
         /* ── Severity Badges ── */
         .severity-badge {
@@ -137,9 +135,6 @@
         .severity-badge.warning { background: #fef8e0; color: #a07000; border: 1px solid #ece0a0; }
         .severity-badge.notice { background: #e8f0ff; color: #3070b0; border: 1px solid #c0d8f0; }
 
-        /* ── Warning rows (not in default data_table.css) ── */
-        table.display tr.gradeW td { background-color: #fff8e0; }
-
         /* ── Wiki Link ── */
         .wiki-link {
             font-size: 10px;
@@ -153,29 +148,14 @@
         }
         .wiki-link:hover { background: #e0eeff; color: #306090; }
 
-        /* ── Action Buttons ── */
-        .action-btn {
-            display: inline-block;
-            font-size: 10px;
-            padding: 2px 8px;
-            border-radius: 3px;
-            cursor: pointer;
-            text-decoration: none;
-            border: 1px solid #ddd;
-            background: linear-gradient(#fafafa, #eaeaea);
-            color: #666;
-            white-space: nowrap;
-        }
-        .action-btn:hover { background: linear-gradient(#f0f0f0, #d8d8d8); color: #333; }
-
         /* ── Resolved Toggle ── */
         .resolved-toggle {
             cursor: pointer;
             font-size: 14px;
-            color: #666;
+            color: #999;
             padding: 10px 0;
             margin-top: 10px;
-            border-top: 1px solid #eee;
+            border-top: 1px solid #444;
             user-select: none;
         }
         .resolved-toggle:hover { color: #4183c4; }
@@ -187,7 +167,9 @@
         }
         .resolved-toggle.open .arrow { transform: rotate(90deg); }
         .resolved-section { margin-top: 10px; }
-        table.display tr.resolved td { color: #999; }
+
+        /* ── Timestamp tooltip ── */
+        .health-ts { cursor: default; }
 
         /* ── Empty state ── */
         .health-empty {
@@ -206,16 +188,30 @@
 
     var healthRefreshTimer = null;
 
-    /* Format an ISO datetime string to a short display string */
+    /* Format an ISO datetime string to a relative time display.
+     * Server stores UTC times via datetime.utcnow().isoformat() WITHOUT
+     * the trailing 'Z', so we must append it before parsing to avoid
+     * JavaScript treating the string as local time.
+     */
     function formatHealthTime(isoStr) {
         if (!isoStr) return '--';
         try {
-            var d = new Date(isoStr);
+            var utcStr = isoStr;
+            // Normalize SQLite datetime format (space separator) to ISO (T separator)
+            if (utcStr.indexOf('T') === -1 && utcStr.indexOf(' ') > 0) {
+                utcStr = utcStr.replace(' ', 'T');
+            }
+            if (utcStr.indexOf('Z') === -1 && utcStr.indexOf('+') === -1 && utcStr.indexOf('T') !== -1) {
+                utcStr += 'Z';
+            }
+            var d = new Date(utcStr);
             if (isNaN(d.getTime())) return isoStr;
             var now = new Date();
             var diffMs = now - d;
-            var diffMin = Math.floor(diffMs / 60000);
-            if (diffMin < 1) return 'Just now';
+            if (diffMs < 0) return 'Just now';
+            var diffSec = Math.floor(diffMs / 1000);
+            if (diffSec < 60) return 'Just now';
+            var diffMin = Math.floor(diffSec / 60);
             if (diffMin < 60) return diffMin + ' min ago';
             var diffHrs = Math.floor(diffMin / 60);
             if (diffHrs < 24) return diffHrs + ' hr ago';
@@ -226,16 +222,44 @@
         }
     }
 
+    /* Format an ISO datetime string to a human-readable local time for tooltips */
+    function formatHealthTooltip(isoStr) {
+        if (!isoStr) return '';
+        try {
+            var utcStr = isoStr;
+            if (utcStr.indexOf('T') === -1 && utcStr.indexOf(' ') > 0) {
+                utcStr = utcStr.replace(' ', 'T');
+            }
+            if (utcStr.indexOf('Z') === -1 && utcStr.indexOf('+') === -1 && utcStr.indexOf('T') !== -1) {
+                utcStr += 'Z';
+            }
+            var d = new Date(utcStr);
+            if (isNaN(d.getTime())) return isoStr;
+            return d.toLocaleString();
+        } catch (e) {
+            return isoStr;
+        }
+    }
+
     /* Build severity badge HTML */
     function severityBadge(sev) {
         return '<span class="severity-badge ' + sev + '">' + sev.charAt(0).toUpperCase() + sev.slice(1) + '</span>';
     }
 
-    /* Determine DataTable row class based on severity */
+    /* Determine DataTable row class based on severity.
+     * Uses gradeX (red) for errors and gradeH (amber) for warnings —
+     * both are defined in data_table.css and inherit the dark theme.
+     */
     function severityRowClass(sev) {
         if (sev === 'error') return 'gradeX';
-        if (sev === 'warning') return 'gradeW';
+        if (sev === 'warning') return 'gradeH';
         return 'gradeZ';
+    }
+
+    /* Build a timestamp <td> with both relative text and a tooltip showing the full datetime */
+    function timestampCell(isoStr) {
+        if (!isoStr) return '<td class="health-ts">--</td>';
+        return '<td class="health-ts" data-iso="' + isoStr + '" title="' + formatHealthTooltip(isoStr) + '">' + formatHealthTime(isoStr) + '</td>';
     }
 
     /* Fetch health data from server and update the page */
@@ -257,27 +281,38 @@
                 $('#notice-count').text(summary.notices || 0);
                 $('#last-check-time').text(formatHealthTime(data.last_run));
 
+                // Update the persistent banner and nav badge (defined in base.html)
+                if (typeof updateHealthBanner === 'function') {
+                    updateHealthBanner({
+                        error_count: summary.errors || 0,
+                        warning_count: summary.warnings || 0,
+                        errors: results.filter(function(r) { return r.severity === 'error'; }),
+                        warnings: results.filter(function(r) { return r.severity === 'warning'; })
+                    });
+                }
+                if (typeof updateNavBadge === 'function') {
+                    updateNavBadge(summary.errors || 0, summary.warnings || 0, summary.notices || 0);
+                }
+
                 // Update active issues table
                 var tbody = $('#health-tbody');
                 tbody.empty();
 
                 if (results.length === 0) {
-                    tbody.append('<tr><td colspan="7" class="health-empty">All health checks passed &mdash; system is operating normally.</td></tr>');
+                    tbody.append('<tr class="gradeZ"><td colspan="6" class="health-empty">All health checks passed &mdash; system is operating normally.</td></tr>');
                 } else {
                     for (var i = 0; i < results.length; i++) {
                         var r = results[i];
-                        var rowClass = severityRowClass(r.severity);
+                        var parity = (i % 2 === 0) ? 'odd' : 'even';
+                        var rowClass = parity + ' ' + severityRowClass(r.severity);
                         var wikiHtml = r.wiki_url ? ' <a href="' + r.wiki_url + '" class="wiki-link" target="_blank">Wiki</a>' : '';
                         var row = '<tr class="' + rowClass + '">' +
                             '<td>' + severityBadge(r.severity) + '</td>' +
                             '<td><strong>' + (r.check_name || '').replace(/_/g, ' ') + '</strong></td>' +
-                            '<td>' + (r.message || '') + wikiHtml + '</td>' +
-                            '<td>' + formatHealthTime(r.first_seen) + '</td>' +
-                            '<td>' + formatHealthTime(r.last_seen) + '</td>' +
-                            '<td style="text-align:center;">' + (r.check_count || 1) + '</td>' +
-                            '<td>' +
-                                '<a href="#" class="action-btn" onclick="dismissCheck(' + r.id + '); return false;">Dismiss</a>' +
-                            '</td>' +
+                            '<td style="text-align:left;">' + (r.message || '') + wikiHtml + '</td>' +
+                            timestampCell(r.first_seen) +
+                            timestampCell(r.last_seen) +
+                            '<td>' + (r.check_count || 1) + '</td>' +
                             '</tr>';
                         tbody.append(row);
                     }
@@ -288,16 +323,19 @@
                 rtbody.empty();
                 if (history.length === 0) {
                     $('#resolved-label').text('No recently resolved issues');
-                    rtbody.append('<tr><td colspan="4" style="text-align:center; padding:15px; color:#999;">No resolved issues in history</td></tr>');
+                    rtbody.append('<tr class="gradeZ"><td colspan="4" style="text-align:center; padding:15px; color:#999;">No resolved issues in history</td></tr>');
                 } else {
                     $('#resolved-label').text('Recently Resolved (' + history.length + ')');
                     for (var j = 0; j < history.length; j++) {
                         var h = history[j];
-                        var hrow = '<tr class="resolved">' +
+                        var hparity = (j % 2 === 0) ? 'odd' : 'even';
+                        // Use resolved_at if available, fall back to last_seen
+                        var resolvedIso = h.resolved_at || h.last_seen || '';
+                        var hrow = '<tr class="' + hparity + ' gradeZ">' +
                             '<td>' + severityBadge(h.severity) + '</td>' +
                             '<td>' + (h.check_name || '').replace(/_/g, ' ') + '</td>' +
-                            '<td>' + (h.message || '') + '</td>' +
-                            '<td>' + formatHealthTime(h.last_seen) + '</td>' +
+                            '<td style="text-align:left;">' + (h.message || '') + '</td>' +
+                            timestampCell(resolvedIso) +
                             '</tr>';
                         rtbody.append(hrow);
                     }
@@ -321,7 +359,6 @@
                 if (resp && resp.status === 'ok') {
                     $('#ajaxMsg').html("<div class='msg'><span class='ui-icon ui-icon-check'></span>Health check triggered</div>");
                     $('#ajaxMsg').addClass('success').fadeIn().delay(3000).fadeOut();
-                    // wait a moment for the check to complete, then refresh data
                     setTimeout(loadHealthData, 3000);
                 } else {
                     $('#ajaxMsg').html("<div class='msg'>Health check failed to trigger</div>");
@@ -339,27 +376,28 @@
         });
     }
 
-    /* Dismiss a specific health check issue */
-    function dismissCheck(checkId) {
+    /* Clear all resolved history records */
+    function clearResolved() {
         $.ajax({
-            url: 'dismissHealth',
-            data: { check_id: checkId },
+            url: 'clearResolvedHealth',
             dataType: 'json',
             success: function(resp) {
                 if (resp && resp.status === 'ok') {
-                    loadHealthData();
+                    $('#resolved-tbody').empty();
+                    $('#resolved-tbody').append('<tr class="gradeZ"><td colspan="4" style="text-align:center; padding:15px; color:#999;">No resolved issues in history</td></tr>');
+                    $('#resolved-label').text('No recently resolved issues');
+                    $('#ajaxMsg').html("<div class='msg'><span class='ui-icon ui-icon-check'></span>Resolved history cleared</div>");
+                    $('#ajaxMsg').addClass('success').fadeIn().delay(3000).fadeOut();
+                } else {
+                    $('#ajaxMsg').html("<div class='msg'>Failed to clear resolved history</div>");
+                    $('#ajaxMsg').addClass('error').fadeIn().delay(3000).fadeOut();
                 }
+            },
+            error: function() {
+                $('#ajaxMsg').html("<div class='msg'>Failed to clear resolved history</div>");
+                $('#ajaxMsg').addClass('error').fadeIn().delay(3000).fadeOut();
             }
         });
-    }
-
-    /* Clear all resolved history records */
-    function clearResolved() {
-        // reload data without resolved (they get cleaned up by the engine's cleanup)
-        $('#resolved-tbody').empty();
-        $('#resolved-label').text('No recently resolved issues');
-        $('#ajaxMsg').html("<div class='msg'><span class='ui-icon ui-icon-check'></span>Resolved history cleared</div>");
-        $('#ajaxMsg').addClass('success').fadeIn().delay(3000).fadeOut();
     }
 
     /* Toggle the resolved history section visibility */
@@ -374,15 +412,28 @@
         }
     }
 
+    /* Dynamically update all relative timestamps on the page.
+     * Runs every 15 seconds to keep "X min ago" labels current.
+     */
+    function refreshTimestamps() {
+        $('.health-ts').each(function() {
+            var iso = $(this).attr('data-iso');
+            if (iso) {
+                $(this).text(formatHealthTime(iso));
+            }
+        });
+    }
+
     /* Initialize page on document ready */
     $(document).ready(function() {
-        initActions();
-
         // load data immediately
         loadHealthData();
 
-        // auto-refresh every 30 seconds
+        // auto-refresh data every 30 seconds
         healthRefreshTimer = setInterval(loadHealthData, 30000);
+
+        // tick relative timestamps every 15 seconds
+        setInterval(refreshTimestamps, 15000);
     });
     </script>
 </%def>

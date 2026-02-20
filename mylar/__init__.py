@@ -457,7 +457,7 @@ def initialize(config_file):
                     replace_existing=True,
                     max_instances=1,
                     coalesce=True,
-                    next_run_time=datetime.datetime.utcnow() + datetime.timedelta(seconds=30)
+                    next_run_time=datetime.datetime.utcnow() + datetime.timedelta(seconds=5)
                 )
                 logger.info('[HealthCheck] Scheduler registered — running every %s minutes' % CONFIG.HEALTH_CHECK_INTERVAL)
             except Exception as e:

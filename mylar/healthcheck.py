@@ -61,6 +61,7 @@ class HealthCheckResult:
         self.metadata = metadata or {}
         self.first_seen = datetime.datetime.utcnow().isoformat()
         self.last_seen = self.first_seen
+        self.resolved_at = None
         self.check_count = 1
         self.db_id = None  # set when loaded from / saved to DB
 
@@ -78,6 +79,7 @@ class HealthCheckResult:
             'first_seen': self.first_seen,
             'last_seen': self.last_seen,
             'check_count': self.check_count,
+            'resolved_at': self.resolved_at,
         }
 
     @staticmethod
@@ -89,12 +91,13 @@ class HealthCheckResult:
             severity=row['severity'],
             message=row['message'],
             wiki_url=row['wiki_url'],
-            source=row.get('source', 'health_check'),
-            metadata=json.loads(row['metadata']) if row.get('metadata') else {},
+            source=row['source'] if row['source'] else 'health_check',
+            metadata=json.loads(row['metadata']) if row['metadata'] else {},
         )
         result.first_seen = row['first_seen']
         result.last_seen = row['last_seen']
-        result.check_count = row.get('check_count', 1)
+        result.resolved_at = row['resolved_at'] if 'resolved_at' in row.keys() else None
+        result.check_count = row['check_count'] if row['check_count'] else 1
         result.db_id = row['id']
         return result
 
@@ -143,6 +146,7 @@ class HealthCheckRunner:
         logger.info('[HealthCheck] Starting health check run')
 
         results = []
+        checks_that_ran = set()  # track which check_names actually executed
 
         # each check is wrapped in try/except so one failure doesn't kill others
         check_methods = [
@@ -166,22 +170,38 @@ class HealthCheckRunner:
         for check_name, check_method in check_methods:
             if not self._should_run(check_name):
                 continue
+            checks_that_ran.add(check_name)
             try:
                 check_results = check_method()
+                for cr in check_results:
+                    if cr.severity == 'error':
+                        logger.error('[HealthCheck] %s: %s' % (cr.check_name, cr.message))
+                    elif cr.severity == 'warning':
+                        logger.warn('[HealthCheck] %s: %s' % (cr.check_name, cr.message))
+                    else:
+                        logger.info('[HealthCheck] %s: %s' % (cr.check_name, cr.message))
                 results.extend(check_results)
                 self._check_timestamps[check_name] = datetime.datetime.utcnow()
             except Exception as e:
                 # don't let one broken check kill all checks
                 logger.error('[HealthCheck] Check "%s" threw exception: %s' % (check_name, str(e)[:200]))
 
-        # hold the lock only for the fast swap — never during network I/O
+        # merge: keep previous results for checks that were SKIPPED this cycle
+        ran_check_names = {r.check_name for r in results}
+        fresh_results = list(results)  # snapshot before merging carried-forward items
         with self._lock:
+            for prev in self._results:
+                if prev.check_name not in checks_that_ran and prev.check_name not in ran_check_names:
+                    results.append(prev)
+            _sev_order = {'error': 0, 'warning': 1, 'notice': 2}
+            results.sort(key=lambda r: (_sev_order.get(r.severity, 3), r.check_name))
             self._results = results
             self._last_run = datetime.datetime.utcnow()
 
-        # persist to database (resolves cleared issues too)
-        self._save_to_db(results)
-        self._resolve_cleared(results)
+        # persist only FRESH results (from checks that ran) — carried-forward
+        # items already have correct DB state, no need to bump their count/last_seen
+        self._save_to_db(fresh_results)
+        self._resolve_cleared(results, checks_that_ran)
         self._cleanup_old()
 
         # push to browsers
@@ -191,12 +211,18 @@ class HealthCheckRunner:
         mylar.HEALTH_RESULTS = [r.to_dict() for r in results]
 
         elapsed = time.time() - start_time
-        logger.info('[HealthCheck] Completed in %.2fs — %d errors, %d warnings, %d notices' % (
-            elapsed,
-            sum(1 for r in results if r.severity == 'error'),
-            sum(1 for r in results if r.severity == 'warning'),
-            sum(1 for r in results if r.severity == 'notice'),
-        ))
+        error_count = sum(1 for r in results if r.severity == 'error')
+        warning_count = sum(1 for r in results if r.severity == 'warning')
+        notice_count = sum(1 for r in results if r.severity == 'notice')
+        summary_msg = '[HealthCheck] Completed in %.2fs — %d errors, %d warnings, %d notices' % (
+            elapsed, error_count, warning_count, notice_count)
+
+        if error_count > 0:
+            logger.error(summary_msg)
+        elif warning_count > 0:
+            logger.warn(summary_msg)
+        else:
+            logger.info(summary_msg)
 
     def get_results(self):
         """Thread-safe read of current active health check results."""
@@ -256,13 +282,23 @@ class HealthCheckRunner:
         try:
             myconn = db.DBConnection()
             rows = myconn.select(
-                "SELECT * FROM health_checks WHERE is_resolved=0 ORDER BY severity"
+                "SELECT * FROM health_checks WHERE is_resolved=0 "
+                "ORDER BY CASE severity WHEN 'error' THEN 0 WHEN 'warning' THEN 1 WHEN 'notice' THEN 2 ELSE 3 END, last_seen DESC"
             )
             with self._lock:
                 self._results = [HealthCheckResult.from_db_row(r) for r in rows]
             logger.info('[HealthCheck] Loaded %d active issues from database' % len(rows))
         except Exception as e:
             logger.error('[HealthCheck] Failed to load from database: %s' % e)
+
+    def clear_resolved_history(self):
+        """Delete all resolved health check records from the database."""
+        try:
+            myconn = db.DBConnection()
+            myconn.action("DELETE FROM health_checks WHERE is_resolved=1")
+            logger.info('[HealthCheck] Cleared all resolved history')
+        except Exception as e:
+            logger.error('[HealthCheck] Failed to clear resolved history: %s' % e)
 
     def get_resolved_history(self, days=None):
         """Query resolved health check records for the UI."""
@@ -394,7 +430,7 @@ class HealthCheckRunner:
                         "SELECT current_run FROM jobhistory WHERE JobName=?",
                         [task_name]
                     )
-                    if job and job[0].get('current_run'):
+                    if job and job[0]['current_run']:
                         started = job[0]['current_run']
                         try:
                             start_dt = datetime.datetime.fromisoformat(started)
@@ -483,7 +519,7 @@ class HealthCheckRunner:
             try:
                 # check if this check_name already has an active row
                 existing = myconn.select(
-                    "SELECT id, check_count FROM health_checks WHERE check_name=? AND is_resolved=0",
+                    "SELECT id, check_count, first_seen FROM health_checks WHERE check_name=? AND is_resolved=0",
                     [result.check_name]
                 )
                 if existing:
@@ -495,6 +531,8 @@ class HealthCheckRunner:
                     )
                     result.db_id = row['id']
                     result.check_count = row['check_count'] + 1
+                    result.first_seen = row['first_seen']  # preserve original first_seen from DB
+                    result.last_seen = now  # sync in-memory last_seen with what we wrote to DB
                 else:
                     myconn.action(
                         "INSERT INTO health_checks (check_type, check_name, severity, message, wiki_url, source, first_seen, last_seen, is_resolved, check_count, metadata) "
@@ -516,8 +554,10 @@ class HealthCheckRunner:
         # persist one result (used by log handler for immediate findings)
         self._save_to_db([result])
 
-    def _resolve_cleared(self, current_results):
-        # mark checks that now pass as resolved in DB
+    def _resolve_cleared(self, current_results, checks_that_ran):
+        # Only resolve DB records for checks that ACTUALLY RAN this cycle
+        # and returned clean (no results).  If a check was skipped by
+        # _should_run(), its DB records must be left untouched.
         active_names = {r.check_name for r in current_results}
         myconn = db.DBConnection()
         now = datetime.datetime.utcnow().isoformat()
@@ -527,7 +567,8 @@ class HealthCheckRunner:
                 "SELECT id, check_name FROM health_checks WHERE is_resolved=0"
             )
             for row in active_rows:
-                if row['check_name'] not in active_names:
+                # only resolve if: (a) the check ran this cycle, AND (b) it returned no findings
+                if row['check_name'] in checks_that_ran and row['check_name'] not in active_names:
                     myconn.action(
                         "UPDATE health_checks SET is_resolved=1, resolved_at=? WHERE id=?",
                         [now, row['id']]
