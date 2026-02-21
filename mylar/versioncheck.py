@@ -227,6 +227,8 @@ def getVersion(ptv):
                                     logger.info('[LAST_RELEASE] Version: %s' % current_version_name)
                                 elif i[1] == '(':
                                     branch = re.sub(r'[\(\)]', '', i).strip()
+                                    # Strip out github created refs
+                                    branch = ', '.join([br for br in branch.split(', ') if not br.startswith(r'refs/')])
                                     logger.info('[LAST_RELEASE] Branch: %s' % branch)
                             elif cnt == 1:
                                 current_version = i.strip()
