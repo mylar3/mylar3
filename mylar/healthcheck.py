@@ -21,6 +21,8 @@ import threading
 import json
 import logging
 import re
+import shutil
+import socket
 
 import requests
 
@@ -31,7 +33,8 @@ from mylar import logger, db, helpers
 # ── Health Check System ──
 # Provides periodic health monitoring for Mylar3 components.
 # Checks infrastructure (folders, disk, DB), providers (ComicVine, indexers),
-# download clients (SABnzbd, NZBGet), and scheduler tasks.
+# download clients (SABnzbd, NZBGet, qBittorrent, Transmission, rTorrent,
+# Deluge, uTorrent), and scheduler tasks.
 #
 # Results are stored in the health_checks SQLite table and pushed to
 # the browser via SSE for real-time banner and badge updates.
@@ -177,6 +180,8 @@ class HealthCheckRunner:
             checks_that_ran.add(check_name)
             try:
                 check_results = check_method()
+                if not check_results:
+                    logger.fdebug('[HealthCheck] %s: passed' % check_name)
                 for cr in check_results:
                     if cr.severity == 'error':
                         logger.error('[HealthCheck] %s: %s' % (cr.check_name, cr.message))
@@ -218,8 +223,9 @@ class HealthCheckRunner:
         error_count = sum(1 for r in results if r.severity == 'error')
         warning_count = sum(1 for r in results if r.severity == 'warning')
         notice_count = sum(1 for r in results if r.severity == 'notice')
-        summary_msg = '[HealthCheck] Completed in %.2fs — %d errors, %d warnings, %d notices' % (
-            elapsed, error_count, warning_count, notice_count)
+        summary_msg = '[HealthCheck] Completed in %.2fs — %d errors, %d warnings, %d notices (%d/%d checks ran)' % (
+            elapsed, error_count, warning_count, notice_count,
+            len(checks_that_ran), len(check_methods))
 
         if error_count > 0:
             logger.error(summary_msg)
@@ -454,11 +460,56 @@ class HealthCheckRunner:
 
         return results
 
-    # ── Stubbed Checks (Phase 3) ──
-
     def check_disk_space(self):
-        """[Phase 3] Check free disk space on storage paths."""
-        return []
+        """Check free disk space on configured storage paths."""
+        results = []
+
+        # Cast thresholds from config — stored as str in config.ini
+        warn_gb = float(mylar.CONFIG.HEALTH_DISK_WARN_GB or 5.0)
+        error_gb = float(mylar.CONFIG.HEALTH_DISK_ERROR_GB or 1.0)
+
+        paths_to_check = set()
+        if mylar.CONFIG.DESTINATION_DIR and os.path.exists(mylar.CONFIG.DESTINATION_DIR):
+            paths_to_check.add(mylar.CONFIG.DESTINATION_DIR)
+        if mylar.CONFIG.CACHE_DIR and os.path.exists(mylar.CONFIG.CACHE_DIR):
+            paths_to_check.add(mylar.CONFIG.CACHE_DIR)
+
+        # Dedup by mount point — use (total, used) as a proxy for the same
+        # filesystem since two paths on the same disk will report identical
+        # total capacity.  This avoids duplicate alerts for /comics and /cache
+        # when both live on the same volume.
+        checked_mounts = set()
+
+        for path in paths_to_check:
+            try:
+                usage = shutil.disk_usage(path)
+                mount_key = usage.total  # same total == same filesystem
+                if mount_key in checked_mounts:
+                    continue
+                checked_mounts.add(mount_key)
+
+                free_gb = usage.free / (1024 ** 3)
+
+                if free_gb < error_gb:
+                    results.append(HealthCheckResult(
+                        check_type='infrastructure',
+                        check_name='disk_space',
+                        severity='error',
+                        message='Critically low disk space on %s — only %.1f GB free (threshold: %.1f GB). Downloads will fail.' % (path, free_gb, error_gb),
+                        metadata={'path': path, 'free_gb': round(free_gb, 2), 'total_gb': round(usage.total / (1024 ** 3), 2)}
+                    ))
+                elif free_gb < warn_gb:
+                    results.append(HealthCheckResult(
+                        check_type='infrastructure',
+                        check_name='disk_space',
+                        severity='warning',
+                        message='Low disk space on %s — %.1f GB free (warning threshold: %.1f GB).' % (path, free_gb, warn_gb),
+                        metadata={'path': path, 'free_gb': round(free_gb, 2), 'total_gb': round(usage.total / (1024 ** 3), 2)}
+                    ))
+            except OSError as e:
+                logger.debug('[HealthCheck] Could not check disk space for %s: %s' % (path, e))
+
+        return results
 
     def check_indexers(self):
         """Check configured indexers for connectivity issues."""
@@ -536,32 +587,412 @@ class HealthCheckRunner:
         return results
 
     def check_download_client(self):
-        """[Phase 3] Test download client connectivity."""
-        return []
+        """Test download client connectivity.
+
+        NZB clients (SABnzbd, NZBGet): HTTP API version endpoint.
+        Torrent clients (qBittorrent, Transmission, uTorrent): HTTP API probe.
+        rTorrent: HTTP GET to SCGI pass-through URL (skipped for non-HTTP hosts).
+        Deluge: TCP socket connect to daemon RPC port.
+        """
+        results = []
+
+        if getattr(mylar, 'USE_SABNZBD', False):
+            try:
+                sab_host = mylar.CONFIG.SAB_HOST or ''
+                sab_apikey = mylar.CONFIG.SAB_APIKEY or ''
+                # SABnzbd API URL: host/api?mode=version&apikey=KEY&output=json
+                if sab_host and not sab_host.endswith('/'):
+                    sab_host = sab_host + '/'
+                sab_url = '%sapi?mode=version&apikey=%s&output=json' % (sab_host, sab_apikey)
+                verify = sab_host.startswith('https')
+                resp = requests.get(sab_url, timeout=5, verify=verify)
+                if resp.status_code != 200:
+                    results.append(HealthCheckResult(
+                        check_type='download',
+                        check_name='download_client',
+                        severity='error',
+                        message='SABnzbd returned HTTP %d — check host and API key.' % resp.status_code,
+                        metadata={'client': 'sabnzbd', 'status_code': resp.status_code}
+                    ))
+            except requests.exceptions.ConnectionError:
+                results.append(HealthCheckResult(
+                    check_type='download',
+                    check_name='download_client',
+                    severity='error',
+                    message='SABnzbd unreachable at %s — connection refused.' % mylar.CONFIG.SAB_HOST,
+                    metadata={'client': 'sabnzbd', 'error': 'connection_refused'}
+                ))
+            except requests.exceptions.Timeout:
+                results.append(HealthCheckResult(
+                    check_type='download',
+                    check_name='download_client',
+                    severity='error',
+                    message='SABnzbd connection timed out at %s.' % mylar.CONFIG.SAB_HOST,
+                    metadata={'client': 'sabnzbd', 'error': 'timeout'}
+                ))
+            except Exception as e:
+                results.append(HealthCheckResult(
+                    check_type='download',
+                    check_name='download_client',
+                    severity='error',
+                    message='SABnzbd check failed: %s' % str(e)[:200],
+                    metadata={'client': 'sabnzbd', 'error': str(type(e).__name__)}
+                ))
+
+        if getattr(mylar, 'USE_NZBGET', False):
+            try:
+                nzbget_host = mylar.CONFIG.NZBGET_HOST or ''
+                nzbget_port = mylar.CONFIG.NZBGET_PORT or ''
+                # NZBGet uses XML-RPC; test with a simple HTTP GET to the base URL
+                # Build URL: protocol://host:port[/subpath]/xmlrpc
+                if nzbget_host.startswith('https'):
+                    protocol = 'https'
+                    host_part = nzbget_host[8:]
+                elif nzbget_host.startswith('http'):
+                    protocol = 'http'
+                    host_part = nzbget_host[7:]
+                else:
+                    protocol = 'http'
+                    host_part = nzbget_host
+
+                nzbget_url = '%s://%s:%s/jsonrpc/version' % (protocol, host_part, nzbget_port)
+                resp = requests.get(nzbget_url, timeout=5, verify=False)
+                if resp.status_code != 200:
+                    results.append(HealthCheckResult(
+                        check_type='download',
+                        check_name='download_client',
+                        severity='error',
+                        message='NZBGet returned HTTP %d — check host and port.' % resp.status_code,
+                        metadata={'client': 'nzbget', 'status_code': resp.status_code}
+                    ))
+            except requests.exceptions.ConnectionError:
+                results.append(HealthCheckResult(
+                    check_type='download',
+                    check_name='download_client',
+                    severity='error',
+                    message='NZBGet unreachable at %s:%s — connection refused.' % (mylar.CONFIG.NZBGET_HOST, mylar.CONFIG.NZBGET_PORT),
+                    metadata={'client': 'nzbget', 'error': 'connection_refused'}
+                ))
+            except requests.exceptions.Timeout:
+                results.append(HealthCheckResult(
+                    check_type='download',
+                    check_name='download_client',
+                    severity='error',
+                    message='NZBGet connection timed out at %s:%s.' % (mylar.CONFIG.NZBGET_HOST, mylar.CONFIG.NZBGET_PORT),
+                    metadata={'client': 'nzbget', 'error': 'timeout'}
+                ))
+            except Exception as e:
+                results.append(HealthCheckResult(
+                    check_type='download',
+                    check_name='download_client',
+                    severity='error',
+                    message='NZBGet check failed: %s' % str(e)[:200],
+                    metadata={'client': 'nzbget', 'error': str(type(e).__name__)}
+                ))
+
+        # ── Torrent client connectivity checks ──
+
+        if getattr(mylar, 'USE_QBITTORRENT', False):
+            qbt_host = getattr(mylar.CONFIG, 'QBITTORRENT_HOST', None) or ''
+            if qbt_host:
+                try:
+                    # qBittorrent WebUI: /api/v2/app/version is unauthenticated
+                    test_url = qbt_host.rstrip('/') + '/api/v2/app/version'
+                    resp = requests.get(test_url, timeout=5, verify=False)
+                    if resp.status_code == 403:
+                        pass  # 403 = reachable, auth required — healthy
+                    elif resp.status_code not in (200, 403):
+                        results.append(HealthCheckResult(
+                            check_type='download',
+                            check_name='download_client',
+                            severity='error',
+                            message='qBittorrent returned HTTP %d — check host and port.' % resp.status_code,
+                            metadata={'client': 'qbittorrent', 'status_code': resp.status_code}
+                        ))
+                except requests.exceptions.ConnectionError:
+                    results.append(HealthCheckResult(
+                        check_type='download',
+                        check_name='download_client',
+                        severity='error',
+                        message='qBittorrent unreachable at %s — connection refused.' % qbt_host,
+                        metadata={'client': 'qbittorrent', 'error': 'connection_refused'}
+                    ))
+                except requests.exceptions.Timeout:
+                    results.append(HealthCheckResult(
+                        check_type='download',
+                        check_name='download_client',
+                        severity='error',
+                        message='qBittorrent connection timed out at %s.' % qbt_host,
+                        metadata={'client': 'qbittorrent', 'error': 'timeout'}
+                    ))
+                except Exception as e:
+                    results.append(HealthCheckResult(
+                        check_type='download',
+                        check_name='download_client',
+                        severity='error',
+                        message='qBittorrent check failed: %s' % str(e)[:200],
+                        metadata={'client': 'qbittorrent', 'error': str(type(e).__name__)}
+                    ))
+
+        if getattr(mylar, 'USE_TRANSMISSION', False):
+            trans_host = getattr(mylar.CONFIG, 'TRANSMISSION_HOST', None) or ''
+            if trans_host:
+                try:
+                    # Transmission RPC responds with 409 + X-Transmission-Session-Id
+                    # header on first contact — that counts as reachable.
+                    test_url = trans_host.rstrip('/') + '/transmission/rpc'
+                    resp = requests.get(test_url, timeout=5, verify=False)
+                    if resp.status_code not in (200, 401, 409):
+                        results.append(HealthCheckResult(
+                            check_type='download',
+                            check_name='download_client',
+                            severity='error',
+                            message='Transmission returned HTTP %d — check host and port.' % resp.status_code,
+                            metadata={'client': 'transmission', 'status_code': resp.status_code}
+                        ))
+                except requests.exceptions.ConnectionError:
+                    results.append(HealthCheckResult(
+                        check_type='download',
+                        check_name='download_client',
+                        severity='error',
+                        message='Transmission unreachable at %s — connection refused.' % trans_host,
+                        metadata={'client': 'transmission', 'error': 'connection_refused'}
+                    ))
+                except requests.exceptions.Timeout:
+                    results.append(HealthCheckResult(
+                        check_type='download',
+                        check_name='download_client',
+                        severity='error',
+                        message='Transmission connection timed out at %s.' % trans_host,
+                        metadata={'client': 'transmission', 'error': 'timeout'}
+                    ))
+                except Exception as e:
+                    results.append(HealthCheckResult(
+                        check_type='download',
+                        check_name='download_client',
+                        severity='error',
+                        message='Transmission check failed: %s' % str(e)[:200],
+                        metadata={'client': 'transmission', 'error': str(type(e).__name__)}
+                    ))
+
+        if getattr(mylar, 'USE_RTORRENT', False):
+            rt_host = getattr(mylar.CONFIG, 'RTORRENT_HOST', None) or ''
+            if rt_host and rt_host.startswith('http'):
+                try:
+                    # rTorrent with HTTP(S) SCGI pass-through — a GET to the
+                    # base URL should at least return *something* if reachable.
+                    rpc_url = getattr(mylar.CONFIG, 'RTORRENT_RPC_URL', '') or ''
+                    test_url = rt_host.rstrip('/') + '/' + rpc_url.lstrip('/')
+                    rt_verify = getattr(mylar.CONFIG, 'RTORRENT_VERIFY', False)
+                    resp = requests.get(test_url.rstrip('/'), timeout=5, verify=rt_verify)
+                    # Any HTTP response means the server is reachable; only
+                    # connection-level failures indicate a problem.
+                except requests.exceptions.ConnectionError:
+                    results.append(HealthCheckResult(
+                        check_type='download',
+                        check_name='download_client',
+                        severity='error',
+                        message='rTorrent unreachable at %s — connection refused.' % rt_host,
+                        metadata={'client': 'rtorrent', 'error': 'connection_refused'}
+                    ))
+                except requests.exceptions.Timeout:
+                    results.append(HealthCheckResult(
+                        check_type='download',
+                        check_name='download_client',
+                        severity='error',
+                        message='rTorrent connection timed out at %s.' % rt_host,
+                        metadata={'client': 'rtorrent', 'error': 'timeout'}
+                    ))
+                except Exception as e:
+                    results.append(HealthCheckResult(
+                        check_type='download',
+                        check_name='download_client',
+                        severity='error',
+                        message='rTorrent check failed: %s' % str(e)[:200],
+                        metadata={'client': 'rtorrent', 'error': str(type(e).__name__)}
+                    ))
+
+        if getattr(mylar, 'USE_DELUGE', False):
+            deluge_host = getattr(mylar.CONFIG, 'DELUGE_HOST', None) or ''
+            if deluge_host:
+                try:
+                    # Deluge uses daemon RPC (TCP, not HTTP).  A basic socket
+                    # connect confirms the daemon port is accepting connections.
+                    if ':' in deluge_host:
+                        host_part, port_part = deluge_host.rsplit(':', 1)
+                        port_num = int(port_part)
+                    else:
+                        host_part = deluge_host
+                        port_num = 58846  # Deluge daemon default
+                    sock = socket.create_connection((host_part, port_num), timeout=5)
+                    sock.close()
+                except (socket.timeout, socket.error, OSError) as e:
+                    results.append(HealthCheckResult(
+                        check_type='download',
+                        check_name='download_client',
+                        severity='error',
+                        message='Deluge daemon unreachable at %s — %s.' % (deluge_host, str(e)[:150]),
+                        metadata={'client': 'deluge', 'error': 'connection_failed'}
+                    ))
+                except Exception as e:
+                    results.append(HealthCheckResult(
+                        check_type='download',
+                        check_name='download_client',
+                        severity='error',
+                        message='Deluge check failed: %s' % str(e)[:200],
+                        metadata={'client': 'deluge', 'error': str(type(e).__name__)}
+                    ))
+
+        if getattr(mylar, 'USE_UTORRENT', False):
+            ut_host = getattr(mylar.CONFIG, 'UTORRENT_HOST', None) or ''
+            if ut_host:
+                try:
+                    # uTorrent WebUI — /gui/token.html returns auth token page
+                    test_url = ut_host.rstrip('/') + '/gui/token.html'
+                    resp = requests.get(test_url, timeout=5, verify=False)
+                    if resp.status_code not in (200, 401):
+                        results.append(HealthCheckResult(
+                            check_type='download',
+                            check_name='download_client',
+                            severity='error',
+                            message='uTorrent returned HTTP %d — check host and port.' % resp.status_code,
+                            metadata={'client': 'utorrent', 'status_code': resp.status_code}
+                        ))
+                except requests.exceptions.ConnectionError:
+                    results.append(HealthCheckResult(
+                        check_type='download',
+                        check_name='download_client',
+                        severity='error',
+                        message='uTorrent unreachable at %s — connection refused.' % ut_host,
+                        metadata={'client': 'utorrent', 'error': 'connection_refused'}
+                    ))
+                except requests.exceptions.Timeout:
+                    results.append(HealthCheckResult(
+                        check_type='download',
+                        check_name='download_client',
+                        severity='error',
+                        message='uTorrent connection timed out at %s.' % ut_host,
+                        metadata={'client': 'utorrent', 'error': 'timeout'}
+                    ))
+                except Exception as e:
+                    results.append(HealthCheckResult(
+                        check_type='download',
+                        check_name='download_client',
+                        severity='error',
+                        message='uTorrent check failed: %s' % str(e)[:200],
+                        metadata={'client': 'utorrent', 'error': str(type(e).__name__)}
+                    ))
+
+        return results
 
     def check_download_category(self):
-        """[Phase 3] Verify the configured download category exists in the client."""
+        """Verify the configured download category exists in the client."""
+        # Deferred — requires querying SABnzbd/NZBGet categories API which
+        # involves client-specific XML-RPC or REST calls and authentication.
+        # Category validation will be added once download client wrappers
+        # expose a list_categories() interface.
         return []
 
     def check_stalled_downloads(self):
-        """[Phase 3] Check for downloads that appear stuck."""
+        """Check for downloads that appear stuck in the client queue."""
+        # Deferred — requires querying each download client's active queue
+        # and comparing item ages against a threshold.  Each client (SABnzbd,
+        # NZBGet, qBittorrent, etc.) has a different API for queue inspection.
         return []
 
     def check_failed_postprocessing(self):
-        """[Phase 3] Check for repeated post-processing failures."""
-        return []
+        """Check for repeated post-processing failures in the last 24 hours."""
+        results = []
+        try:
+            myconn = db.DBConnection()
+            cutoff = (datetime.datetime.utcnow() - datetime.timedelta(hours=24)).strftime('%Y-%m-%d %H:%M:%S')
+            recent_failures = myconn.select(
+                "SELECT COUNT(*) as cnt FROM Failed WHERE DateFailed >= ?",
+                [cutoff]
+            )
+            if recent_failures and recent_failures[0]['cnt'] > 5:
+                count = recent_failures[0]['cnt']
+                results.append(HealthCheckResult(
+                    check_type='task',
+                    check_name='failed_postprocessing',
+                    severity='warning',
+                    message='%d post-processing failures in the last 24 hours. Check the Failed Downloads list for details.' % count,
+                    metadata={'count': count, 'period': '24h'}
+                ))
+        except Exception as e:
+            logger.debug('[HealthCheck] Could not query Failed table: %s' % str(e)[:200])
+        return results
 
     def check_update_available(self):
-        """[Phase 3] Check if a newer version of Mylar3 is available."""
-        return []
+        """Check if a newer version of Mylar3 is available."""
+        results = []
+        commits_behind = getattr(mylar, 'COMMITS_BEHIND', None)
+        if commits_behind and int(commits_behind) > 0:
+            branch = getattr(mylar.CONFIG, 'GIT_BRANCH', 'master') or 'master'
+            results.append(HealthCheckResult(
+                check_type='config',
+                check_name='update_available',
+                severity='notice',
+                message='A newer version of Mylar3 is available — you are %d commit%s behind %s.' % (
+                    int(commits_behind), 's' if int(commits_behind) != 1 else '', branch),
+                metadata={'commits_behind': int(commits_behind), 'branch': branch}
+            ))
+        return results
 
     def check_permissions(self):
-        """[Phase 3] Verify write access to key directories."""
-        return []
+        """Verify write access to key Mylar directories."""
+        results = []
+        dirs_to_check = {
+            'Data directory': getattr(mylar, 'DATA_DIR', None),
+            'Log directory': getattr(mylar, 'LOG_DIR', None),
+            'Cache directory': getattr(mylar.CONFIG, 'CACHE_DIR', None),
+        }
+        for label, path in dirs_to_check.items():
+            if path and os.path.exists(path) and not os.access(path, os.W_OK):
+                results.append(HealthCheckResult(
+                    check_type='infrastructure',
+                    check_name='permissions',
+                    severity='error',
+                    message='%s is not writable: %s — check file permissions.' % (label, path),
+                    metadata={'path': path, 'label': label}
+                ))
+        return results
 
     def check_no_download_client(self):
-        """[Phase 3] Warn if no download client is configured."""
-        return []
+        """Warn if no download client is configured."""
+        results = []
+
+        # NZB side — NZB_DOWNLOADER: 0=SABnzbd, 1=NZBGet, 2=Blackhole, 3=None
+        has_nzb_client = any([
+            getattr(mylar, 'USE_SABNZBD', False),
+            getattr(mylar, 'USE_NZBGET', False),
+            getattr(mylar, 'USE_BLACKHOLE', False),
+        ])
+
+        # Torrent side — only counts if torrents are enabled.  TORRENT_DOWNLOADER
+        # defaults to 0 (watchfolder) which sets USE_WATCHDIR=True even when no
+        # torrent client is intentionally configured.  Gating on ENABLE_TORRENTS
+        # prevents that default from masking a missing download client.
+        torrents_enabled = getattr(mylar.CONFIG, 'ENABLE_TORRENTS', False)
+        has_torrent_client = torrents_enabled and any([
+            getattr(mylar, 'USE_RTORRENT', False),
+            getattr(mylar, 'USE_DELUGE', False),
+            getattr(mylar, 'USE_TRANSMISSION', False),
+            getattr(mylar, 'USE_QBITTORRENT', False),
+            getattr(mylar, 'USE_UTORRENT', False),
+            getattr(mylar, 'USE_WATCHDIR', False),
+        ])
+
+        has_client = has_nzb_client or has_torrent_client
+
+        if not has_client:
+            results.append(HealthCheckResult(
+                check_type='download',
+                check_name='no_download_client',
+                severity='warning',
+                message='No download client is configured. Mylar can find comics but cannot download them.',
+            ))
+        return results
 
     def check_api_key_missing(self):
         """Warn if ComicVine API key is not configured."""
@@ -577,8 +1008,31 @@ class HealthCheckRunner:
         return results
 
     def check_database_integrity(self):
-        """[Phase 3] Run SQLite integrity check."""
-        return []
+        """Run SQLite PRAGMA integrity_check (runs every 6 hours)."""
+        results = []
+        try:
+            myconn = db.DBConnection()
+            integrity = myconn.select("PRAGMA integrity_check")
+            if integrity and integrity[0]:
+                # PRAGMA integrity_check returns [{'integrity_check': 'ok'}] when healthy
+                status = str(integrity[0][0]) if integrity[0] else 'unknown'
+                if status.lower() != 'ok':
+                    results.append(HealthCheckResult(
+                        check_type='infrastructure',
+                        check_name='database_integrity',
+                        severity='error',
+                        message='Database integrity check failed: %s. Consider restoring from backup.' % status[:200],
+                        metadata={'result': status[:500]}
+                    ))
+        except Exception as e:
+            results.append(HealthCheckResult(
+                check_type='infrastructure',
+                check_name='database_integrity',
+                severity='error',
+                message='Database integrity check could not run: %s' % str(e)[:200],
+                metadata={'error': str(type(e).__name__)}
+            ))
+        return results
 
     # ── Private Helpers ──
 
