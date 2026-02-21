@@ -141,11 +141,7 @@ class HealthCheckRunner:
         self._check_timestamps = {}  # {check_name: datetime} — when each check last ran
 
     def run_all_checks(self, force=False):
-        """Run all health checks and update DB, memory, and browser.
-
-        Args:
-            force: If True, bypass per-check interval gating (used for manual rechecks).
-        """
+        """Run all health checks and update DB, memory, and browser."""
         if not mylar.CONFIG.HEALTH_CHECK_ENABLED:
             return
 
@@ -589,13 +585,11 @@ class HealthCheckRunner:
         return results
 
     def check_download_client(self):
-        """Test download client connectivity.
-
-        NZB clients (SABnzbd, NZBGet): HTTP API version endpoint.
-        Torrent clients (qBittorrent, Transmission, uTorrent): HTTP API probe.
-        rTorrent: HTTP GET to SCGI pass-through URL (skipped for non-HTTP hosts).
-        Deluge: TCP socket connect to daemon RPC port.
-        """
+        """Test download client connectivity."""
+        # NZB clients (SABnzbd, NZBGet): HTTP API version endpoint
+        # Torrent clients (qBittorrent, Transmission, uTorrent): HTTP API probe
+        # rTorrent: HTTP GET to SCGI pass-through URL (skipped for non-HTTP hosts)
+        # Deluge: TCP socket connect to daemon RPC port
         results = []
 
         if getattr(mylar, 'USE_SABNZBD', False):

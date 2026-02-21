@@ -22,6 +22,7 @@ import datetime
 import json
 import logging
 import os
+import socket
 import sqlite3
 import threading
 import time
@@ -1149,6 +1150,710 @@ class TestHealthLogHandler:
         handler.emit(record)
 
 
+# ── Unit Tests: run_all_checks() Orchestration ──
+
+class TestRunAllChecks:
+    """Tests for the run_all_checks() orchestration loop."""
+
+    @pytest.mark.unit
+    def test_disabled_returns_immediately(self, runner, mock_config, mock_globals, mock_db):
+        """When HEALTH_CHECK_ENABLED is False, run_all_checks() returns early."""
+        mock_config.HEALTH_CHECK_ENABLED = False
+        runner.run_all_checks()
+        # no results, no last_run timestamp set
+        assert runner.get_results() == []
+        assert runner.last_run_iso() is None
+
+    @pytest.mark.unit
+    def test_collects_results_from_checks(self, runner, mock_config, mock_globals, mock_db, monkeypatch):
+        """Results from individual checks are collected and stored."""
+        # make all checks return empty except one
+        monkeypatch.setattr(runner, 'check_root_folders', lambda: [
+            HealthCheckResult('infrastructure', 'root_folder', 'error', 'Missing')
+        ])
+        monkeypatch.setattr(runner, 'check_comicvine_api', lambda: [])
+        monkeypatch.setattr(runner, 'check_indexers', lambda: [])
+        monkeypatch.setattr(runner, 'check_no_indexers', lambda: [])
+        monkeypatch.setattr(runner, 'check_download_client', lambda: [])
+        monkeypatch.setattr(runner, 'check_download_category', lambda: [])
+        monkeypatch.setattr(runner, 'check_disk_space', lambda: [])
+        monkeypatch.setattr(runner, 'check_stuck_tasks', lambda: [])
+        monkeypatch.setattr(runner, 'check_failed_postprocessing', lambda: [])
+        monkeypatch.setattr(runner, 'check_stalled_downloads', lambda: [])
+        monkeypatch.setattr(runner, 'check_update_available', lambda: [])
+        monkeypatch.setattr(runner, 'check_permissions', lambda: [])
+        monkeypatch.setattr(runner, 'check_no_download_client', lambda: [])
+        monkeypatch.setattr(runner, 'check_api_key_missing', lambda: [])
+        monkeypatch.setattr(runner, 'check_database_integrity', lambda: [])
+
+        runner.run_all_checks(force=True)
+
+        results = runner.get_results()
+        assert len(results) == 1
+        assert results[0].check_name == 'root_folder'
+        assert runner.last_run_iso() is not None
+
+    @pytest.mark.unit
+    def test_exception_in_one_check_doesnt_kill_others(self, runner, mock_config, mock_globals, mock_db, monkeypatch):
+        """If one check throws, the rest still run."""
+        def broken_check():
+            raise RuntimeError('boom')
+
+        monkeypatch.setattr(runner, 'check_root_folders', broken_check)
+        monkeypatch.setattr(runner, 'check_comicvine_api', lambda: [
+            HealthCheckResult('provider', 'comicvine_api', 'warning', 'Rate limited')
+        ])
+        monkeypatch.setattr(runner, 'check_indexers', lambda: [])
+        monkeypatch.setattr(runner, 'check_no_indexers', lambda: [])
+        monkeypatch.setattr(runner, 'check_download_client', lambda: [])
+        monkeypatch.setattr(runner, 'check_download_category', lambda: [])
+        monkeypatch.setattr(runner, 'check_disk_space', lambda: [])
+        monkeypatch.setattr(runner, 'check_stuck_tasks', lambda: [])
+        monkeypatch.setattr(runner, 'check_failed_postprocessing', lambda: [])
+        monkeypatch.setattr(runner, 'check_stalled_downloads', lambda: [])
+        monkeypatch.setattr(runner, 'check_update_available', lambda: [])
+        monkeypatch.setattr(runner, 'check_permissions', lambda: [])
+        monkeypatch.setattr(runner, 'check_no_download_client', lambda: [])
+        monkeypatch.setattr(runner, 'check_api_key_missing', lambda: [])
+        monkeypatch.setattr(runner, 'check_database_integrity', lambda: [])
+
+        runner.run_all_checks(force=True)
+
+        results = runner.get_results()
+        assert len(results) == 1
+        assert results[0].check_name == 'comicvine_api'
+
+    @pytest.mark.unit
+    def test_sorts_results_by_severity(self, runner, mock_config, mock_globals, mock_db, monkeypatch):
+        """Results are sorted: errors first, then warnings, then notices."""
+        monkeypatch.setattr(runner, 'check_root_folders', lambda: [])
+        monkeypatch.setattr(runner, 'check_comicvine_api', lambda: [])
+        monkeypatch.setattr(runner, 'check_indexers', lambda: [])
+        monkeypatch.setattr(runner, 'check_no_indexers', lambda: [])
+        monkeypatch.setattr(runner, 'check_download_client', lambda: [])
+        monkeypatch.setattr(runner, 'check_download_category', lambda: [])
+        monkeypatch.setattr(runner, 'check_disk_space', lambda: [])
+        monkeypatch.setattr(runner, 'check_stuck_tasks', lambda: [])
+        monkeypatch.setattr(runner, 'check_failed_postprocessing', lambda: [])
+        monkeypatch.setattr(runner, 'check_stalled_downloads', lambda: [])
+        monkeypatch.setattr(runner, 'check_update_available', lambda: [
+            HealthCheckResult('config', 'update_available', 'notice', 'Update')
+        ])
+        monkeypatch.setattr(runner, 'check_permissions', lambda: [
+            HealthCheckResult('infrastructure', 'permissions', 'error', 'Not writable')
+        ])
+        monkeypatch.setattr(runner, 'check_no_download_client', lambda: [
+            HealthCheckResult('download', 'no_download_client', 'warning', 'No client')
+        ])
+        monkeypatch.setattr(runner, 'check_api_key_missing', lambda: [])
+        monkeypatch.setattr(runner, 'check_database_integrity', lambda: [])
+
+        runner.run_all_checks(force=True)
+        results = runner.get_results()
+        severities = [r.severity for r in results]
+        assert severities == ['error', 'warning', 'notice']
+
+    @pytest.mark.unit
+    def test_updates_health_results_global(self, runner, mock_config, mock_globals, mock_db, monkeypatch):
+        """run_all_checks() updates mylar.HEALTH_RESULTS global."""
+        monkeypatch.setattr(runner, 'check_root_folders', lambda: [
+            HealthCheckResult('infrastructure', 'root_folder', 'error', 'Missing')
+        ])
+        monkeypatch.setattr(runner, 'check_comicvine_api', lambda: [])
+        monkeypatch.setattr(runner, 'check_indexers', lambda: [])
+        monkeypatch.setattr(runner, 'check_no_indexers', lambda: [])
+        monkeypatch.setattr(runner, 'check_download_client', lambda: [])
+        monkeypatch.setattr(runner, 'check_download_category', lambda: [])
+        monkeypatch.setattr(runner, 'check_disk_space', lambda: [])
+        monkeypatch.setattr(runner, 'check_stuck_tasks', lambda: [])
+        monkeypatch.setattr(runner, 'check_failed_postprocessing', lambda: [])
+        monkeypatch.setattr(runner, 'check_stalled_downloads', lambda: [])
+        monkeypatch.setattr(runner, 'check_update_available', lambda: [])
+        monkeypatch.setattr(runner, 'check_permissions', lambda: [])
+        monkeypatch.setattr(runner, 'check_no_download_client', lambda: [])
+        monkeypatch.setattr(runner, 'check_api_key_missing', lambda: [])
+        monkeypatch.setattr(runner, 'check_database_integrity', lambda: [])
+
+        runner.run_all_checks(force=True)
+
+        assert len(mylar.HEALTH_RESULTS) == 1
+        assert mylar.HEALTH_RESULTS[0]['check_name'] == 'root_folder'
+
+    @pytest.mark.unit
+    def test_carries_forward_skipped_check_results(self, runner, mock_config, mock_globals, mock_db, monkeypatch):
+        """Results from checks that were skipped (interval gating) are carried forward."""
+        # inject a pre-existing result for a check that won't run again
+        existing = HealthCheckResult('provider', 'comicvine_api', 'error', 'Timeout')
+        with runner._lock:
+            runner._results = [existing]
+        # set timestamp so comicvine_api was just checked (won't re-run)
+        runner._check_timestamps['comicvine_api'] = datetime.datetime.now(datetime.timezone.utc)
+
+        # stub all checks to return empty
+        monkeypatch.setattr(runner, 'check_root_folders', lambda: [])
+        monkeypatch.setattr(runner, 'check_comicvine_api', lambda: [])
+        monkeypatch.setattr(runner, 'check_indexers', lambda: [])
+        monkeypatch.setattr(runner, 'check_no_indexers', lambda: [])
+        monkeypatch.setattr(runner, 'check_download_client', lambda: [])
+        monkeypatch.setattr(runner, 'check_download_category', lambda: [])
+        monkeypatch.setattr(runner, 'check_disk_space', lambda: [])
+        monkeypatch.setattr(runner, 'check_stuck_tasks', lambda: [])
+        monkeypatch.setattr(runner, 'check_failed_postprocessing', lambda: [])
+        monkeypatch.setattr(runner, 'check_stalled_downloads', lambda: [])
+        monkeypatch.setattr(runner, 'check_update_available', lambda: [])
+        monkeypatch.setattr(runner, 'check_permissions', lambda: [])
+        monkeypatch.setattr(runner, 'check_no_download_client', lambda: [])
+        monkeypatch.setattr(runner, 'check_api_key_missing', lambda: [])
+        monkeypatch.setattr(runner, 'check_database_integrity', lambda: [])
+
+        # run without force — comicvine_api will be skipped by _should_run
+        runner.run_all_checks(force=False)
+
+        results = runner.get_results()
+        # the comicvine_api result should still be there (carried forward)
+        names = [r.check_name for r in results]
+        assert 'comicvine_api' in names
+
+
+# ── Unit Tests: Torrent Client Checks ──
+
+class TestTorrentClientChecks:
+    """Tests for torrent download client connectivity checks."""
+
+    @pytest.mark.unit
+    def test_qbittorrent_reachable_returns_empty(self, runner, mock_config, mock_globals, monkeypatch):
+        monkeypatch.setattr(mylar, "USE_QBITTORRENT", True, raising=False)
+        monkeypatch.setattr(mock_config, "QBITTORRENT_HOST", 'http://localhost:8080', raising=False)
+        class FakeResponse:
+            status_code = 200
+        monkeypatch.setattr(requests, "get", lambda *args, **kwargs: FakeResponse())
+
+        results = runner.check_download_client()
+        assert results == []
+
+    @pytest.mark.unit
+    def test_qbittorrent_403_is_healthy(self, runner, mock_config, mock_globals, monkeypatch):
+        """403 from qBittorrent means reachable but auth required — not an error."""
+        monkeypatch.setattr(mylar, "USE_QBITTORRENT", True, raising=False)
+        monkeypatch.setattr(mock_config, "QBITTORRENT_HOST", 'http://localhost:8080', raising=False)
+        class FakeResponse:
+            status_code = 403
+        monkeypatch.setattr(requests, "get", lambda *args, **kwargs: FakeResponse())
+
+        results = runner.check_download_client()
+        assert results == []
+
+    @pytest.mark.unit
+    def test_qbittorrent_connection_error(self, runner, mock_config, mock_globals, monkeypatch):
+        monkeypatch.setattr(mylar, "USE_QBITTORRENT", True, raising=False)
+        monkeypatch.setattr(mock_config, "QBITTORRENT_HOST", 'http://localhost:8080', raising=False)
+        def fake_err(*a, **kw):
+            raise requests.exceptions.ConnectionError("refused")
+        monkeypatch.setattr(requests, "get", fake_err)
+
+        results = runner.check_download_client()
+        assert len(results) == 1
+        assert results[0].metadata['client'] == 'qbittorrent'
+
+    @pytest.mark.unit
+    def test_qbittorrent_timeout(self, runner, mock_config, mock_globals, monkeypatch):
+        monkeypatch.setattr(mylar, "USE_QBITTORRENT", True, raising=False)
+        monkeypatch.setattr(mock_config, "QBITTORRENT_HOST", 'http://localhost:8080', raising=False)
+        def fake_err(*a, **kw):
+            raise requests.exceptions.Timeout("timed out")
+        monkeypatch.setattr(requests, "get", fake_err)
+
+        results = runner.check_download_client()
+        assert len(results) == 1
+        assert 'timed out' in results[0].message.lower()
+
+    @pytest.mark.unit
+    def test_transmission_reachable_409(self, runner, mock_config, mock_globals, monkeypatch):
+        """409 from Transmission means reachable (session-id handshake) — healthy."""
+        monkeypatch.setattr(mylar, "USE_TRANSMISSION", True, raising=False)
+        monkeypatch.setattr(mock_config, "TRANSMISSION_HOST", 'http://localhost:9091', raising=False)
+        class FakeResponse:
+            status_code = 409
+        monkeypatch.setattr(requests, "get", lambda *args, **kwargs: FakeResponse())
+
+        results = runner.check_download_client()
+        assert results == []
+
+    @pytest.mark.unit
+    def test_transmission_connection_error(self, runner, mock_config, mock_globals, monkeypatch):
+        monkeypatch.setattr(mylar, "USE_TRANSMISSION", True, raising=False)
+        monkeypatch.setattr(mock_config, "TRANSMISSION_HOST", 'http://localhost:9091', raising=False)
+        def fake_err(*a, **kw):
+            raise requests.exceptions.ConnectionError("refused")
+        monkeypatch.setattr(requests, "get", fake_err)
+
+        results = runner.check_download_client()
+        assert len(results) == 1
+        assert results[0].metadata['client'] == 'transmission'
+
+    @pytest.mark.unit
+    def test_rtorrent_reachable_returns_empty(self, runner, mock_config, mock_globals, monkeypatch):
+        monkeypatch.setattr(mylar, "USE_RTORRENT", True, raising=False)
+        monkeypatch.setattr(mock_config, "RTORRENT_HOST", 'http://localhost:8000', raising=False)
+        monkeypatch.setattr(mock_config, "RTORRENT_RPC_URL", '/RPC2', raising=False)
+        monkeypatch.setattr(mock_config, "RTORRENT_VERIFY", False, raising=False)
+        class FakeResponse:
+            status_code = 200
+        monkeypatch.setattr(requests, "get", lambda *args, **kwargs: FakeResponse())
+
+        results = runner.check_download_client()
+        assert results == []
+
+    @pytest.mark.unit
+    def test_rtorrent_connection_error(self, runner, mock_config, mock_globals, monkeypatch):
+        monkeypatch.setattr(mylar, "USE_RTORRENT", True, raising=False)
+        monkeypatch.setattr(mock_config, "RTORRENT_HOST", 'http://localhost:8000', raising=False)
+        monkeypatch.setattr(mock_config, "RTORRENT_RPC_URL", '/RPC2', raising=False)
+        monkeypatch.setattr(mock_config, "RTORRENT_VERIFY", False, raising=False)
+        def fake_err(*a, **kw):
+            raise requests.exceptions.ConnectionError("refused")
+        monkeypatch.setattr(requests, "get", fake_err)
+
+        results = runner.check_download_client()
+        assert len(results) == 1
+        assert results[0].metadata['client'] == 'rtorrent'
+
+    @pytest.mark.unit
+    def test_rtorrent_timeout(self, runner, mock_config, mock_globals, monkeypatch):
+        monkeypatch.setattr(mylar, "USE_RTORRENT", True, raising=False)
+        monkeypatch.setattr(mock_config, "RTORRENT_HOST", 'http://localhost:8000', raising=False)
+        monkeypatch.setattr(mock_config, "RTORRENT_RPC_URL", '/RPC2', raising=False)
+        monkeypatch.setattr(mock_config, "RTORRENT_VERIFY", False, raising=False)
+        def fake_err(*a, **kw):
+            raise requests.exceptions.Timeout("timed out")
+        monkeypatch.setattr(requests, "get", fake_err)
+
+        results = runner.check_download_client()
+        assert len(results) == 1
+        assert results[0].metadata['client'] == 'rtorrent'
+
+    @pytest.mark.unit
+    def test_deluge_reachable_returns_empty(self, runner, mock_config, mock_globals, monkeypatch):
+        monkeypatch.setattr(mylar, "USE_DELUGE", True, raising=False)
+        monkeypatch.setattr(mock_config, "DELUGE_HOST", 'localhost:58846', raising=False)
+        # mock socket.create_connection to succeed
+        class FakeSocket:
+            def close(self):
+                pass
+        monkeypatch.setattr(socket, "create_connection", lambda *a, **kw: FakeSocket())
+
+        results = runner.check_download_client()
+        assert results == []
+
+    @pytest.mark.unit
+    def test_deluge_connection_failed(self, runner, mock_config, mock_globals, monkeypatch):
+        monkeypatch.setattr(mylar, "USE_DELUGE", True, raising=False)
+        monkeypatch.setattr(mock_config, "DELUGE_HOST", 'localhost:58846', raising=False)
+        def fake_err(*a, **kw):
+            raise socket.error("Connection refused")
+        monkeypatch.setattr(socket, "create_connection", fake_err)
+
+        results = runner.check_download_client()
+        assert len(results) == 1
+        assert results[0].metadata['client'] == 'deluge'
+
+    @pytest.mark.unit
+    def test_deluge_default_port(self, runner, mock_config, mock_globals, monkeypatch):
+        """Host without port uses default Deluge daemon port 58846."""
+        monkeypatch.setattr(mylar, "USE_DELUGE", True, raising=False)
+        monkeypatch.setattr(mock_config, "DELUGE_HOST", 'myserver', raising=False)
+        captured = {}
+        class FakeSocket:
+            def close(self):
+                pass
+        def capture_connect(addr, **kw):
+            captured['addr'] = addr
+            return FakeSocket()
+        monkeypatch.setattr(socket, "create_connection", capture_connect)
+
+        runner.check_download_client()
+        assert captured['addr'] == ('myserver', 58846)
+
+    @pytest.mark.unit
+    def test_utorrent_reachable_returns_empty(self, runner, mock_config, mock_globals, monkeypatch):
+        monkeypatch.setattr(mylar, "USE_UTORRENT", True, raising=False)
+        monkeypatch.setattr(mock_config, "UTORRENT_HOST", 'http://localhost:8080', raising=False)
+        class FakeResponse:
+            status_code = 200
+        monkeypatch.setattr(requests, "get", lambda *args, **kwargs: FakeResponse())
+
+        results = runner.check_download_client()
+        assert results == []
+
+    @pytest.mark.unit
+    def test_utorrent_401_is_healthy(self, runner, mock_config, mock_globals, monkeypatch):
+        """401 from uTorrent means reachable but auth required — healthy."""
+        monkeypatch.setattr(mylar, "USE_UTORRENT", True, raising=False)
+        monkeypatch.setattr(mock_config, "UTORRENT_HOST", 'http://localhost:8080', raising=False)
+        class FakeResponse:
+            status_code = 401
+        monkeypatch.setattr(requests, "get", lambda *args, **kwargs: FakeResponse())
+
+        results = runner.check_download_client()
+        assert results == []
+
+    @pytest.mark.unit
+    def test_utorrent_connection_error(self, runner, mock_config, mock_globals, monkeypatch):
+        monkeypatch.setattr(mylar, "USE_UTORRENT", True, raising=False)
+        monkeypatch.setattr(mock_config, "UTORRENT_HOST", 'http://localhost:8080', raising=False)
+        def fake_err(*a, **kw):
+            raise requests.exceptions.ConnectionError("refused")
+        monkeypatch.setattr(requests, "get", fake_err)
+
+        results = runner.check_download_client()
+        assert len(results) == 1
+        assert results[0].metadata['client'] == 'utorrent'
+
+    @pytest.mark.unit
+    def test_utorrent_timeout(self, runner, mock_config, mock_globals, monkeypatch):
+        monkeypatch.setattr(mylar, "USE_UTORRENT", True, raising=False)
+        monkeypatch.setattr(mock_config, "UTORRENT_HOST", 'http://localhost:8080', raising=False)
+        def fake_err(*a, **kw):
+            raise requests.exceptions.Timeout("timed out")
+        monkeypatch.setattr(requests, "get", fake_err)
+
+        results = runner.check_download_client()
+        assert len(results) == 1
+        assert results[0].metadata['client'] == 'utorrent'
+
+
+# ── Unit Tests: NZBGet Protocol Parsing ──
+
+class TestNZBGetCheck:
+    """Tests for NZBGet connectivity including protocol URL construction."""
+
+    @pytest.mark.unit
+    def test_nzbget_https_prefix(self, runner, mock_config, mock_globals, monkeypatch):
+        """NZBGet host with https:// prefix is handled correctly."""
+        monkeypatch.setattr(mylar, "USE_NZBGET", True, raising=False)
+        mock_config.NZBGET_HOST = 'https://nzbget.local'
+        mock_config.NZBGET_PORT = '6789'
+        captured = {}
+        class FakeResponse:
+            status_code = 200
+        def capture_get(url, **kw):
+            captured['url'] = url
+            return FakeResponse()
+        monkeypatch.setattr(requests, "get", capture_get)
+
+        results = runner.check_download_client()
+        assert results == []
+        assert captured['url'].startswith('https://')
+
+    @pytest.mark.unit
+    def test_nzbget_http_prefix(self, runner, mock_config, mock_globals, monkeypatch):
+        """NZBGet host with http:// prefix is handled correctly."""
+        monkeypatch.setattr(mylar, "USE_NZBGET", True, raising=False)
+        mock_config.NZBGET_HOST = 'http://nzbget.local'
+        mock_config.NZBGET_PORT = '6789'
+        captured = {}
+        class FakeResponse:
+            status_code = 200
+        def capture_get(url, **kw):
+            captured['url'] = url
+            return FakeResponse()
+        monkeypatch.setattr(requests, "get", capture_get)
+
+        results = runner.check_download_client()
+        assert results == []
+        assert 'http://nzbget.local:6789' in captured['url']
+
+    @pytest.mark.unit
+    def test_nzbget_no_prefix(self, runner, mock_config, mock_globals, monkeypatch):
+        """NZBGet host without protocol prefix defaults to http."""
+        monkeypatch.setattr(mylar, "USE_NZBGET", True, raising=False)
+        mock_config.NZBGET_HOST = 'nzbget.local'
+        mock_config.NZBGET_PORT = '6789'
+        captured = {}
+        class FakeResponse:
+            status_code = 200
+        def capture_get(url, **kw):
+            captured['url'] = url
+            return FakeResponse()
+        monkeypatch.setattr(requests, "get", capture_get)
+
+        results = runner.check_download_client()
+        assert results == []
+        assert captured['url'].startswith('http://')
+
+    @pytest.mark.unit
+    def test_nzbget_non200_returns_error(self, runner, mock_config, mock_globals, monkeypatch):
+        monkeypatch.setattr(mylar, "USE_NZBGET", True, raising=False)
+        mock_config.NZBGET_HOST = 'localhost'
+        mock_config.NZBGET_PORT = '6789'
+        class FakeResponse:
+            status_code = 500
+        monkeypatch.setattr(requests, "get", lambda *a, **kw: FakeResponse())
+
+        results = runner.check_download_client()
+        assert len(results) == 1
+        assert results[0].metadata['client'] == 'nzbget'
+
+    @pytest.mark.unit
+    def test_nzbget_connection_error(self, runner, mock_config, mock_globals, monkeypatch):
+        monkeypatch.setattr(mylar, "USE_NZBGET", True, raising=False)
+        mock_config.NZBGET_HOST = 'localhost'
+        mock_config.NZBGET_PORT = '6789'
+        def fake_err(*a, **kw):
+            raise requests.exceptions.ConnectionError("refused")
+        monkeypatch.setattr(requests, "get", fake_err)
+
+        results = runner.check_download_client()
+        assert len(results) == 1
+        assert results[0].metadata['client'] == 'nzbget'
+
+    @pytest.mark.unit
+    def test_nzbget_timeout(self, runner, mock_config, mock_globals, monkeypatch):
+        monkeypatch.setattr(mylar, "USE_NZBGET", True, raising=False)
+        mock_config.NZBGET_HOST = 'localhost'
+        mock_config.NZBGET_PORT = '6789'
+        def fake_err(*a, **kw):
+            raise requests.exceptions.Timeout("timed out")
+        monkeypatch.setattr(requests, "get", fake_err)
+
+        results = runner.check_download_client()
+        assert len(results) == 1
+        assert results[0].metadata['client'] == 'nzbget'
+
+
+# ── Unit Tests: Failed Post-Processing Check ──
+
+class TestFailedPostProcessing:
+    """Tests for check_failed_postprocessing() — recent failure detection."""
+
+    @pytest.mark.unit
+    def test_no_failures_returns_empty(self, runner, mock_config, mock_globals, mock_db):
+        mock_db._data = [{'cnt': 0}]
+        results = runner.check_failed_postprocessing()
+        assert results == []
+
+    @pytest.mark.unit
+    def test_few_failures_returns_empty(self, runner, mock_config, mock_globals, mock_db):
+        """5 or fewer failures in 24h is within tolerance."""
+        mock_db._data = [{'cnt': 5}]
+        results = runner.check_failed_postprocessing()
+        assert results == []
+
+    @pytest.mark.unit
+    def test_many_failures_returns_warning(self, runner, mock_config, mock_globals, mock_db):
+        mock_db._data = [{'cnt': 12}]
+        results = runner.check_failed_postprocessing()
+        assert len(results) == 1
+        assert results[0].severity == 'warning'
+        assert results[0].check_name == 'failed_postprocessing'
+        assert '12' in results[0].message
+
+    @pytest.mark.unit
+    def test_db_exception_returns_empty(self, runner, mock_config, mock_globals, monkeypatch):
+        """DB error is caught gracefully."""
+        def broken_db():
+            raise Exception("DB locked")
+        monkeypatch.setattr(mylar.db, "DBConnection", broken_db)
+        results = runner.check_failed_postprocessing()
+        assert results == []
+
+
+# ── Unit Tests: SSE Push & Misc Private Helpers ──
+
+class TestSSEAndHelpers:
+    """Tests for _push_sse(), clear_resolved_history(), and edge cases."""
+
+    @pytest.mark.unit
+    def test_push_sse_populates_global_messages(self, runner, mock_config, mock_globals):
+        """_push_sse() writes health_update event to GLOBAL_MESSAGES."""
+        result = HealthCheckResult('infrastructure', 'root_folder', 'error', 'Missing')
+        runner._push_sse([result])
+        assert mylar.GLOBAL_MESSAGES.get('event') == 'health_update'
+        assert 'data' in mylar.GLOBAL_MESSAGES
+
+    @pytest.mark.unit
+    def test_push_sse_exception_doesnt_raise(self, runner, mock_config, mock_globals, monkeypatch):
+        """_push_sse() must never crash, even with broken data."""
+        # force json.dumps to fail
+        monkeypatch.setattr(json, "dumps", lambda *a, **kw: (_ for _ in ()).throw(TypeError("boom")))
+        # should not raise
+        runner._push_sse([])
+
+    @pytest.mark.unit
+    def test_clear_resolved_history(self, runner, mock_db):
+        """clear_resolved_history() calls DELETE on resolved records."""
+        calls = []
+        mock_db.action = lambda q, p=None: calls.append(q)
+        runner.clear_resolved_history()
+        assert any('DELETE' in c for c in calls)
+
+    @pytest.mark.unit
+    def test_clear_resolved_history_exception(self, runner, monkeypatch):
+        """clear_resolved_history() catches DB exceptions gracefully."""
+        def broken_db():
+            raise Exception("DB locked")
+        monkeypatch.setattr(mylar.db, "DBConnection", broken_db)
+        # should not raise
+        runner.clear_resolved_history()
+
+    @pytest.mark.unit
+    def test_load_from_db_exception(self, runner, monkeypatch):
+        """load_from_db() catches DB exceptions gracefully."""
+        def broken_db():
+            raise Exception("DB locked")
+        monkeypatch.setattr(mylar.db, "DBConnection", broken_db)
+        # should not raise
+        runner.load_from_db()
+        assert runner.get_results() == []
+
+    @pytest.mark.unit
+    def test_get_resolved_history_default_days(self, runner, mock_config, mock_db):
+        """get_resolved_history() uses HEALTH_HISTORY_DAYS when days param is None."""
+        mock_config.HEALTH_HISTORY_DAYS = 30
+        mock_db._data = []
+        result = runner.get_resolved_history(days=None)
+        assert result == []
+
+
+# ── Unit Tests: Edge Cases in Existing Checks ──
+
+class TestCheckEdgeCases:
+    """Tests for edge-case branches in individual check methods."""
+
+    @pytest.mark.unit
+    def test_comicvine_generic_exception(self, runner, mock_config, mock_globals, monkeypatch):
+        """Generic exception in ComicVine check is caught."""
+        def fake_err(*a, **kw):
+            raise ValueError("unexpected error")
+        monkeypatch.setattr(requests, "get", fake_err)
+
+        results = runner.check_comicvine_api()
+        assert len(results) == 1
+        assert results[0].severity == 'error'
+        assert 'unexpected error' in results[0].message
+
+    @pytest.mark.unit
+    def test_sabnzbd_non200_returns_error(self, runner, mock_config, mock_globals, monkeypatch):
+        """SABnzbd returning non-200 status reports error."""
+        monkeypatch.setattr(mylar, "USE_SABNZBD", True, raising=False)
+        class FakeResponse:
+            status_code = 500
+        monkeypatch.setattr(requests, "get", lambda *a, **kw: FakeResponse())
+
+        results = runner.check_download_client()
+        assert len(results) == 1
+        assert results[0].metadata['client'] == 'sabnzbd'
+        assert '500' in results[0].message
+
+    @pytest.mark.unit
+    def test_sabnzbd_generic_exception(self, runner, mock_config, mock_globals, monkeypatch):
+        """Generic exception in SABnzbd check is caught."""
+        monkeypatch.setattr(mylar, "USE_SABNZBD", True, raising=False)
+        def fake_err(*a, **kw):
+            raise ValueError("something broke")
+        monkeypatch.setattr(requests, "get", fake_err)
+
+        results = runner.check_download_client()
+        assert len(results) == 1
+        assert results[0].metadata['client'] == 'sabnzbd'
+
+    @pytest.mark.unit
+    def test_disk_space_oserror_handled(self, runner, mock_config, mock_globals, tmp_path, monkeypatch):
+        """OSError during disk_usage() is caught gracefully."""
+        import shutil
+        mock_config.DESTINATION_DIR = str(tmp_path)
+        mock_config.CACHE_DIR = None
+        original_disk_usage = shutil.disk_usage
+        def broken_usage(path):
+            raise OSError("Permission denied")
+        monkeypatch.setattr(shutil, "disk_usage", broken_usage)
+
+        results = runner.check_disk_space()
+        assert results == []
+
+    @pytest.mark.unit
+    def test_indexer_blocklist_reason(self, runner, mock_config, mock_globals, monkeypatch):
+        """Blocked indexer includes reason from PROVIDER_BLOCKLIST."""
+        monkeypatch.setattr(mylar, "PROVIDER_STATUS", {'NZBgeek': 'fail'}, raising=False)
+        monkeypatch.setattr(mylar, "PROVIDER_BLOCKLIST", [
+            {'site': 'NZBgeek', 'reason': 'API limit exceeded'}
+        ], raising=False)
+
+        results = runner.check_indexers()
+        assert len(results) == 1
+        assert 'API limit exceeded' in results[0].message
+
+    @pytest.mark.unit
+    def test_no_indexers_experimental_returns_empty(self, runner, mock_config, mock_globals):
+        """EXPERIMENTAL flag counts as having a search provider."""
+        mock_config.EXTRA_NEWZNABS = []
+        mock_config.EXTRA_TORZNABS = []
+        mock_config.ENABLE_TORRENT_SEARCH = False
+        mock_config.EXPERIMENTAL = True
+
+        results = runner.check_no_indexers()
+        assert results == []
+
+    @pytest.mark.unit
+    def test_database_integrity_exception(self, runner, monkeypatch):
+        """Exception during integrity check creates error result."""
+        def broken_db():
+            raise Exception("DB connection failed")
+        monkeypatch.setattr(mylar.db, "DBConnection", broken_db)
+
+        results = runner.check_database_integrity()
+        assert len(results) == 1
+        assert results[0].severity == 'error'
+        assert results[0].check_name == 'database_integrity'
+
+    @pytest.mark.unit
+    def test_stuck_tasks_naive_timestamp(self, runner, mock_config, mock_globals, mock_db, monkeypatch):
+        """Naive timestamp (no timezone) is handled by adding UTC."""
+        monkeypatch.setattr(mylar, "MONITOR_STATUS", 'Running', raising=False)
+        # use a naive ISO timestamp (no +00:00)
+        two_hours_ago = (datetime.datetime.now(datetime.timezone.utc) - datetime.timedelta(hours=2))
+        naive_str = two_hours_ago.strftime('%Y-%m-%dT%H:%M:%S')
+        mock_db._data = [{'current_run': naive_str}]
+
+        results = runner.check_stuck_tasks()
+        assert len(results) >= 1
+        assert results[0].severity == 'warning'
+
+    @pytest.mark.unit
+    def test_stuck_tasks_invalid_timestamp(self, runner, mock_config, mock_globals, mock_db, monkeypatch):
+        """Invalid timestamp string is caught by ValueError handler."""
+        monkeypatch.setattr(mylar, "MONITOR_STATUS", 'Running', raising=False)
+        mock_db._data = [{'current_run': 'not-a-date'}]
+
+        results = runner.check_stuck_tasks()
+        # ValueError is caught, no result produced for this task
+        assert results == []
+
+    @pytest.mark.unit
+    def test_deferred_stubs_return_empty(self, runner, mock_config, mock_globals, mock_db):
+        """Deferred stubs return empty list."""
+        assert runner.check_download_category() == []
+        assert runner.check_stalled_downloads() == []
+
+    @pytest.mark.unit
+    def test_emit_outer_exception_caught(self, mock_globals, monkeypatch):
+        """emit() outer try/except catches any unexpected errors."""
+        handler = HealthLogHandler()
+        # create a record that will cause getMessage() to fail on second call
+        record = logging.LogRecord(
+            name='mylar', level=logging.WARNING, pathname='test.py',
+            lineno=1, msg='Permission denied', args=(), exc_info=None,
+        )
+        # force an exception inside emit by making HEALTH_CHECK.ingest_log_finding crash
+        class BrokenRunner:
+            def ingest_log_finding(self, r):
+                raise RuntimeError("boom")
+        monkeypatch.setattr(mylar, "HEALTH_CHECK", BrokenRunner(), raising=False)
+
+        # should not raise
+        handler.emit(record)
+
+
 # ── Unit Tests: Database Operations ──
 
 class TestDatabaseOperations:
@@ -1316,5 +2021,13 @@ def _make_real_db_conn(db_path):
 
         def upsert(self, table, new_values, control):
             pass
+
+        def close(self):
+            if self._conn:
+                self._conn.close()
+                self._conn = None
+
+        def __del__(self):
+            self.close()
 
     return RealDBConnection()
