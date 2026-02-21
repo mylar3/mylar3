@@ -62,7 +62,7 @@ class HealthCheckResult:
         self.wiki_url = wiki_url or self._default_wiki_url(check_name)
         self.source = source
         self.metadata = metadata or {}
-        self.first_seen = datetime.datetime.utcnow().isoformat()
+        self.first_seen = datetime.datetime.now(datetime.timezone.utc).isoformat()
         self.last_seen = self.first_seen
         self.resolved_at = None
         self.check_count = 1
@@ -190,7 +190,7 @@ class HealthCheckRunner:
                     else:
                         logger.info('[HealthCheck] %s: %s' % (cr.check_name, cr.message))
                 results.extend(check_results)
-                self._check_timestamps[check_name] = datetime.datetime.utcnow()
+                self._check_timestamps[check_name] = datetime.datetime.now(datetime.timezone.utc)
             except Exception as e:
                 # don't let one broken check kill all checks
                 logger.error('[HealthCheck] Check "%s" threw exception: %s' % (check_name, str(e)[:200]))
@@ -205,7 +205,7 @@ class HealthCheckRunner:
             _sev_order = {'error': 0, 'warning': 1, 'notice': 2}
             results.sort(key=lambda r: (_sev_order.get(r.severity, 3), r.check_name))
             self._results = results
-            self._last_run = datetime.datetime.utcnow()
+            self._last_run = datetime.datetime.now(datetime.timezone.utc)
 
         # persist only FRESH results (from checks that ran) — carried-forward
         # items already have correct DB state, no need to bump their count/last_seen
@@ -262,7 +262,7 @@ class HealthCheckRunner:
         myconn = db.DBConnection()
         myconn.action(
             "UPDATE health_checks SET is_resolved=1, resolved_at=? WHERE id=?",
-            [datetime.datetime.utcnow().isoformat(), check_id]
+            [datetime.datetime.now(datetime.timezone.utc).isoformat(), check_id]
         )
         # remove from in-memory results
         with self._lock:
@@ -276,7 +276,7 @@ class HealthCheckRunner:
             # check if we already have an active result for this check_name
             existing = next((r for r in self._results if r.check_name == result.check_name), None)
             if existing:
-                existing.last_seen = datetime.datetime.utcnow().isoformat()
+                existing.last_seen = datetime.datetime.now(datetime.timezone.utc).isoformat()
                 existing.check_count += 1
             else:
                 self._results.append(result)
@@ -314,7 +314,7 @@ class HealthCheckRunner:
         """Query resolved health check records for the UI."""
         if days is None:
             days = int(mylar.CONFIG.HEALTH_HISTORY_DAYS or 30)
-        cutoff = (datetime.datetime.utcnow() - datetime.timedelta(days=days)).isoformat()
+        cutoff = (datetime.datetime.now(datetime.timezone.utc) - datetime.timedelta(days=days)).isoformat()
         myconn = db.DBConnection()
         rows = myconn.select(
             "SELECT * FROM health_checks WHERE is_resolved=1 AND resolved_at>=? ORDER BY resolved_at DESC",
@@ -444,7 +444,9 @@ class HealthCheckRunner:
                         started = job[0]['current_run']
                         try:
                             start_dt = datetime.datetime.fromisoformat(started)
-                            elapsed = (datetime.datetime.utcnow() - start_dt).total_seconds() / 60
+                            if start_dt.tzinfo is None:
+                                start_dt = start_dt.replace(tzinfo=datetime.timezone.utc)
+                            elapsed = (datetime.datetime.now(datetime.timezone.utc) - start_dt).total_seconds() / 60
                             if elapsed >= stale_minutes:
                                 results.append(HealthCheckResult(
                                     check_type='task',
@@ -905,7 +907,7 @@ class HealthCheckRunner:
         results = []
         try:
             myconn = db.DBConnection()
-            cutoff = (datetime.datetime.utcnow() - datetime.timedelta(hours=24)).strftime('%Y-%m-%d %H:%M:%S')
+            cutoff = (datetime.datetime.now(datetime.timezone.utc) - datetime.timedelta(hours=24)).strftime('%Y-%m-%d %H:%M:%S')
             recent_failures = myconn.select(
                 "SELECT COUNT(*) as cnt FROM Failed WHERE DateFailed >= ?",
                 [cutoff]
@@ -1042,13 +1044,13 @@ class HealthCheckRunner:
         last = self._check_timestamps.get(check_name)
         if last is None:
             return True
-        elapsed_min = (datetime.datetime.utcnow() - last).total_seconds() / 60
+        elapsed_min = (datetime.datetime.now(datetime.timezone.utc) - last).total_seconds() / 60
         return elapsed_min >= interval
 
     def _save_to_db(self, results):
         # persist current results to SQLite — upserts active, skips unchanged
         myconn = db.DBConnection()
-        now = datetime.datetime.utcnow().isoformat()
+        now = datetime.datetime.now(datetime.timezone.utc).isoformat()
         for result in results:
             try:
                 # check if this check_name already has an active row
@@ -1094,7 +1096,7 @@ class HealthCheckRunner:
         # _should_run(), its DB records must be left untouched.
         active_names = {r.check_name for r in current_results}
         myconn = db.DBConnection()
-        now = datetime.datetime.utcnow().isoformat()
+        now = datetime.datetime.now(datetime.timezone.utc).isoformat()
 
         try:
             active_rows = myconn.select(
@@ -1114,7 +1116,7 @@ class HealthCheckRunner:
     def _cleanup_old(self):
         # purge resolved records older than HEALTH_HISTORY_DAYS
         days = int(mylar.CONFIG.HEALTH_HISTORY_DAYS or 30)
-        cutoff = (datetime.datetime.utcnow() - datetime.timedelta(days=days)).isoformat()
+        cutoff = (datetime.datetime.now(datetime.timezone.utc) - datetime.timedelta(days=days)).isoformat()
         try:
             myconn = db.DBConnection()
             myconn.action(
@@ -1195,7 +1197,7 @@ class HealthLogHandler(logging.Handler):
                 return
 
             message = record.getMessage()
-            now = datetime.datetime.utcnow()
+            now = datetime.datetime.now(datetime.timezone.utc)
 
             for pattern, check_name, severity in self.COMPILED_PATTERNS:
                 if pattern.search(message):
