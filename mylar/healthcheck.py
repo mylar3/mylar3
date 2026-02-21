@@ -27,7 +27,7 @@ import socket
 import requests
 
 import mylar
-from mylar import logger, db, helpers
+from mylar import logger, db
 
 
 # ── Health Check System ──
@@ -297,7 +297,8 @@ class HealthCheckRunner:
         except Exception as e:
             logger.error('[HealthCheck] Failed to load from database: %s' % e)
 
-    def clear_resolved_history(self):
+    @staticmethod
+    def clear_resolved_history():
         """Delete all resolved health check records from the database."""
         try:
             myconn = db.DBConnection()
@@ -306,7 +307,8 @@ class HealthCheckRunner:
         except Exception as e:
             logger.error('[HealthCheck] Failed to clear resolved history: %s' % e)
 
-    def get_resolved_history(self, days=None):
+    @staticmethod
+    def get_resolved_history(days=None):
         """Query resolved health check records for the UI."""
         if days is None:
             days = int(mylar.CONFIG.HEALTH_HISTORY_DAYS or 30)
@@ -320,7 +322,8 @@ class HealthCheckRunner:
 
     # ── Check Methods ──
 
-    def check_root_folders(self):
+    @staticmethod
+    def check_root_folders():
         """Check that configured comic root folders exist and are accessible."""
         results = []
         paths_to_check = []
@@ -352,7 +355,8 @@ class HealthCheckRunner:
                 ))
         return results
 
-    def check_comicvine_api(self):
+    @staticmethod
+    def check_comicvine_api():
         """Check ComicVine API connectivity and key validity."""
         results = []
         api_key = mylar.CONFIG.COMICVINE_API
@@ -415,7 +419,8 @@ class HealthCheckRunner:
             ))
         return results
 
-    def check_stuck_tasks(self):
+    @staticmethod
+    def check_stuck_tasks():
         """Check for scheduler tasks that have been running too long."""
         results = []
         stale_minutes = int(mylar.CONFIG.HEALTH_STALE_TASK_MIN or 60)
@@ -453,12 +458,13 @@ class HealthCheckRunner:
                                 ))
                         except (ValueError, TypeError):
                             pass
-                except Exception:
+                except (OSError, KeyError):
                     pass
 
         return results
 
-    def check_disk_space(self):
+    @staticmethod
+    def check_disk_space():
         """Check free disk space on configured storage paths."""
         results = []
 
@@ -509,7 +515,8 @@ class HealthCheckRunner:
 
         return results
 
-    def check_indexers(self):
+    @staticmethod
+    def check_indexers():
         """Check configured indexers for connectivity issues."""
         results = []
 
@@ -538,7 +545,8 @@ class HealthCheckRunner:
 
         return results
 
-    def check_no_indexers(self):
+    @staticmethod
+    def check_no_indexers():
         """Warn if no search indexers or providers are enabled."""
         results = []
 
@@ -553,7 +561,7 @@ class HealthCheckRunner:
                 if len(nz) > 5 and str(nz[5]) == '1':
                     has_any = True
                     break
-        except Exception:
+        except (TypeError, IndexError, AttributeError):
             pass
 
         # check torznab providers — same tuple format as newznabs
@@ -564,7 +572,7 @@ class HealthCheckRunner:
                     if len(tz) > 5 and str(tz[5]) == '1':
                         has_any = True
                         break
-            except Exception:
+            except (TypeError, IndexError, AttributeError):
                 pass
 
         # check other search toggles
@@ -584,7 +592,8 @@ class HealthCheckRunner:
 
         return results
 
-    def check_download_client(self):
+    @staticmethod
+    def check_download_client():
         """Test download client connectivity."""
         # NZB clients (SABnzbd, NZBGet): HTTP API version endpoint
         # Torrent clients (qBittorrent, Transmission, uTorrent): HTTP API probe
@@ -780,7 +789,7 @@ class HealthCheckRunner:
                     rpc_url = getattr(mylar.CONFIG, 'RTORRENT_RPC_URL', '') or ''
                     test_url = rt_host.rstrip('/') + '/' + rpc_url.lstrip('/')
                     rt_verify = getattr(mylar.CONFIG, 'RTORRENT_VERIFY', False)
-                    resp = requests.get(test_url.rstrip('/'), timeout=5, verify=rt_verify)
+                    _resp = requests.get(test_url.rstrip('/'), timeout=5, verify=rt_verify)
                     # Any HTTP response means the server is reachable; only
                     # connection-level failures indicate a problem.
                 except requests.exceptions.ConnectionError:
@@ -881,7 +890,8 @@ class HealthCheckRunner:
 
         return results
 
-    def check_download_category(self):
+    @staticmethod
+    def check_download_category():
         """Verify the configured download category exists in the client."""
         # Deferred — requires querying SABnzbd/NZBGet categories API which
         # involves client-specific XML-RPC or REST calls and authentication.
@@ -889,14 +899,16 @@ class HealthCheckRunner:
         # expose a list_categories() interface.
         return []
 
-    def check_stalled_downloads(self):
+    @staticmethod
+    def check_stalled_downloads():
         """Check for downloads that appear stuck in the client queue."""
         # Deferred — requires querying each download client's active queue
         # and comparing item ages against a threshold.  Each client (SABnzbd,
         # NZBGet, qBittorrent, etc.) has a different API for queue inspection.
         return []
 
-    def check_failed_postprocessing(self):
+    @staticmethod
+    def check_failed_postprocessing():
         """Check for repeated post-processing failures in the last 24 hours."""
         results = []
         try:
@@ -919,7 +931,8 @@ class HealthCheckRunner:
             logger.debug('[HealthCheck] Could not query Failed table: %s' % str(e)[:200])
         return results
 
-    def check_update_available(self):
+    @staticmethod
+    def check_update_available():
         """Check if a newer version of Mylar3 is available."""
         results = []
         commits_behind = getattr(mylar, 'COMMITS_BEHIND', None)
@@ -935,7 +948,8 @@ class HealthCheckRunner:
             ))
         return results
 
-    def check_permissions(self):
+    @staticmethod
+    def check_permissions():
         """Verify write access to key Mylar directories."""
         results = []
         dirs_to_check = {
@@ -954,7 +968,8 @@ class HealthCheckRunner:
                 ))
         return results
 
-    def check_no_download_client(self):
+    @staticmethod
+    def check_no_download_client():
         """Warn if no download client is configured."""
         results = []
 
@@ -990,7 +1005,8 @@ class HealthCheckRunner:
             ))
         return results
 
-    def check_api_key_missing(self):
+    @staticmethod
+    def check_api_key_missing():
         """Warn if ComicVine API key is not configured."""
         results = []
         api_key = getattr(mylar.CONFIG, 'COMICVINE_API', None)
@@ -1003,7 +1019,8 @@ class HealthCheckRunner:
             ))
         return results
 
-    def check_database_integrity(self):
+    @staticmethod
+    def check_database_integrity():
         """Run SQLite PRAGMA integrity_check (runs every 6 hours)."""
         results = []
         try:
@@ -1041,7 +1058,8 @@ class HealthCheckRunner:
         elapsed_min = (datetime.datetime.now(datetime.timezone.utc) - last).total_seconds() / 60
         return elapsed_min >= interval
 
-    def _save_to_db(self, results):
+    @staticmethod
+    def _save_to_db(results):
         # persist current results to SQLite — upserts active, skips unchanged
         myconn = db.DBConnection()
         now = datetime.datetime.now(datetime.timezone.utc).isoformat()
@@ -1084,7 +1102,8 @@ class HealthCheckRunner:
         # persist one result (used by log handler for immediate findings)
         self._save_to_db([result])
 
-    def _resolve_cleared(self, current_results, checks_that_ran):
+    @staticmethod
+    def _resolve_cleared(current_results, checks_that_ran):
         # Only resolve DB records for checks that ACTUALLY RAN this cycle
         # and returned clean (no results).  If a check was skipped by
         # _should_run(), its DB records must be left untouched.
@@ -1107,7 +1126,8 @@ class HealthCheckRunner:
         except Exception as e:
             logger.error('[HealthCheck] Failed to resolve cleared checks: %s' % str(e)[:200])
 
-    def _cleanup_old(self):
+    @staticmethod
+    def _cleanup_old():
         # purge resolved records older than HEALTH_HISTORY_DAYS
         days = int(mylar.CONFIG.HEALTH_HISTORY_DAYS or 30)
         cutoff = (datetime.datetime.now(datetime.timezone.utc) - datetime.timedelta(days=days)).isoformat()
@@ -1201,7 +1221,7 @@ class HealthLogHandler(logging.Handler):
                         return
 
                     # Only set throttle AFTER successfully ingesting
-                    # the finding.  If HEALTH_CHECK is not yet initialised
+                    # the finding.  If HEALTH_CHECK is not yet initialized
                     # (e.g. during startup, before initialize() creates the
                     # runner) we must NOT set the throttle — otherwise the
                     # first real opportunity (config-save) would be blocked
@@ -1219,5 +1239,5 @@ class HealthLogHandler(logging.Handler):
                         self._last_emit[check_name] = now  # throttle only on success
                     break  # only match first pattern
 
-        except Exception:
-            pass  # NEVER let a logging handler crash the application
+        except (AttributeError, TypeError, ValueError, RuntimeError):
+            pass  # logging handlers must NEVER crash the application

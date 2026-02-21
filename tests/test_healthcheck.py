@@ -25,12 +25,12 @@ import os
 import socket
 import sqlite3
 import threading
-import time
-
+# noinspection PyPackageRequirements
 import pytest
 import requests
 
 import mylar
+import mylar.db
 from mylar.healthcheck import HealthCheckResult, HealthCheckRunner, HealthLogHandler
 
 
@@ -102,7 +102,7 @@ def mock_db(monkeypatch):
         def __init__(self):
             self._data = []
 
-        def select(self, query, params=None):
+        def select(self, _query, _params=None):
             return self._data
 
         def action(self, query, params=None):
@@ -136,7 +136,7 @@ def real_db(tmp_path, monkeypatch):
               'severity TEXT NOT NULL, '
               'message TEXT NOT NULL, '
               'wiki_url TEXT, '
-              'source TEXT DEFAULT "health_check", '
+              "source TEXT DEFAULT 'health_check', "
               'first_seen TEXT NOT NULL, '
               'last_seen TEXT NOT NULL, '
               'is_resolved INTEGER DEFAULT 0, '
@@ -546,7 +546,7 @@ class TestComicVineCheck:
 
     @pytest.mark.unit
     def test_timeout_returns_error(self, runner, mock_config, mock_globals, monkeypatch):
-        def fake_timeout(*args, **kwargs):
+        def fake_timeout(*_args, **_kwargs):
             raise requests.exceptions.Timeout("Connection timed out")
         monkeypatch.setattr(requests, "get", fake_timeout)
 
@@ -557,7 +557,7 @@ class TestComicVineCheck:
 
     @pytest.mark.unit
     def test_connection_error_returns_error(self, runner, mock_config, mock_globals, monkeypatch):
-        def fake_conn_error(*args, **kwargs):
+        def fake_conn_error(*_args, **_kwargs):
             raise requests.exceptions.ConnectionError("Connection refused")
         monkeypatch.setattr(requests, "get", fake_conn_error)
 
@@ -611,7 +611,7 @@ class TestComicVineCheck:
         captured = {}
         class FakeResponse:
             status_code = 200
-        def capture_get(*args, **kwargs):
+        def capture_get(*_args, **kwargs):
             captured.update(kwargs)
             return FakeResponse()
         monkeypatch.setattr(requests, "get", capture_get)
@@ -769,7 +769,7 @@ class TestDownloadClientCheck:
     def test_sabnzbd_unreachable_returns_error(self, runner, mock_config, mock_globals, monkeypatch):
         monkeypatch.setattr(mylar, "USE_SABNZBD", True, raising=False)
 
-        def fake_conn_error(*args, **kwargs):
+        def fake_conn_error(*_args, **_kwargs):
             raise requests.exceptions.ConnectionError("Connection refused")
         monkeypatch.setattr(requests, "get", fake_conn_error)
 
@@ -782,7 +782,7 @@ class TestDownloadClientCheck:
     def test_sabnzbd_timeout_returns_error(self, runner, mock_config, mock_globals, monkeypatch):
         monkeypatch.setattr(mylar, "USE_SABNZBD", True, raising=False)
 
-        def fake_timeout(*args, **kwargs):
+        def fake_timeout(*_args, **_kwargs):
             raise requests.exceptions.Timeout("timed out")
         monkeypatch.setattr(requests, "get", fake_timeout)
 
@@ -815,7 +815,7 @@ class TestDownloadClientCheck:
         captured = {}
         class FakeResponse:
             status_code = 200
-        def capture_get(*args, **kwargs):
+        def capture_get(*_args, **kwargs):
             captured.update(kwargs)
             return FakeResponse()
         monkeypatch.setattr(requests, "get", capture_get)
@@ -834,6 +834,7 @@ class TestNoIndexersCheck:
         # simulate one enabled newznab provider
         # tuple format: (name, host, verify, apikey, uid, enabled, id)
         mock_config.EXTRA_NEWZNABS = [
+            # noinspection HttpUrlsUsage
             ('TestProvider', 'http://example.com', False, 'key123', '0', '1', '0')
         ]
 
@@ -1010,7 +1011,8 @@ class TestSimpleChecks:
 class TestHealthLogHandler:
     """Tests for the HealthLogHandler log interceptor."""
 
-    def _make_record(self, message, level=logging.WARNING):
+    @staticmethod
+    def _make_record(message, level=logging.WARNING):
         """Helper to create a log record."""
         record = logging.LogRecord(
             name='mylar',
@@ -1152,6 +1154,20 @@ class TestHealthLogHandler:
 
 # ── Unit Tests: run_all_checks() Orchestration ──
 
+def _stub_all_checks(monkeypatch, runner, overrides=None):
+    """Stub all runner check methods to return empty lists, with optional overrides."""
+    check_methods = [
+        'check_root_folders', 'check_comicvine_api', 'check_indexers',
+        'check_no_indexers', 'check_download_client', 'check_download_category',
+        'check_disk_space', 'check_stuck_tasks', 'check_failed_postprocessing',
+        'check_stalled_downloads', 'check_update_available', 'check_permissions',
+        'check_no_download_client', 'check_api_key_missing', 'check_database_integrity',
+    ]
+    overrides = overrides or {}
+    for method in check_methods:
+        monkeypatch.setattr(runner, method, overrides.get(method, lambda: []))
+
+
 class TestRunAllChecks:
     """Tests for the run_all_checks() orchestration loop."""
 
@@ -1167,24 +1183,11 @@ class TestRunAllChecks:
     @pytest.mark.unit
     def test_collects_results_from_checks(self, runner, mock_config, mock_globals, mock_db, monkeypatch):
         """Results from individual checks are collected and stored."""
-        # make all checks return empty except one
-        monkeypatch.setattr(runner, 'check_root_folders', lambda: [
-            HealthCheckResult('infrastructure', 'root_folder', 'error', 'Missing')
-        ])
-        monkeypatch.setattr(runner, 'check_comicvine_api', lambda: [])
-        monkeypatch.setattr(runner, 'check_indexers', lambda: [])
-        monkeypatch.setattr(runner, 'check_no_indexers', lambda: [])
-        monkeypatch.setattr(runner, 'check_download_client', lambda: [])
-        monkeypatch.setattr(runner, 'check_download_category', lambda: [])
-        monkeypatch.setattr(runner, 'check_disk_space', lambda: [])
-        monkeypatch.setattr(runner, 'check_stuck_tasks', lambda: [])
-        monkeypatch.setattr(runner, 'check_failed_postprocessing', lambda: [])
-        monkeypatch.setattr(runner, 'check_stalled_downloads', lambda: [])
-        monkeypatch.setattr(runner, 'check_update_available', lambda: [])
-        monkeypatch.setattr(runner, 'check_permissions', lambda: [])
-        monkeypatch.setattr(runner, 'check_no_download_client', lambda: [])
-        monkeypatch.setattr(runner, 'check_api_key_missing', lambda: [])
-        monkeypatch.setattr(runner, 'check_database_integrity', lambda: [])
+        _stub_all_checks(monkeypatch, runner, overrides={
+            'check_root_folders': lambda: [
+                HealthCheckResult('infrastructure', 'root_folder', 'error', 'Missing')
+            ],
+        })
 
         runner.run_all_checks(force=True)
 
@@ -1199,23 +1202,12 @@ class TestRunAllChecks:
         def broken_check():
             raise RuntimeError('boom')
 
-        monkeypatch.setattr(runner, 'check_root_folders', broken_check)
-        monkeypatch.setattr(runner, 'check_comicvine_api', lambda: [
-            HealthCheckResult('provider', 'comicvine_api', 'warning', 'Rate limited')
-        ])
-        monkeypatch.setattr(runner, 'check_indexers', lambda: [])
-        monkeypatch.setattr(runner, 'check_no_indexers', lambda: [])
-        monkeypatch.setattr(runner, 'check_download_client', lambda: [])
-        monkeypatch.setattr(runner, 'check_download_category', lambda: [])
-        monkeypatch.setattr(runner, 'check_disk_space', lambda: [])
-        monkeypatch.setattr(runner, 'check_stuck_tasks', lambda: [])
-        monkeypatch.setattr(runner, 'check_failed_postprocessing', lambda: [])
-        monkeypatch.setattr(runner, 'check_stalled_downloads', lambda: [])
-        monkeypatch.setattr(runner, 'check_update_available', lambda: [])
-        monkeypatch.setattr(runner, 'check_permissions', lambda: [])
-        monkeypatch.setattr(runner, 'check_no_download_client', lambda: [])
-        monkeypatch.setattr(runner, 'check_api_key_missing', lambda: [])
-        monkeypatch.setattr(runner, 'check_database_integrity', lambda: [])
+        _stub_all_checks(monkeypatch, runner, overrides={
+            'check_root_folders': broken_check,
+            'check_comicvine_api': lambda: [
+                HealthCheckResult('provider', 'comicvine_api', 'warning', 'Rate limited')
+            ],
+        })
 
         runner.run_all_checks(force=True)
 
@@ -1226,27 +1218,17 @@ class TestRunAllChecks:
     @pytest.mark.unit
     def test_sorts_results_by_severity(self, runner, mock_config, mock_globals, mock_db, monkeypatch):
         """Results are sorted: errors first, then warnings, then notices."""
-        monkeypatch.setattr(runner, 'check_root_folders', lambda: [])
-        monkeypatch.setattr(runner, 'check_comicvine_api', lambda: [])
-        monkeypatch.setattr(runner, 'check_indexers', lambda: [])
-        monkeypatch.setattr(runner, 'check_no_indexers', lambda: [])
-        monkeypatch.setattr(runner, 'check_download_client', lambda: [])
-        monkeypatch.setattr(runner, 'check_download_category', lambda: [])
-        monkeypatch.setattr(runner, 'check_disk_space', lambda: [])
-        monkeypatch.setattr(runner, 'check_stuck_tasks', lambda: [])
-        monkeypatch.setattr(runner, 'check_failed_postprocessing', lambda: [])
-        monkeypatch.setattr(runner, 'check_stalled_downloads', lambda: [])
-        monkeypatch.setattr(runner, 'check_update_available', lambda: [
-            HealthCheckResult('config', 'update_available', 'notice', 'Update')
-        ])
-        monkeypatch.setattr(runner, 'check_permissions', lambda: [
-            HealthCheckResult('infrastructure', 'permissions', 'error', 'Not writable')
-        ])
-        monkeypatch.setattr(runner, 'check_no_download_client', lambda: [
-            HealthCheckResult('download', 'no_download_client', 'warning', 'No client')
-        ])
-        monkeypatch.setattr(runner, 'check_api_key_missing', lambda: [])
-        monkeypatch.setattr(runner, 'check_database_integrity', lambda: [])
+        _stub_all_checks(monkeypatch, runner, overrides={
+            'check_update_available': lambda: [
+                HealthCheckResult('config', 'update_available', 'notice', 'Update')
+            ],
+            'check_permissions': lambda: [
+                HealthCheckResult('infrastructure', 'permissions', 'error', 'Not writable')
+            ],
+            'check_no_download_client': lambda: [
+                HealthCheckResult('download', 'no_download_client', 'warning', 'No client')
+            ],
+        })
 
         runner.run_all_checks(force=True)
         results = runner.get_results()
@@ -1256,23 +1238,11 @@ class TestRunAllChecks:
     @pytest.mark.unit
     def test_updates_health_results_global(self, runner, mock_config, mock_globals, mock_db, monkeypatch):
         """run_all_checks() updates mylar.HEALTH_RESULTS global."""
-        monkeypatch.setattr(runner, 'check_root_folders', lambda: [
-            HealthCheckResult('infrastructure', 'root_folder', 'error', 'Missing')
-        ])
-        monkeypatch.setattr(runner, 'check_comicvine_api', lambda: [])
-        monkeypatch.setattr(runner, 'check_indexers', lambda: [])
-        monkeypatch.setattr(runner, 'check_no_indexers', lambda: [])
-        monkeypatch.setattr(runner, 'check_download_client', lambda: [])
-        monkeypatch.setattr(runner, 'check_download_category', lambda: [])
-        monkeypatch.setattr(runner, 'check_disk_space', lambda: [])
-        monkeypatch.setattr(runner, 'check_stuck_tasks', lambda: [])
-        monkeypatch.setattr(runner, 'check_failed_postprocessing', lambda: [])
-        monkeypatch.setattr(runner, 'check_stalled_downloads', lambda: [])
-        monkeypatch.setattr(runner, 'check_update_available', lambda: [])
-        monkeypatch.setattr(runner, 'check_permissions', lambda: [])
-        monkeypatch.setattr(runner, 'check_no_download_client', lambda: [])
-        monkeypatch.setattr(runner, 'check_api_key_missing', lambda: [])
-        monkeypatch.setattr(runner, 'check_database_integrity', lambda: [])
+        _stub_all_checks(monkeypatch, runner, overrides={
+            'check_root_folders': lambda: [
+                HealthCheckResult('infrastructure', 'root_folder', 'error', 'Missing')
+            ],
+        })
 
         runner.run_all_checks(force=True)
 
@@ -1289,22 +1259,7 @@ class TestRunAllChecks:
         # set timestamp so comicvine_api was just checked (won't re-run)
         runner._check_timestamps['comicvine_api'] = datetime.datetime.now(datetime.timezone.utc)
 
-        # stub all checks to return empty
-        monkeypatch.setattr(runner, 'check_root_folders', lambda: [])
-        monkeypatch.setattr(runner, 'check_comicvine_api', lambda: [])
-        monkeypatch.setattr(runner, 'check_indexers', lambda: [])
-        monkeypatch.setattr(runner, 'check_no_indexers', lambda: [])
-        monkeypatch.setattr(runner, 'check_download_client', lambda: [])
-        monkeypatch.setattr(runner, 'check_download_category', lambda: [])
-        monkeypatch.setattr(runner, 'check_disk_space', lambda: [])
-        monkeypatch.setattr(runner, 'check_stuck_tasks', lambda: [])
-        monkeypatch.setattr(runner, 'check_failed_postprocessing', lambda: [])
-        monkeypatch.setattr(runner, 'check_stalled_downloads', lambda: [])
-        monkeypatch.setattr(runner, 'check_update_available', lambda: [])
-        monkeypatch.setattr(runner, 'check_permissions', lambda: [])
-        monkeypatch.setattr(runner, 'check_no_download_client', lambda: [])
-        monkeypatch.setattr(runner, 'check_api_key_missing', lambda: [])
-        monkeypatch.setattr(runner, 'check_database_integrity', lambda: [])
+        _stub_all_checks(monkeypatch, runner)
 
         # run without force — comicvine_api will be skipped by _should_run
         runner.run_all_checks(force=False)
@@ -1347,7 +1302,7 @@ class TestTorrentClientChecks:
     def test_qbittorrent_connection_error(self, runner, mock_config, mock_globals, monkeypatch):
         monkeypatch.setattr(mylar, "USE_QBITTORRENT", True, raising=False)
         monkeypatch.setattr(mock_config, "QBITTORRENT_HOST", 'http://localhost:8080', raising=False)
-        def fake_err(*a, **kw):
+        def fake_err(*_a, **_kw):
             raise requests.exceptions.ConnectionError("refused")
         monkeypatch.setattr(requests, "get", fake_err)
 
@@ -1359,7 +1314,7 @@ class TestTorrentClientChecks:
     def test_qbittorrent_timeout(self, runner, mock_config, mock_globals, monkeypatch):
         monkeypatch.setattr(mylar, "USE_QBITTORRENT", True, raising=False)
         monkeypatch.setattr(mock_config, "QBITTORRENT_HOST", 'http://localhost:8080', raising=False)
-        def fake_err(*a, **kw):
+        def fake_err(*_a, **_kw):
             raise requests.exceptions.Timeout("timed out")
         monkeypatch.setattr(requests, "get", fake_err)
 
@@ -1383,7 +1338,7 @@ class TestTorrentClientChecks:
     def test_transmission_connection_error(self, runner, mock_config, mock_globals, monkeypatch):
         monkeypatch.setattr(mylar, "USE_TRANSMISSION", True, raising=False)
         monkeypatch.setattr(mock_config, "TRANSMISSION_HOST", 'http://localhost:9091', raising=False)
-        def fake_err(*a, **kw):
+        def fake_err(*_a, **_kw):
             raise requests.exceptions.ConnectionError("refused")
         monkeypatch.setattr(requests, "get", fake_err)
 
@@ -1410,7 +1365,7 @@ class TestTorrentClientChecks:
         monkeypatch.setattr(mock_config, "RTORRENT_HOST", 'http://localhost:8000', raising=False)
         monkeypatch.setattr(mock_config, "RTORRENT_RPC_URL", '/RPC2', raising=False)
         monkeypatch.setattr(mock_config, "RTORRENT_VERIFY", False, raising=False)
-        def fake_err(*a, **kw):
+        def fake_err(*_a, **_kw):
             raise requests.exceptions.ConnectionError("refused")
         monkeypatch.setattr(requests, "get", fake_err)
 
@@ -1424,7 +1379,7 @@ class TestTorrentClientChecks:
         monkeypatch.setattr(mock_config, "RTORRENT_HOST", 'http://localhost:8000', raising=False)
         monkeypatch.setattr(mock_config, "RTORRENT_RPC_URL", '/RPC2', raising=False)
         monkeypatch.setattr(mock_config, "RTORRENT_VERIFY", False, raising=False)
-        def fake_err(*a, **kw):
+        def fake_err(*_a, **_kw):
             raise requests.exceptions.Timeout("timed out")
         monkeypatch.setattr(requests, "get", fake_err)
 
@@ -1449,7 +1404,7 @@ class TestTorrentClientChecks:
     def test_deluge_connection_failed(self, runner, mock_config, mock_globals, monkeypatch):
         monkeypatch.setattr(mylar, "USE_DELUGE", True, raising=False)
         monkeypatch.setattr(mock_config, "DELUGE_HOST", 'localhost:58846', raising=False)
-        def fake_err(*a, **kw):
+        def fake_err(*_a, **_kw):
             raise socket.error("Connection refused")
         monkeypatch.setattr(socket, "create_connection", fake_err)
 
@@ -1466,7 +1421,7 @@ class TestTorrentClientChecks:
         class FakeSocket:
             def close(self):
                 pass
-        def capture_connect(addr, **kw):
+        def capture_connect(addr, **_kw):
             captured['addr'] = addr
             return FakeSocket()
         monkeypatch.setattr(socket, "create_connection", capture_connect)
@@ -1501,7 +1456,7 @@ class TestTorrentClientChecks:
     def test_utorrent_connection_error(self, runner, mock_config, mock_globals, monkeypatch):
         monkeypatch.setattr(mylar, "USE_UTORRENT", True, raising=False)
         monkeypatch.setattr(mock_config, "UTORRENT_HOST", 'http://localhost:8080', raising=False)
-        def fake_err(*a, **kw):
+        def fake_err(*_a, **_kw):
             raise requests.exceptions.ConnectionError("refused")
         monkeypatch.setattr(requests, "get", fake_err)
 
@@ -1513,7 +1468,7 @@ class TestTorrentClientChecks:
     def test_utorrent_timeout(self, runner, mock_config, mock_globals, monkeypatch):
         monkeypatch.setattr(mylar, "USE_UTORRENT", True, raising=False)
         monkeypatch.setattr(mock_config, "UTORRENT_HOST", 'http://localhost:8080', raising=False)
-        def fake_err(*a, **kw):
+        def fake_err(*_a, **_kw):
             raise requests.exceptions.Timeout("timed out")
         monkeypatch.setattr(requests, "get", fake_err)
 
@@ -1524,23 +1479,32 @@ class TestTorrentClientChecks:
 
 # ── Unit Tests: NZBGet Protocol Parsing ──
 
+def _setup_nzbget_capture(monkeypatch, mock_config, host, port='6789'):
+    """Set up NZBGet with a fake successful GET that captures the URL."""
+    monkeypatch.setattr(mylar, "USE_NZBGET", True, raising=False)
+    mock_config.NZBGET_HOST = host
+    mock_config.NZBGET_PORT = port
+    captured = {}
+
+    class FakeResponse:
+        status_code = 200
+
+    def capture_get(url, **_kw):
+        captured['url'] = url
+        return FakeResponse()
+
+    monkeypatch.setattr(requests, "get", capture_get)
+    return captured
+
+
 class TestNZBGetCheck:
     """Tests for NZBGet connectivity including protocol URL construction."""
 
     @pytest.mark.unit
     def test_nzbget_https_prefix(self, runner, mock_config, mock_globals, monkeypatch):
         """NZBGet host with https:// prefix is handled correctly."""
-        monkeypatch.setattr(mylar, "USE_NZBGET", True, raising=False)
-        mock_config.NZBGET_HOST = 'https://nzbget.local'
-        mock_config.NZBGET_PORT = '6789'
-        captured = {}
-        class FakeResponse:
-            status_code = 200
-        def capture_get(url, **kw):
-            captured['url'] = url
-            return FakeResponse()
-        monkeypatch.setattr(requests, "get", capture_get)
-
+        # noinspection PyTypeChecker
+        captured = _setup_nzbget_capture(monkeypatch, mock_config, 'https://nzbget.local')
         results = runner.check_download_client()
         assert results == []
         assert captured['url'].startswith('https://')
@@ -1548,35 +1512,18 @@ class TestNZBGetCheck:
     @pytest.mark.unit
     def test_nzbget_http_prefix(self, runner, mock_config, mock_globals, monkeypatch):
         """NZBGet host with http:// prefix is handled correctly."""
-        monkeypatch.setattr(mylar, "USE_NZBGET", True, raising=False)
-        mock_config.NZBGET_HOST = 'http://nzbget.local'
-        mock_config.NZBGET_PORT = '6789'
-        captured = {}
-        class FakeResponse:
-            status_code = 200
-        def capture_get(url, **kw):
-            captured['url'] = url
-            return FakeResponse()
-        monkeypatch.setattr(requests, "get", capture_get)
-
+        # noinspection PyTypeChecker,HttpUrlsUsage
+        captured = _setup_nzbget_capture(monkeypatch, mock_config, 'http://nzbget.local')
         results = runner.check_download_client()
         assert results == []
+        # noinspection HttpUrlsUsage
         assert 'http://nzbget.local:6789' in captured['url']
 
     @pytest.mark.unit
     def test_nzbget_no_prefix(self, runner, mock_config, mock_globals, monkeypatch):
         """NZBGet host without protocol prefix defaults to http."""
-        monkeypatch.setattr(mylar, "USE_NZBGET", True, raising=False)
-        mock_config.NZBGET_HOST = 'nzbget.local'
-        mock_config.NZBGET_PORT = '6789'
-        captured = {}
-        class FakeResponse:
-            status_code = 200
-        def capture_get(url, **kw):
-            captured['url'] = url
-            return FakeResponse()
-        monkeypatch.setattr(requests, "get", capture_get)
-
+        # noinspection PyTypeChecker
+        captured = _setup_nzbget_capture(monkeypatch, mock_config, 'nzbget.local')
         results = runner.check_download_client()
         assert results == []
         assert captured['url'].startswith('http://')
@@ -1599,7 +1546,7 @@ class TestNZBGetCheck:
         monkeypatch.setattr(mylar, "USE_NZBGET", True, raising=False)
         mock_config.NZBGET_HOST = 'localhost'
         mock_config.NZBGET_PORT = '6789'
-        def fake_err(*a, **kw):
+        def fake_err(*_a, **_kw):
             raise requests.exceptions.ConnectionError("refused")
         monkeypatch.setattr(requests, "get", fake_err)
 
@@ -1612,7 +1559,7 @@ class TestNZBGetCheck:
         monkeypatch.setattr(mylar, "USE_NZBGET", True, raising=False)
         mock_config.NZBGET_HOST = 'localhost'
         mock_config.NZBGET_PORT = '6789'
-        def fake_err(*a, **kw):
+        def fake_err(*_a, **_kw):
             raise requests.exceptions.Timeout("timed out")
         monkeypatch.setattr(requests, "get", fake_err)
 
@@ -1723,7 +1670,7 @@ class TestCheckEdgeCases:
     @pytest.mark.unit
     def test_comicvine_generic_exception(self, runner, mock_config, mock_globals, monkeypatch):
         """Generic exception in ComicVine check is caught."""
-        def fake_err(*a, **kw):
+        def fake_err(*_a, **_kw):
             raise ValueError("unexpected error")
         monkeypatch.setattr(requests, "get", fake_err)
 
@@ -1749,7 +1696,7 @@ class TestCheckEdgeCases:
     def test_sabnzbd_generic_exception(self, runner, mock_config, mock_globals, monkeypatch):
         """Generic exception in SABnzbd check is caught."""
         monkeypatch.setattr(mylar, "USE_SABNZBD", True, raising=False)
-        def fake_err(*a, **kw):
+        def fake_err(*_a, **_kw):
             raise ValueError("something broke")
         monkeypatch.setattr(requests, "get", fake_err)
 
@@ -1763,8 +1710,7 @@ class TestCheckEdgeCases:
         import shutil
         mock_config.DESTINATION_DIR = str(tmp_path)
         mock_config.CACHE_DIR = None
-        original_disk_usage = shutil.disk_usage
-        def broken_usage(path):
+        def broken_usage(_path):
             raise OSError("Permission denied")
         monkeypatch.setattr(shutil, "disk_usage", broken_usage)
 

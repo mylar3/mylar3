@@ -9,6 +9,7 @@
         <div id="subhead_menu">
             <a id="menu_link_recheck" href="#" onclick="runHealthCheck(); return false;">Run Health Check</a>
             <a id="menu_link_clearresolved" href="#" onclick="clearResolved(); return false;">Clear Resolved</a>
+            <!--suppress HtmlUnknownTarget -- CherryPy route, not a file -->
             <a id="menu_link_viewlogs" href="logs">View Logs</a>
         </div>
     </div>
@@ -78,6 +79,7 @@
 </%def>
 
 <%def name="headIncludes()">
+    <!--suppress HtmlUnknownTarget -- Mako variable ${interface} resolves at runtime -->
     <link rel="stylesheet" href="interfaces/${interface}/css/data_table.css">
     <style>
         /* ── Health Summary Cards ── */
@@ -126,13 +128,17 @@
             font-size: 11px;
             font-weight: bold;
             text-transform: uppercase;
-            letter-spacing: 0.5px;
+            letter-spacing: 1px;
             padding: 2px 8px;
             border-radius: 3px;
             white-space: nowrap;
         }
+        /* applied dynamically by severityBadge() */
+        /*noinspection CssUnusedSymbol*/
         .severity-badge.error { background: #fce4e4; color: #c03030; border: 1px solid #f0c0c0; }
+        /*noinspection CssUnusedSymbol*/
         .severity-badge.warning { background: #fef8e0; color: #a07000; border: 1px solid #ece0a0; }
+        /*noinspection CssUnusedSymbol*/
         .severity-badge.notice { background: #e8f0ff; color: #3070b0; border: 1px solid #c0d8f0; }
 
         /* ── Wiki Link ── */
@@ -182,11 +188,15 @@
 </%def>
 
 <%def name="javascriptIncludes()">
+    <!--suppress HtmlUnknownTarget -- served by CherryPy static handler -->
     <script src="js/libs/jquery.dataTables.min.js"></script>
     <script>
+    /* global $ */
     /* ── Health Dashboard Data Loading ── */
 
-    var healthRefreshTimer = null;
+    let healthRefreshTimer = null;
+    let $ajaxMsg = null;
+    let $resolvedTbody = null;
 
     /* Format an ISO datetime string to a relative time display.
      * Server stores UTC times via datetime.utcnow().isoformat() WITHOUT
@@ -196,7 +206,7 @@
     function formatHealthTime(isoStr) {
         if (!isoStr) return '--';
         try {
-            var utcStr = isoStr;
+            let utcStr = isoStr;
             // Normalize SQLite datetime format (space separator) to ISO (T separator)
             if (utcStr.indexOf('T') === -1 && utcStr.indexOf(' ') > 0) {
                 utcStr = utcStr.replace(' ', 'T');
@@ -204,18 +214,18 @@
             if (utcStr.indexOf('Z') === -1 && utcStr.indexOf('+') === -1 && utcStr.indexOf('T') !== -1) {
                 utcStr += 'Z';
             }
-            var d = new Date(utcStr);
+            const d = new Date(utcStr);
             if (isNaN(d.getTime())) return isoStr;
-            var now = new Date();
-            var diffMs = now - d;
+            const now = new Date();
+            const diffMs = now - d;
             if (diffMs < 0) return 'Just now';
-            var diffSec = Math.floor(diffMs / 1000);
+            const diffSec = Math.floor(diffMs / 1000);
             if (diffSec < 60) return 'Just now';
-            var diffMin = Math.floor(diffSec / 60);
+            const diffMin = Math.floor(diffSec / 60);
             if (diffMin < 60) return diffMin + ' min ago';
-            var diffHrs = Math.floor(diffMin / 60);
+            const diffHrs = Math.floor(diffMin / 60);
             if (diffHrs < 24) return diffHrs + ' hr ago';
-            var diffDays = Math.floor(diffHrs / 24);
+            const diffDays = Math.floor(diffHrs / 24);
             return diffDays + ' day' + (diffDays > 1 ? 's' : '') + ' ago';
         } catch (e) {
             return isoStr;
@@ -226,14 +236,14 @@
     function formatHealthTooltip(isoStr) {
         if (!isoStr) return '';
         try {
-            var utcStr = isoStr;
+            let utcStr = isoStr;
             if (utcStr.indexOf('T') === -1 && utcStr.indexOf(' ') > 0) {
                 utcStr = utcStr.replace(' ', 'T');
             }
             if (utcStr.indexOf('Z') === -1 && utcStr.indexOf('+') === -1 && utcStr.indexOf('T') !== -1) {
                 utcStr += 'Z';
             }
-            var d = new Date(utcStr);
+            const d = new Date(utcStr);
             if (isNaN(d.getTime())) return isoStr;
             return d.toLocaleString();
         } catch (e) {
@@ -270,43 +280,45 @@
             dataType: 'json',
             success: function(resp) {
                 if (!resp || !resp.success) return;
-                var data = resp.data;
-                var results = data.results || [];
-                var summary = data.summary || {};
-                var history = data.history || [];
+                /** @type {{results: Array, summary: {errors: number, warnings: number, notices: number}, history: Array, last_run: string}} */
+                const data = resp.data;
+                const results = data.results || [];
+                const summaryData = data.summary || {};
+                const history = data.history || [];
 
                 // Update summary cards
-                $('#error-count').text(summary.errors || 0);
-                $('#warning-count').text(summary.warnings || 0);
-                $('#notice-count').text(summary.notices || 0);
+                $('#error-count').text(summaryData.errors || 0);
+                $('#warning-count').text(summaryData.warnings || 0);
+                $('#notice-count').text(summaryData.notices || 0);
                 $('#last-check-time').text(formatHealthTime(data.last_run));
 
                 // Update the persistent banner and nav badge (defined in base.html)
                 if (typeof updateHealthBanner === 'function') {
                     updateHealthBanner({
-                        error_count: summary.errors || 0,
-                        warning_count: summary.warnings || 0,
-                        errors: results.filter(function(r) { return r.severity === 'error'; }),
-                        warnings: results.filter(function(r) { return r.severity === 'warning'; })
+                        error_count: summaryData.errors || 0,
+                        warning_count: summaryData.warnings || 0,
+                        errors: results.filter(({severity}) => severity === 'error'),
+                        warnings: results.filter(({severity}) => severity === 'warning')
                     });
                 }
                 if (typeof updateNavBadge === 'function') {
-                    updateNavBadge(summary.errors || 0, summary.warnings || 0, summary.notices || 0);
+                    updateNavBadge(summaryData.errors || 0, summaryData.warnings || 0, summaryData.notices || 0);
                 }
 
                 // Update active issues table
-                var tbody = $('#health-tbody');
+                const tbody = $('#health-tbody');
                 tbody.empty();
 
                 if (results.length === 0) {
                     tbody.append('<tr class="gradeZ"><td colspan="6" class="health-empty">All health checks passed &mdash; system is operating normally.</td></tr>');
                 } else {
-                    for (var i = 0; i < results.length; i++) {
-                        var r = results[i];
-                        var parity = (i % 2 === 0) ? 'odd' : 'even';
-                        var rowClass = parity + ' ' + severityRowClass(r.severity);
-                        var wikiHtml = r.wiki_url ? ' <a href="' + r.wiki_url + '" class="wiki-link" target="_blank">Wiki</a>' : '';
-                        var row = '<tr class="' + rowClass + '">' +
+                    for (let i = 0; i < results.length; i++) {
+                        /** @type {{severity: string, wiki_url: string, check_name: string, message: string, first_seen: string, last_seen: string, check_count: number}} */
+                        const r = results[i];
+                        const parity = (i % 2 === 0) ? 'odd' : 'even';
+                        const rowClass = parity + ' ' + severityRowClass(r.severity);
+                        const wikiHtml = r.wiki_url ? ' <a href="' + r.wiki_url + '" class="wiki-link" target="_blank">Wiki</a>' : '';
+                        const row = '<tr class="' + rowClass + '">' +
                             '<td>' + severityBadge(r.severity) + '</td>' +
                             '<td><strong>' + (r.check_name || '').replace(/_/g, ' ') + '</strong></td>' +
                             '<td style="text-align:left;">' + (r.message || '') + wikiHtml + '</td>' +
@@ -319,25 +331,25 @@
                 }
 
                 // Update resolved history
-                var rtbody = $('#resolved-tbody');
-                rtbody.empty();
+                $resolvedTbody.empty();
                 if (history.length === 0) {
                     $('#resolved-label').text('No recently resolved issues');
-                    rtbody.append('<tr class="gradeZ"><td colspan="4" style="text-align:center; padding:15px; color:#999;">No resolved issues in history</td></tr>');
+                    $resolvedTbody.append('<tr class="gradeZ"><td colspan="4" style="text-align:center; padding:15px; color:#999;">No resolved issues in history</td></tr>');
                 } else {
                     $('#resolved-label').text('Recently Resolved (' + history.length + ')');
-                    for (var j = 0; j < history.length; j++) {
-                        var h = history[j];
-                        var hparity = (j % 2 === 0) ? 'odd' : 'even';
+                    for (let j = 0; j < history.length; j++) {
+                        /** @type {{severity: string, check_name: string, message: string, resolved_at: string, last_seen: string}} */
+                        const h = history[j];
+                        const hparity = (j % 2 === 0) ? 'odd' : 'even';
                         // Use resolved_at if available, fall back to last_seen
-                        var resolvedIso = h.resolved_at || h.last_seen || '';
-                        var hrow = '<tr class="' + hparity + ' gradeZ">' +
+                        const resolvedIso = h.resolved_at || h.last_seen || '';
+                        const hrow = '<tr class="' + hparity + ' gradeZ">' +
                             '<td>' + severityBadge(h.severity) + '</td>' +
                             '<td>' + (h.check_name || '').replace(/_/g, ' ') + '</td>' +
                             '<td style="text-align:left;">' + (h.message || '') + '</td>' +
                             timestampCell(resolvedIso) +
                             '</tr>';
-                        rtbody.append(hrow);
+                        $resolvedTbody.append(hrow);
                     }
                 }
             },
@@ -349,7 +361,7 @@
 
     /* Trigger an immediate health check run */
     function runHealthCheck() {
-        var btn = $('#menu_link_recheck');
+        const btn = $('#menu_link_recheck');
         btn.button("option", "label", "Running...");
         btn.button("disable");
         $.ajax({
@@ -357,17 +369,20 @@
             dataType: 'json',
             success: function(resp) {
                 if (resp && resp.status === 'ok') {
-                    $('#ajaxMsg').html("<div class='msg'><span class='ui-icon ui-icon-check'></span>Health check triggered</div>");
-                    $('#ajaxMsg').addClass('success').fadeIn().delay(3000).fadeOut();
+                    $ajaxMsg.html("<div class='msg'><span class='ui-icon ui-icon-check'></span>Health check triggered</div>");
+                    //noinspection JSUnresolvedReference
+                    $ajaxMsg.addClass('success').fadeIn().delay(3000).fadeOut();
                     setTimeout(loadHealthData, 3000);
                 } else {
-                    $('#ajaxMsg').html("<div class='msg'>Health check failed to trigger</div>");
-                    $('#ajaxMsg').addClass('error').fadeIn().delay(3000).fadeOut();
+                    $ajaxMsg.html("<div class='msg'>Health check failed to trigger</div>");
+                    //noinspection JSUnresolvedReference
+                    $ajaxMsg.addClass('error').fadeIn().delay(3000).fadeOut();
                 }
             },
             error: function() {
-                $('#ajaxMsg').html("<div class='msg'>Health check request failed</div>");
-                $('#ajaxMsg').addClass('error').fadeIn().delay(3000).fadeOut();
+                $ajaxMsg.html("<div class='msg'>Health check request failed</div>");
+                //noinspection JSUnresolvedReference
+                $ajaxMsg.addClass('error').fadeIn().delay(3000).fadeOut();
             },
             complete: function() {
                 btn.button("option", "label", "Run Health Check");
@@ -383,31 +398,38 @@
             dataType: 'json',
             success: function(resp) {
                 if (resp && resp.status === 'ok') {
-                    $('#resolved-tbody').empty();
-                    $('#resolved-tbody').append('<tr class="gradeZ"><td colspan="4" style="text-align:center; padding:15px; color:#999;">No resolved issues in history</td></tr>');
+                    $resolvedTbody.empty();
+                    $resolvedTbody.append('<tr class="gradeZ"><td colspan="4" style="text-align:center; padding:15px; color:#999;">No resolved issues in history</td></tr>');
                     $('#resolved-label').text('No recently resolved issues');
-                    $('#ajaxMsg').html("<div class='msg'><span class='ui-icon ui-icon-check'></span>Resolved history cleared</div>");
-                    $('#ajaxMsg').addClass('success').fadeIn().delay(3000).fadeOut();
+                    $ajaxMsg.html("<div class='msg'><span class='ui-icon ui-icon-check'></span>Resolved history cleared</div>");
+                    //noinspection JSUnresolvedReference
+                    $ajaxMsg.addClass('success').fadeIn().delay(3000).fadeOut();
                 } else {
-                    $('#ajaxMsg').html("<div class='msg'>Failed to clear resolved history</div>");
-                    $('#ajaxMsg').addClass('error').fadeIn().delay(3000).fadeOut();
+                    $ajaxMsg.html("<div class='msg'>Failed to clear resolved history</div>");
+                    //noinspection JSUnresolvedReference
+                    $ajaxMsg.addClass('error').fadeIn().delay(3000).fadeOut();
                 }
             },
             error: function() {
-                $('#ajaxMsg').html("<div class='msg'>Failed to clear resolved history</div>");
-                $('#ajaxMsg').addClass('error').fadeIn().delay(3000).fadeOut();
+                $ajaxMsg.html("<div class='msg'>Failed to clear resolved history</div>");
+                //noinspection JSUnresolvedReference
+                $ajaxMsg.addClass('error').fadeIn().delay(3000).fadeOut();
             }
         });
     }
 
     /* Toggle the resolved history section visibility */
     function toggleResolved() {
-        var toggle = $('#resolved-toggle');
-        var section = $('#resolved-section');
+        const toggle = $('#resolved-toggle');
+        const section = $('#resolved-section');
+        //noinspection JSUnresolvedReference
         toggle.toggleClass('open');
+        //noinspection JSUnresolvedReference
         if (toggle.hasClass('open')) {
+            //noinspection JSUnresolvedReference
             section.slideDown(200);
         } else {
+            //noinspection JSUnresolvedReference
             section.slideUp(200);
         }
     }
@@ -416,10 +438,13 @@
      * Runs every 15 seconds to keep "X min ago" labels current.
      */
     function refreshTimestamps() {
+        //noinspection JSUnresolvedReference
         $('.health-ts').each(function() {
-            var iso = $(this).attr('data-iso');
+            const el = $(this);
+            //noinspection JSUnresolvedReference
+            const iso = el.attr('data-iso');
             if (iso) {
-                $(this).text(formatHealthTime(iso));
+                el.text(formatHealthTime(iso));
             }
         });
     }
@@ -427,6 +452,8 @@
     /* Initialize page on document ready */
     $(document).ready(function() {
         initActions();
+        $ajaxMsg = $('#ajaxMsg');
+        $resolvedTbody = $('#resolved-tbody');
 
         // load data immediately
         loadHealthData();
