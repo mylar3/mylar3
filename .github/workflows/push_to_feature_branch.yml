@@ -23,10 +23,10 @@ jobs:
     build_and_test:
         if: ${{ github.repository != 'mylar3/mylar3' }}
         strategy:
-            fail-fast: true
+            fail-fast: false
             matrix:
                 os: [ubuntu-22.04, windows-latest]
-                python-version: ["3.8", "3.9", "3.10","3.11"]        
+                python-version: ["3.8", "3.14"]        
         uses: ./.github/workflows/mylar_build_deploy_test.yml
         with:
           os: ${{ matrix.os }}

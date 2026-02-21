@@ -1,0 +1,13 @@
+http://127.0.0.1:8090/home
+http://127.0.0.1:8090/upcoming
+http://127.0.0.1:8090/pullist
+http://127.0.0.1:8090/manage
+http://127.0.0.1:8090/storyarc_main
+http://127.0.0.1:8090/history
+http://127.0.0.1:8090/config
+http://127.0.0.1:8090/manageComics
+http://127.0.0.1:8090/manageIssues?status=Wanted
+http://127.0.0.1:8090/manageFailed
+http://127.0.0.1:8090/queueManage
+http://127.0.0.1:8090/cblimport
+http://127.0.0.1:8090/searchit?name=abracadabra

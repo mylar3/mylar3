@@ -1,7 +1,7 @@
 # Build a LSIO compatible container for dev branches
 name: Build & Publish Feature Container
 
-# Run on any branch that isn't master or p3-dev
+# Run on any branch that isn't master or a dev branch
 on:
     push:
         branches-ignore:
@@ -20,6 +20,7 @@ env:
 
 jobs:
     push_to_registry:
+        if: ${{ github.repository != 'mylar3/mylar3' }}
         name: Build Docker image and push to GHCR
         runs-on: ubuntu-latest
         permissions:
@@ -28,17 +29,17 @@ jobs:
           attestations: write
           id-token: write
         steps:
-          - name: Checkout LSIO mylar3 repository (nightly)
+          - name: Checkout LSIO mylar3 repository (unstable)
             uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
             with:
               repository: 'linuxserver/docker-mylar3'
-              ref: 'nightly'
+              ref: 'unstable'
 
           - name: Edit Dockerfile for current repo/branch
             run: |
               sed -i "s@mylar3/mylar3@${{github.repository}}@g" Dockerfile
-              sed -i "s@commits/python3-dev@commits/${{github.ref_name}}@g" Dockerfile
-              sed -i "/requirements.txt/a\ \ pip install --no-cache-dir --find-links https://wheel-index.linuxserver.io/ubuntu/ debugpy && \\\\" Dockerfile
+              sed -i "s@commits/1000papercuts@commits/${{github.ref_name}}@g" Dockerfile
+              sed -i "/requirements.txt/a\ \ pip install --no-cache-dir --find-links https://wheel-index.linuxserver.io/alpine-3.23/ debugpy && \\\\" Dockerfile
               sed -i "/EXPOSE 8090/aEXPOSE 5678" Dockerfile
               sed -i "s@python3 /app/mylar3/Mylar.py@python3 -m debugpy --listen 0.0.0.0:5678 /app/mylar3/Mylar.py@g" ./root/etc/s6-overlay/s6-rc.d/svc-mylar3/run
 

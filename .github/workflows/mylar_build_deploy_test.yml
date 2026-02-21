@@ -36,9 +36,13 @@ on:
           required: false
           type: string
 
+env:
+  smoke_text_urls: ".github/workflows/smoke_test_urls.txt"
+
 jobs:
     build:
         runs-on: ${{ inputs.os }}
+        
         steps:
           - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
           - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5.0.0
@@ -63,16 +67,34 @@ jobs:
               brew update
               brew install rar
             if: ${{ runner.os == 'macOS' }}
-          - uses: JarvusInnovations/background-action@v1.0.7
-            name: Launch Mylar & Test Start
-            with:
-              run: |
-                python Mylar.py &
-              wait-on: |
-                http://localhost:8090/home
-              tail: true
-              wait-for: 2m
-            if: ${{ inputs.run_basic }}
+          # Custom shell entries used to avoid fail-fast and test all URLs in smoke tests
+          - name: Smoke test Mylar pages (Linux)
+            # Initial connection test will retry for 120s, early exit if fails
+            shell: bash {0}
+            run: |
+              set -x
+              python Mylar.py &
+              curl -sS -o /dev/null --retry 12 --retry-delay 10 --retry-all-errors --fail http://127.0.0.1:8090/home
+              if [ $? -eq 7 ]; then echo Mylar did not start && exit 1; fi
+              declare -i RESULT=0
+              while read URL; do curl -sS -o /dev/null --retry 5 --retry-delay 2 --retry-all-errors --fail $URL; RESULT+=$?; done < ${{ env.smoke_text_urls }}
+              exit $RESULT
+            if: ${{ inputs.run_basic && (runner.os == 'Linux') }}
+          - name: Smoke test Mylar pages (Windows)
+            # Initial connection test will retry for 120s
+            shell: pwsh -File {0}
+            run: |
+              Set-PSDebug -Trace 2
+              python Mylar.py &
+              curl -sS -o nul --retry 12 --retry-delay 10 --retry-all-errors --fail http://127.0.0.1:8090/home
+              if ( $LASTEXITCODE -eq 7 ) {exit 1}
+              $ERRORCOUNT=0
+              foreach($line in Get-Content ${{ env.smoke_text_urls }}) {
+                curl -sS -o nul --retry 5 --retry-delay 2 --retry-all-errors --fail $line
+                if ($LASTEXITCODE -ne 0) { $ERRORCOUNT++ }
+              }
+              exit $ERRORCOUNT
+            if: ${{ inputs.run_basic && (runner.os == 'Windows') }}
           - name: Launch pytest
             run: |
               python -m pip install -r tests/requirements.txt
