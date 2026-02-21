@@ -1146,8 +1146,82 @@ class HealthCheckRunner:
             logger.debug('[HealthCheck] SSE push failed: %s' % e)
 
 
-# ── Log Interceptor (stub for Phase 3) ──
+# ── Log Interceptor ──
 
 class HealthLogHandler(logging.Handler):
-    """Watches log messages for error patterns between scheduled health checks."""
-    pass
+    """Watches log messages for error patterns between scheduled health checks.
+
+    Skips messages containing '[HealthCheck]' to prevent infinite recursion.
+    Entire emit() wrapped in try/except — must NEVER crash the application.
+    """
+
+    PATTERNS = [
+        # Missing ComicVine API key — logged by Mylar during config load/save
+        (r'no\s+(?:user\s+)?comicvine\s+api\s+key', 'api_key_missing', 'error'),
+        # ComicVine API failures — timeout, connection refused, unreachable
+        (r'comicvine.*(?:timeout|timed?\s*out|unreachable|connection.*(?:refused|error|failed))', 'comicvine_api', 'error'),
+        # SABnzbd connectivity failures
+        (r'sab(?:nzbd)?.*(?:connection\s*refused|unreachable|timed?\s*out)', 'download_client', 'error'),
+        # NZBGet connectivity failures
+        (r'nzbget.*(?:connection\s*refused|unreachable|timed?\s*out)', 'download_client', 'error'),
+        # Torrent client connectivity failures
+        (r'(?:qbittorrent|transmission|rtorrent|deluge|utorrent).*(?:connection\s*refused|unreachable|timed?\s*out)', 'download_client', 'error'),
+        # Directory-level permission failures — cannot create/write to key paths (systemic)
+        (r'(?:cannot|could not|unable|failed to)\s+(?:write|create|mkdir|access).*(?:director|folder|cache|log)', 'permissions', 'error'),
+        # Generic permission denied — may be transient single-file issues
+        (r'permission\s*denied', 'permissions', 'warning'),
+        # disk full / out of space conditions
+        (r'(?:disk\s*full|no\s*space\s*left)', 'disk_space', 'error'),
+        # SQLite database corruption — critical, needs immediate attention
+        (r'database.*(?:corrupt|malformed)', 'database_integrity', 'error'),
+        # SQLite database lock contention — usually transient under concurrent writes
+        (r'database.*locked', 'database_integrity', 'warning'),
+    ]
+
+    # compile patterns once at class level for performance
+    COMPILED_PATTERNS = [(re.compile(p, re.IGNORECASE), n, s) for p, n, s in PATTERNS]
+
+    def __init__(self):
+        super().__init__()
+        self.setLevel(logging.WARNING)
+        self._last_emit = {}  # throttle: {check_name: datetime}
+        self._throttle_seconds = 300  # 5-minute cooldown per check_name
+
+    def emit(self, record):
+        """Process a log record, creating health findings for matching patterns."""
+        try:
+            # CRITICAL: skip our own log messages to prevent infinite recursion
+            if '[HealthCheck]' in record.getMessage():
+                return
+
+            message = record.getMessage()
+            now = datetime.datetime.utcnow()
+
+            for pattern, check_name, severity in self.COMPILED_PATTERNS:
+                if pattern.search(message):
+                    # throttle — don't create the same finding more than once per 5 min
+                    last = self._last_emit.get(check_name)
+                    if last and (now - last).total_seconds() < self._throttle_seconds:
+                        return
+
+                    # Only set throttle AFTER successfully ingesting
+                    # the finding.  If HEALTH_CHECK is not yet initialised
+                    # (e.g. during startup, before initialize() creates the
+                    # runner) we must NOT set the throttle — otherwise the
+                    # first real opportunity (config-save) would be blocked
+                    # by the stale timestamp from the failed startup attempt.
+                    if mylar.HEALTH_CHECK:
+                        result = HealthCheckResult(
+                            check_type='detected',
+                            check_name=check_name,
+                            severity=severity,
+                            message=message[:500],  # truncate long messages
+                            source='log_intercept',
+                            metadata={'log_level': record.levelname, 'module': record.module}
+                        )
+                        mylar.HEALTH_CHECK.ingest_log_finding(result)
+                        self._last_emit[check_name] = now  # throttle only on success
+                    break  # only match first pattern
+
+        except Exception:
+            pass  # NEVER let a logging handler crash the application

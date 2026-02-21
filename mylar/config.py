@@ -1397,6 +1397,10 @@ class Config(object):
             logger.fdebug("Minimum RSS Interval Check delay set for 20 minutes to avoid hammering.")
             self.RSS_CHECKINTERVAL = 20
 
+        if self.HEALTH_CHECK_INTERVAL < 5:
+            logger.fdebug("Minimum Health Check interval set to 5 minutes to avoid excessive checking.")
+            self.HEALTH_CHECK_INTERVAL = 5
+
         if self.ENABLE_RSS is True and mylar.RSS_STATUS == 'Paused':
             mylar.RSS_STATUS = 'Waiting'
         elif self.ENABLE_RSS is False and mylar.RSS_STATUS == 'Waiting':

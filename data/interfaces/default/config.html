@@ -1502,6 +1502,7 @@
                         <div class="row">
                             <label>Check Interval (minutes)</label>
                             <input type="text" name="health_check_interval" id="health_check_interval" value="${config['health_check_interval']}" size="5">
+                            <br/><small id="health_interval_hint" style="color:#999;">Minimum: 5 minutes</small>
                         </div>
                         <div class="row checkbox">
                             <input type="checkbox" name="health_show_banner" id="health_show_banner" value="1" ${config['health_show_banner']} /><label>Show Persistent Banner</label>
@@ -3656,6 +3657,17 @@ $("#enable_airdcpp").click(function(){
                 initConfigCheckbox("#enable_extra_scripts");
                 //initConfigCheckbox("#enable_file_conversions");
                 //initConfigCheckbox("#enable_image_conversions");
+
+                // Health check interval — enforce 5-minute minimum
+                $('#health_check_interval').on('change keyup paste', function() {
+                    var val = parseInt($(this).val(), 10);
+                    var hint = $('#health_interval_hint');
+                    if (!isNaN(val) && val < 5) {
+                        hint.text('Must be at least 5 minutes').css('color', 'red');
+                    } else {
+                        hint.text('Minimum: 5 minutes').css('color', '#999');
+                    }
+                });
 	}
 	$(document).ready(function() {
 		initThisPage();

@@ -122,6 +122,16 @@ if not LOG_LANG.startswith('en'):
                 lg.addHandler(consolehandler)
                 self.consolehandler = consolehandler
 
+            # health check log interceptor — watches for error patterns between scheduled checks
+            # IMPORTANT: import inside function to avoid circular imports
+            # (healthcheck imports mylar which imports logger)
+            try:
+                from mylar.healthcheck import HealthLogHandler
+                health_handler = HealthLogHandler()
+                lg.addHandler(health_handler)
+            except ImportError:
+                pass  # healthcheck module not available during early startup
+
         @staticmethod
         def log(message, level, *args, **kwargs):
             logger = logging.getLogger('mylar')
@@ -292,6 +302,16 @@ else:
                 console_handler.setLevel(logging.DEBUG)
 
             logger.addHandler(console_handler)
+
+        # health check log interceptor — watches for error patterns between scheduled checks
+        # IMPORTANT: import inside function to avoid circular imports
+        # (healthcheck imports mylar which imports logger)
+        try:
+            from mylar.healthcheck import HealthLogHandler
+            health_handler = HealthLogHandler()
+            logger.addHandler(health_handler)
+        except ImportError:
+            pass  # healthcheck module not available during early startup
 
         # Install exception hooks
         initHooks()
