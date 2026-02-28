@@ -17,27 +17,40 @@
 	<div id="manageheader" class="title">
 		<h1 class="clearfix">Manage comics</h1>
 	</div>
-	<form action="markComics" method="post" id="markComics">
-        <div id="markcomics" style="top:0;">
-		<select name="action" onChange="doAjaxCall('markComics',$(this),'table',true,'post');" data-error="You didn't select any comics">
-  			<option disabled="disabled" selected="selected">Choose...</option>
-  			<option value="delete">Delete Series</option>
-                        <option value="metatag">MetaTag Series</option>
-                        <option value="pause">Pause Series</option>
-  			<option value="recheck">Recheck Files</option>
-  			<option value="refresh">Refresh Series</option>
-			<option value="rename">Rename Series</option>
-  			<option value="resume">Resume Series</option>
-		</select>
-		selected comics
-		<input type="hidden" value="Go">
+	<form action="markComics" method="post" id="markComics" data-success="Action submitted. Watch the logs for progress." data-error="You didn't select any comics.">
+	        <div id="markcomics" style="top:0;">
+        <div class="action-buttons" aria-live="polite">
+            <span class="action-label">Choose an action for your selected comics:</span>
+            <div class="action-button-group">
+                <div class="action-row">
+                    <button type="button" class="manage-action" data-action="metatag" data-label="MetaTag Series">MetaTag Series</button>
+                    <button type="button" class="manage-action" data-action="pause" data-label="Pause Series">Pause Series</button>
+                    <button type="button" class="manage-action" data-action="recheck" data-label="Recheck Files">Recheck Files</button>
+                    <button type="button" class="manage-action" data-action="refresh" data-label="Refresh Series">Refresh Series</button>
+                </div>
+                <div class="action-row">
+                    <button type="button" class="manage-action" data-action="rename" data-label="Rename Series">Rename Series</button>
+                    <button type="button" class="manage-action" data-action="resume" data-label="Resume Series">Resume Series</button>
+                    <button type="button" class="manage-action" data-action="delete" data-label="Delete Series">Delete Series</button>
+                </div>
+            </div>
+        </div>
+	        <div id="action-confirm" class="action-confirm hidden">
+	            <span id="action-confirm-message"></span>
+	            <div class="action-confirm-buttons">
+	                <button type="button" id="action-confirm-yes">Yes</button>
+	                <button type="button" id="action-confirm-no">No</button>
+	            </div>
+	        </div>
+	        <div class="selected-counter">Selected comics: <span id="selected-count">0</span></div>
+		<input type="hidden" name="action" id="manage_action" value="">
 	</div>
 	<div class="table_wrapper">
 
 	<table class="display" id="manage_comic">
 		<thead>
 			<tr>
-				<th id="select"><input type="checkbox" onClick="toggle(this)" /></th>
+				<th id="select"><input type="checkbox" onClick="toggle(this);updateSelectedCount();" /></th>
 				<th id="albumart"></th>
 				<th id="name">Comic Name</th>
 				<th id="status">Status</th>
@@ -70,7 +83,7 @@
                                         grade = 'A'
                         %>
 			<tr>
-				<td id="select"><input type="checkbox" name="${comic['ComicName']}[${comic['ComicYear']}]" value="${comic['ComicID']}" class="checkbox" /></td>
+				<td id="select"><input type="checkbox" name="${comic['ComicName']}[${comic['ComicYear']}]" value="${comic['ComicID']}" class="checkbox" onchange="updateSelectedCount()" /></td>
 				<td id="albumart"><div><img src="${comic['ComicImage']}" height="75" width="50"></div></td>
 				<td id="name"><span title="${comic['ComicSortName']}"></span><a href="comicDetails?ComicID=${comic['ComicID']}">${comic['ComicName']} (${comic['ComicYear']})</a></td>
 				<td id="status">${comic['recentstatus']}</td>
@@ -100,6 +113,7 @@
 
 <%def name="headIncludes()">
 	<link rel="stylesheet" href="interfaces/${interface}/css/data_table.css">
+        <link rel="stylesheet" href="interfaces/${interface}/css/managecomics.css">
 </%def>
 
 <%def name="javascriptIncludes()">
@@ -108,6 +122,42 @@
 	<script>
 
         var lastChecked = null;
+        var pendingAction = null;
+
+        function updateSelectedCount() {
+                var count = $("#manage_comic input.checkbox:checked").length;
+                $("#selected-count").text(count);
+                return count;
+        }
+
+        function showConfirm(action, label) {
+                var count = updateSelectedCount();
+                if (count === 0) {
+                        var errorMsg = $(".action-buttons").attr('data-error') || "Pick at least one comic first.";
+                        alert(errorMsg);
+                        pendingAction = null;
+                        return;
+                }
+                pendingAction = action;
+                var message = label + '? You selected ' + count + (count === 1 ? ' series.' : ' series.');
+                $('#action-confirm-message').text(message);
+                $('#action-confirm').removeClass('hidden');
+        }
+
+        function hideConfirm() {
+                pendingAction = null;
+                $('#action-confirm').addClass('hidden');
+        }
+
+        function submitAction() {
+                if (!pendingAction) {
+                        return;
+                }
+                $('#manage_action').val(pendingAction);
+                doAjaxCall('markComics',$('#markComics'),'table',true,'post');
+                hideConfirm();
+        }
+
         function initThisPage() {
                 $.fn.DataTable.ext.pager.numbers_length = 5;
                 $('#manage_comic').dataTable( {
@@ -118,7 +168,7 @@
                             { 'bSortable': false, 'aTargets': [ 0, 1 ] },
                             { 'order': [[2, 'desc'],[3, 'desc']] }
                         ],
-                        "lengthMenu": [[10, 25, 50, -1], [10, 25, 50, 'All' ]],
+                        "lengthMenu": [[10, 25, 50, 100, 200, 500, -1], [10, 25, 50, 100, 200, 500, 'All' ]],
                         "language": {
                                 "lengthMenu":"Show _MENU_ results per page",
                                 "emptyTable": "No results",
@@ -154,7 +204,21 @@
                                 lastChecked = this;
                             }
                         }
+                        updateSelectedCount();
                     });
+                $('.manage-action').on('click', function(){
+                        var action = $(this).data('action');
+                        var label = $(this).data('label') || $(this).text();
+                        showConfirm(action, label);
+                });
+
+                $('#action-confirm-yes').on('click', function(){
+                        submitAction();
+                });
+
+                $('#action-confirm-no').on('click', function(){
+                        hideConfirm();
+                });
         }
 
         $(document).ready(function(){

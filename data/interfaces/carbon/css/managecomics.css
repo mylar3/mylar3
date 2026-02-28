@@ -1,0 +1,105 @@
+#markcomics .action-buttons,
+#markissues .action-buttons {
+    margin-bottom: 12px;
+}
+#markcomics .action-label,
+#markissues .action-label {
+    display: block;
+    font-weight: bold;
+    margin-bottom: 6px;
+}
+#markcomics .action-button-group,
+#markissues .action-button-group {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+#markcomics .action-row,
+#markissues .action-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+#markcomics .manage-action,
+#markissues .manage-action {
+    flex: 1;
+    min-width: 160px;
+    padding: 10px 16px;
+    font-size: 0.95em;
+    border-radius: 4px;
+    border: 1px solid #2c2c2c;
+    background-color: #3b3b3b;
+    color: #fff;
+    cursor: pointer;
+    transition: background-color 0.15s ease, transform 0.1s ease;
+}
+#markcomics .manage-action:hover,
+#markissues .manage-action:hover {
+    background-color: #4a4a4a;
+}
+#markcomics .manage-action:active,
+#markissues .manage-action:active {
+    transform: scale(0.98);
+}
+#markcomics .manage-action[data-action="delete"] {
+    background-color: #a94442;
+    border-color: #842d2b;
+}
+#markcomics .manage-action[data-action="delete"]:hover {
+    background-color: #c25552;
+}
+#markcomics .selected-counter,
+#markissues .selected-counter {
+    margin-top: 10px;
+    font-weight: bold;
+}
+#action-confirm,
+#issue-action-confirm {
+    margin-top: 12px;
+    padding: 10px;
+    border-radius: 4px;
+    background: rgba(255, 255, 255, 0.08);
+}
+#action-confirm.hidden,
+#issue-action-confirm.hidden {
+    display: none;
+}
+#action-confirm .action-confirm-buttons,
+#issue-action-confirm .action-confirm-buttons {
+    margin-top: 8px;
+    display: flex;
+    gap: 10px;
+}
+#action-confirm .action-confirm-buttons button,
+#issue-action-confirm .action-confirm-buttons button {
+    flex: 0 0 120px;
+    padding: 8px 0;
+    border-radius: 4px;
+    border: 1px solid #2c2c2c;
+    background: #2d7bf4;
+    color: #fff;
+    font-weight: bold;
+    cursor: pointer;
+}
+#action-confirm .action-confirm-buttons button#action-confirm-no,
+#issue-action-confirm .action-confirm-buttons button#issue-action-confirm-no {
+    background: #a94442;
+}
+
+.manage-switch-links {
+    margin-top: 10px;
+}
+
+.manage-switch-links a {
+    display: inline-block;
+    padding: 6px 10px;
+    background: #2d7bf4;
+    color: #fff;
+    border-radius: 3px;
+    text-decoration: none;
+    font-weight: bold;
+}
+
+.manage-switch-links a:hover {
+    background: #1e5ec0;
+}

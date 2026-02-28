@@ -34,18 +34,30 @@
                 <input type="submit" value="Manage">
         </div>
         </form>
-        </br></br>
-	<form action="markissues" method="post" id="markissues">
-        <div id="markissues" style="top:0;">
-		<select name="action" onChange="doAjaxCall('markissues',$(this),'table',true,'post');" data-error="You didn't select any issues">
-  			<option disabled="disabled" selected="selected">Choose...</option>
-  			<option value="Wanted">Wanted</option>
-  			<option value="Archived">Archived</option>
-  			<option value="Skipped">Skipped</option>
-  			<option value="Ignored">Ignored</option>
-		</select>
-                selected issues
-		<input type="hidden" value="Go">
+	<form action="markissues" method="post" id="markissues" data-success="Updated issue status successfully." data-error="You didn't select any issues.">
+        <div id="markissues_container" style="top:0;">
+        <div class="action-buttons" aria-live="polite">
+            <span class="action-label">Choose what to do with your selected issues:</span>
+            <div class="action-button-group">
+                <div class="action-row">
+                    <button type="button" class="manage-action issue-action" data-action="Wanted" data-label="Mark as Wanted">Mark as Wanted</button>
+                    <button type="button" class="manage-action issue-action" data-action="Archived" data-label="Mark as Archived">Mark as Archived</button>
+                </div>
+                <div class="action-row">
+                    <button type="button" class="manage-action issue-action" data-action="Skipped" data-label="Mark as Skipped">Mark as Skipped</button>
+                    <button type="button" class="manage-action issue-action" data-action="Ignored" data-label="Mark as Ignored">Mark as Ignored</button>
+                </div>
+            </div>
+        </div>
+        <div id="issue-action-confirm" class="action-confirm hidden">
+            <span id="issue-action-confirm-message"></span>
+            <div class="action-confirm-buttons">
+                <button type="button" id="issue-action-confirm-yes">Yes</button>
+                <button type="button" id="issue-action-confirm-no">No</button>
+            </div>
+        </div>
+        <div class="selected-counter">Selected issues: <span id="issue-selected-count">0</span></div>
+        <input type="hidden" name="action" id="manage_issue_action" value="">
 	</div>
         
 	<div class="table_wrapper">
@@ -53,7 +65,7 @@
 	<table class="display" id="manage_issues">
 		<thead>
 			<tr>
-				<th id="select"><input type="checkbox" onClick="toggle(this)" class="checkbox" align="left" /></th>
+				<th id="select"><input type="checkbox" onClick="toggle(this);updateIssueSelectedCount();" class="checkbox" align="left" /></th>
 				<th id="name">Series</th>
                                 <th id="int_issue">Int_Issue</th>
 				<th id="issue">Issue</th>
@@ -66,7 +78,7 @@
 		<tbody>
 		%for issue in issues:
 			<tr>
-				<td id="select"><input type="checkbox" name="${issue['IssueID']}" class="checkbox" /></td>
+				<td id="select"><input type="checkbox" name="${issue['IssueID']}" class="checkbox" onchange="updateIssueSelectedCount()" /></td>
                                 <% 
                                      try:
                                          if issue['ReleaseComicName']:
@@ -107,15 +119,52 @@
 
 <%def name="headIncludes()">
 	<link rel="stylesheet" href="interfaces/${interface}/css/data_table.css">
+        <link rel="stylesheet" href="interfaces/${interface}/css/managecomics.css">
 </%def>
 
 <%def name="javascriptIncludes()">
 	<script src="js/libs/jquery.dataTables.min.js"></script>
-        <script>
-        
+	<script>
+
         var lastChecked = null;
+        var issuePendingAction = null;
+
+        function updateIssueSelectedCount() {
+                var count = $("#manage_issues input.checkbox:checked").length;
+                $("#issue-selected-count").text(count);
+                return count;
+        }
+
+        function showIssueConfirm(action, label) {
+                var count = updateIssueSelectedCount();
+                if (count === 0) {
+                        var errorMsg = $("#markissues .action-buttons").attr('data-error') || "Select at least one issue.";
+                        alert(errorMsg);
+                        issuePendingAction = null;
+                        return;
+                }
+                issuePendingAction = action;
+                var msg = label + ' (' + count + (count === 1 ? ' issue selected)' : ' issues selected)');
+                $('#issue-action-confirm-message').text(msg);
+                $('#issue-action-confirm').removeClass('hidden');
+        }
+
+        function hideIssueConfirm() {
+                issuePendingAction = null;
+                $('#issue-action-confirm').addClass('hidden');
+        }
+
+        function submitIssueAction() {
+                if (!issuePendingAction) {
+                        return;
+                }
+                $('#manage_issue_action').val(issuePendingAction);
+                doAjaxCall('markissues',$('#markissues'),'table',true,'post');
+                hideIssueConfirm();
+        }
         
         function initThisPage() {
+                updateIssueSelectedCount();
                 $('#manage_issues').dataTable(
                         {
                                 "bDestroy": true,
@@ -125,7 +174,7 @@
                                   { 'sType': 'numeric', 'aTargets': [2] },
                                   { 'columns.orderData': [2], 'aTargets': [3] }
                                 ],
-                                "aLengthMenu": [[10, 25, 50, -1], [10, 25, 50, 'All' ]],
+                                "aLengthMenu": [[10, 25, 50, 100, 200, 500, -1], [10, 25, 50, 100, 200, 500, 'All' ]],
                                 "oLanguage": {
                                         "sLengthMenu":"Show _MENU_ results per page",
                                         "sEmptyTable": "No results",
@@ -161,7 +210,19 @@
                                 lastChecked = this;
                                 }
                         }
+                        updateIssueSelectedCount();
                         });
+                $('.issue-action').on('click', function(){
+                        var action = $(this).data('action');
+                        var label = $(this).data('label') || $(this).text();
+                        showIssueConfirm(action, label);
+                });
+                $('#issue-action-confirm-yes').on('click', function(){
+                        submitIssueAction();
+                });
+                $('#issue-action-confirm-no').on('click', function(){
+                        hideIssueConfirm();
+                });
         }
 
         $(document).ready(function(){
