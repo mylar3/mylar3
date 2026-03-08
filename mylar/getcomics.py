@@ -55,24 +55,26 @@ class GC(object):
             if any([mylar.CONFIG.ENABLE_FLARESOLVERR, flare_test is True]):
                 logger.fdebug('[GC_Cookie_Creator] GetComics Session cookie does not exist. Attempting to create.')
                 #get the coookies here for use down-below
-                get_cookies = self.session.post(
+                get_cookies = requests.post(
                               main_url,
                               json={'url': mylar.GC_URL, 'cmd': 'request.get'},
                               verify=False,
                               headers=self.flare_headers,
-                              timeout=30,
+                              timeout=60,
                               )
                 if get_cookies.status_code == 200:
                     try:
                         gc_json = get_cookies.json()
-                        gc_cookie = gc_json['solution']['cookies']
+                        gc_data = { "User-Agent": gc_json["solution"]["userAgent"],
+                                    "cookies": gc_json['solution']['cookies'] }
                         with open(self.session_path, 'w') as f:
-                            json.dump(gc_cookie, f)
+                            json.dump(gc_data, f)
                     except Exception as e:
                         logger.warn('[GC_Cookie_Saver] Unable to save cookie to file - will try to recreate later.')
                     else:
                         logger.fdebug('[GC_Cookie_Saver] Successfully saved cookie to file.')
-                        for c in gc_cookie:
+                        self.session.headers["User-Agent"] = gc_data["User-Agent"]
+                        for c in gc_data["cookies"]:
                            self.session.cookies.set(name=c['name'], value=c['value'])
                         test_success = True
             else:
@@ -107,7 +109,8 @@ class GC(object):
             try:
                 with open(self.session_path, 'r') as f:
                     gc_load = json.load(f)
-                    for c in gc_load:
+                    self.session.headers['User-Agent'] = gc_load['User-Agent']
+                    for c in gc_load['cookies']:
                        self.session.cookies.set(name=c['name'], value=c['value'])
             except Exception as e:
                 #logger.warn('[GC_Cookie_Loader] Unable to load cookie from file - will recreate. Error: %s' % e)
