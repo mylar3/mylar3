@@ -380,6 +380,7 @@ _CONFIG_DEFINITIONS = OrderedDict({
     'JD2_ENABLE': (bool, 'DDL', False),
     'JD2_DEST_DIR': (str, 'DDL', None),
     'JD2_URL': (str, 'DDL', None),
+    'USE_CURL_CFFI': (bool, 'DDL', True),
 
     'ENABLE_AIRDCPP': (bool, 'DCPP', False),
     'AIRDCPP_HOST': (str, 'DCPP', ""),

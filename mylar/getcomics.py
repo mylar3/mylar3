@@ -25,13 +25,13 @@ import re
 import time
 import datetime
 from bs4 import BeautifulSoup
-import requests
 import zipfile
 import json
 import mylar
 from operator import itemgetter
 from mylar import db, logger, helpers, search_filer
 from mylar.downloaders.jdownloader2 import JDownloader2
+import curl_cffi
 
 class GC(object):
 
@@ -134,7 +134,11 @@ class GC(object):
             'Referer': mylar.GC_URL,
         }
 
-        self.session = requests.Session()
+        if mylar.CONFIG.USE_CURL_CFFI:
+            logger.fdebug('[DDL] Using curl_cffi for GetComics')
+            self.session = curl_cffi.Session(impersonate="chrome")
+        else:
+            self.session = requests.Session()
 
         if mylar.CONFIG.ENABLE_PROXY:
             self.session.proxies.update({
