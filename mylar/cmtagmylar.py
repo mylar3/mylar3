@@ -156,9 +156,12 @@ def run(dirName, nzbName=None, issueid=None, comversion=None, manual=None, filen
             use_cvapi = "True"
             tagoptions.extend(["--cv-api-key", mylar.CONFIG.COMICVINE_API, "--configfolder", mylar.CONFIG.CT_SETTINGSPATH, "--notes_format", mylar.CONFIG.CT_NOTES_FORMAT])
             cv_api_url = getattr(mylar.CONFIG, "COMICVINE_URL", None)
-            
-            if cv_api_url and cv_api_url.strip().rstrip("/") != "https://comicvine.gamespot.com/api":
-                tagoptions.extend(["--cv-api-url", cv_api_url])
+            if cv_api_url:
+                cv_api_url = cv_api_url.strip().rstrip("/")
+            if not cv_api_url:
+                cv_api_url = "https://comicvine.gamespot.com/api"
+
+            tagoptions.extend(["--cv-api-url", cv_api_url])
     else:
         logger.fdebug('%s ComicTagger v.ct_version being used - personal ComicVine API key not supported in this version. Good luck.' % (module, ct_version))
         use_cvapi = "False"
