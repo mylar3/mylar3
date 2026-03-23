@@ -264,7 +264,7 @@ def run(dirName, nzbName=None, issueid=None, comversion=None, manual=None, filen
                 else:
                     tmpfilename = re.sub('Archive exported successfully to: ', '', out.rstrip())
                 if mylar.CONFIG.FILE_OPTS == 'move':
-                    tmpfilename = re.sub('\(Original deleted\)', '', tmpfilename).strip()
+                    tmpfilename = re.sub(r'\(Original deleted\)', '', tmpfilename).strip()
                 tmpf = tmpfilename
                 filepath = os.path.join(comicpath, tmpf)
                 if filename.lower() != tmpf.lower() and tmpf.endswith('(1).cbz'):
@@ -279,6 +279,8 @@ def run(dirName, nzbName=None, issueid=None, comversion=None, manual=None, filen
                 if not os.path.isfile(filepath):
                     logger.fdebug('%s Trying utf-8 conversion.' % module)
                     tmpf = tmpfilename.encode('utf-8')
+                    # TODO: This needs fixing to avoid it throwing errors joining string and bytes, but first we stop getting here
+                    # in the first place
                     filepath = os.path.join(comicpath, tmpf)
                     if not os.path.isfile(filepath):
                         logger.fdebug('%s Trying latin-1 conversion.' % module)

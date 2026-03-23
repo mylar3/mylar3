@@ -123,20 +123,20 @@ class FileRenamer:
         if self.smart_cleanup:
 
             # remove empty braces,brackets, parentheses
-            new_name = re.sub("\(\s*[-:]*\s*\)", "", new_name)
-            new_name = re.sub("\[\s*[-:]*\s*\]", "", new_name)
-            new_name = re.sub("\{\s*[-:]*\s*\}", "", new_name)
+            new_name = re.sub(r"\(\s*[-:]*\s*\)", "", new_name)
+            new_name = re.sub(r"\[\s*[-:]*\s*\]", "", new_name)
+            new_name = re.sub(r"\{\s*[-:]*\s*\}", "", new_name)
 
             # remove duplicate spaces
             new_name = " ".join(new_name.split())
 
             # remove remove duplicate -, _,
-            new_name = re.sub("[-_]{2,}\s+", "-- ", new_name)
-            new_name = re.sub("(\s--)+", " --", new_name)
-            new_name = re.sub("(\s-)+", " -", new_name)
+            new_name = re.sub(r"[-_]{2,}\s+", "-- ", new_name)
+            new_name = re.sub(r"(\s--)+", " --", new_name)
+            new_name = re.sub(r"(\s-)+", " -", new_name)
 
             # remove dash or double dash at end of line
-            new_name = re.sub("[-]{1,2}\s*$", "", new_name)
+            new_name = re.sub(r"[-]{1,2}\s*$", "", new_name)
 
             # remove duplicate spaces (again!)
             new_name = " ".join(new_name.split())
