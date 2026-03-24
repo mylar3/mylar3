@@ -424,11 +424,11 @@ class Api(object):
         return
 
     def _getLogs(self, **kwargs):
-        self.data = mylar.LOG_LIST
+        self.data = mylar.LOGLIST
         return
 
     def _clearLogs(self, **kwargs):
-        mylar.LOG_LIST = []
+        mylar.LOGLIST = []
         self.data = 'Cleared log'
         return
 
