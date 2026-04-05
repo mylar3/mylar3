@@ -48,13 +48,13 @@ class FileNameParser:
         tmpstr = self.fixSpaces(filename)
         found = False
 
-        match = re.search('(?<=\sof\s)\d+(?=\s)', tmpstr, re.IGNORECASE)
+        match = re.search(r'(?<=\sof\s)\d+(?=\s)', tmpstr, re.IGNORECASE)
         if match:
             count = match.group()
             found = True
 
         if not found:
-            match = re.search('(?<=\(of\s)\d+(?=\))', tmpstr, re.IGNORECASE)
+            match = re.search(r'(?<=\(of\s)\d+(?=\))', tmpstr, re.IGNORECASE)
             if match:
                 count = match.group()
                 found = True
@@ -78,25 +78,25 @@ class FileNameParser:
         if "--" in filename:
             # the pattern seems to be that anything to left of the first "--"
             # is the series name followed by issue
-            filename = re.sub("--.*", self.repl, filename)
+            filename = re.sub(r"--.*", self.repl, filename)
 
         elif "__" in filename:
             # the pattern seems to be that anything to left of the first "__"
             # is the series name followed by issue
-            filename = re.sub("__.*", self.repl, filename)
+            filename = re.sub(r"__.*", self.repl, filename)
 
         filename = filename.replace("+", " ")
 
         # replace parenthetical phrases with spaces
-        filename = re.sub("\(.*?\)", self.repl, filename)
-        filename = re.sub("\[.*?\]", self.repl, filename)
+        filename = re.sub(r"\(.*?\)", self.repl, filename)
+        filename = re.sub(r"\[.*?\]", self.repl, filename)
 
         # replace any name separators with spaces
         filename = self.fixSpaces(filename)
 
         # remove any "of NN" phrase with spaces (problem: this could break on
         # some titles)
-        filename = re.sub("of [\d]+", self.repl, filename)
+        filename = re.sub(r"of [\d]+", self.repl, filename)
 
         # print u"[{0}]".format(filename)
 
@@ -105,7 +105,7 @@ class FileNameParser:
 
         # make a list of each word and its position
         word_list = list()
-        for m in re.finditer("\S+", filename):
+        for m in re.finditer(r"\S+", filename):
             word_list.append((m.group(0), m.start(), m.end()))
 
         # remove the first word, since it can't be the issue number
@@ -120,7 +120,7 @@ class FileNameParser:
         # first look for a word with "#" followed by digits with optional suffix
         # this is almost certainly the issue number
         for w in reversed(word_list):
-            if re.match("#[-]?(([0-9]*\.[0-9]+|[0-9]+)(\w*))", w[0]):
+            if re.match(r"#[-]?(([0-9]*\.[0-9]+|[0-9]+)(\w*))", w[0]):
                 found = True
                 break
 
@@ -128,13 +128,13 @@ class FileNameParser:
         # list
         if not found:
             w = word_list[-1]
-            if re.match("[-]?(([0-9]*\.[0-9]+|[0-9]+)(\w*))", w[0]):
+            if re.match(r"[-]?(([0-9]*\.[0-9]+|[0-9]+)(\w*))", w[0]):
                 found = True
 
         # now try to look for a # followed by any characters
         if not found:
             for w in reversed(word_list):
-                if re.match("#\S+", w[0]):
+                if re.match(r"#\S+", w[0]):
                     found = True
                     break
 
@@ -157,12 +157,12 @@ class FileNameParser:
         if "--" in filename:
             # the pattern seems to be that anything to left of the first "--"
             # is the series name followed by issue
-            filename = re.sub("--.*", self.repl, filename)
+            filename = re.sub(r"--.*", self.repl, filename)
 
         elif "__" in filename:
             # the pattern seems to be that anything to left of the first "__"
             # is the series name followed by issue
-            filename = re.sub("__.*", self.repl, filename)
+            filename = re.sub(r"__.*", self.repl, filename)
 
         filename = filename.replace("+", " ")
         tmpstr = self.fixSpaces(filename, remove_dashes=False)
@@ -177,10 +177,10 @@ class FileNameParser:
             last_word = ""
 
         # remove any parenthetical phrases
-        series = re.sub("\(.*?\)", "", series)
+        series = re.sub(r"\(.*?\)", "", series)
 
         # search for volume number
-        match = re.search('(.+)([vV]|[Vv][oO][Ll]\.?\s?)(\d+)\s*$', series)
+        match = re.search(r'(.+)([vV]|[Vv][oO][Ll]\.?\s?)(\d+)\s*$', series)
         if match:
             series = match.group(1)
             volume = match.group(3)
@@ -189,7 +189,7 @@ class FileNameParser:
         # since that's a common way to designate the volume
         if volume == "":
             # match either (YEAR), (YEAR-), or (YEAR-YEAR2)
-            match = re.search("(\()(\d{4})(-(\d{4}|)|)(\))", last_word)
+            match = re.search(r"(\()(\d{4})(-(\d{4}|)|)(\))", last_word)
             if match:
                 volume = match.group(2)
 
@@ -215,11 +215,11 @@ class FileNameParser:
 
         year = ""
         # look for four digit number with "(" ")" or "--" around it
-        match = re.search('(\(\d\d\d\d\))|(--\d\d\d\d--)', filename)
+        match = re.search(r'(\(\d\d\d\d\))|(--\d\d\d\d--)', filename)
         if match:
             year = match.group()
             # remove non-digits
-            year = re.sub("[^0-9]", "", year)
+            year = re.sub(r"[^0-9]", "", year)
         return year
 
     def getRemainder(self, filename, year, count, volume, issue_end):
