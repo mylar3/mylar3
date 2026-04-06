@@ -156,9 +156,12 @@ def run(dirName, nzbName=None, issueid=None, comversion=None, manual=None, filen
             use_cvapi = "True"
             tagoptions.extend(["--cv-api-key", mylar.CONFIG.COMICVINE_API, "--configfolder", mylar.CONFIG.CT_SETTINGSPATH, "--notes_format", mylar.CONFIG.CT_NOTES_FORMAT])
             cv_api_url = getattr(mylar.CONFIG, "COMICVINE_URL", None)
-            
-            if cv_api_url and cv_api_url.strip().rstrip("/") != "https://comicvine.gamespot.com/api":
-                tagoptions.extend(["--cv-api-url", cv_api_url])
+            if cv_api_url:
+                cv_api_url = cv_api_url.strip().rstrip("/")
+            if not cv_api_url:
+                cv_api_url = "https://comicvine.gamespot.com/api"
+
+            tagoptions.extend(["--cv-api-url", cv_api_url])
     else:
         logger.fdebug('%s ComicTagger v.ct_version being used - personal ComicVine API key not supported in this version. Good luck.' % (module, ct_version))
         use_cvapi = "False"
@@ -261,7 +264,7 @@ def run(dirName, nzbName=None, issueid=None, comversion=None, manual=None, filen
                 else:
                     tmpfilename = re.sub('Archive exported successfully to: ', '', out.rstrip())
                 if mylar.CONFIG.FILE_OPTS == 'move':
-                    tmpfilename = re.sub('\(Original deleted\)', '', tmpfilename).strip()
+                    tmpfilename = re.sub(r'\(Original deleted\)', '', tmpfilename).strip()
                 tmpf = tmpfilename
                 filepath = os.path.join(comicpath, tmpf)
                 if filename.lower() != tmpf.lower() and tmpf.endswith('(1).cbz'):
@@ -276,6 +279,8 @@ def run(dirName, nzbName=None, issueid=None, comversion=None, manual=None, filen
                 if not os.path.isfile(filepath):
                     logger.fdebug('%s Trying utf-8 conversion.' % module)
                     tmpf = tmpfilename.encode('utf-8')
+                    # TODO: This needs fixing to avoid it throwing errors joining string and bytes, but first we stop getting here
+                    # in the first place
                     filepath = os.path.join(comicpath, tmpf)
                     if not os.path.isfile(filepath):
                         logger.fdebug('%s Trying latin-1 conversion.' % module)

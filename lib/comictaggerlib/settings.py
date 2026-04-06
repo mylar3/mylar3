@@ -156,10 +156,10 @@ class ComicTaggerSettings:
         if self.rar_exe_path == "":
             if platform.system() == "Windows":
                 # look in some likely places for Windows machines
-                if os.path.exists("C:\Program Files\WinRAR\Rar.exe"):
-                    self.rar_exe_path = "C:\Program Files\WinRAR\Rar.exe"
-                elif os.path.exists("C:\Program Files (x86)\WinRAR\Rar.exe"):
-                    self.rar_exe_path = "C:\Program Files (x86)\WinRAR\Rar.exe"
+                if os.path.exists(r"C:\Program Files\WinRAR\Rar.exe"):
+                    self.rar_exe_path = r"C:\Program Files\WinRAR\Rar.exe"
+                elif os.path.exists(r"C:\Program Files (x86)\WinRAR\Rar.exe"):
+                    self.rar_exe_path = r"C:\Program Files (x86)\WinRAR\Rar.exe"
             else:
                 # see if it's in the path of unix user
                 if utils.which("rar") is not None:
