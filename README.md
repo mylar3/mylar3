@@ -14,12 +14,11 @@ It will also allow you to monitor weekly pull-lists for items belonging to said 
 Install it via git clone or via [Docker](https://hub.docker.com/r/linuxserver/mylar3)
 
 ## Documentation
-Check out our [website](https://mylarcomics.com) for documentation!
+Check out our [website](https://mylar.nerdfirehurricane.com) for documentation!
 
 ## Support & Discussion
 Please try to limit Github issues to bugs & enhancement requests ONLY
 - [Github](https://github.com/mylar3/mylar3/issues) (Bug & Feature requests only)
-- [Forums](https://forum.mylarcomics.com)
 
 ## Development
 We welcome contributions! At present we ask that you submit changes to the 1000papercuts branch. 
@@ -28,11 +27,11 @@ basis once given changes have been proven.
 
 ## Live Support / Conversation
 - [Discord](https://discord.gg/6UG94R7E8T)
-- [IRC](https://web.libera.chat/?channels=#mylar)
 
 ## Features
 - Abliity to be run on various OS' (windows, linux, macOS, Raspberry Pi, etc)
 - Support for SABnzbd, NZBGet and various torrent clients (as well as Blackhole)
+- AirDC++ Support for pulling releases from your favorite hubs
 - Multiple newznabs support, as well including a raw indexer and direct download being available
 - Ability to see upcoming new releases for a particular week and take action on them if required
 - View pullists up to 4 weeks in advance, or several months prior
@@ -50,7 +49,7 @@ basis once given changes have been proven.
 AND SO MUCH MORE!
 
 ## Contributing
-If you wish to help out, please see our website: [contributing](https://mylarcomics.com/docs/contributing)
+If you wish to help out, please see our website: [contributing](https://mylar.nerdfirehurricane.com/docs/contributing)
  
-<p align="center">This project exists thanks to all the people who contribute - whether by code, assisting others or financial donations.</br> 
+<p align="center">This project exists thanks to all the people who contribute - whether by code, or assisting others</br> 
 To all those who have contributed, we thank you for your support.</p>

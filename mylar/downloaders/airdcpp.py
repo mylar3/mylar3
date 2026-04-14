@@ -404,8 +404,6 @@ class AirDCPP(object):
                 search_instance_id = self.current_search_instance_id
 
             payload = {
-                "target_directory": dl_location,
-                "target_name": filename,
                 "priority": 4
             }
 
