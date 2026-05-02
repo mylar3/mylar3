@@ -8,13 +8,14 @@ class LoginRequired(Exception):
 
 class Client(object):
     """class to interact with qBittorrent WEB API"""
-    def __init__(self, url):
+    def __init__(self, url, verify=True):
         if not url.endswith('/'):
             url += '/'
         self.url = url
+        self.verify = verify
 
         session = requests.Session()
-        check_prefs = session.get(url+'api/v2/app/preferences')
+        check_prefs = session.get(url+'api/v2/app/preferences', verify=self.verify)
 
         if check_prefs.status_code == 200:
             self._is_authenticated = True
@@ -72,9 +73,9 @@ class Client(object):
 
         rq = self.session
         if method == 'get':
-            request = rq.get(final_url, **kwargs)
+            request = rq.get(final_url, verify=self.verify, **kwargs)
         else:
-            request = rq.post(final_url, data, **kwargs)
+            request = rq.post(final_url, data, verify=self.verify, **kwargs)
 
         request.raise_for_status()
         request.encoding = 'utf_8'
@@ -105,7 +106,8 @@ class Client(object):
         self.session = requests.Session()
         login = self.session.post(self.url+'api/v2/auth/login',
                                   data={'username': username,
-                                        'password': password})
+                                        'password': password},
+                                  verify=self.verify)
         if login.text == 'Ok.':
             self._is_authenticated = True
         else:

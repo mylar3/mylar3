@@ -11,15 +11,18 @@ class TorrentClient(object):
     def __init__(self):
         self.conn = None
 
-    def connect(self, host, username, password, test=False):
+    def connect(self, host, username, password, ignore_ssl=None, test=False):
         if self.conn is not None:
             return self.connect
 
         if not host:
             return {'status': False, 'error': 'host not specified'}
 
+        if ignore_ssl is None:
+            ignore_ssl = mylar.CONFIG.QBITTORRENT_IGNORE_SSL
+
         try:
-            self.client = Client(host)
+            self.client = Client(host, verify=not ignore_ssl)
         except Exception as e:
             logger.error('Could not create qBittorrent Object %s' % e)
             return {'status': False, 'error': e}
