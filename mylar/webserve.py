@@ -6870,6 +6870,7 @@ class WebInterface(object):
                     "torrent_downloader_transmission": helpers.radio(int(mylar.CONFIG.TORRENT_DOWNLOADER), 3),
                     "torrent_downloader_deluge": helpers.radio(int(mylar.CONFIG.TORRENT_DOWNLOADER), 4),
                     "torrent_downloader_qbittorrent": helpers.radio(int(mylar.CONFIG.TORRENT_DOWNLOADER), 5),
+                    "qbittorrent_ignore_ssl": helpers.checked(mylar.CONFIG.QBITTORRENT_IGNORE_SSL),
                     "utorrent_host": mylar.CONFIG.UTORRENT_HOST,
                     "utorrent_username": mylar.CONFIG.UTORRENT_USERNAME,
                     "utorrent_password": mylar.CONFIG.UTORRENT_PASSWORD,
@@ -7402,7 +7403,7 @@ class WebInterface(object):
 
     def configUpdate(self, **kwargs):
         checked_configs = ['enable_https', 'launch_browser', 'backup_on_start', 'keep_html_cache', 'syno_fix', 'auto_update', 'annuals_on', 'api_enabled', 'nzb_startup_search',
-                           'enforce_perms', 'sab_to_mylar', 'torrent_local', 'torrent_seedbox', 'rtorrent_ssl', 'rtorrent_verify', 'rtorrent_startonload',
+                           'enforce_perms', 'sab_to_mylar', 'torrent_local', 'torrent_seedbox', 'rtorrent_ssl', 'rtorrent_verify', 'rtorrent_startonload', 'qbittorrent_ignore_ssl',
                            'enable_torrents', 'enable_rss', 'experimental', 'enable_torrent_search', 'enable_32p', 'enable_torznab',
                            'newznab', 'use_minsize', 'use_maxsize', 'ddump', 'failed_download_handling', 'sab_client_post_processing', 'nzbget_client_post_processing',
                            'failed_auto', 'post_processing', 'enable_check_folder', 'enable_pre_scripts', 'enable_snatch_script', 'enable_extra_scripts',
@@ -8516,10 +8517,14 @@ class WebInterface(object):
                 return 'Successfully validated rTorrent connection'
     testrtorrent.exposed = True
 
-    def testqbit(self, host, username, password):
+    def testqbit(self, host, username, password, ignore_ssl='false'):
+        if ignore_ssl == 'true':
+            ignore_ssl = True
+        elif ignore_ssl == 'false':
+            ignore_ssl = False
         from mylar.torrent.clients import qbittorrent as QbitClient
         qc = QbitClient.TorrentClient()
-        qclient = qc.connect(host, username, password, True)
+        qclient = qc.connect(host, username, password, ignore_ssl=ignore_ssl, test=True)
         if not qclient:
             logger.warn('[qBittorrent] Could not establish connection to %s' % host)
             return 'Error establishing connection to Qbittorrent'

@@ -455,6 +455,7 @@ _CONFIG_DEFINITIONS = OrderedDict({
     'QBITTORRENT_LABEL': (str, 'qBittorrent', None),
     'QBITTORRENT_FOLDER': (str, 'qBittorrent', None),
     'QBITTORRENT_LOADACTION': (str, 'qBittorrent', 'default'),   #default, force_start, paused
+    'QBITTORRENT_IGNORE_SSL': (bool, 'qBittorrent', False),
 
     'OPDS_ENABLE': (bool, 'OPDS', False),
     'OPDS_AUTHENTICATION': (bool, 'OPDS', False),
