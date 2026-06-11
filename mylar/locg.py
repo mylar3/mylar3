@@ -57,8 +57,19 @@ def locg(pulldate=None,weeknumber=None,year=None):
             r = requests.get(url, params=params, verify=True, headers={'User-Agent': mylar.USER_AGENT[:mylar.USER_AGENT.find('/')+7] + mylar.USER_AGENT[mylar.USER_AGENT.find('(')+1]})
         except requests.exceptions.RequestException as e:
             logger.warn('[PULL-LIST] Error encountered retrieving pull-list: %s' % (e,))
-            mylar.BACKENDSTATUS_WS = 'down'
-            return {'status': 'failure'}
+            r = None
+
+        # When the primary backend (walksoftly) is unreachable or returns a
+        # non-200, fall back to ComicList (comiclist.info) so the weekly
+        # pull-list keeps working. ComicList is actively maintained and
+        # aggregates the post-Diamond distributors (Lunar, PRH, Manage Comics).
+        if r is None or str(r.status_code) != '200':
+            if r is not None:
+                logger.warn('[PULL-LIST] Primary backend returned %s; falling back to ComicList' % (r.status_code,))
+            else:
+                logger.warn('[PULL-LIST] Primary backend unreachable; falling back to ComicList')
+            from mylar import comiclist
+            r = comiclist.response(weeknumber, year)
 
         if str(r.status_code) == '619':
             logger.warn('[%s] No date supplied, or an invalid date was provided [%s]' % (r.status_code, pulldate))
