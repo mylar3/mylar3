@@ -511,7 +511,7 @@ def main():
         logger.info('%s Maintenance webserver has been shut down.'% (loggermode))
         mylar.shutdown(restart=restart_method, maintenance=True)
 
-    # Force the http port if neccessary
+    # Force the http port if necessary
     if args_port > 0:
         http_port = args_port
         logger.info('Starting Mylar on forced port: %i' % http_port)
