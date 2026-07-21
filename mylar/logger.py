@@ -126,7 +126,7 @@ if not LOG_LANG.startswith('en'):
         def log(message, level, *args, **kwargs):
             logger = logging.getLogger('mylar')
 
-            threadname = threading.currentThread().getName()
+            threadname = threading.current_thread().getName()
 
             # Get the frame data of the method that made the original logger call
             if len(inspect.stack()) > 2:
