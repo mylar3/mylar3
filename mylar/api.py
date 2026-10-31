@@ -643,7 +643,7 @@ class Api(object):
                 ref_line = 'for %s items (%s)' % (len(watch), watch)
 
             logger.warn('[API-refreshComic] Successfully background submitted refresh %s' % (ref_line))
-            self.data = self._successResponse('Refresh successfully submitted %s.' % (self.id, ref_line))
+            self.data = self._successResponse('Refresh successfully submitted %s.' % (ref_line,))
 
         return
 
@@ -691,7 +691,7 @@ class Api(object):
                 newWrite = {'ComicID': self.id}
                 myDB.upsert("comics", newValue, newWrite)
             except Exception as e:
-                self.data = self._failureResponse('[%s] Unable to update Booktype for ComicID: %s. Error returned: %s' % (self.id, e))
+                self.data = self._failureResponse('Unable to update Booktype for ComicID: %s. Error returned: %s' % (self.id, e))
                 return
             else:
                 self.data = self._successResponse('[%s] Updated Booktype to %s.' % (self.id, booktype))
@@ -1434,7 +1434,7 @@ class Api(object):
             if prov_line not in mylar.CONFIG.EXTRA_NEWZNABS:
                 mylar.CONFIG.EXTRA_NEWZNABS.append(prov_line)
             else:
-                self.data = self._failureResponse('exact details belong to another provider id already [%]. Maybe you should be using changeProvider' % prov_id)
+                self.data = self._failureResponse('exact details belong to another provider id already [%s]. Maybe you should be using changeProvider' % prov_id)
                 logger.fdebug('[API][addProvider] %s' % (self.data,))
                 return
 
@@ -1481,7 +1481,7 @@ class Api(object):
             if prov_line not in mylar.CONFIG.EXTRA_TORZNABS:
                 mylar.CONFIG.EXTRA_TORZNABS.append(prov_line)
             else:
-                self.data = self._failureResponse('exact details belong to another provider id already [%]. Maybe you should be using changeProvider' % prov_id)
+                self.data = self._failureResponse('exact details belong to another provider id already [%s]. Maybe you should be using changeProvider' % prov_id)
                 logger.fdebug('[API][addProvider] %s' % (self.data,))
                 return
 

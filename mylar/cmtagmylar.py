@@ -163,7 +163,7 @@ def run(dirName, nzbName=None, issueid=None, comversion=None, manual=None, filen
 
             tagoptions.extend(["--cv-api-url", cv_api_url])
     else:
-        logger.fdebug('%s ComicTagger v.ct_version being used - personal ComicVine API key not supported in this version. Good luck.' % (module, ct_version))
+        logger.fdebug('%s ComicTagger v.%s being used - personal ComicVine API key not supported in this version. Good luck.' % (module, ct_version))
         use_cvapi = "False"
 
     i = 1
