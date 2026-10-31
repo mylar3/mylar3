@@ -1133,8 +1133,8 @@ def NZB_SEARCH(
                             disable_warnings()
                         except Exception as e:
                             logger.warn(
-                                'Unable to disable https warnings. Expect some spam if'
-                                'using https nzb providers.' % e
+                                'Unable to disable https warnings. Expect some spam if '
+                                'using https nzb providers: %s' % e
                             )
 
                     elif findurl.startswith('http:') and verify is True:
