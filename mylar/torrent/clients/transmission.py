@@ -24,7 +24,7 @@ class TorrentClient(object):
             else:
                 self.conn = Client(host)
         except:
-            logger.error('Could not connect to %h' % host)
+            logger.error('Could not connect to %s' % host)
             return False
 
         return self.conn
